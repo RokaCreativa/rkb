@@ -48,8 +48,7 @@
 
     // Configuración de alias para rutas más limpias en imports.
     "paths": {
-      "@/*": ["./*"],  // Alias para cualquier carpeta en la raíz del proyecto.
-      "@/prisma/*": ["./app/prisma/*"] // Alias específico para Prisma dentro de `app/prisma/`.
+      "@/*": ["./*"]
     }
   },
 

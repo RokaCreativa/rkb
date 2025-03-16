@@ -7,490 +7,81 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model alergenos {
+model Usuarios {
+  us_cd_usuario    String  @id
+  us_contrasena    String
+  us_nombreusuario String
+  us_perfil        String
+  us_email         String?
+  us_nacionalidad  String?
+  confirmado       String
+  nombre           String?
+  empresas         UsuariosHasEmpresas[]
+
+  @@map("usuarios")
+}
+
+model Empresas {
+  id              String  @id
+  nombre          String
+  usuarios        UsuariosHasEmpresas[]
+  categorias      Categorias[]
+
+  @@map("empresas")
+}
+
+model UsuariosHasEmpresas {
+  usuario        Usuarios @relation(fields: [us_cd_usuario], references: [us_cd_usuario])
+  empresa        Empresas @relation(fields: [empresa_id], references: [id])
+  us_cd_usuario  String
+  empresa_id     String
+
+  @@id([us_cd_usuario, empresa_id])
+  @@map("usuarios_has_empresas")
+}
+
+model Categorias {
+  id          Int       @id @default(autoincrement())
+  nombre      String
+  foto        String?
+  estado      String    @default("A")
+  orden       Int?
+  empresa     Empresas  @relation(fields: [compania], references: [id])
+  compania    String
+  productos   Productos[]
+  eliminado   String    @default("N")
+
+  @@map("categorias")
+}
+
+model Productos {
+  id          Int         @id @default(autoincrement())
+  nombre      String
+  descripcion String?
+  precio      Float
+  foto        String?
+  estado      String      @default("A")
+  orden       Int?
+  categoria   Categorias  @relation(fields: [categoria_id], references: [id])
+  categoria_id Int
+  eliminado   String      @default("N")
+
+  @@map("productos")
+}
+
+model Alergenos {
   id     Int    @id @default(autoincrement())
-  nombre String @db.VarChar(50)
-  icono  String @db.VarChar(50)
+  nombre String
+  icono  String
   orden  Int?
+
+  @@map("alergenos")
 }
 
-model alergenos_producto {
-  id_alergeno Int
-  id_producto Int
+model AlergenosProducto {
+  alergeno_id Int
+  producto_id Int
 
-  @@id([id_alergeno, id_producto])
-}
-
-model aliados {
-  id                         Int      @id @default(autoincrement())
-  compania                   Int
-  nombre                     String   @db.VarChar(50)
-  tipo                       String?  @db.VarChar(3)
-  mostrar_todos_restaurantes String   @db.VarChar(1)
-  mostrar_todos_hoteles      String   @db.VarChar(1)
-  mostrar_todas_excursiones  String   @db.VarChar(1)
-  estatus                    String   @db.VarChar(1)
-  registrado                 DateTime @db.DateTime(0)
-}
-
-model areas_establecimiento {
-  id          Int     @id @default(autoincrement())
-  compania    Int
-  nombre      String  @db.VarChar(50)
-  descripcion String? @db.VarChar(500)
-  estatus     String  @db.VarChar(1)
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model booking {
-  id                              Int     @id @default(autoincrement())
-  compania                        Int
-  nombre                          String? @db.VarChar(50)
-  telefono                        String? @db.VarChar(15)
-  direccion                       String? @db.VarChar(500)
-  delivery                        String  @db.VarChar(1)
-  costo_delivery                  Decimal @db.Decimal(14, 2)
-  monto_booking                   Decimal @db.Decimal(14, 2)
-  estatus                         String  @db.VarChar(1)
-  fecha_solicitud                 String  @db.VarChar(20)
-  fecha_aprobacion                String? @db.VarChar(20)
-  moneda                          Int
-  zona_delivery                   Int?
-  ip                              String  @db.VarChar(15)
-  desc_zona_delivery              String? @db.VarChar(100)
-  fecha_rechazo                   String? @db.VarChar(20)
-  usuario_rechazo                 String? @db.VarChar(30)
-  fecha_lectura                   String? @db.VarChar(20)
-  usuario_lectura                 String? @db.VarChar(30)
-  usuario_aprobacion              String? @db.VarChar(30)
-  fecha_despacho                  String? @db.VarChar(20)
-  usuario_despacho                String? @db.VarChar(30)
-  fecha_envio                     String? @db.VarChar(20)
-  usuario_envio                   String? @db.VarChar(30)
-  hash                            String? @db.VarChar(50)
-  valoracion_servicio             String? @db.VarChar(1)
-  comentario_valoracion           String? @db.Text
-  fecha_confirmacion_cliente      String? @db.VarChar(20)
-  publicar_valoracion             String? @db.VarChar(1)
-  fecha_estatus_publicacion       String? @db.VarChar(20)
-  usuario_publicacion             String? @db.VarChar(30)
-  email                           String? @db.VarChar(100)
-  id_response_pago_stripe         String? @db.VarChar(100)
-  estatus_response_pago_stripe    String? @db.VarChar(50)
-  json_response_pago_stripe       String? @db.Text
-  id_response_reintegro_stripe    String? @db.VarChar(100)
-  estatus_response_reverso_stripe String? @db.VarChar(50)
-  json_response_reverso_stripe    String? @db.Text
-}
-
-model booking_detalle {
-  id              Int
-  fila            Int
-  id_producto     Int
-  cantidad        Int
-  precio_unitario Decimal @db.Decimal(14, 2)
-  sku             String? @db.VarChar(45)
-  nombre          String  @db.VarChar(300)
-  opciones        String? @db.VarChar(500)
-
-  @@id([id, fila])
-}
-
-model categorias {
-  id                  Int      @id @default(autoincrement())
-  nombre              String   @db.VarChar(50)
-  foto                String?  @db.VarChar(45)
-  estatus             String   @db.VarChar(1)
-  orden               Int
-  compania            Int
-  registrado          DateTime @db.DateTime(0)
-  eliminado           String   @default("N") @db.VarChar(1)
-  fecha_eliminacion   String?  @db.VarChar(20)
-  usuario_eliminacion String?  @db.VarChar(50)
-  ip_eliminacion      String?  @db.VarChar(20)
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model compania {
-  comp_cd_compania           Int       @id @default(autoincrement())
-  comp_cd_nacionalidad       String?   @db.VarChar(1)
-  comp_nu_rif                String?   @db.VarChar(9)
-  comp_descripcion           String?   @db.VarChar(100)
-  comp_direccion             String?   @db.VarChar(500)
-  comp_cuenta_instagram_etiq String?   @db.VarChar(100)
-  comp_whatsup_etiq          String?   @db.VarChar(12)
-  comp_logo                  String?   @db.VarChar(70)
-  comp_estilo_link           String?   @db.VarChar(40)
-  comp_avatar_app_links      String?   @db.VarChar(100)
-  comp_nombre_app            String?   @db.VarChar(50)
-  email                      String    @db.VarChar(200)
-  confirmado                 String?   @default("N") @db.VarChar(1)
-  codigo_activacion          String?   @db.VarChar(200)
-  foto1vc                    String?   @db.VarChar(200)
-  foto2vc                    String?   @db.VarChar(200)
-  fecha_alta                 DateTime? @db.Date
-  fecha_activacion           DateTime? @db.Date
-  foto_qr                    String?   @db.VarChar(50)
-  moneda                     Int?
-  tipo                       Int?
-  pais                       Int?
-  alergenos                  String?   @db.VarChar(1)
-  ciudad                     String?   @db.VarChar(50)
-  codigo_postal              String?   @db.VarChar(15)
-  website                    String?   @db.VarChar(200)
-  descripcion_redes          String?   @db.VarChar(200)
-  numero_ws                  String?   @db.VarChar(15)
-  mensaje_ws                 String?   @db.VarChar(500)
-  habilitar_ws               String?   @db.VarChar(1)
-  imagen_fondo_menu          String?   @db.VarChar(100)
-  color_fondo                String?   @db.VarChar(6)
-  texto_fijo_pie_menu        String?   @db.VarChar(1000)
-  mostrar_link_compra        String?   @db.VarChar(1)
-  clicks_comprar             Int       @default(0)
-  texto_boton_comprar        String?   @db.VarChar(20)
-  color_fondo_boton_primario String?   @db.VarChar(7)
-  color_texto_boton_primario String?   @db.VarChar(7)
-  horario_lunes_desde        String?   @db.VarChar(5)
-  horario_lunes_hasta        String?   @db.VarChar(5)
-  horario_martes_desde       String?   @db.VarChar(5)
-  horario_martes_hasta       String?   @db.VarChar(5)
-  horario_miercoles_desde    String?   @db.VarChar(5)
-  horario_miercoles_hasta    String?   @db.VarChar(5)
-  horario_jueves_desde       String?   @db.VarChar(5)
-  horario_jueves_hasta       String?   @db.VarChar(5)
-  horario_viernes_desde      String?   @db.VarChar(5)
-  horario_viernes_hasta      String?   @db.VarChar(5)
-  horario_sabado_desde       String?   @db.VarChar(5)
-  horario_sabado_hasta       String?   @db.VarChar(5)
-  horario_domingo_desde      String?   @db.VarChar(5)
-  horario_domingo_hasta      String?   @db.VarChar(5)
-  mostrar_horario            String    @default("N") @db.VarChar(1)
-  habilitar_stripe           String    @default("N") @db.VarChar(1)
-  modo_stripe                String    @default("T") @db.VarChar(1)
-  compras_solo_con_tarjeta   String    @default("N") @db.VarChar(1)
-  habilitar_intro            String?   @default("N") @db.VarChar(1)
-  video_intro                String?   @db.VarChar(100)
-  boton_quitar_intro         String?   @db.VarChar(50)
-  position_quitar_intro      String?   @db.VarChar(10)
-  margin_quitar_intro        String?   @db.VarChar(3)
-  logo_intro                 String?   @db.VarChar(50)
-  position_logo_intro        String?   @db.VarChar(10)
-  margin_logo_intro          String?   @db.VarChar(3)
-  color_texto_fijo_pie_menu  String?   @db.VarChar(6)
-  id_stripe                  String?   @db.VarChar(50)
-  po_comision_stripe         Decimal?  @db.Decimal(5, 2)
-  mt_comision_stripe         Decimal?  @db.Decimal(10, 2)
-  fecha_vencimiento          DateTime? @db.Date
-  permite_reserva            String    @default("N") @db.VarChar(1)
-  servicio_delivery          String    @default("N") @db.VarChar(1)
-  estatus_delivery           String?   @default("I") @db.VarChar(1)
-  facebook                   String?   @db.VarChar(150)
-  twitter                    String?   @db.VarChar(150)
-  instagram                  String?   @db.VarChar(150)
-  email_web                  String?   @db.VarChar(70)
-  telefono_web               String?   @db.VarChar(30)
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model control_reservas {
-  id                   Int       @id @default(autoincrement())
-  compania             Int
-  fecha_solicitud      DateTime  @db.DateTime(0)
-  fecha_reserva        DateTime  @db.Date
-  hora_reserva         String    @db.VarChar(5)
-  cantidad_personas    Int
-  nombre               String?   @db.VarChar(60)
-  telefono             String?   @db.VarChar(15)
-  email                String?   @db.VarChar(200)
-  observaciones        String?   @db.Text
-  id_area              Int?
-  estatus              String?   @db.VarChar(1)
-  fecha_confirmacion   DateTime? @db.DateTime(0)
-  usuario_confirmacion String?   @db.VarChar(100)
-  fecha_rechazo        DateTime? @db.DateTime(0)
-  usuario_rechazo      String?   @db.VarChar(100)
-  ip                   String?   @db.VarChar(20)
-}
-
-model doctor {
-  id                  Int     @id @default(autoincrement())
-  compania            Int
-  img_url             String? @db.VarChar(100)
-  name                String? @db.VarChar(100)
-  email               String? @db.VarChar(100)
-  address             String? @db.VarChar(100)
-  phone               String? @db.VarChar(100)
-  department          String? @db.VarChar(100)
-  profile             String? @db.VarChar(100)
-  description_profile String? @db.Text
-  estatus             String  @default("A") @db.VarChar(1)
-  creado_por          String? @db.VarChar(20)
-  eliminado           String? @db.VarChar(1)
-  fecha_eliminacion   String? @db.VarChar(15)
-  usuario_eliminacion String? @db.VarChar(50)
-  ip_eliminacion      String? @db.VarChar(20)
-}
-
-model especialidades_medicas {
-  id       Int     @id @default(autoincrement())
-  compania Int
-  nombre   String  @db.VarChar(50)
-  icon     String? @db.VarChar(30)
-  estatus  String  @default("A") @db.VarChar(1)
-}
-
-model estadisticas_comprar {
-  id                           Int      @id @default(autoincrement())
-  compania                     Int?
-  fecha                        DateTime @db.DateTime(0)
-  total                        Decimal  @db.Decimal(14, 2)
-  carrito                      String?  @db.Text
-  ip                           String?  @db.VarChar(50)
-  id_response_pago_stripe      String?  @db.VarChar(100)
-  estatus_response_pago_stripe String?  @db.VarChar(25)
-  json_response_pago_stripe    String?  @db.Text
-}
-
-model idiomas {
-  id          String @id @db.VarChar(2)
-  descripcion String @db.VarChar(100)
-}
-
-model idiomas_compania {
-  id_compania Int
-  id_idioma   String @db.VarChar(2)
-
-  @@id([id_compania, id_idioma])
-}
-
-model keys {
-  id             Int     @id @default(autoincrement())
-  key            String  @db.VarChar(40)
-  level          Int
-  ignore_limits  Boolean @default(false)
-  is_private_key Boolean @default(false)
-  ip_addresses   String? @db.Text
-  date_created   Int
-  compania       Int?
-}
-
-model marketplace {
-  id                  Int      @id @default(autoincrement())
-  tipo_producto       Int?
-  foto                String?  @db.VarChar(100)
-  video               String?  @db.VarChar(100)
-  cantidad            Int?
-  estatus             String?  @db.VarChar(1)
-  nombre              String?  @db.VarChar(50)
-  descripcion         String?  @db.Text
-  sku                 String?  @db.VarChar(50)
-  eliminado           String   @default("N") @db.VarChar(1)
-  fecha_eliminacion   String?  @db.VarChar(20)
-  usuario_eliminacion String?  @db.VarChar(20)
-  ip_eliminacion      String?  @db.VarChar(20)
-  orden               Int?
-  registrado          String?  @db.VarChar(20)
-  precio              Decimal? @db.Decimal(12, 2)
-}
-
-model monedas {
-  id            Int    @id @default(autoincrement())
-  descripcion   String @db.VarChar(50)
-  simbolo       String @db.VarChar(3)
-  codigo_stripe String @db.VarChar(5)
-}
-
-model paises {
-  id          Int    @id
-  descripcion String @db.VarChar(50)
-}
-
-model productos {
-  id                            Int      @id @default(autoincrement())
-  compania                      Int
-  nombre                        String   @db.VarChar(100)
-  orden                         Int
-  precio                        Decimal? @db.Decimal(14, 2)
-  estatus                       String   @db.VarChar(1)
-  descripcion                   String?  @db.Text
-  foto                          String?  @db.VarChar(100)
-  registrado                    DateTime @db.DateTime(0)
-  sku                           String?  @db.VarChar(100)
-  multiples_precios             String   @default("N") @db.VarChar(1)
-  precio1                       Decimal? @db.Decimal(14, 2)
-  precio2                       Decimal? @db.Decimal(14, 2)
-  precio3                       Decimal? @db.Decimal(14, 2)
-  precio4                       Decimal? @db.Decimal(14, 2)
-  labelprecio1                  String?  @db.VarChar(50)
-  labelprecio2                  String?  @db.VarChar(50)
-  labelprecio3                  String?  @db.VarChar(50)
-  labelprecio4                  String?  @db.VarChar(50)
-  punto_de_salida               String?  @db.VarChar(1000)
-  requisitos                    String?  @db.VarChar(1000)
-  comisionprecio1               Decimal? @db.Decimal(14, 2)
-  comisionprecio2               Decimal? @db.Decimal(14, 2)
-  comisionprecio3               Decimal? @db.Decimal(14, 2)
-  comisionprecio4               Decimal? @db.Decimal(14, 2)
-  permitir_reserva_mto_comision String?  @default("N") @db.VarChar(1)
-  horas_duracion                String?  @db.VarChar(2)
-  minutos_duracion              String?  @db.VarChar(2)
-  recogida_gratis_hotel         String?  @default("N") @db.VarChar(1)
-  zona                          String?  @db.VarChar(100)
-  eliminado                     String   @default("N") @db.VarChar(1)
-  fecha_eliminacion             String?  @db.VarChar(20)
-  usuario_eliminacion           String?  @db.VarChar(50)
-  ip_eliminacion                String?  @db.VarChar(20)
-  video                         String?  @db.VarChar(100)
-  no_picture                    Int?     @default(0)
-}
-
-model productos_secciones {
-  id_producto Int
-  id_seccion  Int
-
-  @@id([id_producto, id_seccion])
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model revistas {
-  id                 Int       @id @default(autoincrement())
-  compania           Int
-  fecha_publicacion  DateTime? @db.Date
-  estatus            String?   @db.VarChar(1)
-  titulo             String?   @db.VarChar(70)
-  descripcion        String?   @db.VarChar(5000)
-  registrado         DateTime  @db.DateTime(0)
-  archivo            String?   @db.VarChar(100)
-  hash               String?   @db.VarChar(50)
-  codigo_seguimiento String?   @db.Text
-}
-
-model secciones {
-  id                  Int      @id @default(autoincrement())
-  compania            Int
-  nombre              String   @db.VarChar(50)
-  estatus             String   @default("A") @db.VarChar(1)
-  orden               Int
-  foto                String?  @db.VarChar(100)
-  registrado          DateTime @db.DateTime(0)
-  categoria           Int?
-  eliminado           String   @default("N") @db.VarChar(1)
-  fecha_eliminacion   String?  @db.VarChar(20)
-  usuario_eliminacion String?  @db.VarChar(50)
-  ip_eliminacion      String?  @db.VarChar(20)
-}
-
-model tipo_negocio {
-  id          Int    @id @default(autoincrement())
-  descripcion String @db.VarChar(50)
-}
-
-model tipo_producto_tienda {
-  id      Int    @id @default(autoincrement())
-  nombre  String @db.VarChar(50)
-  estatus String @db.VarChar(1)
-}
-
-model traducciones {
-  id             Int    @id @default(autoincrement())
-  id_idioma      String @db.VarChar(2)
-  nombre_tabla   String @db.VarChar(50)
-  nombre_columna String @db.VarChar(50)
-  id_elemento    Int
-  texto          String @db.Text
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model traza_menu {
-  id         BigInt   @id @unique(map: "id") @default(autoincrement()) @db.UnsignedBigInt
-  nombre     String?  @db.VarChar(30)
-  apellido   String?  @db.VarChar(30)
-  url        String?  @db.VarChar(300)
-  aceptar    Boolean
-  created_at DateTime @db.DateTime(0)
-  update_at  DateTime @db.DateTime(0)
-  delete_at  DateTime @db.DateTime(0)
-}
-
-model usuarios {
-  /// ID único del usuario
-  us_cd_usuario    String  @id @db.VarChar(30)
-  /// Contraseña encriptada del usuario
-  us_contrasena    String  @db.VarChar(30)
-  /// Nombre de usuario
-  us_nombreusuario String  @db.VarChar(200)
-  /// Perfil del usuario (Admin, Usuario, etc.) - Relacionado con `roles`
-  us_perfil        String  @db.VarChar(2)
-  /// Email del usuario (debe ser único para autenticación)
-  us_email         String? @db.VarChar(200)
-  /// Nacionalidad del usuario (opcional)
-  us_nacionalidad  String? @db.VarChar(1)
-  /// Documento de identidad (Cédula/RIF)
-  us_cedula_rif    String? @db.VarChar(11)
-  /// Dirección del usuario
-  us_direccion     String? @db.VarChar(1000)
-  /// Teléfono de contacto
-  us_telefono      String? @db.VarChar(200)
-  /// Código de la compañía a la que pertenece el usuario
-  us_cd_compania   Int
-  /// Indicador si el usuario es vendedor (N = No, S = Sí)
-  us_in_vendedor   String  @default("N") @db.VarChar(1)
-  /// Indicador si el usuario tiene comisión (N = No, S = Sí)
-  us_in_comision   String  @default("N") @db.VarChar(1)
-  /// Estado del usuario (A = Activo, I = Inactivo)
-  us_estatus       String  @default("A") @db.VarChar(1)
-  /// Tipo de usuario (opcional)
-  us_tp_usuario    String? @db.VarChar(2)
-  /// Cargo o puesto del usuario en la empresa (opcional)
-  us_cargo         String? @db.VarChar(50)
-  /// Biografía breve del usuario
-  us_biografia     String? @db.Text
-  /// URL del avatar del usuario
-  us_avatar        String? @db.VarChar(100)
-  /// Número de WhatsApp del usuario (opcional)
-  whatsapp         String? @db.VarChar(45)
-  /// Nombre real del usuario (opcional)
-  nombre           String? @db.VarChar(45)
-  /// Cargo profesional del usuario
-  cargo            String? @db.VarChar(45)
-  /// Lista de habilidades del usuario
-  habilidades      String? @db.VarChar(500)
-  /// URL del sitio web del usuario
-  web              String? @db.VarChar(200)
-  /// Google Maps del usuario (ejemplo: dirección de trabajo)
-  maps             String? @db.VarChar(200)
-  /// Indica si el usuario ha sido confirmado (N = No, S = Sí)
-  confirmado       String  @default("N") @db.VarChar(1)
-  /// Campo adicional para manifiesto o identificación
-  manifest         String? @db.VarChar(50)
-  role_id          Int?
-  roles            roles?  @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_usuarios_roles")
-
-  @@index([role_id], map: "fk_usuarios_roles")
-}
-
-model zonas {
-  id              Int       @id @default(autoincrement())
-  compania        Int
-  zona            String    @db.VarChar(50)
-  recogida_gratis String?   @db.VarChar(1)
-  estatus         String?   @db.VarChar(1)
-  registrado      DateTime? @db.DateTime(0)
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model zonas_despacho {
-  id         Int      @id @default(autoincrement())
-  compania   Int
-  nombre     String   @db.VarChar(100)
-  estatus    String   @db.VarChar(1)
-  gratis     String   @db.VarChar(1)
-  costo      Decimal? @db.Decimal(14, 2)
-  registrado DateTime @db.DateTime(0)
-}
-
-model roles {
-  id       Int        @id @default(autoincrement())
-  nombre   String     @db.VarChar(100)
-  usuarios usuarios[]
+  @@id([alergeno_id, producto_id])
+  @@map("alergenos_producto")
 }
