@@ -8,80 +8,12 @@ datasource db {
 }
 
 model Usuarios {
-  us_cd_usuario    String  @id
-  us_contrasena    String
-  us_nombreusuario String
-  us_perfil        String
-  us_email         String?
-  us_nacionalidad  String?
-  confirmado       String
-  nombre           String?
-  empresas         UsuariosHasEmpresas[]
+  us_cd_usuario    String  @id @db.VarChar(30)
+  us_contrasena    String  @db.VarChar(30)
+  us_nombreusuario String  @db.VarChar(200)
+  us_perfil        String  @db.VarChar(2)
+  us_email         String? @db.VarChar(200)
+  us_estatus       String  @default("A") @db.VarChar(1)
 
   @@map("usuarios")
-}
-
-model Empresas {
-  id              String  @id
-  nombre          String
-  usuarios        UsuariosHasEmpresas[]
-  categorias      Categorias[]
-
-  @@map("empresas")
-}
-
-model UsuariosHasEmpresas {
-  usuario        Usuarios @relation(fields: [us_cd_usuario], references: [us_cd_usuario])
-  empresa        Empresas @relation(fields: [empresa_id], references: [id])
-  us_cd_usuario  String
-  empresa_id     String
-
-  @@id([us_cd_usuario, empresa_id])
-  @@map("usuarios_has_empresas")
-}
-
-model Categorias {
-  id          Int       @id @default(autoincrement())
-  nombre      String
-  foto        String?
-  estado      String    @default("A")
-  orden       Int?
-  empresa     Empresas  @relation(fields: [compania], references: [id])
-  compania    String
-  productos   Productos[]
-  eliminado   String    @default("N")
-
-  @@map("categorias")
-}
-
-model Productos {
-  id          Int         @id @default(autoincrement())
-  nombre      String
-  descripcion String?
-  precio      Float
-  foto        String?
-  estado      String      @default("A")
-  orden       Int?
-  categoria   Categorias  @relation(fields: [categoria_id], references: [id])
-  categoria_id Int
-  eliminado   String      @default("N")
-
-  @@map("productos")
-}
-
-model Alergenos {
-  id     Int    @id @default(autoincrement())
-  nombre String
-  icono  String
-  orden  Int?
-
-  @@map("alergenos")
-}
-
-model AlergenosProducto {
-  alergeno_id Int
-  producto_id Int
-
-  @@id([alergeno_id, producto_id])
-  @@map("alergenos_producto")
 }

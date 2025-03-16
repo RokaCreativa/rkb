@@ -1,37 +1,21 @@
 import { NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
-
-const prisma = new PrismaClient()
+import { prisma } from "@/lib/prisma"
 
 export async function GET() {
   try {
-    // Intentar obtener un usuario
-    const user = await prisma.usuarios.findFirst({
-      where: {
-        us_email: "bakery@bakery.com"
-      }
-    })
+    // Intentar obtener el usuario específico sin ninguna relación
+    const user = await prisma.$queryRaw`SELECT * FROM usuarios WHERE us_email = 'bakery@bakery.com'`;
 
-    if (user) {
-      // No devolvemos la contraseña por seguridad
-      const { us_contrasena, ...userWithoutPassword } = user
-      return NextResponse.json({ 
-        success: true, 
-        message: "Conexión exitosa",
-        user: userWithoutPassword 
-      })
-    } else {
-      return NextResponse.json({ 
-        success: false, 
-        message: "No se encontró el usuario de prueba" 
-      })
-    }
+    return NextResponse.json({
+      success: true,
+      user: user
+    });
   } catch (error) {
-    console.error("Error de conexión:", error)
-    return NextResponse.json({ 
-      success: false, 
-      message: "Error de conexión a la base de datos",
-      error: error instanceof Error ? error.message : "Error desconocido"
-    }, { status: 500 })
+    console.error("Error al conectar con la base de datos:", error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : "Error desconocido",
+      errorObject: error
+    }, { status: 500 });
   }
 } 

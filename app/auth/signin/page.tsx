@@ -18,28 +18,29 @@ export default function LoginPage() {
     const email = formData.get("email") as string
     const password = formData.get("password") as string
 
-    console.log('Intentando login con:', { email, password })
-
     try {
       const result = await signIn("credentials", {
         email,
         password,
-        redirect: false,
-        callbackUrl: "/dashboard"
+        redirect: false
       })
 
-      console.log('Resultado del login:', result)
+      if (!result) {
+        throw new Error("Error al iniciar sesión")
+      }
 
-      if (result?.error) {
-        setError("Credenciales inválidas")
-        setLoading(false)
+      if (result.error) {
+        setError(result.error)
         return
       }
 
       router.push("/dashboard")
+      router.refresh()
+      
     } catch (error) {
       console.error('Error en login:', error)
       setError("Error al iniciar sesión")
+    } finally {
       setLoading(false)
     }
   }
@@ -57,7 +58,6 @@ export default function LoginPage() {
             <input
               name="email"
               type="email"
-              defaultValue="bakery@bakery.com"
               required
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
             />
@@ -70,7 +70,6 @@ export default function LoginPage() {
             <input
               name="password"
               type="password"
-              defaultValue="bakery"
               required
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
             />
