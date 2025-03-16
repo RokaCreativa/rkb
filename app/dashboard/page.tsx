@@ -31,23 +31,19 @@ export default function DashboardPage() {
         {stats.map((item) => (
           <div
             key={item.name}
-            className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow"
+            className="bg-white rounded-lg p-4"
           >
-            <div className="flex items-center">
+            <div className="flex items-start">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <item.icon className="h-6 w-6 text-blue-600" />
-                </div>
+                <item.icon className="h-5 w-5 text-gray-400" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">{item.name}</p>
-                <div className="flex items-baseline">
-                  <p className="text-xl font-semibold text-gray-900">{item.stat}</p>
-                  <p className={`ml-2 text-sm font-medium ${
-                    item.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-                  }`}>
+              <div className="ml-3 flex-1">
+                <p className="text-sm text-gray-500">{item.name}</p>
+                <div className="flex items-baseline mt-1">
+                  <p className="text-lg font-medium text-gray-900">{item.stat}</p>
+                  <span className={`ml-2 text-sm font-medium text-green-500`}>
                     {item.change}
-                  </p>
+                  </span>
                 </div>
               </div>
             </div>
@@ -58,30 +54,29 @@ export default function DashboardPage() {
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Menús y Categorías */}
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="p-4 border-b border-gray-200">
+        <div className="bg-white rounded-lg">
+          <div className="p-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-medium text-gray-900">Menús y Categorías</h3>
-              <button className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
-                <PlusIcon className="h-4 w-4 mr-1" />
-                Añadir
+              <button className="text-blue-600 hover:text-blue-800">
+                + Añadir
               </button>
             </div>
           </div>
           <div className="p-4">
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg group">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                      <span className="text-sm font-medium text-gray-600">C{i}</span>
+                    <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                      <span className="text-sm text-gray-400">C{i}</span>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Categoría {i}</p>
                       <p className="text-xs text-gray-500">8 productos</p>
                     </div>
                   </div>
-                  <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  <button className="text-sm text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
                     Editar
                   </button>
                 </div>
@@ -91,28 +86,27 @@ export default function DashboardPage() {
         </div>
 
         {/* Productos */}
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="p-4 border-b border-gray-200">
+        <div className="bg-white rounded-lg">
+          <div className="p-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-medium text-gray-900">Productos Destacados</h3>
-              <button className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
-                <PlusIcon className="h-4 w-4 mr-1" />
-                Añadir
+              <button className="text-blue-600 hover:text-blue-800">
+                + Añadir
               </button>
             </div>
           </div>
           <div className="p-4">
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
+                <div key={i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg group">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gray-100 rounded-lg" />
+                    <div className="w-8 h-8 bg-gray-50 rounded-lg" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">Producto {i}</p>
                       <p className="text-xs text-gray-500">$19.99</p>
                     </div>
                   </div>
-                  <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                  <button className="text-sm text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
                     Editar
                   </button>
                 </div>
