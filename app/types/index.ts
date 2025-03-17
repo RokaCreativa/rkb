@@ -1,3 +1,5 @@
+import { Prisma } from '@prisma/client';
+
 // Tipo base que coincide con la tabla de Prisma
 export interface CategoriaBase {
   id: number;
@@ -6,11 +8,6 @@ export interface CategoriaBase {
   estatus: string;
   orden: number;
   cliente: number;
-  registrado: Date;
-  eliminado: string;
-  fecha_eliminacion: string | null;
-  usuario_eliminacion: string | null;
-  ip_eliminacion: string | null;
 }
 
 // Tipo extendido que incluye relaciones
@@ -19,36 +16,43 @@ export interface CategoriaConSecciones extends CategoriaBase {
 }
 
 // Tipo para el listado simple
-export type CategoriaListado = CategoriaBase;
+export interface CategoriaListado extends CategoriaBase {}
 
 export interface Producto {
   id: number;
   nombre: string;
-  descripcion?: string | null;
-  precio?: number | null;
-  foto?: string | null;
   orden: number;
+  precio: Prisma.Decimal | null;
   estatus: string;
-  sku?: string | null;
-  eliminado: string;
-  cliente: number;
-  id_seccion?: number;
+  descripcion: string | null;
+  foto: string | null;
+  sku: string | null;
 }
 
 export interface Seccion {
   id: number;
   nombre: string;
-  orden: number;
+  foto: string | null;
   estatus: string;
-  foto?: string | null;
-  cliente: number;
-  categoria?: number;
-  productos: Producto[];
+  orden: number;
+  productos: ProductoConAlergenos[];
 }
 
 export interface Cliente {
   cliente: number;
-  nombre?: string | null;
-  comp_logo?: string | null;
-  usa_secciones?: boolean;
+  nombre: string;
+  logo?: string | null;
+  qr?: string | null;
+  fondo_menu?: string | null;
+}
+
+export interface Alergeno {
+  id: number;
+  nombre: string;
+  icono: string;
+  orden: number | null;
+}
+
+export interface ProductoConAlergenos extends Producto {
+  alergenos: Alergeno[];
 } 

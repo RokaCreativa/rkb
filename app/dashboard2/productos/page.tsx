@@ -1,6 +1,14 @@
 import { prisma } from '@/lib/prisma'
-import type { CategoriaConSecciones, Seccion, Producto, Cliente } from '@/app/types'
-import Image from 'next/image'
+import type { CategoriaConSecciones, Seccion, ProductoConAlergenos, Cliente } from '@/app/types'
+import type { productos } from '@prisma/client'
+
+type AlergenoRow = {
+  id_producto: number;
+  id: number;
+  nombre: string;
+  icono: string;
+  orden: number | null;
+}
 
 async function getClienteInfo(clienteId: number): Promise<Cliente | null> {
   try {
@@ -11,15 +19,19 @@ async function getClienteInfo(clienteId: number): Promise<Cliente | null> {
       select: {
         cliente: true,
         nombre: true,
-        comp_logo: true
+        logo: true,
+        foto_qr: true,
+        imagen_fondo_menu: true
       }
     });
 
-    if (cliente) {
+    if (cliente && cliente.nombre) {
       return {
         cliente: cliente.cliente,
         nombre: cliente.nombre,
-        comp_logo: cliente.comp_logo
+        logo: cliente.logo || undefined,
+        qr: cliente.foto_qr || undefined,
+        fondo_menu: cliente.imagen_fondo_menu || undefined
       };
     }
     return null;
@@ -96,27 +108,19 @@ async function getProductosConCategoriasYSecciones(clienteId: number) {
                 eliminado: 'N',
                 estatus: 'A'
               },
-              select: {
-                id: true,
-                nombre: true,
-                foto: true,
-                precio: true,
-                sku: true,
-                descripcion: true,
-                estatus: true,
-                orden: true
-              },
               orderBy: {
                 orden: 'asc'
               }
             });
 
-            // Agregar console.log para depurar
-            console.log('Productos encontrados:', productos);
+            const productosConAlergenos = productos.map((producto) => ({
+              ...producto,
+              alergenos: [] // Temporalmente retornamos un array vacío
+            })) as ProductoConAlergenos[];
 
             return {
               ...seccion,
-              productos
+              productos: productosConAlergenos
             };
           })
         );
@@ -142,7 +146,7 @@ async function getProductosConCategoriasYSecciones(clienteId: number) {
 }
 
 export default async function ProductosPage() {
-  const CLIENTE_ID = 3; // BAKERY - Esto deberá venir del usuario logueado
+  const CLIENTE_ID = 3; // BAKERY
   const { cliente, categorias } = await getProductosConCategoriasYSecciones(CLIENTE_ID);
 
   return (
@@ -152,16 +156,28 @@ export default async function ProductosPage() {
           Productos por Categoría
           {cliente?.nombre && <span className="ml-2 text-gray-500">- {cliente.nombre}</span>}
         </h1>
-        {cliente?.comp_logo && (
+        {cliente?.logo && (
           <img 
-            src={cliente.comp_logo} 
-            alt={cliente.nombre || 'Logo'} 
+            src={`/images/${cliente.logo}`}
+            alt={cliente.nombre || 'Logo'}
             className="h-12 w-auto object-contain"
           />
         )}
       </div>
+
+      {cliente?.fondo_menu && (
+        <div 
+          className="fixed inset-0 z-0 opacity-10" 
+          style={{
+            backgroundImage: `url(/images/${cliente.fondo_menu})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            pointerEvents: 'none'
+          }}
+        />
+      )}
       
-      <div className="space-y-8">
+      <div className="space-y-8 relative z-10">
         {categorias.map((categoria) => (
           <div key={categoria.id} className="bg-white rounded-lg shadow">
             <div className="p-6">
@@ -199,7 +215,7 @@ export default async function ProductosPage() {
 
                     {seccion.productos.length > 0 ? (
                       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {seccion.productos.map((producto) => (
+                        {seccion.productos.map((producto: ProductoConAlergenos) => (
                           <div 
                             key={producto.id}
                             className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
@@ -225,7 +241,9 @@ export default async function ProductosPage() {
                               )}
                               
                               <div className="text-sm text-gray-500">
-                                <p>SKU: {producto.sku || 'N/A'}</p>
+                                {producto.sku && producto.sku !== 'N/A' && (
+                                  <p>SKU: {producto.sku}</p>
+                                )}
                                 <p>Precio: ${producto.precio?.toString() || 'N/A'}</p>
                                 <p>Orden: {producto.orden}</p>
                               </div>
@@ -260,5 +278,5 @@ export default async function ProductosPage() {
         )}
       </div>
     </div>
-  )
-} 
+  );
+}

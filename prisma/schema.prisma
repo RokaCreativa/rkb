@@ -12,6 +12,7 @@ model alergenos {
   nombre String @db.VarChar(50)
   icono  String @db.VarChar(50)
   orden  Int?
+  productos_alergenos productos_alergenos[]
 }
 
 model alergenos_producto {
@@ -121,7 +122,7 @@ model clientes {
   comp_whatsup_etiq          String?             @db.VarChar(12)
   comp_logo                  String?             @db.VarChar(70)
   comp_estilo_link           String?             @db.VarChar(40)
-  comp_avatar_app_links      String?             @db.VarChar(100)
+  logo                       String?             @db.VarChar(100)
   comp_nombre_app            String?             @db.VarChar(50)
   email                      String              @db.VarChar(200)
   confirmado                 String?             @default("N") @db.VarChar(1)
@@ -160,10 +161,10 @@ model clientes {
   horario_jueves_hasta       String?             @db.VarChar(5)
   horario_viernes_desde      String?             @db.VarChar(5)
   horario_viernes_hasta      String?             @db.VarChar(5)
-  horario_sabado_desde       String?             @db.VarChar(5)
-  horario_sabado_hasta       String?             @db.VarChar(5)
-  horario_domingo_desde      String?             @db.VarChar(5)
-  horario_domingo_hasta      String?             @db.VarChar(5)
+  horario_sabado_desde        String?             @db.VarChar(5)
+  horario_sabado_hasta        String?             @db.VarChar(5)
+  horario_domingo_desde       String?             @db.VarChar(5)
+  horario_domingo_hasta       String?             @db.VarChar(5)
   mostrar_horario            String              @default("N") @db.VarChar(1)
   habilitar_stripe           String              @default("N") @db.VarChar(1)
   modo_stripe                String              @default("T") @db.VarChar(1)
@@ -335,6 +336,7 @@ model productos {
   ip_eliminacion                String?  @db.VarChar(20)
   video                         String?  @db.VarChar(100)
   no_picture                    Int?     @default(0)
+  productos_alergenos           productos_alergenos[]
 }
 
 model productos_secciones {
@@ -465,4 +467,12 @@ model zonas_despacho {
 enum clientes_menu_type {
   digital
   pdf
+}
+
+model productos_alergenos {
+  id Int @id @default(autoincrement())
+  id_producto Int
+  id_alergeno Int
+  producto productos @relation(fields: [id_producto], references: [id])
+  alergenos alergenos @relation(fields: [id_alergeno], references: [id])
 }
