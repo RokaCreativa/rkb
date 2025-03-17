@@ -1,24 +1,32 @@
-export interface Producto {
-  id: number;
-  nombre: string;
-  descripcion?: string;
-  precio: number;
-  visible: boolean;
-  etiquetas?: string[];
-  alergenos?: string[];
-  foto?: string;
+export interface BaseEntity {
+  id: number
+  createdAt?: Date
+  updatedAt?: Date
 }
 
-export interface Categoria {
-  id: number;
-  nombre: string;
-  visible: boolean;
-  productos: Producto[];
+export interface Producto extends BaseEntity {
+  nombre: string
+  descripcion?: string
+  precio: number
+  imagen?: string
+  orden: number
+  categoriaId: number
+  activo: boolean
 }
 
-export interface Menu {
-  id: number;
-  nombre: string;
-  tipo_negocio_id: number;
-  categorias: Categoria[];
+export interface Categoria extends BaseEntity {
+  nombre: string
+  descripcion?: string
+  orden: number
+  menuId: number
+  productos: Producto[]
+  activo: boolean
+}
+
+export interface Menu extends BaseEntity {
+  nombre: string
+  descripcion?: string
+  usuarioId: string
+  categorias: Categoria[]
+  activo: boolean
 } 

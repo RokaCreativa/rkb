@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react'
-import Sidebar from '../components/layout/Sidebar'
+import UserMenu from '../components/UserMenu'
 import MobilePreview from '../components/preview/MobilePreview'
 
 /**
@@ -17,51 +17,38 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const [showMobilePreview, setShowMobilePreview] = useState(false)
-
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-100">
-      {/* Sidebar */}
-      <Sidebar />
-
-      {/* Main content */}
-      <div className="flex-1 flex">
-        {/* Content area */}
-        <div className="flex-1 overflow-auto">
-          <div className="py-6 px-4 sm:px-6 lg:px-8 min-h-screen">
-            {children}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <img
+                className="h-8 w-auto"
+                src="/logo.png"
+                alt="RokaMenu"
+              />
+            </div>
+            <UserMenu />
           </div>
         </div>
+      </header>
 
-        {/* Mobile Preview - Fixed on large screens */}
-        <div className="hidden xl:block w-[380px] border-l border-gray-200 bg-white overflow-hidden">
-          <div className="h-full sticky top-0">
+      {/* Main content */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex gap-8">
+          {/* Main content area */}
+          <div className="flex-1 min-w-0">
+            {children}
+          </div>
+
+          {/* Mobile preview - fixed for larger screens */}
+          <div className="hidden lg:block w-[400px] bg-white rounded-lg shadow-sm">
             <MobilePreview />
           </div>
         </div>
       </div>
-
-      {/* Mobile Preview Button - Only on small screens */}
-      <button
-        onClick={() => setShowMobilePreview(true)}
-        className="xl:hidden fixed bottom-4 right-4 bg-blue-500 text-white p-3 rounded-full shadow-lg hover:bg-blue-600 transition-colors z-50"
-      >
-        Vista Previa
-      </button>
-
-      {/* Mobile Preview Modal - For small screens */}
-      {showMobilePreview && (
-        <div className="xl:hidden fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50">
-          <div className="absolute inset-y-0 right-0 w-full max-w-md">
-            <div className="h-full">
-              <MobilePreview 
-                showCloseButton 
-                onClose={() => setShowMobilePreview(false)} 
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
