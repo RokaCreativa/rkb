@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import type { CategoriaListado } from '@/app/types'
+import Image from 'next/image'
 
 /**
  * Obtiene la lista de categorías activas para el cliente especificado
@@ -64,7 +65,7 @@ export default async function Dashboard2Page() {
                   <div className="flex items-center gap-2">
                     {categoria.foto && (
                       <img 
-                        src={`/images/${categoria.foto}`} 
+                        src={`/images/categories/${categoria.foto}`}
                         alt={categoria.nombre}
                         className="w-12 h-12 object-cover rounded"
                       />

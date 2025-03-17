@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import type { CategoriaConSecciones, Seccion, Producto, Cliente } from '@/app/types'
+import Image from 'next/image'
 
 async function getClienteInfo(clienteId: number): Promise<Cliente | null> {
   try {
@@ -43,6 +44,14 @@ async function getProductosConCategoriasYSecciones(clienteId: number) {
         eliminado: 'N',
         estatus: 'A'
       },
+      select: {
+        id: true,
+        nombre: true,
+        foto: true,
+        estatus: true,
+        orden: true,
+        cliente: true
+      },
       orderBy: {
         orden: 'asc'
       }
@@ -57,22 +66,27 @@ async function getProductosConCategoriasYSecciones(clienteId: number) {
             categoria: categoria.id,
             estatus: 'A'
           },
+          select: {
+            id: true,
+            nombre: true,
+            foto: true,
+            estatus: true,
+            orden: true
+          },
           orderBy: {
             orden: 'asc'
           }
         });
 
-        // 3. Para cada sección, obtener sus productos a través de productos_secciones
+        // 3. Para cada sección, obtener sus productos
         const seccionesConProductos = await Promise.all(
           secciones.map(async (seccion) => {
-            // Primero obtenemos las relaciones
             const productosSeccion = await prisma.productos_secciones.findMany({
               where: {
                 id_seccion: seccion.id
               }
             });
 
-            // Luego obtenemos los productos usando los IDs
             const productos = await prisma.productos.findMany({
               where: {
                 id: {
@@ -82,10 +96,23 @@ async function getProductosConCategoriasYSecciones(clienteId: number) {
                 eliminado: 'N',
                 estatus: 'A'
               },
+              select: {
+                id: true,
+                nombre: true,
+                foto: true,
+                precio: true,
+                sku: true,
+                descripcion: true,
+                estatus: true,
+                orden: true
+              },
               orderBy: {
                 orden: 'asc'
               }
             });
+
+            // Agregar console.log para depurar
+            console.log('Productos encontrados:', productos);
 
             return {
               ...seccion,
@@ -141,7 +168,7 @@ export default async function ProductosPage() {
               <div className="flex items-center gap-4 mb-6">
                 {categoria.foto && (
                   <img 
-                    src={categoria.foto} 
+                    src={`/images/categories/${categoria.foto}`}
                     alt={categoria.nombre}
                     className="h-16 w-16 object-cover rounded"
                   />
@@ -157,7 +184,7 @@ export default async function ProductosPage() {
                     <div className="flex items-center gap-4 mb-4">
                       {seccion.foto && (
                         <img 
-                          src={seccion.foto} 
+                          src={`/images/sections/${seccion.foto}`}
                           alt={seccion.nombre}
                           className="h-12 w-12 object-cover rounded"
                         />
@@ -191,7 +218,7 @@ export default async function ProductosPage() {
                               
                               {producto.foto && (
                                 <img 
-                                  src={producto.foto} 
+                                  src={`/images/products/${producto.foto}`}
                                   alt={producto.nombre}
                                   className="w-full h-40 object-cover rounded"
                                 />
