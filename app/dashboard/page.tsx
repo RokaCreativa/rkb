@@ -297,7 +297,7 @@ export default function DashboardPage() {
                       PLATOS
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      DISPONIBILIDAD
+                      FOTO
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       VISIBILIDAD
@@ -323,7 +323,17 @@ export default function DashboardPage() {
                         <div className="text-sm text-gray-900">{menu.platos}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{menu.disponibilidad}</div>
+                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                          {menu.productos && menu.productos.length > 0 && menu.productos[0].imagen ? (
+                            <img 
+                              src={menu.productos[0].imagen} 
+                              alt={menu.nombre}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-xs text-gray-500">Sin foto</span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`relative inline-block w-10 h-5 transition-colors duration-200 ease-in-out rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${menu.visible ? 'bg-indigo-400' : 'bg-gray-200'}`}>
