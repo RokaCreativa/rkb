@@ -8,16 +8,18 @@ datasource db {
 }
 
 model alergenos {
-  id     Int    @id @default(autoincrement())
-  nombre String @db.VarChar(50)
-  icono  String @db.VarChar(50)
-  orden  Int?
-  productos_alergenos productos_alergenos[]
+  id                Int                 @id @default(autoincrement())
+  nombre            String              @db.VarChar(50)
+  icono             String              @db.VarChar(50)
+  orden             Int?
+  alergenos_producto alergenos_producto[]
 }
 
 model alergenos_producto {
   id_alergeno Int
   id_producto Int
+  alergenos   alergenos @relation(fields: [id_alergeno], references: [id])
+  productos   productos @relation(fields: [id_producto], references: [id])
 
   @@id([id_alergeno, id_producto])
 }
@@ -161,10 +163,10 @@ model clientes {
   horario_jueves_hasta       String?             @db.VarChar(5)
   horario_viernes_desde      String?             @db.VarChar(5)
   horario_viernes_hasta      String?             @db.VarChar(5)
-  horario_sabado_desde        String?             @db.VarChar(5)
-  horario_sabado_hasta        String?             @db.VarChar(5)
-  horario_domingo_desde       String?             @db.VarChar(5)
-  horario_domingo_hasta       String?             @db.VarChar(5)
+  horario_sabado_desde       String?             @db.VarChar(5)
+  horario_sabado_hasta       String?             @db.VarChar(5)
+  horario_domingo_desde      String?             @db.VarChar(5)
+  horario_domingo_hasta      String?             @db.VarChar(5)
   mostrar_horario            String              @default("N") @db.VarChar(1)
   habilitar_stripe           String              @default("N") @db.VarChar(1)
   modo_stripe                String              @default("T") @db.VarChar(1)
@@ -300,43 +302,43 @@ model paises {
 }
 
 model productos {
-  id                            Int      @id @default(autoincrement())
-  cliente                       Int
-  nombre                        String   @db.VarChar(100)
-  orden                         Int
-  precio                        Decimal? @db.Decimal(14, 2)
-  estatus                       String   @db.VarChar(1)
-  descripcion                   String?  @db.Text
-  foto                          String?  @db.VarChar(100)
-  registrado                    DateTime @db.DateTime(0)
-  sku                           String?  @db.VarChar(100)
-  multiples_precios             String   @default("N") @db.VarChar(1)
-  precio1                       Decimal? @db.Decimal(14, 2)
-  precio2                       Decimal? @db.Decimal(14, 2)
-  precio3                       Decimal? @db.Decimal(14, 2)
-  precio4                       Decimal? @db.Decimal(14, 2)
-  labelprecio1                  String?  @db.VarChar(50)
-  labelprecio2                  String?  @db.VarChar(50)
-  labelprecio3                  String?  @db.VarChar(50)
-  labelprecio4                  String?  @db.VarChar(50)
-  punto_de_salida               String?  @db.VarChar(1000)
-  requisitos                    String?  @db.VarChar(1000)
-  comisionprecio1               Decimal? @db.Decimal(14, 2)
-  comisionprecio2               Decimal? @db.Decimal(14, 2)
-  comisionprecio3               Decimal? @db.Decimal(14, 2)
-  comisionprecio4               Decimal? @db.Decimal(14, 2)
+  id                 Int                 @id @default(autoincrement())
+  cliente            Int
+  nombre             String              @db.VarChar(50)
+  orden              Int
+  precio             Decimal?            @db.Decimal(14, 2)
+  estatus            String              @db.VarChar(1)
+  descripcion        String?             @db.Text
+  foto               String?             @db.VarChar(100)
+  registrado          DateTime            @db.DateTime(0)
+  sku                String?             @db.VarChar(100)
+  multiples_precios  String              @default("N") @db.VarChar(1)
+  precio1            Decimal?            @db.Decimal(14, 2)
+  precio2            Decimal?            @db.Decimal(14, 2)
+  precio3            Decimal?            @db.Decimal(14, 2)
+  precio4            Decimal?            @db.Decimal(14, 2)
+  labelprecio1       String?             @db.VarChar(50)
+  labelprecio2       String?             @db.VarChar(50)
+  labelprecio3       String?             @db.VarChar(50)
+  labelprecio4       String?             @db.VarChar(50)
+  punto_de_salida   String?             @db.VarChar(1000)
+  requisitos         String?             @db.VarChar(1000)
+  comisionprecio1    Decimal?            @db.Decimal(14, 2)
+  comisionprecio2    Decimal?            @db.Decimal(14, 2)
+  comisionprecio3    Decimal?            @db.Decimal(14, 2)
+  comisionprecio4    Decimal?            @db.Decimal(14, 2)
   permitir_reserva_mto_comision String?  @default("N") @db.VarChar(1)
-  horas_duracion                String?  @db.VarChar(2)
-  minutos_duracion              String?  @db.VarChar(2)
-  recogida_gratis_hotel         String?  @default("N") @db.VarChar(1)
-  zona                          String?  @db.VarChar(100)
-  eliminado                     String   @default("N") @db.VarChar(1)
-  fecha_eliminacion             String?  @db.VarChar(20)
-  usuario_eliminacion           String?  @db.VarChar(50)
-  ip_eliminacion                String?  @db.VarChar(20)
-  video                         String?  @db.VarChar(100)
-  no_picture                    Int?     @default(0)
-  productos_alergenos           productos_alergenos[]
+  horas_duracion     String?             @db.VarChar(2)
+  minutos_duracion   String?             @db.VarChar(2)
+  recogida_gratis_hotel String?         @default("N") @db.VarChar(1)
+  zona               String?             @db.VarChar(100)
+  eliminado          String              @default("N") @db.VarChar(1)
+  fecha_eliminacion  String?             @db.VarChar(20)
+  usuario_eliminacion String?           @db.VarChar(50)
+  ip_eliminacion     String?             @db.VarChar(20)
+  video              String?             @db.VarChar(100)
+  no_picture         Int?                @default(0)
+  alergenos_producto alergenos_producto[]
 }
 
 model productos_secciones {
@@ -467,12 +469,4 @@ model zonas_despacho {
 enum clientes_menu_type {
   digital
   pdf
-}
-
-model productos_alergenos {
-  id Int @id @default(autoincrement())
-  id_producto Int
-  id_alergeno Int
-  producto productos @relation(fields: [id_producto], references: [id])
-  alergenos alergenos @relation(fields: [id_alergeno], references: [id])
 }

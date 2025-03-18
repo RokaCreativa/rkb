@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
-import type { CategoriaConSecciones, Seccion, ProductoConAlergenos, Cliente } from '@/app/types'
+import type { CategoriaConSecciones, Seccion, Cliente } from '@/app/types'
 import type { productos } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 
 type AlergenoRow = {
   id_producto: number;
@@ -9,6 +10,15 @@ type AlergenoRow = {
   icono: string;
   orden: number | null;
 }
+
+type ProductoConAlergenos = productos & {
+  alergenos: Array<{
+    id: number;
+    nombre: string;
+    icono: string;
+    orden: number | null;
+  }>;
+};
 
 async function getClienteInfo(clienteId: number): Promise<Cliente | null> {
   try {
@@ -19,7 +29,6 @@ async function getClienteInfo(clienteId: number): Promise<Cliente | null> {
       select: {
         cliente: true,
         nombre: true,
-        logo: true,
         foto_qr: true,
         imagen_fondo_menu: true
       }
@@ -29,7 +38,6 @@ async function getClienteInfo(clienteId: number): Promise<Cliente | null> {
       return {
         cliente: cliente.cliente,
         nombre: cliente.nombre,
-        logo: cliente.logo || undefined,
         qr: cliente.foto_qr || undefined,
         fondo_menu: cliente.imagen_fondo_menu || undefined
       };
@@ -99,24 +107,40 @@ async function getProductosConCategoriasYSecciones(clienteId: number) {
               }
             });
 
+            const productosIds = productosSeccion.map(ps => ps.id_producto);
+            
+            if (productosIds.length === 0) {
+              return {
+                ...seccion,
+                productos: []
+              };
+            }
+
             const productos = await prisma.productos.findMany({
               where: {
                 id: {
-                  in: productosSeccion.map(ps => ps.id_producto)
+                  in: productosIds
                 },
                 cliente: clienteId,
-                eliminado: 'N',
-                estatus: 'A'
+                eliminado: "N",
+                estatus: "A"
+              },
+              include: {
+                alergenos_producto: {
+                  include: {
+                    alergenos: true
+                  }
+                }
               },
               orderBy: {
                 orden: 'asc'
               }
             });
 
-            const productosConAlergenos = productos.map((producto) => ({
+            const productosConAlergenos = productos.map(producto => ({
               ...producto,
-              alergenos: [] // Temporalmente retornamos un array vacío
-            })) as ProductoConAlergenos[];
+              alergenos: producto.alergenos_producto.map(pa => pa.alergenos)
+            }));
 
             return {
               ...seccion,
@@ -252,6 +276,25 @@ export default async function ProductosPage() {
                                 <p className="text-sm text-gray-600 line-clamp-2">
                                   {producto.descripcion}
                                 </p>
+                              )}
+
+                              {producto.alergenos && producto.alergenos.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                  {producto.alergenos.map((alergeno) => (
+                                    <div 
+                                      key={alergeno.id}
+                                      className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs"
+                                      title={alergeno.nombre}
+                                    >
+                                      <img 
+                                        src={`/images/icons/${alergeno.icono}`}
+                                        alt={alergeno.nombre}
+                                        className="w-4 h-4"
+                                      />
+                                      <span>{alergeno.nombre}</span>
+                                    </div>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           </div>

@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 // Tipo base que coincide con la tabla de Prisma
 export interface CategoriaBase {
@@ -53,6 +53,28 @@ export interface Alergeno {
   orden: number | null;
 }
 
-export interface ProductoConAlergenos extends Producto {
-  alergenos: Alergeno[];
-} 
+export type ProductoConAlergenos = {
+  id: number;
+  nombre: string;
+  orden: number;
+  cliente: number;
+  foto: string | null;
+  estatus: string;
+  descripcion: string | null;
+  registrado: Date;
+  eliminado: string;
+  alergenos_producto: Array<{
+    alergenos: {
+      id: number;
+      nombre: string;
+      icono: string;
+      orden: number | null;
+    }
+  }>;
+  alergenos: Array<{
+    id: number;
+    nombre: string;
+    icono: string;
+    orden: number | null;
+  }>;
+}; 
