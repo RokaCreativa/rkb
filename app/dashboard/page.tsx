@@ -10,12 +10,27 @@ import {
   TrashIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline'
-import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import Image from 'next/image'
-import MobilePreview from '../components/MobilePreview'
 import { useSession } from 'next-auth/react'
-import { Menu, Producto, Cliente } from '../api/auth/models'
+
+// Definir la interfaz para la categoría
+interface Category {
+  id: number;
+  name: string;
+  image: string | null;
+  status: string; // 'A' para activo, 'I' para inactivo
+  display_order: number;
+  client_id: number;
+  products: number;
+}
+
+// Definir la interfaz para el cliente
+interface Client {
+  id: number;
+  name: string;
+  logo: string | null;
+}
 
 // Función para obtener datos del cliente
 async function fetchClientData() {
@@ -32,23 +47,18 @@ async function fetchClientData() {
   }
 }
 
-// Función para obtener menús
-async function fetchMenus() {
+// Función para obtener categorías
+async function fetchCategories() {
   try {
-    const response = await fetch('/api/menus');
+    const response = await fetch('/api/categories');
     if (!response.ok) {
-      throw new Error('Error al cargar menús');
+      throw new Error('Error al cargar categorías');
     }
     const data = await response.json();
-    
-    // Transformar los datos para incluir la propiedad expanded
-    return data.map((menu: any) => ({
-      ...menu,
-      expanded: false,
-      productos: menu.productos || []
-    }));
+    console.log("Datos de categorías recibidos:", data);
+    return data;
   } catch (error) {
-    console.error("Error al cargar menús:", error);
+    console.error("Error al cargar categorías:", error);
     return [];
   }
 }
@@ -56,110 +66,84 @@ async function fetchMenus() {
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
-  const [cliente, setCliente] = useState<Cliente | null>(null);
+  const [client, setClient] = useState<Client | null>(null);
   
-  const [menus, setMenus] = useState<Menu[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  // Estado para guardar el menú seleccionado para la previsualización
-  const [selectedMenuForPreview, setSelectedMenuForPreview] = useState<Menu | null>(null);
+  // Estado para guardar la categoría seleccionada para la previsualización
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   
-  // Estado para controlar el modal de edición de producto
-  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-  const [currentProducto, setCurrentProducto] = useState<Producto | null>(null);
-  const [currentMenuId, setCurrentMenuId] = useState<number | null>(null);
-
   // Cargar datos al inicio
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
         // Intentar cargar datos reales
-        const clienteData = await fetchClientData();
-        const menusData = await fetchMenus();
+        const clientData = await fetchClientData();
+        console.log("Datos del cliente cargados:", clientData);
         
-        if (clienteData) {
-          setCliente(clienteData);
+        const categoriesData = await fetchCategories();
+        console.log("Categorías cargadas:", categoriesData);
+        
+        if (clientData) {
+          setClient(clientData);
         }
         
-        if (menusData && menusData.length > 0) {
-          setMenus(menusData);
+        if (categoriesData && categoriesData.length > 0) {
+          console.log("Estableciendo categorías:", categoriesData);
+          setCategories(categoriesData);
           
-          // Seleccionar el primer menú con productos para la previsualización
-          const menuWithProducts = menusData.find((menu: Menu) => menu.productos && menu.productos.length > 0);
-          if (menuWithProducts) {
-            setSelectedMenuForPreview(menuWithProducts);
-          } else {
-            setSelectedMenuForPreview(menusData[0]);
-          }
+          // Seleccionar la primera categoría para la previsualización
+          setSelectedCategory(categoriesData[0]);
         } else {
           // Si no hay datos reales, usar datos de ejemplo
-          setMenus([
+          console.log("No se encontraron categorías, usando datos de ejemplo");
+          const exampleCategories = [
             {
               id: 1,
-              nombre: "Menu Pasta y Platanos",
-              platos: 4,
-              disponibilidad: "Todos los días",
-              visible: true,
-              expanded: false,
-              productos: [
-                { id: 1, nombre: "Ensalada caprese", descripcion: "Una sencilla ensalada italiana hecha con tomates frescos, queso mozzarella...", precio: 12.00, imagen: "/images/products/ensalada.jpg", visible: true },
-                { id: 2, nombre: "Gazpacho", descripcion: "", precio: 9.00, imagen: "/images/products/gazpacho.jpg", visible: true },
-                { id: 3, nombre: "Aros de cebolla", descripcion: "", precio: 8.00, imagen: "/images/products/aros.jpg", visible: true },
-                { id: 4, nombre: "Platano Canario", descripcion: "Platano de las islas canarias", precio: 15.00, imagen: "/images/products/platano.jpg", visible: true }
-              ]
+              name: "Entrantes",
+              image: "/images/categories/entrantes.jpg",
+              status: "A", // Activo
+              display_order: 1,
+              client_id: 1,
+              products: 0
             },
             {
               id: 2,
-              nombre: "Menu solo postres",
-              platos: 1,
-              disponibilidad: "Todos los días",
-              visible: true,
-              expanded: false,
-              productos: [
-                { id: 5, nombre: "Flan casero", descripcion: "Delicioso flan con caramelo", precio: 5.50, imagen: "/images/products/flan.jpg", visible: true }
-              ]
+              name: "Principales",
+              image: "/images/categories/principales.jpg",
+              status: "A", // Activo
+              display_order: 2,
+              client_id: 1,
+              products: 0
             },
             {
               id: 3,
-              nombre: "Nuestro menúAAA",
-              platos: 0,
-              disponibilidad: "Todos los días",
-              visible: true,
-              expanded: false,
-              productos: []
+              name: "Postres",
+              image: "/images/categories/postres.jpg",
+              status: "A", // Activo
+              display_order: 3,
+              client_id: 1,
+              products: 0
             },
             {
               id: 4,
-              nombre: "Carnes foryou",
-              platos: 2,
-              disponibilidad: "Todos los días",
-              visible: true,
-              expanded: false,
-              productos: [
-                { id: 6, nombre: "Entrecot", descripcion: "Entrecot de vaca gallega", precio: 22.50, imagen: "/images/products/entrecot.jpg", visible: true },
-                { id: 7, nombre: "Solomillo", descripcion: "Solomillo de ternera", precio: 25.00, imagen: "/images/products/solomillo.jpg", visible: true }
-              ]
+              name: "Bebidas",
+              image: "/images/categories/bebidas.jpg",
+              status: "A", // Activo
+              display_order: 4,
+              client_id: 1,
+              products: 0
             }
-          ]);
+          ];
           
-          // Seleccionar el primer menú para la previsualización con datos de ejemplo
-          setSelectedMenuForPreview({
-            id: 1,
-            nombre: "Menu Pasta y Platanos",
-            platos: 4,
-            disponibilidad: "Todos los días",
-            visible: true,
-            expanded: false,
-            productos: [
-              { id: 1, nombre: "Ensalada caprese", descripcion: "Una sencilla ensalada italiana hecha con tomates frescos, queso mozzarella...", precio: 12.00, imagen: "/images/products/ensalada.jpg", visible: true },
-              { id: 2, nombre: "Gazpacho", descripcion: "", precio: 9.00, imagen: "/images/products/gazpacho.jpg", visible: true },
-              { id: 3, nombre: "Aros de cebolla", descripcion: "", precio: 8.00, imagen: "/images/products/aros.jpg", visible: true },
-              { id: 4, nombre: "Platano Canario", descripcion: "Platano de las islas canarias", precio: 15.00, imagen: "/images/products/platano.jpg", visible: true }
-            ]
-          });
+          setCategories(exampleCategories);
+          setSelectedCategory(exampleCategories[0]);
         }
-      } catch (error) {
-        console.error('Error al cargar datos:', error);
+      } catch (err: any) {
+        console.error('Error al cargar datos:', err);
+        setError(err.message || 'Error desconocido al cargar datos');
       } finally {
         setIsLoading(false);
       }
@@ -170,74 +154,19 @@ export default function DashboardPage() {
     }
   }, [status]);
 
-  // Función para expandir/colapsar un menú
-  const toggleMenu = (menuId: number) => {
-    setMenus(menus.map(menu => {
-      if (menu.id === menuId) {
-        return { ...menu, expanded: !menu.expanded };
-      }
-      return menu;
-    }));
+  // Función para seleccionar una categoría para previsualización
+  const selectCategoryForPreview = (categoryId: number) => {
+    const category = categories.find(c => c.id === categoryId);
+    if (category) {
+      setSelectedCategory(category);
+    }
   };
 
-  // Función para seleccionar un menú para previsualización
-  const selectMenuForPreview = (menuId: number) => {
-    const menu = menus.find(m => m.id === menuId);
-    if (menu) {
-      setSelectedMenuForPreview(menu);
-    }
-  };
-  
-  // Función para abrir el modal de edición de producto
-  const openEditModal = (menuId: number, producto: Producto) => {
-    setCurrentMenuId(menuId);
-    setCurrentProducto({...producto}); // Clonar para evitar modificar directamente
-    setIsEditModalOpen(true);
-  };
-  
-  // Función para cerrar el modal de edición
-  const closeEditModal = () => {
-    setIsEditModalOpen(false);
-    setCurrentProducto(null);
-    setCurrentMenuId(null);
-  };
-  
-  // Función para guardar cambios del producto
-  const saveProductChanges = async () => {
-    if (!currentProducto || currentMenuId === null) return;
-    
-    try {
-      // Aquí iría la llamada al API para guardar los cambios del producto
-      // Por ejemplo: await fetch(`/api/productos/${currentProducto.id}`, { method: 'PUT', body: JSON.stringify(currentProducto) });
-      
-      // Por ahora solo actualizamos el estado local
-      setMenus(menus.map(menu => {
-        if (menu.id === currentMenuId) {
-          return {
-            ...menu,
-            productos: menu.productos?.map(producto => 
-              producto.id === currentProducto.id ? currentProducto : producto
-            ) || []
-          };
-        }
-        return menu;
-      }));
-      
-      // Si el menú editado es el que se está previsualizando, actualizarlo también
-      if (selectedMenuForPreview && selectedMenuForPreview.id === currentMenuId) {
-        setSelectedMenuForPreview({
-          ...selectedMenuForPreview,
-          productos: selectedMenuForPreview.productos?.map(producto => 
-            producto.id === currentProducto.id ? currentProducto : producto
-          ) || []
-        });
-      }
-      
-      closeEditModal();
-    } catch (error) {
-      console.error('Error al guardar los cambios:', error);
-      // Aquí se podría mostrar un mensaje de error
-    }
+  // Verificar si hay imágenes y si existen en la ruta pública
+  const verifyImagePath = (imagePath: string | null): string => {
+    if (!imagePath) return '/images/placeholder.png';
+    // Usar el nombre exacto como viene de la base de datos
+    return `/images/categories/${imagePath}`;
   };
 
   // Mostrar mensaje de carga si es necesario
@@ -248,6 +177,22 @@ export default function DashboardPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
           <p className="mt-4 text-gray-600">Cargando datos del cliente...</p>
         </div>
+      </div>
+    );
+  }
+
+  // Mostrar error si ocurrió alguno
+  if (error) {
+    return (
+      <div className="p-8 bg-red-50 border-l-4 border-red-500 text-red-700">
+        <h2 className="text-xl font-bold mb-2">Error al cargar datos</h2>
+        <p>{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        >
+          Intentar de nuevo
+        </button>
       </div>
     );
   }
@@ -263,12 +208,12 @@ export default function DashboardPage() {
         {/* Panel principal */}
         <div className="flex-1">
           <div>
-            <h2 className="text-2xl font-bold mb-4">Menús</h2>
+            <h2 className="text-2xl font-bold mb-4">Categorías</h2>
             
             <div className="mb-4 flex justify-between">
               <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 <EyeIcon className="h-4 w-4 mr-2" />
-                Ver menú
+                Ver categoría
               </button>
               
               <div className="flex space-x-2">
@@ -279,10 +224,10 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 
-                <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <Link href="/dashboard/categories/new" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                   <PlusIcon className="h-4 w-4 mr-2" />
-                  Nuevo menú
-                </button>
+                  Nueva categoría
+                </Link>
               </div>
             </div>
             
@@ -294,7 +239,7 @@ export default function DashboardPage() {
                       NOMBRE
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      PLATOS
+                      ORDEN
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       FOTO
@@ -308,45 +253,61 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {menus.map((menu) => (
-                    <tr key={menu.id} onClick={() => selectMenuForPreview(menu.id)} className="cursor-pointer hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="ml-2">
-                            <div className="text-sm font-medium text-gray-900">
-                              {menu.nombre}
+                  {categories.map((category) => {
+                    return (
+                      <tr key={category.id} onClick={() => selectCategoryForPreview(category.id)} className="cursor-pointer hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="ml-2">
+                              <div className="text-sm font-medium text-gray-900">
+                                {category.name}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">{menu.platos}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                          {menu.productos && menu.productos.length > 0 && menu.productos[0].imagen ? (
-                            <img 
-                              src={menu.productos[0].imagen} 
-                              alt={menu.nombre}
-                              className="h-full w-full object-cover"
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{category.display_order}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                            <Image 
+                              src={verifyImagePath(category.image)}
+                              alt={category.name}
+                              width={40}
+                              height={40}
+                              className="object-cover"
+                              onError={(e) => {
+                                console.error(`Error cargando imagen: ${category.image}`);
+                                // Crear un elemento fallback
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                
+                                // Añadir texto de fallback
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.classList.add('flex', 'items-center', 'justify-center');
+                                  const fallback = document.createElement('span');
+                                  fallback.className = 'text-xs text-gray-500';
+                                  fallback.textContent = 'Sin foto';
+                                  parent.appendChild(fallback);
+                                }
+                              }}
                             />
-                          ) : (
-                            <span className="text-xs text-gray-500">Sin foto</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`relative inline-block w-10 h-5 transition-colors duration-200 ease-in-out rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${menu.visible ? 'bg-indigo-400' : 'bg-gray-200'}`}>
-                          <span
-                            className={`absolute inset-0 flex items-center justify-${menu.visible ? 'end' : 'start'} w-6 h-6 transition-transform duration-200 ease-in-out transform ${menu.visible ? 'translate-x-5' : 'translate-x-0'} rounded-full bg-white shadow`}
-                          ></span>
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <ChevronDownIcon className="h-5 w-5 text-gray-400" />
-                      </td>
-                    </tr>
-                  ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`relative inline-block w-10 h-5 transition-colors duration-200 ease-in-out rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${category.status === 'A' ? 'bg-indigo-400' : 'bg-gray-200'}`}>
+                            <span
+                              className={`absolute inset-0 flex items-center justify-${category.status === 'A' ? 'end' : 'start'} w-6 h-6 transition-transform duration-200 ease-in-out transform ${category.status === 'A' ? 'translate-x-5' : 'translate-x-0'} rounded-full bg-white shadow`}
+                            ></span>
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -358,7 +319,7 @@ export default function DashboardPage() {
           <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Previsualización Móvil</h3>
             
-            {selectedMenuForPreview && (
+            {selectedCategory && (
               <div className="relative border-8 border-gray-900 rounded-3xl overflow-hidden max-w-xs mx-auto">
                 <div className="absolute top-0 left-0 right-0 h-6 bg-gray-900 flex items-center justify-center">
                   <div className="w-16 h-1 rounded bg-gray-700"></div>
@@ -371,44 +332,52 @@ export default function DashboardPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                         </svg>
                       </button>
-                      <h2 className="ml-4 text-lg font-semibold">{selectedMenuForPreview.nombre}</h2>
+                      <h2 className="ml-4 text-lg font-semibold">Categorías</h2>
                     </div>
                     
                     <div className="border-t border-gray-700">
-                      <div className="flex px-4 py-2 space-x-2">
-                        <button className="px-3 py-1 rounded-full bg-gray-700 text-white text-sm font-medium">
-                          Entrantes
-                        </button>
-                        <button className="px-3 py-1 rounded-full bg-gray-600 text-white text-sm font-medium">
-                          Principales
-                        </button>
-                      </div>
-                      
                       <div className="p-4">
-                        <h3 className="text-xl font-bold mb-4">Entrantes</h3>
+                        <h3 className="text-xl font-bold mb-4">{selectedCategory.name}</h3>
                         
-                        {selectedMenuForPreview.productos?.map((producto) => (
-                          <div key={producto.id} className="mb-6">
-                            <div className="flex justify-between">
-                              <div>
-                                <h4 className="font-bold">{producto.nombre}</h4>
-                                {producto.descripcion && (
-                                  <p className="text-sm text-gray-400 mt-1">{producto.descripcion}</p>
-                                )}
-                                <p className="mt-2 font-semibold">{producto.precio.toFixed(2)} €</p>
-                              </div>
-                              {producto.imagen && (
-                                <div className="w-16 h-16 bg-gray-600 rounded-lg overflow-hidden">
-                                  <img 
-                                    src={producto.imagen} 
-                                    alt={producto.nombre}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              )}
+                        <div className="grid grid-cols-2 gap-4">
+                          {selectedCategory.image && (
+                            <div className="col-span-2 rounded-lg overflow-hidden h-40 relative">
+                              <Image 
+                                src={verifyImagePath(selectedCategory.image)}
+                                alt={selectedCategory.name}
+                                width={320}
+                                height={160}
+                                className="object-cover w-full h-full"
+                                onError={(e) => {
+                                  console.error(`Error cargando imagen en preview: ${selectedCategory.image}`);
+                                  // Crear un elemento fallback
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  
+                                  // Añadir texto de fallback
+                                  const parent = target.parentElement;
+                                  if (parent) {
+                                    parent.classList.add('flex', 'items-center', 'justify-center', 'bg-gray-700');
+                                    const fallback = document.createElement('span');
+                                    fallback.className = 'text-sm text-gray-400';
+                                    fallback.textContent = 'Sin imagen disponible';
+                                    parent.appendChild(fallback);
+                                  }
+                                }}
+                              />
                             </div>
-                          </div>
-                        ))}
+                          )}
+                          
+                          {selectedCategory.products && selectedCategory.products > 0 ? (
+                            <div className="col-span-2 text-center py-8 text-gray-400">
+                              No hay productos en esta categoría
+                            </div>
+                          ) : (
+                            <div className="col-span-2 text-center py-8 text-gray-400">
+                              No hay productos en esta categoría
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
@@ -424,109 +393,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
-      {/* Modal de edición de producto */}
-      {isEditModalOpen && currentProducto && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={closeEditModal}></div>
-            
-            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-              <div className="absolute top-0 right-0 pt-4 pr-4">
-                <button
-                  type="button"
-                  className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  onClick={closeEditModal}
-                >
-                  <span className="sr-only">Cerrar</span>
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <div className="sm:flex sm:items-start">
-                <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900">Editar Producto</h3>
-                  
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">
-                        Nombre
-                      </label>
-                      <input
-                        type="text"
-                        id="nombre"
-                        value={currentProducto.nombre}
-                        onChange={(e) => setCurrentProducto({...currentProducto, nombre: e.target.value})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700">
-                        Descripción
-                      </label>
-                      <textarea
-                        id="descripcion"
-                        value={currentProducto.descripcion || ''}
-                        onChange={(e) => setCurrentProducto({...currentProducto, descripcion: e.target.value})}
-                        rows={3}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="precio" className="block text-sm font-medium text-gray-700">
-                        Precio (€)
-                      </label>
-                      <input
-                        type="number"
-                        id="precio"
-                        value={currentProducto.precio}
-                        onChange={(e) => setCurrentProducto({...currentProducto, precio: parseFloat(e.target.value)})}
-                        step="0.01"
-                        min="0"
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="visible" className="block text-sm font-medium text-gray-700">
-                        Visibilidad
-                      </label>
-                      <select
-                        id="visible"
-                        value={currentProducto.visible ? 'visible' : 'hidden'}
-                        onChange={(e) => setCurrentProducto({...currentProducto, visible: e.target.value === 'visible'})}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                      >
-                        <option value="visible">Visible</option>
-                        <option value="hidden">Oculto</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                <button
-                  type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
-                  onClick={saveProductChanges}
-                >
-                  Guardar cambios
-                </button>
-                <button
-                  type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
-                  onClick={closeEditModal}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

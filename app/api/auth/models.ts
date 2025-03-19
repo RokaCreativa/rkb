@@ -1,69 +1,77 @@
-// Interfaces compartidas para la aplicación
+// Shared interfaces for the application
 
 export interface Menu {
   id: number;
-  nombre: string;
-  disponibilidad?: string;
+  name: string;
+  availability?: string;
   visible?: boolean;
-  productos?: Producto[];
-  platos?: number;
+  products?: Product[];
+  dishes?: number;
   expanded?: boolean;
 }
 
-export interface Producto {
+export interface Product {
   id: number;
-  nombre: string;
-  descripcion?: string;
-  precio: number;
-  imagen?: string;
+  name: string;
+  description?: string;
+  price: number;
+  image?: string;
   visible?: boolean;
-  orden?: number;
-  estatus?: string;
-  foto?: string;
+  display_order?: number;
+  status?: string;
+  photo?: string;
 }
 
-export interface Cliente {
+export interface Client {
   id?: number;
-  cliente?: number;
-  nombre?: string;
+  client?: number;
+  name?: string;
   email?: string;
-  telefono?: string;
-  comp_direccion?: string;
+  phone?: string;
+  address?: string;
   instagram?: string;
-  numero_ws?: string;
-  moneda?: number;
-  tipo?: number;
+  whatsapp_number?: string;
+  currency?: number;
+  type?: number;
   logo?: string;
 }
 
-export interface Moneda {
+export interface Currency {
   id: number;
-  descripcion: string;
-  simbolo: string;
-  codigo_stripe: string;
+  description: string;
+  symbol: string;
+  stripe_code: string;
 }
 
-export interface TipoNegocio {
+export interface BusinessType {
   id: number;
-  descripcion: string;
+  description: string;
 }
 
-export interface Categoria {
+export interface Category {
   id: number;
-  nombre: string;
-  foto?: string;
-  estatus: string;
-  orden: number;
-  cliente: number;
-  totalProductos?: number;
-  secciones?: Seccion[];
+  name: string;
+  image?: string;
+  status: string;
+  display_order: number;
+  client_id: number;
+  totalProducts?: number;
+  sections?: Section[];
 }
 
-export interface Seccion {
+export interface Section {
   id: number;
-  nombre: string;
-  foto?: string;
-  estatus: string;
-  orden: number;
-  productos: Producto[];
-} 
+  name: string;
+  image?: string;
+  status: string;
+  display_order: number;
+  products: Product[];
+}
+
+// For backward compatibility
+export interface Producto extends Product {}
+export interface Cliente extends Client {}
+export interface Moneda extends Currency {}
+export interface TipoNegocio extends BusinessType {}
+export interface Categoria extends Category {}
+export interface Seccion extends Section {} 
