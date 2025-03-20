@@ -259,68 +259,26 @@ export default function CategoriesPage() {
       <div className="mt-8 p-4 bg-white shadow-md rounded-md">
         <h2 className="text-lg font-bold text-black mb-4">Previsualización Móvil</h2>
         
-        <div className="max-w-sm mx-auto border border-gray-200 rounded-xl overflow-hidden shadow-md bg-gray-50">
-          {/* Cabecera del móvil */}
-          <div className="bg-white p-4 border-b border-gray-200">
-            <div className="flex flex-col items-center">
-              <div className="relative w-16 h-16 mb-2">
-                {client && client.logoMain ? (
-                  <Image 
-                    src={client.logoMain}
-                    alt={client.name || 'Logo'}
-                    fill
-                    className="object-contain"
-                    onError={() => console.warn('Error al cargar logo de cliente')}
-                  />
-                ) : (
-                  <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
-                    <span className="text-indigo-600 font-bold">Logo</span>
-                  </div>
-                )}
-              </div>
-              <h3 className="font-bold text-black">{client?.name || 'Mi Restaurante'}</h3>
+        <div className="flex justify-center">
+          {loading ? (
+            <div className="flex items-center justify-center h-[300px]">
+              <p>Cargando previsualización...</p>
             </div>
-          </div>
-          
-          {/* Título de categorías */}
-          <div className="bg-indigo-50 p-2 border-b border-gray-200">
-            <h4 className="font-medium text-sm text-center text-indigo-800">Categorías</h4>
-          </div>
-          
-          {/* Contenido del móvil - solo categorías visibles */}
-          <div className="p-4">
-            {categories.length === 0 ? (
-              <p className="text-center text-gray-500">No hay categorías disponibles</p>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {categories
-                  .filter(cat => visibilityStates[cat.id])
-                  .map(category => (
-                    <div 
-                      key={category.id} 
-                      className="bg-white p-2 rounded-md shadow-sm flex flex-col items-center hover:shadow-md transition-shadow"
-                    >
-                      <div className="relative w-14 h-14 mb-2 rounded-md overflow-hidden border border-gray-200">
-                        {category.image ? (
-                          <Image 
-                            src={category.image}
-                            alt={category.name || ''}
-                            fill
-                            className="object-cover"
-                            onError={() => handleImageError(category.id)}
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-                            <span className="text-xs text-gray-400">Sin img</span>
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-xs font-medium text-black text-center line-clamp-2">{category.name}</span>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
+          ) : (
+            <PhonePreview 
+              clientName={client?.name || 'Roka'}
+              clientLogo={client?.logoMain || ''}
+              categories={categories
+                .filter(cat => visibilityStates[cat.id])
+                .map(cat => ({
+                  id: cat.id,
+                  name: cat.name,
+                  // Extraer solo el nombre del archivo de la ruta completa y asegurar que no es null
+                  image: cat.image ? cat.image.split('/').pop() || undefined : undefined
+                }))
+              }
+            />
+          )}
         </div>
       </div>
     </div>

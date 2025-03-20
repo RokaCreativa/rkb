@@ -35,20 +35,22 @@ export async function GET() {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
     }
 
+    // Usar rutas de imágenes existentes para evitar errores 404
     const processedClient = {
       id: client.client_id,
       name: client.name || '',
       address: client.address || '',
       email: client.email || '',
       phone: client.phone || '',
-      logoCompany: client.company_logo ? `/images/company_logo/${client.company_logo}` : null,
-      logoMain: client.main_logo ? `/images/main_logo/${client.main_logo}` : null,
+      logoCompany: client.company_logo ? `/images/company_logo/${client.company_logo}` : '/images/client-logo.png',
+      logoMain: client.main_logo ? `/images/main_logo/${client.main_logo}` : '/images/client-logo.png',
+      logo: '/images/client-logo.png', // Agregar logo genérico para la preview
       country_id: client.country_id || 0,
       backgroundColor: client.background_color || '#ffffff',
       whatsapp: client.whatsapp_number || '',
       whatsappMessage: client.whatsapp_message || '',
       enableWhatsapp: client.enable_whatsapp === 'S',
-      menuBackground: client.menu_background ? `/bg/${client.menu_background}` : null,
+      menuBackground: client.menu_background ? `/images/${client.menu_background}` : null,
       allergens: client.allergens === 'S',
       footerText: client.footer_text || '',
       footerTextColor: client.footer_text_color || '#000000',
@@ -116,8 +118,9 @@ export async function PUT(request: NextRequest) {
       address: updatedClient.address || '',
       email: updatedClient.email || '',
       phone: updatedClient.phone || '',
-      logoCompany: updatedClient.company_logo ? `/images/company_logo/${updatedClient.company_logo}` : null,
-      logoMain: updatedClient.main_logo ? `/images/main_logo/${updatedClient.main_logo}` : null
+      logoCompany: updatedClient.company_logo ? `/images/company_logo/${updatedClient.company_logo}` : '/images/client-logo.png',
+      logoMain: updatedClient.main_logo ? `/images/main_logo/${updatedClient.main_logo}` : '/images/client-logo.png',
+      logo: '/images/client-logo.png' // Agregar logo genérico para la preview
     };
 
     return NextResponse.json(processedClient);

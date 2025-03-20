@@ -5,6 +5,7 @@ import { EyeIcon, PlusIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
+import { PhonePreview } from '@/components/PhonePreview';
 
 // Interfaces ajustadas a la estructura actualizada
 interface Category {
@@ -171,22 +172,22 @@ export default function DashboardPage() {
       
         {/* Vista previa simplificada */}
         <div className="w-full lg:w-96 bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-medium mb-4">Previsualización Móvil</h3>
-          {selectedCategory ? (
-            <>
-              <h4 className="font-bold text-center">{selectedCategory.name}</h4>
-              {selectedCategory.image && (
-                <Image
-                  src={verifyImagePath(selectedCategory.image)}
-                  alt={selectedCategory.name}
-                  width={320}
-                  height={160}
-                  className="rounded"
-                />
-              )}
-            </>
+          {isLoading ? (
+            <p className="text-gray-500 text-center">Cargando...</p>
           ) : (
-            <p className="text-gray-500 text-center">Selecciona una categoría para previsualizar</p>
+            <PhonePreview 
+              clientName={client?.name || 'Roka'}
+              clientLogo={client?.logo || ''}
+              categories={categories
+                .filter(cat => cat.status === 1)
+                .slice(0, 3)
+                .map(cat => ({
+                  id: cat.id,
+                  name: cat.name,
+                  image: cat.image ? cat.image.split('/').pop() || undefined : undefined
+                }))
+              }
+            />
           )}
         </div>
       </div>
