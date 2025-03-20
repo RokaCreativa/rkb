@@ -43,7 +43,7 @@ export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] 
 
   return (
     <div className="relative mx-auto" style={{ width: '320px', height: '600px' }}>
-      {/* Phone Frame - Color fucsia como el botón Nueva categoría */}
+      {/* Phone Frame - Color exactamente igual al botón Nueva categoría */}
       <div className="absolute inset-0 border-[10px] border-indigo-600 rounded-[40px] shadow-xl overflow-hidden bg-white">
         {/* Notch */}
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-1/3 h-[30px] bg-indigo-600 rounded-b-xl z-10"></div>
