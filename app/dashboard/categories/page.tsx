@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { PhonePreview } from '@/components/PhonePreview';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 /**
  * @file Página de gestión de categorías en el dashboard de RokaMenu.
@@ -61,64 +60,54 @@ export default function CategoriesPage() {
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<{ [key: number]: boolean }>({});
   const [client, setClient] = useState<any>(null);
-  const [statusMessage, setStatusMessage] = useState<{text: string, type: 'success' | 'error' | 'info'} | null>(null);
-  const [updatingOrder, setUpdatingOrder] = useState<boolean>(false);
-
-  // Mostrar mensaje de estado y ocultarlo después de un tiempo
-  const showStatusMessage = (text: string, type: 'success' | 'error' | 'info' = 'info') => {
-    setStatusMessage({text, type});
-    setTimeout(() => {
-      setStatusMessage(null);
-    }, 3000);
-  };
 
   /**
    * Carga inicial de categorías desde la API.
    */
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch("/api/categories");
-      if (!response.ok) throw new Error("Error al obtener las categorías.");
-
-      const data: Category[] = await response.json();
-      console.log("Categorías cargadas:", data);
-
-      // Procesar las categorías y sus imágenes
-      const formattedCategories = data.map((cat) => ({
-        ...cat,
-        image: cat.image ? `/images/categories/${cat.image}` : null,
-      }));
-
-      setCategories(formattedCategories);
-
-      // Inicializar estados de visibilidad basados en `status`
-      const initialStates: VisibilityState = {};
-      formattedCategories.forEach((cat) => {
-        initialStates[cat.id] = cat.status === 1;
-      });
-
-      setVisibilityStates(initialStates);
-
-      // Obtener información del cliente
-      const clientResponse = await fetch("/api/client");
-      if (!clientResponse.ok) throw new Error("Error al obtener información del cliente.");
-
-      const clientData = await clientResponse.json();
-      console.log("Información del cliente:", clientData);
-
-      setClient(clientData);
-    } catch (error) {
-      console.error("Error al cargar categorías:", error);
-      setError("Error al cargar categorías.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch("/api/categories");
+        if (!response.ok) throw new Error("Error al obtener las categorías.");
+
+        const data: Category[] = await response.json();
+        console.log("Categorías cargadas:", data);
+
+        // Procesar las categorías y sus imágenes
+        const formattedCategories = data.map((cat) => ({
+          ...cat,
+          image: cat.image ? `/images/categories/${cat.image}` : null,
+        }));
+
+        setCategories(formattedCategories);
+
+        // Inicializar estados de visibilidad basados en `status`
+        const initialStates: VisibilityState = {};
+        formattedCategories.forEach((cat) => {
+          initialStates[cat.id] = cat.status === 1;
+        });
+
+        setVisibilityStates(initialStates);
+
+        // Obtener información del cliente
+        const clientResponse = await fetch("/api/client");
+        if (!clientResponse.ok) throw new Error("Error al obtener información del cliente.");
+
+        const clientData = await clientResponse.json();
+        console.log("Información del cliente:", clientData);
+
+        setClient(clientData);
+      } catch (error) {
+        console.error("Error al cargar categorías:", error);
+        setError("Error al cargar categorías.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchCategories();
   }, []);
 
@@ -152,7 +141,6 @@ export default function CategoriesPage() {
       }
 
       console.log(`Categoría ${categoryId} actualizada correctamente.`);
-      showStatusMessage("Categoría actualizada correctamente.");
     } catch (error) {
       console.error("Error al cambiar visibilidad:", error);
 
@@ -161,68 +149,6 @@ export default function CategoriesPage() {
         ...prev,
         [categoryId]: !prev[categoryId],
       }));
-      showStatusMessage("Error al actualizar la categoría.", 'error');
-    }
-  };
-
-  /**
-   * Maneja el final del arrastre para actualizar el orden de las categorías
-   * @param {Object} result - Resultado del arrastre
-   */
-  const handleDragEnd = async (result: any) => {
-    // Si no se soltó en un destino válido, no hacer nada
-    if (!result.destination) return;
-    
-    // Si el origen y destino son iguales, no hacer nada
-    if (result.destination.index === result.source.index) return;
-    
-    // Crear una copia de las categorías para modificarlas
-    const items = Array.from(categories);
-    // Eliminar el elemento arrastrado de su posición original
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    // Insertar el elemento en la nueva posición
-    items.splice(result.destination.index, 0, reorderedItem);
-    
-    // Actualizar los display_order basados en la nueva posición
-    const updatedItems = items.map((item, index) => ({
-      ...item,
-      display_order: index + 1
-    }));
-    
-    // Actualizar el estado local inmediatamente para una UI responsiva
-    setCategories(updatedItems);
-    
-    try {
-      setUpdatingOrder(true);
-      showStatusMessage("Actualizando orden...", 'info');
-      
-      // Actualizar en el servidor solo la categoría que se movió
-      const movedCategory = updatedItems[result.destination.index];
-      
-      const response = await fetch(`/api/categories`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: movedCategory.id,
-          display_order: movedCategory.display_order,
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error al actualizar el orden');
-      }
-      
-      console.log(`Orden de categoría ${movedCategory.id} actualizado a ${movedCategory.display_order}`);
-      showStatusMessage("Orden actualizado correctamente.", 'success');
-    } catch (error) {
-      console.error('Error al actualizar el orden:', error);
-      // Revertir cambios en caso de error refrescando datos desde el servidor
-      fetchCategories();
-      showStatusMessage("Error al actualizar el orden.", 'error');
-    } finally {
-      setUpdatingOrder(false);
     }
   };
 
@@ -287,97 +213,46 @@ export default function CategoriesPage() {
 
       {/* Tabla de categorías */}
       <div className="overflow-x-auto bg-white shadow-md rounded-md p-4">
-        {updatingOrder && (
-          <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center z-10">
-            <div className="flex items-center space-x-2">
-              <svg className="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span>Actualizando orden...</span>
-            </div>
-          </div>
-        )}
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="categoriesTable">
-            {(provided) => (
-              <table className="min-w-full" {...provided.droppableProps} ref={provided.innerRef}>
-                <thead>
-                  <tr className="bg-indigo-50">
-                    <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Nombre</th>
-                    <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Orden</th>
-                    <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Foto</th>
-                    <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Visibilidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categories.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="text-center py-4 text-gray-500">
-                        No hay categorías disponibles.
-                      </td>
-                    </tr>
-                  ) : (
-                    categories.map((category, index) => (
-                      <Draggable 
-                        key={category.id.toString()} 
-                        draggableId={category.id.toString()} 
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <tr 
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            className={`border-b transition-colors ${
-                              snapshot.isDragging 
-                                ? 'bg-indigo-100 shadow-lg' 
-                                : 'hover:bg-indigo-50'
-                            }`}
-                          >
-                            <td className="px-4 py-2 text-black font-semibold flex items-center">
-                              <div 
-                                {...provided.dragHandleProps} 
-                                className={`mr-2 ${
-                                  snapshot.isDragging ? 'cursor-grabbing' : 'cursor-grab'
-                                }`}
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <circle cx="9" cy="5" r="1"/>
-                                  <circle cx="9" cy="12" r="1"/>
-                                  <circle cx="9" cy="19" r="1"/>
-                                  <circle cx="15" cy="5" r="1"/>
-                                  <circle cx="15" cy="12" r="1"/>
-                                  <circle cx="15" cy="19" r="1"/>
-                                </svg>
-                              </div>
-                              {category.name}
-                            </td>
-                            <td className="px-4 py-2 text-black">{category.display_order}</td>
-                            <td className="px-4 py-2">
-                              <CategoryImage
-                                imagePath={category.image}
-                                alt={category.name}
-                              />
-                            </td>
-                            <td className="px-4 py-2">
-                              <div className="flex justify-center">
-                                <VisibilitySwitch
-                                  checked={visibilityStates[category.id] ?? false}
-                                  onChange={() => toggleCategoryVisibility(category.id)}
-                                />
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </Draggable>
-                    ))
-                  )}
-                  {provided.placeholder}
-                </tbody>
-              </table>
+        <table className="min-w-full">
+          <thead>
+            <tr className="bg-indigo-50">
+              <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Nombre</th>
+              <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Orden</th>
+              <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Foto</th>
+              <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Visibilidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            {categories.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-center py-4 text-gray-500">
+                  No hay categorías disponibles.
+                </td>
+              </tr>
+            ) : (
+              categories.map((category) => (
+                <tr key={category.id} className="border-b hover:bg-indigo-50 transition-colors">
+                  <td className="px-4 py-2 text-black font-semibold">{category.name}</td>
+                  <td className="px-4 py-2 text-black">{category.display_order}</td>
+                  <td className="px-4 py-2">
+                    <CategoryImage
+                      imagePath={category.image}
+                      alt={category.name}
+                    />
+                  </td>
+                  <td className="px-4 py-2">
+                    <div className="flex justify-center">
+                      <VisibilitySwitch
+                        checked={visibilityStates[category.id] ?? false}
+                        onChange={() => toggleCategoryVisibility(category.id)}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))
             )}
-          </Droppable>
-        </DragDropContext>
+          </tbody>
+        </table>
       </div>
 
       {/* Vista previa móvil */}
@@ -406,36 +281,6 @@ export default function CategoriesPage() {
           )}
         </div>
       </div>
-
-      {/* Mensaje de estado */}
-      {statusMessage && (
-        <div 
-          className={`fixed bottom-5 right-5 py-2 px-4 rounded-md shadow-lg transition-opacity duration-300 ease-in-out ${
-            statusMessage.type === 'success' ? 'bg-green-500 text-white' : 
-            statusMessage.type === 'error' ? 'bg-red-500 text-white' : 
-            'bg-blue-500 text-white'
-          }`}
-        >
-          <div className="flex items-center space-x-2">
-            {statusMessage.type === 'success' && (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            )}
-            {statusMessage.type === 'error' && (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            )}
-            {statusMessage.type === 'info' && (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            )}
-            <span>{statusMessage.text}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

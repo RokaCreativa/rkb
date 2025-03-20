@@ -53,7 +53,7 @@ export async function GET() {
   }
 }
 
-// Método PUT para cambiar la visibilidad o el orden de una categoría
+// Método PUT para cambiar la visibilidad de una categoría
 export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -71,35 +71,18 @@ export async function PUT(request: Request) {
 
     const data = await request.json();
 
-    if (!data.id) {
-      return NextResponse.json({ error: 'ID de categoría requerido' }, { status: 400 });
+    if (!data.id || typeof data.status !== 'number') {
+      return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
     }
 
-    // Preparar los datos que se actualizarán
-    const updateData: any = {};
-    
-    // Actualizar el estado de visibilidad si se proporciona
-    if (typeof data.status === 'number') {
-      updateData.status = data.status === 1;
-    }
-    
-    // Actualizar el orden de visualización si se proporciona
-    if (typeof data.display_order === 'number') {
-      updateData.display_order = data.display_order;
-    }
-    
-    // Comprobar si hay algo que actualizar
-    if (Object.keys(updateData).length === 0) {
-      return NextResponse.json({ error: 'No se proporcionaron datos para actualizar' }, { status: 400 });
-    }
-
-    // Actualizar la categoría
     const category = await prisma.categories.update({
       where: {
         id: data.id,
         client_id: user.client_id,
       },
-      data: updateData,
+      data: {
+        status: data.status === 1,
+      },
     });
 
     const processedCategory: ProcessedCategory = {
@@ -114,7 +97,6 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(processedCategory);
   } catch (error) {
-    console.error('Error al actualizar categoría:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
