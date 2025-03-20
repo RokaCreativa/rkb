@@ -45,6 +45,7 @@ export async function GET() {
       logoCompany: client.company_logo ? `/images/company_logo/${client.company_logo}` : '/images/client-logo.png',
       logoMain: client.main_logo ? `/images/main_logo/${client.main_logo}` : '/images/client-logo.png',
       logo: '/images/client-logo.png', // Agregar logo genérico para la preview
+      main_logo: client.main_logo || '', // Agregamos el nombre directo del archivo
       country_id: client.country_id || 0,
       backgroundColor: client.background_color || '#ffffff',
       whatsapp: client.whatsapp_number || '',
@@ -120,7 +121,8 @@ export async function PUT(request: NextRequest) {
       phone: updatedClient.phone || '',
       logoCompany: updatedClient.company_logo ? `/images/company_logo/${updatedClient.company_logo}` : '/images/client-logo.png',
       logoMain: updatedClient.main_logo ? `/images/main_logo/${updatedClient.main_logo}` : '/images/client-logo.png',
-      logo: '/images/client-logo.png' // Agregar logo genérico para la preview
+      logo: '/images/client-logo.png', // Agregar logo genérico para la preview
+      main_logo: updatedClient.main_logo || '', // Agregamos el nombre directo del archivo
     };
 
     return NextResponse.json(processedClient);

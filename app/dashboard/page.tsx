@@ -22,6 +22,7 @@ interface Client {
   id: number;
   name: string;
   logo: string | null;
+  main_logo: string | null;
 }
 
 // Obtener datos del cliente autenticado
@@ -57,6 +58,11 @@ export default function DashboardPage() {
         setClient(clientData);
         setCategories(categoriesData);
         setSelectedCategory(categoriesData[0] || null);
+        
+        console.log("Datos del cliente:", clientData);
+        console.log("Logo principal:", clientData.main_logo);
+        console.log("Logo URL completa:", `/images/main_logo/${clientData.main_logo}`);
+        
       } catch (err: any) {
         setError(err.message || 'Error desconocido al cargar datos');
       } finally {
@@ -106,12 +112,19 @@ export default function DashboardPage() {
       : `/images/categories/${imagePath}`;
   };
 
+  // Obtener la ruta del logo principal
+  const getMainLogoPath = (): string => {
+    if (!client || !client.main_logo) return '/images/client-logo.png';
+    
+    // Usar el nombre del archivo directamente desde main_logo
+    return `/images/main_logo/${client.main_logo}`;
+  };
+
   return (
-    <div className="flex flex-col space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-    <div className="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-6">
+    <div className="flex flex-col">
+      <div className="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-6">
       <div className="flex-1">
-          <h2 className="text-2xl font-bold mb-4">Categorías</h2>
+          <h2 className="text-2xl font-bold mb-4 text-indigo-600">Categorías</h2>
 
           <div className="mb-4 flex justify-between">
             <button className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md bg-white">
@@ -171,24 +184,19 @@ export default function DashboardPage() {
       </div>
       
         {/* Vista previa simplificada */}
-        <div className="w-full lg:w-96 bg-white p-4 rounded-lg shadow">
-          {isLoading ? (
-            <p className="text-gray-500 text-center">Cargando...</p>
-          ) : (
-            <PhonePreview 
-              clientName={client?.name || 'Roka'}
-              clientLogo={client?.logo || ''}
-              categories={categories
-                .filter(cat => cat.status === 1)
-                .slice(0, 3)
-                .map(cat => ({
-                  id: cat.id,
-                  name: cat.name,
-                  image: cat.image ? cat.image.split('/').pop() || undefined : undefined
-                }))
-              }
-            />
-          )}
+        <div className="w-full lg:w-1/3">
+          <PhonePreview 
+            clientName={client?.name || "Roka"} 
+            categories={categories
+              .filter(cat => cat.status === 1)
+              .map(cat => ({
+                id: cat.id,
+                name: cat.name || '',
+                image: cat.image || undefined
+              }))
+            }
+            clientLogo={getMainLogoPath()}
+          />
         </div>
       </div>
     </div>

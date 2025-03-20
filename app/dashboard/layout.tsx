@@ -14,7 +14,8 @@ import {
   UserIcon,
   PhotoIcon,
   Cog6ToothIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  SquaresPlusIcon
 } from '@heroicons/react/24/outline'
 
 /**
@@ -62,6 +63,7 @@ export default function DashboardLayout({
 
   function renderNavLinks() {
     const navLinks = [
+      { name: 'Dashboard', href: '/dashboard', icon: SquaresPlusIcon },
       { name: 'Inicio', href: '/dashboard', icon: HomeIcon },
       { name: 'Menú', href: '/dashboard/menu', icon: CubeIcon },
       { name: 'Productos', href: '/dashboard/productos', icon: CubeIcon },

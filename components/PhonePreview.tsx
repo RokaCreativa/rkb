@@ -17,6 +17,7 @@ interface PhonePreviewProps {
 export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] }: PhonePreviewProps) {
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({})
   const [headerImage, setHeaderImage] = useState<string>("/images/restaurant-header.jpg")
+  const [logoError, setLogoError] = useState<boolean>(false)
 
   // Usar las categorías pasadas como prop o un conjunto de ejemplo si no hay datos
   const defaultCategories = [
@@ -27,18 +28,23 @@ export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] 
 
   const displayCategories = categories.length > 0 ? categories : defaultCategories
 
-  // Usar la imagen de la primera categoría como imagen de cabecera si está disponible
+  // Usar el logo del cliente para la cabecera si está disponible
   useEffect(() => {
-    if (displayCategories.length > 0 && displayCategories[0].image) {
-      setHeaderImage(`/images/categories/${displayCategories[0].image}`);
+    if (clientLogo) {
+      setLogoError(false)
     }
-  }, [displayCategories]);
+  }, [clientLogo]);
 
   const handleImageError = (categoryId: number) => {
     setImageErrors(prev => ({
       ...prev,
       [categoryId]: true
     }))
+  }
+
+  const handleLogoError = () => {
+    setLogoError(true)
+    setHeaderImage("/images/restaurant-header.jpg")
   }
 
   return (
@@ -63,15 +69,25 @@ export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] 
 
         {/* App Content */}
         <div className="absolute inset-0 pt-7 overflow-y-auto scrollbar-hide">
-          {/* Header Image */}
+          {/* Header Image o Logo */}
           <div className="relative h-40 w-full">
-            <Image
-              src={headerImage}
-              alt="Restaurant"
-              fill
-              className="object-cover"
-              onError={() => setHeaderImage("/images/restaurant-header.jpg")}
-            />
+            {clientLogo && !logoError ? (
+              <Image
+                src={clientLogo}
+                alt="Logo del cliente"
+                fill
+                className="object-contain bg-gray-100 p-2"
+                onError={handleLogoError}
+              />
+            ) : (
+              <Image
+                src={headerImage}
+                alt="Restaurant"
+                fill
+                className="object-cover"
+                onError={() => setHeaderImage("/images/restaurant-header.jpg")}
+              />
+            )}
             
             {/* Header Overlay with search and language */}
             <div className="absolute top-0 inset-x-0 flex items-center justify-between p-3">
