@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import prisma from '@/lib/prisma';
+import prisma from "@/prisma/prisma";
 import { categorias, productos, alergenos_producto, alergenos } from '@prisma/client';
 
 export const metadata: Metadata = {

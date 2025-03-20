@@ -1,76 +1,93 @@
-import { NextAuthOptions } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { prisma } from "./prisma"
+import { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import prisma from "@/prisma/prisma";
+// O la ruta relativa que corresponda
 
-// Extender los tipos de NextAuth para incluir role
+
+// Extender tipos de NextAuth
 declare module "next-auth" {
   interface User {
-    id: string
-    name: string
-    email: string
-    role: string
+    id: string;
+    name: string;
+    email: string;
+    role: string;
   }
-  
   interface Session {
-    user: User
+    user: User;
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    id: string
-    role?: string
+    id: string;
+    email: string;
+    role: string;
   }
 }
 
+// Definir tipo de usuario personalizado
+type CustomUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+};
+
 export const authOptions: NextAuthOptions = {
   pages: {
-    signIn: '/auth/signin',
+    signIn: "/auth/signin",
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt" as const,
   },
   providers: [
     CredentialsProvider({
-      name: "credentials",
+      name: "Credentials",
       credentials: {
-        username: { label: "Username", type: "text" },
-        password: { label: "Password", type: "password" }
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          return null
+      async authorize(credentials): Promise<CustomUser | null> {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
         }
 
-        // Simplemente usa el usuario y contraseña proporcionados
-        // para crear un objeto de usuario básico
-        return {
-          id: "1",
-          name: credentials.username,
-          email: `${credentials.username}@example.com`,
-          role: "user" // Añadir un rol por defecto
+        // Buscar usuario por email en la base de datos
+        const user = await prisma.users.findFirst({
+          where: { email: credentials.email },
+        });
+
+        // Validar credenciales
+        if (!user || user.password !== credentials.password) {
+          return null;
         }
-      }
+
+        return {
+          id: user.user_code,
+          name: user.username ?? "",
+          email: user.email ?? "",
+          role: user.profile ?? "user",
+        };
+      },
     }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-        token.name = user.name
-        token.email = user.email
-        token.role = user.role
+        token.id = user.id;
+        token.email = user.email;
+        token.role = user.role;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.id as string
-        session.user.name = token.name as string
-        session.user.email = token.email as string
-        session.user.role = token.role as string
-      }
-      return session
+      session.user = {
+        id: token.id,
+        name: session.user.name ?? "",
+        email: token.email,
+        role: token.role,
+      };
+      return session;
     },
   },
-} 
+};

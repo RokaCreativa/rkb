@@ -1,52 +1,52 @@
-import { Categoria } from '@/app/types/menu';
+import { Category } from '@/app/types/menu';
 
 interface VistaPreviaProps {
-  categorias: Categoria[];
-  nombreRestaurante: string;
-  tipoNegocio: string;
+  categories: Category[];
+  restaurantName: string;
+  businessType: string;
 }
 
 const VistaPrevia: React.FC<VistaPreviaProps> = ({
-  categorias,
-  nombreRestaurante,
-  tipoNegocio
+  categories,
+  restaurantName,
+  businessType
 }) => {
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
       <div className="p-6 bg-gray-900 text-white">
-        <h2 className="text-2xl font-bold">{nombreRestaurante}</h2>
-        <p className="text-gray-300">{tipoNegocio}</p>
+        <h2 className="text-2xl font-bold">{restaurantName}</h2>
+        <p className="text-gray-300">{businessType}</p>
       </div>
 
       <div className="divide-y">
-        {categorias.filter(cat => cat.visible).map((categoria) => (
-          <div key={categoria.id} className="p-6">
-            <h3 className="text-xl font-semibold mb-4">{categoria.nombre}</h3>
+        {categories.filter(cat => cat.isVisible ?? true).map((category) => (
+          <div key={category.id} className="p-6">
+            <h3 className="text-xl font-semibold mb-4">{category.name}</h3>
             <div className="space-y-4">
-              {categoria.productos.filter(prod => prod.visible).map((producto) => (
-                <div key={producto.id} className="flex justify-between items-start">
+              {category.products.filter(prod => prod.isVisible ?? true).map((product) => (
+                <div key={product.id} className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-medium">{producto.nombre}</h4>
-                    {producto.descripcion && (
+                    <h4 className="font-medium">{product.name}</h4>
+                    {product.description && (
                       <p className="text-sm text-gray-600 mt-1">
-                        {producto.descripcion}
+                        {product.description}
                       </p>
                     )}
-                    {producto.etiquetas && producto.etiquetas.length > 0 && (
+                    {product.tags && product.tags.length > 0 && (
                       <div className="flex gap-2 mt-2">
-                        {producto.etiquetas.map((etiqueta) => (
+                        {product.tags.map((tag: string) => (
                           <span
-                            key={etiqueta}
+                            key={tag}
                             className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
                           >
-                            {etiqueta}
+                            {tag}
                           </span>
                         ))}
                       </div>
                     )}
                   </div>
                   <div className="text-lg font-semibold">
-                    {producto.precio.toFixed(2)}€
+                    {product.price?.toFixed(2) ?? '0.00'}€
                   </div>
                 </div>
               ))}
@@ -58,4 +58,4 @@ const VistaPrevia: React.FC<VistaPreviaProps> = ({
   );
 };
 
-export default VistaPrevia; 
+export default VistaPrevia;

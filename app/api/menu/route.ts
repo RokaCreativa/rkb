@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from "@/prisma/prisma";
 import { Menu, Product } from '../auth/models';
 
 export async function GET() {

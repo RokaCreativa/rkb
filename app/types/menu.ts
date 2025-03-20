@@ -1,32 +1,32 @@
 export interface BaseEntity {
-  id: number
-  createdAt?: Date
-  updatedAt?: Date
+  id: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
-export interface Producto extends BaseEntity {
-  nombre: string
-  descripcion?: string
-  precio: number
-  imagen?: string
-  orden: number
-  categoriaId: number
-  activo: boolean
+export interface Product extends BaseEntity {
+  name: string;
+  description?: string;
+  price: number;
+  image?: string;
+  order: number;
+  categoryId: number;
+  isActive: boolean;
 }
 
-export interface Categoria extends BaseEntity {
-  nombre: string
-  descripcion?: string
-  orden: number
-  menuId: number
-  productos: Producto[]
-  activo: boolean
+export interface Category extends BaseEntity {
+  name: string;
+  description?: string;
+  order: number;
+  menuId: number;
+  products: Product[];
+  isActive: boolean;
 }
 
 export interface Menu extends BaseEntity {
-  nombre: string
-  descripcion?: string
-  usuarioId: string
-  categorias: Categoria[]
-  activo: boolean
-} 
+  name: string;
+  description?: string;
+  userId: string;
+  categories: Category[];
+  isActive: boolean;
+}

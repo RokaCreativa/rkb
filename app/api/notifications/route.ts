@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import prisma from '@/lib/prisma';
+import prisma from "@/prisma/prisma";
 import { Server as SocketServer } from 'socket.io';
 
 let io: SocketServer;
