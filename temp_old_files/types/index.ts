@@ -16,7 +16,19 @@ export interface CategoriaConSecciones extends CategoriaBase {
 }
 
 // Tipo para el listado simple
-export interface CategoriaListado extends CategoriaBase {}
+export interface CategoriaListado {
+  id: number;
+  nombre: string | null;
+  foto: string | null;
+  estatus: string;
+  orden: number | null;
+  cliente: number | null;
+  registrado: Date | null;
+  eliminado: string | null;
+  fecha_eliminacion: string | null;
+  usuario_eliminacion: string | null;
+  ip_eliminacion: string | null;
+}
 
 export interface Producto {
   id: number;
@@ -77,4 +89,23 @@ export type ProductoConAlergenos = {
     icono: string;
     orden: number | null;
   }>;
-}; 
+};
+
+/**
+ * Tipos para la aplicación RokaMenu
+ */
+
+// Tipo para categorías en formato listado
+export interface CategoryListing {
+  id: number;
+  name: string | null;
+  image: string | null;
+  status: boolean;
+  display_order: number | null;
+  client_id: number | null;
+  registered_at: Date | null;
+  deleted: string | null;
+  deleted_at: string | null;
+  deleted_by: string | null;
+  deleted_ip: string | null;
+} 

@@ -1,46 +1,85 @@
 import { NextRequest, NextResponse } from "next/server";
+import prisma from '@/prisma/prisma';
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import prisma from "@/lib/prisma";
+import { authOptions } from "@/lib/auth";
+import { Prisma } from "@prisma/client";
 
-// GET /api/sections?menuId=X
+// Interfaz para los datos de sección procesados
+interface FormattedSection {
+  id: number;
+  name: string | null;
+  image: string | null;
+  display_order: number | null;
+  status: boolean;
+  products: Array<{
+    id: number;
+    name: string | null;
+    image: string | null;
+    price: Prisma.Decimal | null;
+    description: string | null;
+  }>;
+}
+
+// GET /api/sections?categoryId=X
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    // Cliente fijo para pruebas
+    const CLIENT_ID = 3;
 
     const { searchParams } = new URL(request.url);
-    const menuId = searchParams.get("menuId");
+    const categoryId = searchParams.get("categoryId");
 
-    if (!menuId) {
+    if (!categoryId) {
       return NextResponse.json(
-        { error: "menuId es requerido" },
+        { error: "categoryId es requerido" },
         { status: 400 }
       );
     }
 
-    const sections = await prisma.section.findMany({
+    // Obtener secciones con sus relaciones
+    const sections = await prisma.sections.findMany({
       where: {
-        menuId: parseInt(menuId),
-        isActive: true,
-        menu: {
-          userId: session.user.id,
-        },
+        category_id: parseInt(categoryId),
+        status: true,
+        deleted: "N",
+        client_id: CLIENT_ID
       },
       include: {
-        products: {
-          where: { isActive: true },
-          orderBy: { order: "asc" },
-        },
+        products_sections: {
+          include: {
+            products: true
+          }
+        }
       },
       orderBy: {
-        order: "asc",
+        display_order: "asc",
       },
     });
 
-    return NextResponse.json(sections);
+    // Transformar los datos a un formato más amigable
+    const formattedSections: FormattedSection[] = sections.map(section => {
+      // Productos filtrados por estado activo
+      const filteredProducts = section.products_sections
+        .filter(ps => ps.products && ps.products.status && ps.products.deleted === "N")
+        .map(ps => ({
+          id: ps.products.id,
+          name: ps.products.name,
+          image: ps.products.image,
+          price: ps.products.price,
+          description: ps.products.description
+        }));
+
+      return {
+        id: section.id,
+        name: section.name,
+        image: section.image,
+        display_order: section.display_order,
+        status: section.status,
+        products: filteredProducts
+      };
+    });
+
+    return NextResponse.json(formattedSections);
   } catch (error) {
     console.error("Error al obtener secciones:", error);
     return NextResponse.json(
@@ -53,44 +92,38 @@ export async function GET(request: NextRequest) {
 // POST /api/sections
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-    }
+    // Cliente fijo para pruebas
+    const CLIENT_ID = 3;
 
     const data = await request.json();
     
-    // Verificar que el menú pertenece al usuario
-    const menu = await prisma.menu.findFirst({
-      where: {
-        id: data.menuId,
-        userId: session.user.id,
-      },
-    });
-
-    if (!menu) {
+    // Validaciones básicas
+    if (!data.name) {
       return NextResponse.json(
-        { error: "Menú no encontrado" },
-        { status: 404 }
+        { error: "El nombre es requerido" },
+        { status: 400 }
       );
     }
 
-    // Obtener el último orden
-    const lastSection = await prisma.section.findFirst({
-      where: {
-        menuId: data.menuId,
-        isActive: true,
-      },
-      orderBy: {
-        order: "desc",
-      },
-    });
+    if (!data.category_id) {
+      return NextResponse.json(
+        { error: "La categoría es requerida" },
+        { status: 400 }
+      );
+    }
 
-    const section = await prisma.section.create({
+    // Crear sección
+    const section = await prisma.sections.create({
       data: {
-        ...data,
-        order: lastSection ? lastSection.order + 1 : 1,
-      },
+        name: data.name,
+        image: data.image,
+        status: true,
+        display_order: data.display_order || 0,
+        category_id: parseInt(data.category_id),
+        client_id: CLIENT_ID,
+        registered_at: new Date(),
+        deleted: "N"
+      }
     });
 
     return NextResponse.json(section);
@@ -113,14 +146,13 @@ export async function PUT(request: Request) {
 
     const { id, ...data } = await request.json();
     
-    // Verificar que la sección pertenece a un menú del usuario
-    const section = await prisma.section.findFirst({
+    // Verificar que la sección existe
+    const section = await prisma.sections.findFirst({
       where: {
-        id,
-        menu: {
-          userId: session.user.id,
-        },
-      },
+        id: id,
+        client_id: 3, // Cliente fijo para pruebas
+        deleted: "N"
+      }
     });
 
     if (!section) {
@@ -130,9 +162,14 @@ export async function PUT(request: Request) {
       );
     }
 
-    const updatedSection = await prisma.section.update({
-      where: { id },
-      data,
+    const updatedSection = await prisma.sections.update({
+      where: { id: id },
+      data: {
+        name: data.name,
+        image: data.image,
+        display_order: data.display_order,
+        status: data.status
+      }
     });
 
     return NextResponse.json(updatedSection);
@@ -155,14 +192,13 @@ export async function DELETE(request: Request) {
 
     const { id } = await request.json();
     
-    // Verificar que la sección pertenece a un menú del usuario
-    const section = await prisma.section.findFirst({
+    // Verificar que la sección existe
+    const section = await prisma.sections.findFirst({
       where: {
-        id,
-        menu: {
-          userId: session.user.id,
-        },
-      },
+        id: id,
+        client_id: 3, // Cliente fijo para pruebas
+        deleted: "N"
+      }
     });
 
     if (!section) {
@@ -172,11 +208,15 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await prisma.section.update({
-      where: { id },
+    // Soft delete - marcar como eliminado en lugar de eliminar físicamente
+    await prisma.sections.update({
+      where: { id: id },
       data: {
-        isActive: false,
-      },
+        deleted: "S",
+        deleted_at: new Date().toISOString(),
+        deleted_by: session.user.email || "sistema",
+        deleted_ip: "127.0.0.1" // IP ficticia para pruebas
+      }
     });
 
     return NextResponse.json({ success: true });

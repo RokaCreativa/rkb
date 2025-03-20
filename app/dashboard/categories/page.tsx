@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { PhonePreview } from '@/components/PhonePreview';
 
 /**
  * @file Página de gestión de categorías en el dashboard de RokaMenu.
@@ -24,6 +25,30 @@ interface VisibilityState {
 }
 
 /**
+ * Componente Switch personalizado para sustituir el checkbox estándar
+ */
+const VisibilitySwitch = ({ checked, onChange }: { checked: boolean; onChange: () => void }) => {
+  return (
+    <button
+      type="button"
+      onClick={onChange}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+        checked ? 'bg-indigo-600' : 'bg-gray-300'
+      }`}
+      role="switch"
+      aria-checked={checked}
+    >
+      <span className="sr-only">Cambiar visibilidad</span>
+      <span
+        className={`${
+          checked ? 'translate-x-6' : 'translate-x-1'
+        } inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out`}
+      />
+    </button>
+  );
+};
+
+/**
  * Página de administración de categorías.
  * @returns {JSX.Element} Página del dashboard para gestionar categorías.
  */
@@ -34,6 +59,7 @@ export default function CategoriesPage() {
   const [visibilityStates, setVisibilityStates] = useState<VisibilityState>({});
   const [error, setError] = useState<string | null>(null);
   const [imageErrors, setImageErrors] = useState<{ [key: number]: boolean }>({});
+  const [client, setClient] = useState<any>(null);
 
   /**
    * Carga inicial de categorías desde la API.
@@ -65,6 +91,15 @@ export default function CategoriesPage() {
         });
 
         setVisibilityStates(initialStates);
+
+        // Obtener información del cliente
+        const clientResponse = await fetch("/api/client");
+        if (!clientResponse.ok) throw new Error("Error al obtener información del cliente.");
+
+        const clientData = await clientResponse.json();
+        console.log("Información del cliente:", clientData);
+
+        setClient(clientData);
       } catch (error) {
         console.error("Error al cargar categorías:", error);
         setError("Error al cargar categorías.");
@@ -144,7 +179,7 @@ export default function CategoriesPage() {
     if (!imagePath) return <span className="text-gray-500">Sin imagen</span>;
 
     return (
-      <div className="relative h-10 w-10 rounded-md overflow-hidden">
+      <div className="relative h-10 w-10 rounded-md overflow-hidden border border-gray-200">
         <Image
           src={imagePath}
           alt={alt}
@@ -158,20 +193,20 @@ export default function CategoriesPage() {
 
   // Renderizar mientras se carga
   if (loading) {
-    return <p className="text-center text-gray-500">Cargando categorías...</p>;
+    return <p className="text-center text-gray-500 p-8">Cargando categorías...</p>;
   }
 
   // Mostrar error si hay fallos en la carga
   if (error) {
-    return <p className="text-center text-red-500">{error}</p>;
+    return <p className="text-center text-red-500 p-8">{error}</p>;
   }
 
   return (
     <div className="space-y-6 p-6">
       {/* Título y botón */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Categorías</h1>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+        <h1 className="text-2xl font-bold text-black">Categorías</h1>
+        <button className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors">
           Añadir Categoría
         </button>
       </div>
@@ -180,25 +215,25 @@ export default function CategoriesPage() {
       <div className="overflow-x-auto bg-white shadow-md rounded-md p-4">
         <table className="min-w-full">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="px-4 py-2 text-left text-xs font-medium">Nombre</th>
-              <th className="px-4 py-2 text-left text-xs font-medium">Orden</th>
-              <th className="px-4 py-2 text-left text-xs font-medium">Foto</th>
-              <th className="px-4 py-2 text-left text-xs font-medium">Visibilidad</th>
+            <tr className="bg-indigo-50">
+              <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Nombre</th>
+              <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Orden</th>
+              <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Foto</th>
+              <th className="px-4 py-2 text-left text-xs font-bold text-black uppercase tracking-wider">Visibilidad</th>
             </tr>
           </thead>
           <tbody>
             {categories.length === 0 ? (
               <tr>
-                <td colSpan={4} className="text-center py-4">
+                <td colSpan={4} className="text-center py-4 text-gray-500">
                   No hay categorías disponibles.
                 </td>
               </tr>
             ) : (
               categories.map((category) => (
-                <tr key={category.id} className="border-b">
-                  <td className="px-4 py-2">{category.name}</td>
-                  <td className="px-4 py-2">{category.display_order}</td>
+                <tr key={category.id} className="border-b hover:bg-indigo-50 transition-colors">
+                  <td className="px-4 py-2 text-black font-semibold">{category.name}</td>
+                  <td className="px-4 py-2 text-black">{category.display_order}</td>
                   <td className="px-4 py-2">
                     <CategoryImage
                       imagePath={category.image}
@@ -206,17 +241,87 @@ export default function CategoriesPage() {
                     />
                   </td>
                   <td className="px-4 py-2">
-                    <input
-                      type="checkbox"
-                      checked={visibilityStates[category.id] ?? false}
-                      onChange={() => toggleCategoryVisibility(category.id)}
-                    />
+                    <div className="flex justify-center">
+                      <VisibilitySwitch
+                        checked={visibilityStates[category.id] ?? false}
+                        onChange={() => toggleCategoryVisibility(category.id)}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Vista previa móvil */}
+      <div className="mt-8 p-4 bg-white shadow-md rounded-md">
+        <h2 className="text-lg font-bold text-black mb-4">Previsualización Móvil</h2>
+        
+        <div className="max-w-sm mx-auto border border-gray-200 rounded-xl overflow-hidden shadow-md bg-gray-50">
+          {/* Cabecera del móvil */}
+          <div className="bg-white p-4 border-b border-gray-200">
+            <div className="flex flex-col items-center">
+              <div className="relative w-16 h-16 mb-2">
+                {client && client.logoMain ? (
+                  <Image 
+                    src={client.logoMain}
+                    alt={client.name || 'Logo'}
+                    fill
+                    className="object-contain"
+                    onError={() => console.warn('Error al cargar logo de cliente')}
+                  />
+                ) : (
+                  <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <span className="text-indigo-600 font-bold">Logo</span>
+                  </div>
+                )}
+              </div>
+              <h3 className="font-bold text-black">{client?.name || 'Mi Restaurante'}</h3>
+            </div>
+          </div>
+          
+          {/* Título de categorías */}
+          <div className="bg-indigo-50 p-2 border-b border-gray-200">
+            <h4 className="font-medium text-sm text-center text-indigo-800">Categorías</h4>
+          </div>
+          
+          {/* Contenido del móvil - solo categorías visibles */}
+          <div className="p-4">
+            {categories.length === 0 ? (
+              <p className="text-center text-gray-500">No hay categorías disponibles</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {categories
+                  .filter(cat => visibilityStates[cat.id])
+                  .map(category => (
+                    <div 
+                      key={category.id} 
+                      className="bg-white p-2 rounded-md shadow-sm flex flex-col items-center hover:shadow-md transition-shadow"
+                    >
+                      <div className="relative w-14 h-14 mb-2 rounded-md overflow-hidden border border-gray-200">
+                        {category.image ? (
+                          <Image 
+                            src={category.image}
+                            alt={category.name || ''}
+                            fill
+                            className="object-cover"
+                            onError={() => handleImageError(category.id)}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                            <span className="text-xs text-gray-400">Sin img</span>
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium text-black text-center line-clamp-2">{category.name}</span>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import prisma from "@/prisma/prisma";
 import { CategoryForm } from "@/components/CategoryForm";
 
 interface EditCategoryPageProps {
@@ -13,13 +13,14 @@ interface EditCategoryPageProps {
 export default async function EditCategoryPage({ params }: EditCategoryPageProps) {
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.id) {
+  if (!session?.user?.email) {
     redirect("/sign-in");
   }
 
-  const user = await prisma.usuarios.findFirst({
+  // Buscar usuario por email
+  const user = await prisma.users.findFirst({
     where: {
-      us_cd_usuario: session.user.id,
+      email: session.user.email,
     },
   });
 
@@ -27,16 +28,14 @@ export default async function EditCategoryPage({ params }: EditCategoryPageProps
     redirect("/sign-in");
   }
 
-  const userCompany = await prisma.usuarios_has_empresas.findFirst({
+  // Obtener detalles del cliente asociado al usuario
+  const client = await prisma.clients.findFirst({
     where: {
-      us_cd_usuario: user.us_cd_usuario,
-    },
-    include: {
-      empresas: true,
+      client_id: user.client_id || 0,
     },
   });
 
-  if (!userCompany?.empresas?.id) {
+  if (!client) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <p className="text-muted-foreground">
@@ -46,17 +45,26 @@ export default async function EditCategoryPage({ params }: EditCategoryPageProps
     );
   }
 
-  const category = await prisma.categorias.findFirst({
+  // Obtener la categoría a editar
+  const categoryData = await prisma.categories.findFirst({
     where: {
       id: parseInt(params.id),
-      compania: userCompany.empresas.id,
-      eliminado: "N",
+      client_id: client.client_id,
+      deleted: "N",
     },
   });
 
-  if (!category) {
+  if (!categoryData) {
     redirect("/dashboard/categories");
   }
+
+  // Adaptar los datos al formato esperado por CategoryForm
+  const category = {
+    id: categoryData.id,
+    nombre: categoryData.name || "",
+    foto: categoryData.image,
+    orden: categoryData.display_order || 0
+  };
 
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
@@ -66,7 +74,7 @@ export default async function EditCategoryPage({ params }: EditCategoryPageProps
       <div className="grid gap-4">
         <CategoryForm 
           initialData={category} 
-          companyId={userCompany.empresas.id} 
+          companyId={client.client_id.toString()} 
         />
       </div>
     </div>

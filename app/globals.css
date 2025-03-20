@@ -8,6 +8,7 @@
   --background-end-rgb: 255, 255, 255;
 }
 
+/* Comentado temporalmente para pruebas
 @media (prefers-color-scheme: dark) {
   :root {
     --foreground-rgb: 255, 255, 255;
@@ -15,10 +16,11 @@
     --background-end-rgb: 0, 0, 0;
   }
 }
+*/
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-start-rgb));
+  color: #000000 !important;
+  background: #ffffff;
 }
 
 /* Estilos personalizados para barras de desplazamiento */
@@ -76,11 +78,11 @@ body {
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --foreground: 0 0% 0%;
   }
 
   body {
-    @apply bg-white text-gray-900;
+    @apply bg-white text-black;
   }
 }
 

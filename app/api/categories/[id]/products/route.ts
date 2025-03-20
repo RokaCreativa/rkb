@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma from '@/prisma/prisma';
 
 export async function GET(
   request: Request,
@@ -15,19 +15,37 @@ export async function GET(
       );
     }
 
-    const products = await prisma.producto.findMany({
+    // Primero obtener las secciones asociadas a esta categoría
+    const sections = await prisma.sections.findMany({
       where: {
-        categoria_id: categoryId,
-        estatus: 'A',
-        eliminado: 'N'
+        category_id: categoryId,
+        status: true,
+        deleted: 'N'
+      }
+    });
+
+    const sectionIds = sections.map(section => section.id);
+
+    // Luego obtener los productos asociados a estas secciones
+    const products = await prisma.products.findMany({
+      where: {
+        status: true,
+        deleted: 'N',
+        products_sections: {
+          some: {
+            section_id: {
+              in: sectionIds
+            }
+          }
+        }
       },
       orderBy: {
-        orden: 'asc'
+        display_order: 'asc'
       },
       include: {
-        alergenos: {
+        products_sections: {
           include: {
-            alergeno: true
+            sections: true
           }
         }
       }

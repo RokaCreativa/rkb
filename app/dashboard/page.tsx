@@ -62,7 +62,7 @@ export default function DashboardPage() {
         setIsLoading(false);
       }
     };
-
+    
     if (status === 'authenticated') loadData();
   }, [status]);
 
@@ -79,8 +79,8 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
     );
   }
 
@@ -108,8 +108,8 @@ export default function DashboardPage() {
   return (
     <div className="flex flex-col space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
-      <div className="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-6">
-        <div className="flex-1">
+    <div className="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-6">
+      <div className="flex-1">
           <h2 className="text-2xl font-bold mb-4">Categorías</h2>
 
           <div className="mb-4 flex justify-between">
@@ -125,9 +125,9 @@ export default function DashboardPage() {
               <Link href="/dashboard/categories/new" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white">
                 <PlusIcon className="h-4 w-4 mr-2" /> Nueva categoría
               </Link>
-            </div>
-          </div>
-
+                        </div>
+                      </div>
+                      
           <div className="overflow-hidden bg-white shadow rounded-lg">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -144,7 +144,7 @@ export default function DashboardPage() {
                     <td className="px-6 py-4">{category.name}</td>
                     <td className="px-6 py-4">{category.display_order}</td>
                     <td className="px-6 py-4">
-                      <Image
+                                        <Image
                         src={verifyImagePath(category.image)}
                         alt={category.name}
                         width={40}
@@ -166,9 +166,9 @@ export default function DashboardPage() {
                 )}
               </tbody>
             </table>
-          </div>
         </div>
-
+      </div>
+      
         {/* Vista previa simplificada */}
         <div className="w-full lg:w-96 bg-white p-4 rounded-lg shadow">
           <h3 className="text-lg font-medium mb-4">Previsualización Móvil</h3>

@@ -1,151 +1,103 @@
 "use client"
 
 import { useState } from 'react'
-import { ChevronLeft } from 'lucide-react'
+import Image from 'next/image'
+import { ChevronLeft, Search } from 'lucide-react'
 
-export function PhonePreview() {
-  const [theme, setTheme] = useState({
-    background: '#ffffff',
-    text: '#000000',
-    accent: '#0ea5e9',
-    radius: '0.5rem'
-  })
+interface PhonePreviewProps {
+  clientName?: string;
+  categories?: Array<{
+    id: number;
+    name: string;
+    image?: string;
+  }>;
+  clientLogo?: string;
+}
 
+export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] }: PhonePreviewProps) {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
 
-  const categories = [
-    { id: 1, name: 'Entrantes', products: [1, 2, 3] },
-    { id: 2, name: 'Platos Principales', products: [4, 5, 6] },
-    { id: 3, name: 'Postres', products: [7, 8] },
-    { id: 4, name: 'Bebidas', products: [9, 10] }
+  const defaultCategories = [
+    { id: 1, name: 'PASTAS', image: '/images/categories/pastas.jpg' },
+    { id: 2, name: 'Menu solo postres', image: '/images/categories/postres.jpg' },
+    { id: 3, name: 'Carnes foryou', image: '/images/categories/carnes.jpg' },
   ]
 
+  const displayCategories = categories.length > 0 ? categories : defaultCategories
+
   return (
-    <div className="relative mx-auto" style={{ width: '320px', height: '650px' }}>
+    <div className="relative mx-auto" style={{ width: '350px', height: '680px' }}>
       {/* Phone Frame */}
       <div 
-        className="absolute inset-0 border-[14px] border-gray-900 rounded-[3rem] shadow-xl overflow-hidden"
-        style={{ backgroundColor: theme.background }}
+        className="absolute inset-0 border-[10px] border-gray-900 rounded-[2.5rem] shadow-xl overflow-hidden bg-white"
       >
         {/* Status Bar */}
-        <div className="absolute top-0 inset-x-0 h-6 flex items-center justify-between px-8 bg-white z-30">
-          <div className="text-xs">9:41</div>
-          <div className="flex space-x-1">
-            <div className="w-4 h-4">
-              <svg viewBox="0 0 24 24" className="w-full h-full" fill="currentColor">
-                <path d="M12 20.5C7.58172 20.5 4 16.9183 4 12.5C4 8.08172 7.58172 4.5 12 4.5C16.4183 4.5 20 8.08172 20 12.5C20 16.9183 16.4183 20.5 12 20.5ZM12 19.5C15.866 19.5 19 16.366 19 12.5C19 8.63401 15.866 5.5 12 5.5C8.13401 5.5 5 8.63401 5 12.5C5 16.366 8.13401 19.5 12 19.5Z"/>
-              </svg>
-            </div>
-            <div className="w-4 h-4">
-              <svg viewBox="0 0 24 24" className="w-full h-full" fill="currentColor">
-                <path d="M15.5355 4.92894C17.4882 6.88155 17.4882 10.1184 15.5355 12.0711C13.5829 14.0237 10.3461 14.0237 8.39339 12.0711C6.44078 10.1184 6.44078 6.88155 8.39339 4.92894C10.3461 2.97633 13.5829 2.97633 15.5355 4.92894Z"/>
-              </svg>
-            </div>
-            <div className="w-4 h-4">
-              <svg viewBox="0 0 24 24" className="w-full h-full" fill="currentColor">
-                <path d="M2 19.5C2 18.1193 3.11929 17 4.5 17H19.5C20.8807 17 22 18.1193 22 19.5V22.5C22 23.8807 20.8807 25 19.5 25H4.5C3.11929 25 2 23.8807 2 22.5V19.5Z"/>
-                <path d="M5.5 2C6.88071 2 8 3.11929 8 4.5V22.5C8 23.8807 6.88071 25 5.5 25H4.5C3.11929 25 2 23.8807 2 22.5V4.5C2 3.11929 3.11929 2 4.5 2H5.5Z"/>
-                <path d="M12.5 7C13.8807 7 15 8.11929 15 9.5V22.5C15 23.8807 13.8807 25 12.5 25H11.5C10.1193 25 9 23.8807 9 22.5V9.5C9 8.11929 10.1193 7 11.5 7H12.5Z"/>
-                <path d="M19.5 11C20.8807 11 22 12.1193 22 13.5V22.5C22 23.8807 20.8807 25 19.5 25H18.5C17.1193 25 16 23.8807 16 22.5V13.5C16 12.1193 17.1193 11 18.5 11H19.5Z"/>
+        <div className="absolute top-0 inset-x-0 h-6 flex items-center justify-between px-8 bg-black text-white z-30">
+          <div className="text-xs">17:14</div>
+          <div className="flex space-x-1 items-center">
+            <div className="text-xs flex space-x-1">
+              <span>••••</span>
+              <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                <path d="M12 21.25C13.1 21.25 14 20.35 14 19.25H10C10 20.35 10.9 21.25 12 21.25ZM18 15.25V10.25C18 7.15 16.34 4.55 13.5 3.85V3.25C13.5 2.15 12.6 1.25 11.5 1.25C10.4 1.25 9.5 2.15 9.5 3.25V3.85C6.67 4.55 5 7.15 5 10.25V15.25L3 17.25V18.25H21V17.25L19 15.25Z" />
               </svg>
             </div>
           </div>
         </div>
 
-        {/* Notch */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-40 bg-black rounded-b-3xl z-40"></div>
-
         {/* Content */}
-        <div className="absolute inset-0 pt-6">
-          {/* Fixed Header */}
-          <div className="sticky top-6 bg-white border-b border-gray-100 z-20">
-            <div className="text-center py-4" style={{ color: theme.text }}>
-              <h1 className="text-2xl font-bold">Mi Restaurante</h1>
-              <p className="text-sm opacity-75">Las mejores comidas de la ciudad</p>
+        <div className="absolute inset-0 pt-6 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100">
+            <span className="font-medium">Español</span>
+            <button className="p-1 rounded-full">
+              <Search className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Restaurant Info */}
+          <div className="bg-white pt-4 pb-6">
+            <div className="flex flex-col items-center justify-center">
+              <h1 className="text-2xl font-bold text-gray-900 mb-1">Roka</h1>
+              <div className="flex items-center text-sm mb-1">
+                <span className="font-medium mr-1">5</span>
+                <span className="mr-1">·</span>
+                <span className="text-yellow-600">Excelente</span>
+              </div>
+              <div className="text-sm text-gray-500">1 valoración</div>
             </div>
           </div>
 
-          <div className="h-full overflow-auto hide-scrollbar">
-            {selectedCategory === null ? (
-              <>
-                {/* Categories Grid */}
-                <div className="grid grid-cols-2 gap-4 p-4">
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => setSelectedCategory(category.id)}
-                      className="aspect-square rounded-lg flex items-center justify-center shadow-sm transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                      style={{ 
-                        backgroundColor: theme.accent,
-                        borderRadius: theme.radius,
-                        color: '#ffffff'
-                      }}
-                    >
-                      {category.name}
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Category View */}
-                <div className="flex flex-col h-full">
-                  {/* Category Header */}
-                  <div className="sticky top-0 bg-white border-b border-gray-100 z-10">
-                    <div className="flex items-center p-4">
-                      <button 
-                        onClick={() => setSelectedCategory(null)}
-                        className="p-1 -ml-1 rounded-full hover:bg-gray-100"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </button>
-                      <h2 className="ml-2 font-medium">
-                        {categories.find(c => c.id === selectedCategory)?.name}
-                      </h2>
-                    </div>
-                  </div>
+          {/* Info Section */}
+          <div className="border-t border-b border-gray-200 py-4 px-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <svg className="w-6 h-6 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">Info</span>
+              </div>
+              <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+            <div className="mt-1 pl-9 text-sm text-gray-500">
+              Redes sociales
+            </div>
+          </div>
 
-                  {/* Products */}
-                  <div className="flex-1 p-4 space-y-4">
-                    {[1, 2, 3, 4, 5].map((item) => (
-                      <div 
-                        key={item}
-                        className="p-4 rounded-lg shadow-sm flex items-center space-x-4 bg-white"
-                        style={{ borderRadius: theme.radius }}
-                      >
-                        <div 
-                          className="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0"
-                          style={{ borderRadius: theme.radius }}
-                        ></div>
-                        <div style={{ color: theme.text }}>
-                          <h3 className="font-medium">Producto {item}</h3>
-                          <p className="text-sm opacity-75">$9.99</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Categories Strip */}
-                  <div className="sticky bottom-0 bg-white border-t border-gray-100">
-                    <div className="flex overflow-x-auto p-2 hide-scrollbar">
-                      {categories.map((category) => (
-                        <button
-                          key={category.id}
-                          onClick={() => setSelectedCategory(category.id)}
-                          className={`flex-shrink-0 px-4 py-2 rounded-full mr-2 text-sm transition-colors ${
-                            category.id === selectedCategory
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                          }`}
-                        >
-                          {category.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
+          {/* Categories */}
+          <div className="px-4 py-4 space-y-3">
+            {displayCategories.map(category => (
+              <div
+                key={category.id}
+                className="flex items-center p-4 bg-white rounded-lg border border-gray-200"
+              >
+                <svg className="w-6 h-6 text-gray-400 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span className="font-medium">{category.name}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

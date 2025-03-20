@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/prisma/prisma';
 import { writeFile } from 'fs/promises';
 import path from 'path';
 
@@ -52,10 +52,14 @@ export async function POST(request: NextRequest) {
     // Guardar el archivo en el sistema de archivos
     await writeFile(imagePath, Buffer.from(buffer));
     
-    // Obtener cliente actual
-    const cliente = await prisma.clientes.findFirst();
+    // Obtener cliente actual (usando cliente ID 3 para pruebas)
+    const client = await prisma.clients.findFirst({
+      where: {
+        client_id: 3
+      }
+    });
     
-    if (!cliente) {
+    if (!client) {
       return NextResponse.json(
         { error: 'No se encontró información del cliente' },
         { status: 404 }
@@ -63,9 +67,9 @@ export async function POST(request: NextRequest) {
     }
     
     // Actualizar el logo del cliente en la base de datos
-    const updatedCliente = await prisma.clientes.update({
-      where: { cliente: cliente.cliente },
-      data: { logo: fileName }
+    const updatedClient = await prisma.clients.update({
+      where: { client_id: client.client_id },
+      data: { main_logo: fileName }
     });
     
     return NextResponse.json({

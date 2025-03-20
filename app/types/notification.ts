@@ -1,11 +1,14 @@
-export type NotificationType = 'RESERVA' | 'SISTEMA' | 'PEDIDO';
-
 export interface Notification {
-  id: string;
-  type: NotificationType;
+  id: number;
+  type: string;
   message: string;
-  createdAt: Date;
   read: boolean;
   userId: string;
-  data?: Record<string, any>;
+  createdAt?: Date;
+  data?: any;
+}
+
+export interface NotificationProps {
+  notification: Notification;
+  onMarkAsRead?: (id: number) => void;
 } 
