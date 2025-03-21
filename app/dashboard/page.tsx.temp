@@ -1,0 +1,1630 @@
+"use client";
+
+import { useState, useEffect, Fragment } from 'react';
+import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon, TrashIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useSession } from 'next-auth/react';
+import { PhonePreview } from '@/components/PhonePreview';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Dialog, Transition } from '@headlessui/react';
+import { toast } from 'react-hot-toast';
+
+// Interfaces ajustadas a la estructura actualizada
+interface Category {
+  category_id: number;
+  name: string;
+  image: string | null;
+  status: number; // 1 (activo) o 0 (inactivo)
+  display_order: number;
+  client_id: number;
+  sections: Array<{
+    section_id: number;
+    name: string;
+    image: string | null;
+    status: number;
+    display_order: number;
+    category_id: number;
+  }>;
+}
+
+interface Client {
+  id: number;
+  name: string;
+  logo: string | null;
+  main_logo: string | null;
+}
+
+// Obtener datos del cliente autenticado
+async function fetchClientData() {
+  const response = await fetch('/api/client');
+  if (!response.ok) throw new Error('Error al cargar datos del cliente');
+  return await response.json();
+}
+
+// Obtener categorías del cliente autenticado
+async function fetchCategories() {
+  const response = await fetch('/api/categories');
+  if (!response.ok) throw new Error('Error al cargar categorías');
+  return await response.json();
+}
+
+// Actualizar el orden de una categoría
+async function updateCategoryOrder(categoryId: number, newDisplayOrder: number) {
+  try {
+    const response = await fetch(`/api/categories/${categoryId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ display_order: newDisplayOrder }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al actualizar el orden');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error al actualizar el orden de la categoría:', error);
+    throw error;
+  }
+}
+
+// Actualizar la visibilidad de una categoría
+async function updateCategoryVisibility(categoryId: number, newStatus: number) {
+  try {
+    console.log(`DEBUG: Actualizando visibilidad de categoría ${categoryId} a ${newStatus}`);
+    
+    // Cambiar para usar el endpoint principal con método PUT en lugar de la URL con ID
+    const response = await fetch('/api/categories', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        category_id: categoryId,
+        status: newStatus
+      }),
+    });
+    
+    console.log('DEBUG: Respuesta recibida, status:', response.status);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('DEBUG: Error en respuesta:', errorData);
+      throw new Error('Error al actualizar la visibilidad');
+    }
+    
+    const data = await response.json();
+    console.log('DEBUG: Datos recibidos:', data);
+    return data;
+  } catch (error) {
+    console.error('Error al actualizar la visibilidad de la categoría:', error);
+    throw error;
+  }
+}
+
+// Eliminar una categoría
+async function deleteCategory(categoryId: number) {
+  try {
+    const response = await fetch(`/api/categories/${categoryId}`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al eliminar la categoría');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error al eliminar la categoría:', error);
+    throw error;
+  }
+}
+
+// Función para cargar secciones de una categoría (puede ser llamada desde el componente principal)
+async function fetchSectionsByCategory(categoryId: number) {
+  try {
+    const response = await fetch(`/api/sections?categoryId=${categoryId}`);
+    if (!response.ok) throw new Error('Error al cargar secciones');
+    return await response.json();
+  } catch (error) {
+    console.error('Error al cargar secciones:', error);
+    throw error;
+  }
+}
+
+// Componentes para estados de carga y error
+const LoadingState = () => (
+  <div className="flex justify-center items-center h-64">
+    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+    <span className="ml-3 text-gray-600">Cargando...</span>
+  </div>
+);
+
+const ErrorState = ({ message }: { message: string }) => (
+  <div className="text-center py-10 px-4 bg-red-50 rounded-lg border border-red-200">
+    <div className="text-red-500 text-xl mb-2">Error</div>
+    <p className="text-gray-700">{message}</p>
+    <button
+      onClick={() => window.location.reload()}
+      className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+    >
+      Intentar de nuevo
+    </button>
+  </div>
+);
+
+export default function DashboardPage() {
+  const { data: session, status } = useSession();
+  const [isLoading, setIsLoading] = useState(true);
+  const [client, setClient] = useState<Client | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState<number | null>(null);
+  const [editingCategory, setEditingCategory] = useState<{ id: number, name: string } | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [editCategoryImage, setEditCategoryImage] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+
+  // Estados para manejo de secciones
+  const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
+  const [newSectionName, setNewSectionName] = useState('');
+  const [selectedSectionImage, setSelectedSectionImage] = useState<File | null>(null);
+  const [sectionImagePreview, setSectionImagePreview] = useState<string | null>(null);
+  const [isCreatingSection, setIsCreatingSection] = useState(false);
+  const [selectedCategoryForSection, setSelectedCategoryForSection] = useState<number | null>(null);
+  
+  // Estados para edición de secciones
+  const [isEditSectionModalOpen, setIsEditSectionModalOpen] = useState(false);
+  const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
+  const [editSectionName, setEditSectionName] = useState('');
+  const [editSectionImage, setEditSectionImage] = useState<File | null>(null);
+  const [editSectionImagePreview, setEditSectionImagePreview] = useState<string | null>(null);
+  const [isUpdatingSection, setIsUpdatingSection] = useState(false);
+
+  // Efecto para cargar datos iniciales al autenticarse
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const clientData = await fetchClientData();
+        const categoriesData = await fetchCategories();
+
+        setClient(clientData);
+        setCategories(categoriesData);
+        setSelectedCategory(categoriesData[0] || null);
+        
+        console.log("Datos del cliente:", clientData);
+        console.log("Logo principal:", clientData.main_logo);
+        console.log("Logo URL completa:", `/images/main_logo/${clientData.main_logo}`);
+        
+      } catch (err: any) {
+        setError(err.message || 'Error desconocido al cargar datos');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (status === 'authenticated') loadData();
+  }, [status]);
+
+  // Función para manejar el final del arrastre
+  const handleDragEnd = async (result: any) => {
+    // Si no hay destino o es el mismo que el origen, no hacemos nada
+    if (!result.destination || result.destination.index === result.source.index) {
+      return;
+    }
+    
+    setIsUpdatingOrder(true);
+    
+    try {
+      // Creamos una copia del array para no mutar el estado directamente
+      const newCategoryList = Array.from(categories);
+      
+      // Removemos el elemento arrastrado de su posición original
+      const [movedCategory] = newCategoryList.splice(result.source.index, 1);
+      
+      // Insertamos el elemento en su nueva posición
+      newCategoryList.splice(result.destination.index, 0, movedCategory);
+      
+      // Actualizamos el display_order en la lista
+      const updatedCategories = newCategoryList.map((category, index) => ({
+        ...category,
+        display_order: index + 1
+      }));
+      
+      // Actualizamos el estado de forma optimista para una UI responsiva
+      setCategories(updatedCategories);
+      
+      // Enviamos las actualizaciones al servidor
+      // Solo actualizamos las categorías que cambiaron de posición
+      const changedCategories = updatedCategories.filter(
+        (cat, idx) => cat.display_order !== categories[idx]?.display_order
+      );
+      
+      await Promise.all(
+        changedCategories.map(category => 
+          updateCategoryOrder(category.category_id, category.display_order)
+        )
+      );
+      
+      console.log('Orden actualizado con éxito');
+    } catch (error) {
+      console.error('Error al guardar el nuevo orden:', error);
+      // Revertimos al estado anterior si hay error
+      const response = await fetchCategories();
+      setCategories(response);
+    } finally {
+      setIsUpdatingOrder(false);
+    }
+  };
+
+  // Función para manejar el cambio de visibilidad de una categoría
+  const handleToggleVisibility = async (categoryId: number, currentStatus: number) => {
+    if (isUpdatingVisibility !== null) return; // No permitir múltiples actualizaciones
+    
+    try {
+      setIsUpdatingVisibility(categoryId);
+      
+      const newStatus = currentStatus === 1 ? 0 : 1;
+      
+      // Actualizamos el estado localmente para una UI responsiva
+      setCategories(prevCategories => 
+        prevCategories.map(cat => 
+          cat.category_id === categoryId ? { ...cat, status: newStatus } : cat
+        )
+      );
+      
+      // Enviamos la actualización al servidor
+      await updateCategoryVisibility(categoryId, newStatus);
+      
+      console.log(`Visibilidad de la categoría ${categoryId} actualizada a ${newStatus}`);
+    } catch (error) {
+      console.error('Error al actualizar la visibilidad:', error);
+      // Revertimos el cambio local si hay error
+      setCategories(prevCategories => 
+        prevCategories.map(cat => 
+          cat.category_id === categoryId ? { ...cat, status: currentStatus } : cat
+        )
+      );
+    } finally {
+      // Limpiamos el estado de actualización
+      setIsUpdatingVisibility(null);
+    }
+  };
+
+  // Función para abrir el modal de edición de categoría
+  const openEditModal = (category: Category) => {
+    setSelectedCategoryId(category.category_id);
+    setEditCategoryName(category.name);
+    setEditImagePreview(category.image);
+    setIsEditModalOpen(true);
+  };
+  
+  // Función para abrir el modal de confirmación de eliminación
+  const openDeleteModal = (categoryId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Evitar que el evento se propague a la fila
+    setCategoryToDelete(categoryId);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Función para eliminar una categoría
+  const handleDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    
+    setIsDeletingCategory(true);
+    
+    try {
+      // Eliminar la categoría en el servidor
+      await deleteCategory(categoryToDelete);
+      
+      // Actualizar el estado local eliminando la categoría
+      setCategories(prevCategories => 
+        prevCategories.filter(cat => cat.category_id !== categoryToDelete)
+      );
+      
+      // Cerrar el modal
+      setIsDeleteModalOpen(false);
+      setCategoryToDelete(null);
+      console.log(`Categoría ${categoryToDelete} eliminada con éxito`);
+    } catch (error) {
+      console.error('Error al eliminar la categoría:', error);
+    } finally {
+      setIsDeletingCategory(false);
+    }
+  };
+
+  // Función para crear una nueva categoría
+  const createCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.error('El nombre de la categoría es obligatorio');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', newCategoryName);
+      if (selectedImage) {
+        formData.append('image', selectedImage);
+      }
+
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al crear la categoría');
+      }
+
+      // Refrescar las categorías
+      await reloadCategories();
+      
+      // Limpiar el formulario
+      setNewCategoryName('');
+      setSelectedImage(null);
+      setImagePreview(null);
+      setIsNewCategoryModalOpen(false);
+      toast.success('Categoría creada correctamente');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Error al crear la categoría');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Función para actualizar una categoría
+  const updateCategory = async () => {
+    if (!editCategoryName.trim() || !selectedCategoryId) {
+      toast.error('El nombre de la categoría es obligatorio');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', editCategoryName);
+      if (editCategoryImage) {
+        formData.append('image', editCategoryImage);
+      }
+
+      const response = await fetch(`/api/categories/${selectedCategoryId}`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar la categoría');
+      }
+
+      // Refrescar las categorías
+      await reloadCategories();
+      
+      // Limpiar el formulario y cerrar el modal
+      setEditCategoryName('');
+      setEditCategoryImage(null);
+      setEditImagePreview(null);
+      setSelectedCategoryId(null);
+      setIsEditModalOpen(false);
+      toast.success('Categoría actualizada correctamente');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Error al actualizar la categoría');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Función para eliminar la imagen de una categoría
+  const removeImage = async (categoryId: number) => {
+    try {
+      const response = await fetch(`/api/categories/${categoryId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: null }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar la imagen');
+      }
+
+      // Refrescar las categorías
+      await reloadCategories();
+      toast.success('Imagen eliminada correctamente');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Error al eliminar la imagen');
+    }
+  };
+
+  // Función para manejar la selección de imágenes
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Función para manejar la selección de una imagen para editar una categoría
+  const handleEditImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditCategoryImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Función para abrir el modal de creación
+  const openNewCategoryModal = () => {
+    setNewCategoryName('');
+    setSelectedImage(null);
+    setImagePreview(null);
+    setIsNewCategoryModalOpen(true);
+  };
+
+  // Función para recargar las categorías
+  const reloadCategories = async () => {
+    try {
+      const response = await fetch('/api/categories');
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      }
+    } catch (error) {
+      console.error('Error al cargar categorías:', error);
+    }
+  };
+
+  // Función para abrir el modal de nueva sección
+  const openNewSectionModal = (categoryId: number) => {
+    setSelectedCategoryForSection(categoryId);
+    setNewSectionName('');
+    setSelectedSectionImage(null);
+    setSectionImagePreview(null);
+    setIsSectionModalOpen(true);
+  };
+
+  // Función para crear una nueva sección
+  const createSection = async () => {
+    if (!newSectionName.trim() || !selectedCategoryForSection) {
+      toast.error('El nombre de la sección y la categoría son obligatorios');
+      return;
+    }
+
+    setIsCreatingSection(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('name', newSectionName);
+      formData.append('category_id', selectedCategoryForSection.toString());
+      formData.append('status', '1');
+      
+      if (selectedSectionImage) {
+        formData.append('image', selectedSectionImage);
+      }
+
+      const response = await fetch('/api/sections', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear la sección');
+      }
+
+      // Recargar categorías para mostrar la sección nueva
+      await reloadCategories();
+      
+      setIsSectionModalOpen(false);
+      toast.success('Sección creada con éxito');
+    } catch (error: any) {
+      toast.error(error.message || 'Error al crear la sección');
+    } finally {
+      setIsCreatingSection(false);
+    }
+  };
+
+  // Función para abrir el modal de edición de sección
+  const openEditSectionModal = (sectionId: number, sectionName: string, sectionImage: string | null) => {
+    setSelectedSectionId(sectionId);
+    setEditSectionName(sectionName);
+    setEditSectionImagePreview(sectionImage);
+    setEditSectionImage(null);
+    setIsEditSectionModalOpen(true);
+  };
+
+  // Función para actualizar una sección
+  const updateSection = async () => {
+    if (!editSectionName.trim() || !selectedSectionId) {
+      toast.error('El nombre de la sección es obligatorio');
+      return;
+    }
+
+    setIsUpdatingSection(true);
+
+    try {
+      // Si hay una nueva imagen, subir primero la imagen
+      let imageUrl = undefined;
+      
+      if (editSectionImage) {
+        const formData = new FormData();
+        formData.append('image', editSectionImage);
+        
+        // Implementar endpoint para subir solo la imagen si es necesario
+        // Por ahora asumimos que la URL viene de la respuesta
+        // imageUrl = ...
+      } else if (editSectionImagePreview === null) {
+        // Si se eliminó la imagen
+        imageUrl = null;
+      }
+
+      // Actualizar la sección
+      const response = await fetch('/api/sections', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          section_id: selectedSectionId,
+          name: editSectionName,
+          ...(imageUrl !== undefined && { image: imageUrl }),
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al actualizar la sección');
+      }
+
+      // Recargar categorías para mostrar la sección actualizada
+      await reloadCategories();
+      
+      setIsEditSectionModalOpen(false);
+      toast.success('Sección actualizada con éxito');
+    } catch (error: any) {
+      toast.error(error.message || 'Error al actualizar la sección');
+    } finally {
+      setIsUpdatingSection(false);
+    }
+  };
+
+  // Función para eliminar una sección
+  const deleteSection = async (sectionId: number) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta sección? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/sections?id=${sectionId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al eliminar la sección');
+      }
+
+      // Recargar categorías para actualizar la vista
+      await reloadCategories();
+      
+      toast.success('Sección eliminada con éxito');
+    } catch (error: any) {
+      toast.error(error.message || 'Error al eliminar la sección');
+    }
+  };
+
+  // Función para manejar la selección de imagen de sección
+  const handleSectionImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedSectionImage(file);
+      const imageUrl = URL.createObjectURL(file);
+      setSectionImagePreview(imageUrl);
+    }
+  };
+
+  // Función para manejar la selección de imagen al editar sección
+  const handleEditSectionImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditSectionImage(file);
+      const imageUrl = URL.createObjectURL(file);
+      setEditSectionImagePreview(imageUrl);
+    }
+  };
+
+  // Manejo cuando el usuario no está autenticado
+  if (status === 'unauthenticated') {
+    return (
+      <div className="p-4 bg-red-50 text-red-700 border-l-4 border-red-400">
+        Debes iniciar sesión para ver esta información.
+      </div>
+    );
+  }
+
+  // Mostrar carga
+  if (isLoading) {
+    return (
+      <LoadingState />
+    );
+  }
+
+  // Mostrar error
+  if (error) {
+    return (
+      <ErrorState message={error} />
+    );
+  }
+
+  // Ruta correcta de imágenes
+  const verifyImagePath = (imagePath: string | null): string => {
+    if (!imagePath) return '/placeholder.png';
+    return imagePath.startsWith('/images/categories/') 
+      ? imagePath 
+      : `/images/categories/${imagePath}`;
+  };
+
+  // Obtener la ruta del logo principal
+  const getMainLogoPath = (): string => {
+    if (!client || !client.main_logo) return '/images/client-logo.png';
+    
+    // Usar el nombre del archivo directamente desde main_logo
+    return `/images/main_logo/${client.main_logo}`;
+  };
+
+  // Componente modal para crear nuevas categorías
+  const NewCategoryModal = () => {
+    if (!isNewCategoryModalOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4 text-sm">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-base font-medium text-gray-900">Nueva Categoría</h3>
+            <button 
+              onClick={() => setIsNewCategoryModalOpen(false)}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="mb-3">
+            <label htmlFor="new-category-name" className="block text-xs font-medium text-gray-700 mb-1">
+              Nombre de Categoría
+            </label>
+            <input
+              type="text"
+              id="new-category-name"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              className="w-full border-gray-300 rounded-md shadow-sm text-xs"
+              placeholder="Ingrese nombre de categoría"
+            />
+          </div>
+          
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Imagen de Categoría
+            </label>
+            <div className="flex items-start space-x-3">
+              <div 
+                className="relative h-16 w-16 border-2 border-gray-300 border-dashed rounded-lg flex items-center justify-center overflow-hidden"
+                onClick={() => document.getElementById('new-category-image')?.click()}
+              >
+                {imagePreview ? (
+                  <Image
+                    src={imagePreview}
+                    alt="Vista previa"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                )}
+              </div>
+              
+              <div className="flex-1">
+                <input
+                  type="file"
+                  id="new-category-image"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('new-category-image')?.click()}
+                  className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+                >
+                  <ArrowUpTrayIcon className="h-3 w-3 mr-1" />
+                  Subir imagen
+                </button>
+                {imagePreview && (
+                  <button
+                    type="button"
+                    onClick={() => setImagePreview(null)}
+                    className="inline-flex items-center ml-1 px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 text-red-600 hover:bg-red-50"
+                  >
+                    <TrashIcon className="h-3 w-3 mr-1" />
+                    Eliminar
+                  </button>
+                )}
+                <p className="mt-1 text-[10px] text-gray-500">
+                  JPG, PNG o GIF. Recomendado 400x400px.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-2 mt-4">
+            <button
+              onClick={() => setIsNewCategoryModalOpen(false)}
+              className="px-3 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium bg-white hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={createCategory}
+              disabled={isCreatingCategory || !newCategoryName.trim()}
+              className={`px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white
+                ${isCreatingCategory || !newCategoryName.trim() ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+            >
+              {isCreatingCategory ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creando...
+                </span>
+              ) : 'Crear Categoría'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Componente modal para editar categorías
+  const EditCategoryModal = () => {
+    if (!isEditModalOpen) return null;
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4 text-sm">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-base font-medium text-gray-900">Editar Categoría</h3>
+            <button 
+              onClick={() => setSelectedCategory(null)}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="mb-3">
+            <label htmlFor="edit-category-name" className="block text-xs font-medium text-gray-700 mb-1">
+              Nombre de Categoría
+            </label>
+            <input
+              type="text"
+              id="edit-category-name"
+              value={editCategoryName}
+              onChange={(e) => setEditCategoryName(e.target.value)}
+              className="w-full border-gray-300 rounded-md shadow-sm text-xs"
+              placeholder="Ingrese nombre de categoría"
+            />
+          </div>
+          
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Imagen de Categoría
+            </label>
+            <div className="flex items-start space-x-3">
+              <div 
+                className="relative h-16 w-16 border-2 border-gray-300 border-dashed rounded-lg flex items-center justify-center overflow-hidden"
+                onClick={() => document.getElementById('edit-category-image')?.click()}
+              >
+                {editImagePreview ? (
+                  <Image
+                    src={editImagePreview}
+                    alt="Vista previa"
+                    fill
+                    className="object-cover"
+                  />
+                ) : selectedCategory?.image ? (
+                  <Image
+                    src={verifyImagePath(selectedCategory.image)}
+                    alt={selectedCategory.name}
+                    fill
+                    className="object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/placeholder.png';
+                    }}
+                  />
+                ) : (
+                  <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                )}
+              </div>
+              
+              <div className="flex-1">
+                <input
+                  type="file"
+                  id="edit-category-image"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleEditImageSelect}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('edit-category-image')?.click()}
+                  className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+                >
+                  <ArrowUpTrayIcon className="h-3 w-3 mr-1" />
+                  Cambiar imagen
+                </button>
+                {(editImagePreview || selectedCategory?.image) && (
+                  <button
+                    type="button"
+                    onClick={() => removeImage(selectedCategoryId!)}
+                    className="inline-flex items-center ml-1 px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 text-red-600 hover:bg-red-50"
+                  >
+                    <TrashIcon className="h-3 w-3 mr-1" />
+                    Eliminar
+                  </button>
+                )}
+                <p className="mt-1 text-[10px] text-gray-500">
+                  JPG, PNG o GIF. Recomendado 400x400px.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-2 mt-4">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className="px-3 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium bg-white hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={updateCategory}
+              disabled={isUpdatingName || !editCategoryName.trim()}
+              className={`px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white
+                ${isUpdatingName || !editCategoryName.trim() ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+            >
+              {isUpdatingName ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Actualizando...
+                </span>
+              ) : 'Actualizar Categoría'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Modal para crear una nueva sección
+  const NewSectionModal = () => {
+    return (
+      <Transition appear show={isSectionModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={() => !isCreatingSection && setIsSectionModalOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                    Nueva Sección
+                  </Dialog.Title>
+                  <div className="mt-2">
+                    <div className="mb-4">
+                      <label htmlFor="sectionName" className="block text-sm font-medium text-gray-700">
+                        Nombre de la sección
+                      </label>
+                      <input
+                        type="text"
+                        id="sectionName"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        placeholder="Ingresa el nombre de la sección"
+                        value={newSectionName}
+                        onChange={(e) => setNewSectionName(e.target.value)}
+                        disabled={isCreatingSection}
+                      />
+                    </div>
+                    
+                    <div className="mb-4">
+                      <label htmlFor="sectionImage" className="block text-sm font-medium text-gray-700">
+                        Imagen (opcional)
+                      </label>
+                      <div className="mt-1 flex items-center">
+                        <div
+                          className="h-24 w-24 rounded-full overflow-hidden border border-gray-300 flex items-center justify-center bg-gray-100"
+                        >
+                          {sectionImagePreview ? (
+                            <Image
+                              src={sectionImagePreview}
+                              alt="Vista previa"
+                              width={96}
+                              height={96}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <ArrowUpTrayIcon className="h-8 w-8 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="ml-4 flex flex-col space-y-2">
+                          <label
+                            htmlFor="sectionImageUpload"
+                            className="inline-flex cursor-pointer items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                          >
+                            Seleccionar imagen
+                            <input
+                              id="sectionImageUpload"
+                              name="sectionImageUpload"
+                              type="file"
+                              className="sr-only"
+                              onChange={handleSectionImageSelect}
+                              accept="image/*"
+                              disabled={isCreatingSection}
+                            />
+                          </label>
+                          {sectionImagePreview && (
+                            <button
+                              type="button"
+                              className="inline-flex items-center rounded-md border border-transparent bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                              onClick={() => {
+                                setSelectedSectionImage(null);
+                                setSectionImagePreview(null);
+                              }}
+                              disabled={isCreatingSection}
+                            >
+                              Quitar imagen
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 mr-3"
+                      onClick={() => setIsSectionModalOpen(false)}
+                      disabled={isCreatingSection}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                      onClick={createSection}
+                      disabled={isCreatingSection || !newSectionName.trim()}
+                    >
+                      {isCreatingSection ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Creando...
+                        </>
+                      ) : (
+                        'Crear sección'
+                      )}
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+    );
+  };
+
+  // Modal para editar sección
+  const EditSectionModal = () => {
+    return (
+      <Transition appear show={isEditSectionModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={() => !isUpdatingSection && setIsEditSectionModalOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                  <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
+                    Editar Sección
+                  </Dialog.Title>
+                  <div className="mt-2">
+                    <div className="mb-4">
+                      <label htmlFor="editSectionName" className="block text-sm font-medium text-gray-700">
+                        Nombre de la sección
+                      </label>
+                      <input
+                        type="text"
+                        id="editSectionName"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        placeholder="Ingresa el nombre de la sección"
+                        value={editSectionName}
+                        onChange={(e) => setEditSectionName(e.target.value)}
+                        disabled={isUpdatingSection}
+                      />
+                    </div>
+                    
+                    <div className="mb-4">
+                      <label htmlFor="editSectionImage" className="block text-sm font-medium text-gray-700">
+                        Imagen (opcional)
+                      </label>
+                      <div className="mt-1 flex items-center">
+                        <div
+                          className="h-24 w-24 rounded-full overflow-hidden border border-gray-300 flex items-center justify-center bg-gray-100"
+                        >
+                          {editSectionImagePreview ? (
+                            <Image
+                              src={editSectionImagePreview}
+                              alt="Vista previa"
+                              width={96}
+                              height={96}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <ArrowUpTrayIcon className="h-8 w-8 text-gray-400" />
+                          )}
+                        </div>
+                        <div className="ml-4 flex flex-col space-y-2">
+                          <label
+                            htmlFor="editSectionImageUpload"
+                            className="inline-flex cursor-pointer items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                          >
+                            Seleccionar imagen
+                            <input
+                              id="editSectionImageUpload"
+                              name="editSectionImageUpload"
+                              type="file"
+                              className="sr-only"
+                              onChange={handleEditSectionImageSelect}
+                              accept="image/*"
+                              disabled={isUpdatingSection}
+                            />
+                          </label>
+                          {editSectionImagePreview && (
+                            <button
+                              type="button"
+                              className="inline-flex items-center rounded-md border border-transparent bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100"
+                              onClick={() => setEditSectionImagePreview(null)}
+                              disabled={isUpdatingSection}
+                            >
+                              Quitar imagen
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex justify-end">
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-gray-100 px-4 py-2 text-sm font-medium text-gray-900 hover:bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 mr-3"
+                      onClick={() => setIsEditSectionModalOpen(false)}
+                      disabled={isUpdatingSection}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                      onClick={updateSection}
+                      disabled={isUpdatingSection || !editSectionName.trim()}
+                    >
+                      {isUpdatingSection ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Actualizando...
+                        </>
+                      ) : (
+                        'Guardar cambios'
+                      )}
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+    );
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-6">
+      {isLoading ? (
+        <LoadingState />
+      ) : error ? (
+        <ErrorState message={error} />
+      ) : (
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex-1">
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-bold text-gray-800">Categorías</h1>
+              <button
+                onClick={openNewCategoryModal}
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Nueva categoría
+              </button>
+            </div>
+
+            {/* Tabla de categorías */}
+            <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm mt-5">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Orden</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Foto</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Visibilidad</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  <DragDropContext onDragEnd={handleDragEnd}>
+                    <Droppable droppableId="categories">
+                      {(provided) => (
+                        <Fragment>
+                          <div
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                          >
+                            {categories.map((category, index) => (
+                              <Fragment key={category.category_id}>
+                                <Draggable
+                                  draggableId={`category-${category.category_id}`}
+                                  index={index}
+                                >
+                                  {(provided) => (
+                                    <tr
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      className={`hover:bg-gray-50 ${category.status === 0 ? 'opacity-50' : ''}`}
+                                    >
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        {category.display_order}
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        {category.name}
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="relative h-12 w-12 rounded-full overflow-hidden border border-gray-200 shadow-sm cursor-pointer"
+                                            onClick={() => setExpandedImage(category.image || null)}>
+                                          <Image
+                                            src={verifyImagePath(category.image)}
+                                            alt={category.name || ''}
+                                            fill
+                                            className="object-cover"
+                                            sizes="48px"
+                                          />
+                                        </div>
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap">
+                                        <button
+                                          className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors duration-200 focus:outline-none ${
+                                            category.status === 1 ? 'bg-green-500' : 'bg-gray-200'
+                                          } ${isUpdatingVisibility === category.category_id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                          onClick={() => handleToggleVisibility(category.category_id, category.status)}
+                                          disabled={isUpdatingVisibility === category.category_id}
+                                        >
+                                          <span
+                                            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition duration-200 ${
+                                              category.status === 1 ? 'translate-x-5' : 'translate-x-0'
+                                            }`}
+                                          />
+                                        </button>
+                                      </td>
+                                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                        <button
+                                          onClick={() => {
+                                            setSelectedCategoryId(category.category_id);
+                                            setEditCategoryName(category.name || '');
+                                            setEditImagePreview(category.image);
+                                            setIsEditModalOpen(true);
+                                          }}
+                                          className="text-indigo-600 hover:text-indigo-900"
+                                        >
+                                          <PencilIcon className="h-5 w-5 inline" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => openDeleteModal(category.category_id, e)}
+                                          className="text-red-600 hover:text-red-900"
+                                        >
+                                          <TrashIcon className="h-5 w-5 inline" />
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </Draggable>
+                                
+                                {/* Secciones dentro de la categoría */}
+                                {category.sections && category.sections.map((section) => (
+                                  <tr key={`section-${section.section_id}`} className={`hover:bg-indigo-50 ${section.status === 0 ? 'opacity-50' : ''}`}>
+                                    <td className="px-6 py-2 whitespace-nowrap pl-10">
+                                      {section.display_order}
+                                    </td>
+                                    <td className="px-6 py-2 whitespace-nowrap pl-10">
+                                      <div className="flex items-center">
+                                        <span className="text-xs bg-indigo-100 text-indigo-800 rounded px-2 py-1 mr-2">
+                                          Sección
+                                        </span>
+                                        {section.name}
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-2 whitespace-nowrap">
+                                      <div className="relative h-10 w-10 rounded-full overflow-hidden border border-indigo-200 shadow-sm cursor-pointer"
+                                          onClick={() => setExpandedImage(section.image || null)}>
+                                        <Image
+                                          src={section.image || '/placeholder.png'}
+                                          alt={section.name || ''}
+                                          fill
+                                          className="object-cover"
+                                          sizes="40px"
+                                        />
+                                      </div>
+                                    </td>
+                                    <td className="px-6 py-2 whitespace-nowrap">
+                                      <button
+                                        className={`relative inline-flex flex-shrink-0 h-5 w-10 border-2 border-transparent rounded-full cursor-pointer transition-colors duration-200 focus:outline-none ${
+                                          section.status === 1 ? 'bg-indigo-500' : 'bg-gray-200'
+                                        }`}
+                                        // Manejador para actualizar visibilidad de sección, se implementará después
+                                      >
+                                        <span
+                                          className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform ring-0 transition duration-200 ${
+                                            section.status === 1 ? 'translate-x-5' : 'translate-x-0'
+                                          }`}
+                                        />
+                                      </button>
+                                    </td>
+                                    <td className="px-6 py-2 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                      <button
+                                        className="text-indigo-600 hover:text-indigo-900"
+                                        onClick={() => openEditSectionModal(
+                                          section.section_id,
+                                          section.name,
+                                          section.image
+                                        )}
+                                      >
+                                        <PencilIcon className="h-4 w-4 inline" />
+                                      </button>
+                                      <button
+                                        className="text-red-600 hover:text-red-900"
+                                        onClick={() => deleteSection(section.section_id)}
+                                      >
+                                        <TrashIcon className="h-4 w-4 inline" />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tr>
+                            ))}
+                          </div>
+                          {provided.placeholder}
+                        </tr>
+                      )}
+                    </Droppable>
+                  </DragDropContext>
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Visualización en grid */}
+            <div className="mt-8">
+              <h2 className="text-lg font-semibold text-gray-800 mb-4">Categorías</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {categories.map(category => (
+                  <div key={category.category_id} className="space-y-4">
+                    <div className={`bg-white p-4 rounded-lg shadow transition-all ${category.status === 0 ? 'opacity-50' : ''}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-medium">{category.name}</h3>
+                        <div className="flex space-x-1">
+                          <button 
+                            onClick={() => {
+                              setSelectedCategoryId(category.category_id);
+                              setEditCategoryName(category.name || '');
+                              setEditImagePreview(category.image);
+                              setIsEditModalOpen(true);
+                            }}
+                            className="text-gray-400 hover:text-indigo-600 transition-colors"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button 
+                            onClick={() => openNewSectionModal(category.category_id)}
+                            className="text-gray-400 hover:text-green-600 transition-colors"
+                          >
+                            <PlusIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="relative h-14 w-14 mx-auto rounded-full overflow-hidden border border-gray-200 shadow-sm cursor-pointer mb-2"
+                           onClick={() => setExpandedImage(category.image || null)}>
+                        <Image
+                          src={verifyImagePath(category.image)}
+                          alt={category.name || ''}
+                          fill
+                          className="object-cover"
+                          sizes="56px"
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Secciones dentro de la categoría (vista grid) */}
+                    {category.sections && category.sections.length > 0 && (
+                      <div className="pl-4 space-y-2">
+                        {category.sections.map(section => (
+                          <div key={`grid-section-${section.section_id}`} className={`bg-indigo-50 p-3 rounded-lg shadow-sm transition-all ${section.status === 0 ? 'opacity-50' : ''}`}>
+                            <div className="flex items-center space-x-3">
+                              <div className="relative h-10 w-10 rounded-full overflow-hidden border border-indigo-200 shadow-sm cursor-pointer"
+                                  onClick={() => setExpandedImage(section.image || null)}>
+                                <Image
+                                  src={section.image || '/placeholder.png'}
+                                  alt={section.name || ''}
+                                  fill
+                                  className="object-cover"
+                                  sizes="40px"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-indigo-800 truncate">
+                                  {section.name}
+                                </p>
+                                <span className="text-[10px] text-indigo-500">
+                                  Sección
+                                </span>
+                              </div>
+                              <div className="flex space-x-1">
+                                <button 
+                                  className="text-gray-400 hover:text-indigo-600 transition-colors"
+                                  // Manejador para editar sección, se implementará después
+                                >
+                                  <PencilIcon className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {/* Botón para añadir categoría */}
+                <button
+                  onClick={openNewCategoryModal}
+                  className="flex flex-col items-center justify-center w-full h-48 p-4 bg-indigo-100 hover:bg-indigo-200 border-2 border-dashed border-indigo-300 rounded-lg transition-all"
+                >
+                  <PlusIcon className="h-10 w-10 text-indigo-600 mb-2" />
+                  <span className="text-sm font-medium text-indigo-600">Nueva categoría</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Vista previa simplificada - Mantener el mismo tamaño */}
+          <div className="w-full lg:w-auto">
+            <PhonePreview 
+              clientName={client?.name || "Roka"} 
+              categories={categories
+                .filter(cat => cat.status === 1)
+                .sort((a, b) => a.display_order - b.display_order)
+                .map(cat => ({
+                  id: cat.category_id,
+                  name: cat.name || '',
+                  image: verifyImagePath(cat.image)
+                }))
+              }
+              clientLogo={getMainLogoPath()}
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* Modal para confirmar eliminación de categoría - Reducido */}
+      <Transition appear show={isDeleteModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={() => !isDeletingCategory && setIsDeleteModalOpen(false)}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </Transition.Child>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-lg bg-white p-4 text-left align-middle shadow-xl transition-all text-sm">
+                  <Dialog.Title as="h3" className="text-base font-medium leading-6 text-gray-900 flex items-center">
+                    <div className="mr-2 flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-red-100">
+                      <TrashIcon className="h-4 w-4 text-red-600" />
+                    </div>
+                    Eliminar categoría
+                  </Dialog.Title>
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-500">
+                      ¿Estás seguro de que deseas eliminar esta categoría? Esta acción no se puede deshacer.
+                    </p>
+                  </div>
+                  
+                  <div className="mt-4 flex justify-end space-x-2">
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-transparent px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsDeleteModalOpen(false)}
+                      disabled={isDeletingCategory}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                      onClick={handleDeleteCategory}
+                      disabled={isDeletingCategory}
+                    >
+                      {isDeletingCategory ? (
+                        <>
+                          <span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white mr-1"></span>
+                          Eliminando...
+                        </>
+                      ) : (
+                        'Eliminar'
+                      )}
+                    </button>
+                  </div>
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
+
+      {/* Modales para crear y editar categorías */}
+      <NewCategoryModal />
+      <EditCategoryModal />
+      <NewSectionModal />
+      <EditSectionModal />
+
+      {/* Expanded Image Modal */}
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+          onClick={() => setExpandedImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full">
+            <button 
+              className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-lg z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpandedImage(null);
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="relative w-full h-[80vh]">
+              <Image
+                src={expandedImage || '/placeholder.png'}
+                alt="Imagen ampliada"
+                fill
+                className="object-contain"
+                onError={() => setExpandedImage('/placeholder.png')}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

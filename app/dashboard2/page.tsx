@@ -78,20 +78,20 @@ export default async function Dashboard2Page() {
                         <div className="mt-2 flex items-center text-sm text-gray-500">
                           <span className="mr-2">Orden:</span>
                           <span className="font-medium">{category.display_order}</span>
-                        </div>
+                      </div>
                         <div className="mt-2 flex items-center text-sm">
                           <span className="mr-2">Estado:</span>
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                             category.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
                             {category.status ? 'Activo' : 'Inactivo'}
-                          </span>
+                        </span>
                         </div>
-                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+                  </div>
+                )}
             </div>
           </div>
         </div>

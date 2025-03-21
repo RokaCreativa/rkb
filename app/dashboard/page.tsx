@@ -918,7 +918,7 @@ export default function DashboardPage() {
                   <PlusIcon className="h-4 w-4 text-gray-500" />
                 </button>
                 <span className="text-[10px] mt-1">Añadir</span>
-              </div>
+            </div>
           </div>
         </div>
       </div>
