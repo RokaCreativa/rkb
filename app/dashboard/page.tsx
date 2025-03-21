@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, Fragment } from 'react';
-import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon, TrashIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
@@ -248,7 +248,7 @@ export default function DashboardPage() {
     setEditImagePreview(category.image);
     setIsEditModalOpen(true);
   };
-
+  
   // Función para abrir el modal de confirmación de eliminación
   const openDeleteModal = (categoryId: number, e: React.MouseEvent) => {
     e.stopPropagation(); // Evitar que el evento se propague a la fila
@@ -489,76 +489,111 @@ export default function DashboardPage() {
     
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md">
-          <h3 className="text-xl font-bold mb-4">Nueva Categoría</h3>
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4 text-sm">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-base font-medium text-gray-900">Nueva Categoría</h3>
+            <button 
+              onClick={() => setIsNewCategoryModalOpen(false)}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Nombre</label>
-            <input 
-              type="text" 
+          <div className="mb-3">
+            <label htmlFor="new-category-name" className="block text-xs font-medium text-gray-700 mb-1">
+              Nombre de Categoría
+            </label>
+            <input
+              type="text"
+              id="new-category-name"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
-              className="w-full p-2 border rounded"
-              placeholder="Nombre de la categoría"
+              className="w-full border-gray-300 rounded-md shadow-sm text-xs"
+              placeholder="Ingrese nombre de categoría"
             />
-            {newCategoryName.trim() === '' && (
-              <p className="mt-1 text-xs text-red-500">El nombre es obligatorio</p>
-            )}
           </div>
           
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Imagen</label>
-            <input 
-              type="file" 
-              accept="image/*"
-              onChange={handleImageSelect}
-              className="w-full p-2 border rounded"
-            />
-            
-            {imagePreview && (
-              <div className="mt-2">
-                <Image 
-                  src={imagePreview} 
-                  alt="Vista previa" 
-                  width={100} 
-                  height={100}
-                  className="rounded-lg object-cover"
-                />
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Imagen de Categoría
+            </label>
+            <div className="flex items-start space-x-3">
+              <div 
+                className="relative h-16 w-16 border-2 border-gray-300 border-dashed rounded-lg flex items-center justify-center overflow-hidden"
+                onClick={() => document.getElementById('new-category-image')?.click()}
+              >
+                {imagePreview ? (
+                  <Image
+                    src={imagePreview}
+                    alt="Vista previa"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                )}
               </div>
-            )}
+              
+              <div className="flex-1">
+                <input
+                  type="file"
+                  id="new-category-image"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                />
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('new-category-image')?.click()}
+                  className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
+                >
+                  <ArrowUpTrayIcon className="h-3 w-3 mr-1" />
+                  Subir imagen
+                </button>
+                {imagePreview && (
+                  <button
+                    type="button"
+                    onClick={() => setImagePreview(null)}
+                    className="inline-flex items-center ml-1 px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 text-red-600 hover:bg-red-50"
+                  >
+                    <TrashIcon className="h-3 w-3 mr-1" />
+                    Eliminar
+                  </button>
+                )}
+                <p className="mt-1 text-[10px] text-gray-500">
+                  JPG, PNG o GIF. Recomendado 400x400px.
+                </p>
+              </div>
+            </div>
           </div>
           
-          <div className="flex justify-end gap-3 mt-6">
-            <button 
-              onClick={() => {
-                setIsNewCategoryModalOpen(false);
-                setNewCategoryName('');
-                setSelectedImage(null);
-                setImagePreview(null);
-              }}
-              className="px-4 py-2 border rounded hover:bg-gray-100"
-              disabled={isLoading}
-              type="button"
+          <div className="flex justify-end space-x-2 mt-4">
+            <button
+              onClick={() => setIsNewCategoryModalOpen(false)}
+              className="px-3 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium bg-white hover:bg-gray-50"
             >
               Cancelar
             </button>
-            <button 
+            <button
               onClick={createCategory}
-              className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-medium shadow-sm"
-              disabled={isLoading || newCategoryName.trim() === ''}
-              type="button"
+              disabled={isCreatingCategory || !newCategoryName.trim()}
+              className={`px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white
+                ${isCreatingCategory || !newCategoryName.trim() ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
             >
-              {isLoading ? (
+              {isCreatingCategory ? (
                 <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Creando...
                 </span>
-              ) : (
-                'Crear categoría'
-              )}
+              ) : 'Crear Categoría'}
             </button>
           </div>
         </div>
@@ -572,86 +607,122 @@ export default function DashboardPage() {
     
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md">
-          <h3 className="text-xl font-bold mb-4">Editar Categoría</h3>
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4 text-sm">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-base font-medium text-gray-900">Editar Categoría</h3>
+            <button 
+              onClick={() => setSelectedCategory(null)}
+              className="text-gray-400 hover:text-gray-500"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Nombre</label>
-            <input 
-              type="text" 
+          <div className="mb-3">
+            <label htmlFor="edit-category-name" className="block text-xs font-medium text-gray-700 mb-1">
+              Nombre de Categoría
+            </label>
+            <input
+              type="text"
+              id="edit-category-name"
               value={editCategoryName}
               onChange={(e) => setEditCategoryName(e.target.value)}
-              className="w-full p-2 border rounded"
-              placeholder="Nombre de la categoría"
+              className="w-full border-gray-300 rounded-md shadow-sm text-xs"
+              placeholder="Ingrese nombre de categoría"
             />
-            {editCategoryName.trim() === '' && (
-              <p className="mt-1 text-xs text-red-500">El nombre es obligatorio</p>
-            )}
           </div>
           
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">Imagen</label>
-            <input 
-              type="file" 
-              accept="image/*"
-              onChange={handleEditImageSelect}
-              className="w-full p-2 border rounded"
-            />
-            
-            {editImagePreview && (
-              <div className="mt-2 relative">
-                <Image 
-                  src={editImagePreview} 
-                  alt="Vista previa" 
-                  width={120} 
-                  height={120}
-                  className="rounded-lg object-cover"
+          <div className="mb-3">
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Imagen de Categoría
+            </label>
+            <div className="flex items-start space-x-3">
+              <div 
+                className="relative h-16 w-16 border-2 border-gray-300 border-dashed rounded-lg flex items-center justify-center overflow-hidden"
+                onClick={() => document.getElementById('edit-category-image')?.click()}
+              >
+                {editImagePreview ? (
+                  <Image
+                    src={editImagePreview}
+                    alt="Vista previa"
+                    fill
+                    className="object-cover"
+                  />
+                ) : selectedCategory?.image ? (
+                  <Image
+                    src={verifyImagePath(selectedCategory.image)}
+                    alt={selectedCategory.name}
+                    fill
+                    className="object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = '/placeholder.png';
+                    }}
+                  />
+                ) : (
+                  <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                )}
+              </div>
+              
+              <div className="flex-1">
+                <input
+                  type="file"
+                  id="edit-category-image"
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleEditImageSelect}
                 />
                 <button
-                  onClick={() => setEditImagePreview(null)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm"
                   type="button"
+                  onClick={() => document.getElementById('edit-category-image')?.click()}
+                  className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <ArrowUpTrayIcon className="h-3 w-3 mr-1" />
+                  Cambiar imagen
                 </button>
+                {(editImagePreview || selectedCategory?.image) && (
+                  <button
+                    type="button"
+                    onClick={() => removeImage(selectedCategoryId!)}
+                    className="inline-flex items-center ml-1 px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 text-red-600 hover:bg-red-50"
+                  >
+                    <TrashIcon className="h-3 w-3 mr-1" />
+                    Eliminar
+                  </button>
+                )}
+                <p className="mt-1 text-[10px] text-gray-500">
+                  JPG, PNG o GIF. Recomendado 400x400px.
+                </p>
               </div>
-            )}
+            </div>
           </div>
           
-          <div className="flex justify-end gap-3 mt-6">
-            <button 
-              onClick={() => {
-                setIsEditModalOpen(false);
-                setEditCategoryName('');
-                setEditCategoryImage(null);
-                setEditImagePreview(null);
-                setSelectedCategoryId(null);
-              }}
-              className="px-4 py-2 border rounded hover:bg-gray-100"
-              disabled={isLoading}
-              type="button"
+          <div className="flex justify-end space-x-2 mt-4">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className="px-3 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium bg-white hover:bg-gray-50"
             >
               Cancelar
             </button>
-            <button 
+            <button
               onClick={updateCategory}
-              className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-medium shadow-sm"
-              disabled={isLoading || editCategoryName.trim() === ''}
-              type="button"
+              disabled={isUpdatingName || !editCategoryName.trim()}
+              className={`px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white
+                ${isUpdatingName || !editCategoryName.trim() ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
             >
-              {isLoading ? (
+              {isUpdatingName ? (
                 <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Actualizando...
                 </span>
-              ) : (
-                'Guardar cambios'
-              )}
+              ) : 'Actualizar Categoría'}
             </button>
           </div>
         </div>
@@ -660,32 +731,32 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-col">
-      <div className="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-6">
+    <div className="flex flex-col text-sm">
+      <div className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4">
         <div className="flex-1">
-          <h2 className="text-2xl font-bold mb-4 text-indigo-600">Categorías</h2>
+          <h2 className="text-xl font-bold mb-3 text-indigo-600">Categorías</h2>
 
-          <div className="mb-4 flex justify-between">
-            <button className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md bg-white">
-              <EyeIcon className="h-4 w-4 mr-2" /> Ver categoría
+          <div className="mb-3 flex justify-between">
+            <button className="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded-md bg-white">
+              <EyeIcon className="h-3 w-3 mr-1" /> Ver categoría
             </button>
 
             <div className="flex space-x-2">
-              <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md bg-white">
-                Acciones <ChevronDownIcon className="ml-2 h-4 w-4" />
+              <button className="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded-md bg-white">
+                Acciones <ChevronDownIcon className="ml-1 h-3 w-3" />
               </button>
 
               <button 
                 onClick={openNewCategoryModal}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white"
+                className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-md bg-indigo-600 text-white"
               >
-                <PlusIcon className="h-4 w-4 mr-2" /> Nueva categoría
+                <PlusIcon className="h-3 w-3 mr-1" /> Nueva categoría
               </button>
             </div>
           </div>
           
           {/* Vista de lista con tabla */}
-          <div className="overflow-hidden bg-white shadow rounded-lg mb-6">
+          <div className="overflow-hidden bg-white shadow rounded-lg mb-4 text-xs">
             <DragDropContext onDragEnd={handleDragEnd}>
               <Droppable droppableId="categoriesDroppable">
                 {(provided) => (
@@ -695,11 +766,11 @@ export default function DashboardPage() {
                   >
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">NOMBRE</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">ORDEN</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">FOTO</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase">VISIBILIDAD</th>
-                        <th className="px-6 py-3 text-center text-xs font-medium uppercase">ACCIONES</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium uppercase">NOMBRE</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium uppercase">ORDEN</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium uppercase">FOTO</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium uppercase">VISIBILIDAD</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium uppercase">ACCIONES</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -716,9 +787,9 @@ export default function DashboardPage() {
                               {...provided.draggableProps}
                               className={`${snapshot.isDragging ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}
                             >
-                              <td className="px-6 py-2 flex items-center gap-2">
+                              <td className="px-3 py-1 flex items-center gap-1">
                                 <div {...provided.dragHandleProps} className="cursor-grab p-1 hover:bg-gray-100 rounded">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="9" cy="5" r="1" />
                                     <circle cx="9" cy="12" r="1" />
                                     <circle cx="9" cy="19" r="1" />
@@ -730,20 +801,20 @@ export default function DashboardPage() {
                                 <span>{category.name}</span>
                                 <button 
                                   onClick={() => openEditModal(category)} 
-                                  className="ml-2 p-1 text-gray-600 hover:text-indigo-600 hover:bg-gray-100 rounded-full transition-colors"
+                                  className="ml-1 p-1 text-gray-600 hover:text-indigo-600 hover:bg-gray-100 rounded-full transition-colors"
                                 >
-                                  <PencilIcon className="h-4 w-4" />
+                                  <PencilIcon className="h-3 w-3" />
                                 </button>
                               </td>
-                              <td className="px-6 py-2">{category.display_order}</td>
-                              <td className="px-6 py-2 text-center">
-                                <div className="relative w-12 h-12 mx-auto overflow-hidden rounded-full cursor-pointer"
+                              <td className="px-3 py-1">{category.display_order}</td>
+                              <td className="px-3 py-1 text-center">
+                                <div className="relative w-8 h-8 mx-auto overflow-hidden rounded-full cursor-pointer"
                                      onClick={() => setExpandedImage(verifyImagePath(category.image))}>
                                   <Image
                                     src={verifyImagePath(category.image)}
                                     alt={category.name}
                                     fill
-                                    sizes="48px"
+                                    sizes="32px"
                                     className="object-cover"
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
@@ -752,28 +823,28 @@ export default function DashboardPage() {
                                   />
                                 </div>
                               </td>
-                              <td className="px-6 py-2 text-center">
+                              <td className="px-3 py-1 text-center">
                                 <button 
                                   className="relative inline-flex items-center"
                                   onClick={() => handleToggleVisibility(category.id, category.status)}
                                   disabled={isUpdatingVisibility === category.id}
                                 >
-                                  <div className={`w-12 h-6 rounded-full transition-colors ${category.status === 1 ? 'bg-indigo-600' : 'bg-gray-200'}`}>
-                                    <div className={`absolute w-5 h-5 bg-white rounded-full shadow transform transition-transform duration-200 top-0.5 ${category.status === 1 ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                                  <div className={`w-9 h-5 rounded-full transition-colors ${category.status === 1 ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+                                    <div className={`absolute w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 top-0.5 ${category.status === 1 ? 'translate-x-4' : 'translate-x-0.5'}`} />
                                   </div>
                                   {isUpdatingVisibility === category.id && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 rounded-full">
-                                      <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent animate-spin rounded-full"></div>
+                                      <div className="w-2 h-2 border-2 border-indigo-600 border-t-transparent animate-spin rounded-full"></div>
                                     </div>
                                   )}
                                 </button>
                               </td>
-                              <td className="px-6 py-2 text-center">
+                              <td className="px-3 py-1 text-center">
                                 <button 
                                   onClick={(e) => openDeleteModal(category.id, e)}
                                   className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
                                 >
-                                  <TrashIcon className="h-5 w-5" />
+                                  <TrashIcon className="h-4 w-4" />
                                 </button>
                               </td>
                             </tr>
@@ -792,28 +863,28 @@ export default function DashboardPage() {
               </Droppable>
             </DragDropContext>
             {isUpdatingOrder && (
-              <div className="flex justify-center py-2 bg-indigo-50">
-                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-indigo-500 mr-2"></div>
-                <span className="text-sm text-indigo-600">Actualizando orden...</span>
+              <div className="flex justify-center py-1 bg-indigo-50">
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-indigo-500 mr-1"></div>
+                <span className="text-xs text-indigo-600">Actualizando orden...</span>
               </div>
             )}
           </div>
 
           {/* Vista de cuadrícula para categorías */}
-          <div className="bg-white shadow rounded-lg p-4 mb-6">
-            <h3 className="text-lg font-semibold mb-3">Vista de categorías en el menú</h3>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-1">
+          <div className="bg-white shadow rounded-lg p-3 mb-4">
+            <h3 className="text-sm font-semibold mb-2">Vista de categorías en el menú</h3>
+            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
               {categories.filter(cat => cat.status === 1).map((category) => (
                 <div key={category.id} className="relative bg-white rounded-lg p-1">
                   <div className="flex flex-col items-center">
-                    <div className="relative h-14 w-14 cursor-pointer mb-1"
+                    <div className="relative h-10 w-10 cursor-pointer mb-1"
                         onClick={() => setExpandedImage(verifyImagePath(category.image))}>
                       <div className="absolute inset-0 rounded-full overflow-hidden">
                         <Image
                           src={verifyImagePath(category.image)}
                           alt={category.name}
                           fill
-                          sizes="(max-width: 768px) 56px, 56px"
+                          sizes="(max-width: 768px) 40px, 40px"
                           className="object-cover"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
@@ -822,25 +893,25 @@ export default function DashboardPage() {
                         />
                       </div>
                     </div>
-                    <h4 className="text-xs font-medium text-center truncate w-full">{category.name}</h4>
+                    <h4 className="text-[10px] font-medium text-center truncate w-full">{category.name}</h4>
                   </div>
                 </div>
               ))}
               <div className="flex flex-col items-center justify-center p-1">
                 <button 
                   onClick={() => setIsNewCategoryModalOpen(true)}
-                  className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                  className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
                 >
-                  <PlusIcon className="h-6 w-6 text-gray-500" />
+                  <PlusIcon className="h-4 w-4 text-gray-500" />
                 </button>
-                <span className="text-xs mt-1">Añadir</span>
+                <span className="text-[10px] mt-1">Añadir</span>
               </div>
             </div>
           </div>
         </div>
       
-        {/* Vista previa simplificada */}
-        <div className="w-full lg:w-1/3">
+        {/* Vista previa simplificada - Mantener el mismo tamaño */}
+        <div className="w-full lg:w-auto">
           <PhonePreview 
             clientName={client?.name || "Roka"} 
             categories={categories
@@ -857,7 +928,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Modal para confirmar eliminación de categoría */}
+      {/* Modal para confirmar eliminación de categoría - Reducido */}
       <Transition appear show={isDeleteModalOpen} as={Fragment}>
         <Dialog as="div" className="relative z-10" onClose={() => !isDeletingCategory && setIsDeleteModalOpen(false)}>
           <Transition.Child
@@ -883,23 +954,23 @@ export default function DashboardPage() {
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 flex items-center">
-                    <div className="mr-2 flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-red-100">
-                      <TrashIcon className="h-5 w-5 text-red-600" />
+                <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-lg bg-white p-4 text-left align-middle shadow-xl transition-all text-sm">
+                  <Dialog.Title as="h3" className="text-base font-medium leading-6 text-gray-900 flex items-center">
+                    <div className="mr-2 flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-red-100">
+                      <TrashIcon className="h-4 w-4 text-red-600" />
                     </div>
                     Eliminar categoría
                   </Dialog.Title>
-                  <div className="mt-3">
-                    <p className="text-sm text-gray-500">
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-500">
                       ¿Estás seguro de que deseas eliminar esta categoría? Esta acción no se puede deshacer.
                     </p>
                   </div>
 
-                  <div className="mt-6 flex justify-end space-x-3">
+                  <div className="mt-4 flex justify-end space-x-2">
                     <button
                       type="button"
-                      className="inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                      className="inline-flex justify-center rounded-md border border-transparent px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
                       onClick={() => setIsDeleteModalOpen(false)}
                       disabled={isDeletingCategory}
                     >
@@ -907,13 +978,13 @@ export default function DashboardPage() {
                     </button>
                     <button
                       type="button"
-                      className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                      className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
                       onClick={handleDeleteCategory}
                       disabled={isDeletingCategory}
                     >
                       {isDeletingCategory ? (
                         <>
-                          <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
+                          <span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white mr-1"></span>
                           Eliminando...
                         </>
                       ) : (
@@ -928,6 +999,10 @@ export default function DashboardPage() {
         </Dialog>
       </Transition>
 
+      {/* Modales para crear y editar categorías */}
+      <NewCategoryModal />
+      <EditCategoryModal />
+
       {/* Expanded Image Modal */}
       {expandedImage && (
         <div 
@@ -936,13 +1011,13 @@ export default function DashboardPage() {
         >
           <div className="relative max-w-4xl max-h-[90vh] w-full">
             <button 
-              className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg z-10"
+              className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-lg z-10"
               onClick={(e) => {
                 e.stopPropagation();
                 setExpandedImage(null);
               }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -958,10 +1033,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-
-      {/* Modales para crear y editar categorías */}
-      <NewCategoryModal />
-      <EditCategoryModal />
     </div>
   );
 }

@@ -6,10 +6,12 @@ import { writeFile } from 'fs/promises';
 import { join } from 'path';
 // O la ruta relativa que corresponda
 
+// Definir una constante para la ruta base de las imágenes
+const IMAGE_BASE_PATH = '/images/categories/';
 
 // Interfaz para categorías procesadas en la respuesta del API
 interface ProcessedCategory {
-  id: number;
+  category_id: number;
   name: string;
   image: string | null;
   status: number; // Ahora solo 1 o 0
@@ -18,9 +20,7 @@ interface ProcessedCategory {
   products: number;
 }
 
-const IMAGE_BASE_PATH = '/images/categories/';
-
-// Método GET para obtener las categorías del cliente autenticado
+// Método GET para obtener las categorías
 export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -36,28 +36,36 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
+    // Obtener categorías no eliminadas para el cliente actual
     const categories = await prisma.categories.findMany({
-      where: { client_id: user.client_id },
-      orderBy: { display_order: 'asc' },
+      where: {
+        client_id: user.client_id,
+        deleted: { not: 'Y' }, // Cualquier valor que no sea 'Y' (incluido null)
+      },
+      orderBy: {
+        display_order: 'asc',
+      },
     });
 
-    console.log(`Recuperadas ${categories.length} categorías para el cliente ${user.client_id}`);
+    // Procesamos las categorías para el formato que espera el frontend
+    const formattedCategories = categories.map(category => ({
+      ...category,
+      image: category.image 
+        ? `${IMAGE_BASE_PATH}${category.image}`
+        : null,
+    }));
 
-    // Formatear la respuesta para que incluya la URL correcta de la imagen
-    const formattedCategories = categories.map(category => {
-      // Solo añadir la ruta base si hay una imagen
-      const imageUrl = category.image 
-        ? `${IMAGE_BASE_PATH}${category.image}` 
-        : null;
-      
-      return {
-        ...category,
-        image: imageUrl,
-        status: category.status ? 1 : 0, // Convertir boolean a 0/1 para frontend
-      };
-    });
+    const processedCategories: ProcessedCategory[] = formattedCategories.map(category => ({
+      category_id: category.category_id,
+      name: category.name || '',
+      image: category.image,
+      status: category.status ? 1 : 0,
+      display_order: category.display_order || 0,
+      client_id: category.client_id ?? 0,
+      products: 0,
+    }));
 
-    return NextResponse.json(formattedCategories);
+    return NextResponse.json(processedCategories);
   } catch (error) {
     console.error('Error al obtener categorías:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
@@ -80,105 +88,82 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
-    let imageFileName = null;
-    let categoryData: any = {
-      client_id: user.client_id,
-      status: true,
-    };
-    
-    // Verificar si la solicitud es multipart/form-data o JSON
+    // Verificar si el request es multipart/form-data
     const contentType = request.headers.get('content-type') || '';
     
+    let data: any = {};
+    let imageFile: ArrayBuffer | null = null;
+    let imageName: string | null = null;
+    
     if (contentType.includes('multipart/form-data')) {
-      // Procesar FormData para imagen
       const formData = await request.formData();
-      const name = formData.get('name');
-      const image = formData.get('image') as File | null;
-      const displayOrder = formData.get('display_order');
+      data.name = formData.get('name') as string;
       
-      if (!name) {
-        return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
-      }
-      
-      categoryData.name = name.toString();
-      
-      if (displayOrder) {
-        categoryData.display_order = parseInt(displayOrder.toString());
-      }
-      
-      if (image) {
-        // Crear nombre de archivo único (timestamp + nombre original)
-        const timestamp = Date.now();
-        const fileName = image.name.toLowerCase().replace(/\s+/g, '-');
-        imageFileName = `${timestamp}-${fileName}`;
-        
-        // Guardar la imagen en el directorio público
-        const publicDir = join(process.cwd(), 'public');
-        const categoriesDir = join(publicDir, 'images', 'categories');
-        
-        try {
-          const bytes = await image.arrayBuffer();
-          const buffer = Buffer.from(bytes);
-          const imagePath = join(categoriesDir, imageFileName);
-          
-          await writeFile(imagePath, buffer);
-          categoryData.image = imageFileName;
-        } catch (error) {
-          console.error('Error al guardar la imagen:', error);
-          return NextResponse.json({ error: 'Error al procesar la imagen' }, { status: 500 });
-        }
+      const file = formData.get('image') as File;
+      if (file && file.size > 0) {
+        imageFile = await file.arrayBuffer();
+        imageName = file.name; // Solo guardamos el nombre, no la ruta completa
       }
     } else {
-      // Procesar JSON para crear sin imagen
-      const data = await request.json();
-      
-      if (!data.name) {
-        return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
-      }
-      
-      categoryData.name = data.name;
-      
-      if (data.display_order !== undefined) {
-        categoryData.display_order = data.display_order;
-      }
-      
-      if (data.status !== undefined) {
-        categoryData.status = data.status === 1;
-      }
-      
-      if (data.image) {
-        categoryData.image = data.image;
-      }
+      data = await request.json();
     }
     
-    // Determinar el display_order si no se proporcionó
-    if (categoryData.display_order === undefined) {
-      const maxOrderCategory = await prisma.categories.findFirst({
-        where: { client_id: user.client_id },
-        orderBy: { display_order: 'desc' },
-      });
-      
-      categoryData.display_order = maxOrderCategory && maxOrderCategory.display_order !== null 
-        ? maxOrderCategory.display_order + 1 
-        : 1;
+    if (!data.name || data.name.trim() === '') {
+      return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
     }
-    
-    // Crear la nueva categoría
-    const newCategory = await prisma.categories.create({
-      data: categoryData,
+
+    // Determinar el orden máximo actual
+    const maxOrderCategory = await prisma.categories.findFirst({
+      where: {
+        client_id: user.client_id,
+      },
+      orderBy: {
+        display_order: 'desc',
+      },
     });
 
-    // Formatear la imagen para la respuesta
-    const imageUrl = newCategory.image 
-      ? `${IMAGE_BASE_PATH}${newCategory.image}` 
-      : null;
+    const maxOrder = maxOrderCategory?.display_order;
+
+    // Si hay una imagen, guardarla
+    if (imageFile && imageName) {
+      try {
+        // Asegurarse de que el directorio existe
+        const publicImagesDir = join(process.cwd(), 'public', 'images', 'categories');
+        
+        // Guardar la imagen
+        await writeFile(join(publicImagesDir, imageName), Buffer.from(imageFile));
+      } catch (error) {
+        console.error('Error al guardar la imagen:', error);
+        // Continuamos aunque haya error con la imagen
+      }
+    }
+
+    // Crear la categoría
+    const newCategory = await prisma.categories.create({
+      data: {
+        name: data.name,
+        image: imageName, // Guardamos solo el nombre de la imagen
+        status: true,
+        display_order: maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 1,
+        client_id: user.client_id,
+      },
+    });
+
+    // URL completo de la imagen para la respuesta
+    const imageUrl = imageName ? `${IMAGE_BASE_PATH}${imageName}` : null;
     
-    // Convertir el status a formato numérico para la respuesta
-    return NextResponse.json({
-      ...newCategory,
+    // Procesar la categoría creada para la respuesta
+    const processedCategory: ProcessedCategory = {
+      category_id: newCategory.category_id,
+      name: newCategory.name || '',
       image: imageUrl,
       status: newCategory.status ? 1 : 0,
-    });
+      display_order: newCategory.display_order || 0,
+      client_id: newCategory.client_id ?? 0,
+      products: 0,
+    };
+
+    return NextResponse.json(processedCategory);
   } catch (error) {
     console.error('Error al crear la categoría:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
@@ -203,14 +188,13 @@ export async function PUT(request: Request) {
 
     const data = await request.json();
 
-    if (!data.id || typeof data.status !== 'number') {
+    if (!data.category_id || typeof data.status !== 'number') {
       return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
     }
 
     const category = await prisma.categories.update({
       where: {
-        id: data.id,
-        client_id: user.client_id,
+        category_id: data.category_id,
       },
       data: {
         status: data.status === 1,
@@ -218,9 +202,9 @@ export async function PUT(request: Request) {
     });
 
     const processedCategory: ProcessedCategory = {
-      id: category.id,
+      category_id: category.category_id,
       name: category.name || '',
-      image: category.image,
+      image: category.image ? `${IMAGE_BASE_PATH}${category.image}` : null,
       status: category.status ? 1 : 0,
       display_order: category.display_order || 0,
       client_id: category.client_id ?? 0,
@@ -229,6 +213,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(processedCategory);
   } catch (error) {
+    console.error('Error al actualizar la categoría:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }

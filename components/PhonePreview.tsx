@@ -110,7 +110,7 @@ export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] 
             <div className="grid grid-cols-3 gap-1 mt-3">
               {displayCategories.map(category => (
                 <div 
-                  key={category.id}
+                      key={category.id}
                   className="flex flex-col items-center"
                 >
                   {category.image && (
