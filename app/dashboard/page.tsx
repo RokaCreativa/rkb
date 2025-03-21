@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, Fragment } from 'react';
-import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { PhonePreview } from '@/components/PhonePreview';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Dialog, Transition } from '@headlessui/react';
+import { toast } from 'react-hot-toast';
 
 // Interfaces ajustadas a la estructura actualizada
 interface Category {
@@ -85,46 +86,20 @@ async function updateCategoryVisibility(categoryId: number, newStatus: number) {
   }
 }
 
-// Actualizar el nombre de una categoría
-async function updateCategoryName(categoryId: number, newName: string) {
+// Eliminar una categoría
+async function deleteCategory(categoryId: number) {
   try {
     const response = await fetch(`/api/categories/${categoryId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name: newName }),
+      method: 'DELETE',
     });
     
     if (!response.ok) {
-      throw new Error('Error al actualizar el nombre');
+      throw new Error('Error al eliminar la categoría');
     }
     
     return await response.json();
   } catch (error) {
-    console.error('Error al actualizar el nombre de la categoría:', error);
-    throw error;
-  }
-}
-
-// Crear una nueva categoría
-async function createCategory(categoryData: { name: string, image?: string }) {
-  try {
-    const response = await fetch('/api/categories', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(categoryData),
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error al crear la categoría');
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error al crear la categoría:', error);
+    console.error('Error al eliminar la categoría:', error);
     throw error;
   }
 }
@@ -137,13 +112,23 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState<number | null>(null);
   const [editingCategory, setEditingCategory] = useState<{ id: number, name: string } | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState<number | null>(null);
-  const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+  const [isUpdatingName, setIsUpdatingName] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [editCategoryImage, setEditCategoryImage] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const [expandedImage, setExpandedImage] = useState<string | null>(null);
 
   // Efecto para cargar datos iniciales al autenticarse
   useEffect(() => {
@@ -258,63 +243,196 @@ export default function DashboardPage() {
 
   // Función para abrir el modal de edición de categoría
   const openEditModal = (category: Category) => {
-    setEditingCategory({ id: category.id, name: category.name });
+    setSelectedCategoryId(category.id);
+    setEditCategoryName(category.name);
+    setEditImagePreview(category.image);
     setIsEditModalOpen(true);
   };
 
-  // Función para guardar el nombre editado de la categoría
-  const saveEditedCategoryName = async () => {
-    if (!editingCategory) return;
+  // Función para abrir el modal de confirmación de eliminación
+  const openDeleteModal = (categoryId: number, e: React.MouseEvent) => {
+    e.stopPropagation(); // Evitar que el evento se propague a la fila
+    setCategoryToDelete(categoryId);
+    setIsDeleteModalOpen(true);
+  };
+
+  // Función para eliminar una categoría
+  const handleDeleteCategory = async () => {
+    if (!categoryToDelete) return;
     
-    setIsUpdatingName(true);
+    setIsDeletingCategory(true);
     
     try {
-      // Actualización optimista de la UI
+      // Eliminar la categoría en el servidor
+      await deleteCategory(categoryToDelete);
+      
+      // Actualizar el estado local eliminando la categoría
       setCategories(prevCategories => 
-        prevCategories.map(cat => 
-          cat.id === editingCategory.id ? { ...cat, name: editingCategory.name } : cat
-        )
+        prevCategories.filter(cat => cat.id !== categoryToDelete)
       );
       
-      // Enviamos la actualización al servidor
-      await updateCategoryName(editingCategory.id, editingCategory.name);
-      
-      // Cerramos el modal
-      setIsEditModalOpen(false);
-      console.log(`Nombre de la categoría ${editingCategory.id} actualizado a "${editingCategory.name}"`);
+      // Cerrar el modal
+      setIsDeleteModalOpen(false);
+      setCategoryToDelete(null);
+      console.log(`Categoría ${categoryToDelete} eliminada con éxito`);
     } catch (error) {
-      console.error('Error al actualizar el nombre:', error);
-      // Revertimos los cambios locales si hay error
-      const response = await fetchCategories();
-      setCategories(response);
+      console.error('Error al eliminar la categoría:', error);
     } finally {
-      setIsUpdatingName(false);
+      setIsDeletingCategory(false);
     }
   };
 
   // Función para crear una nueva categoría
-  const handleCreateCategory = async () => {
-    if (!newCategoryName.trim()) return;
-    
-    setIsCreatingCategory(true);
-    
+  const createCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast.error('El nombre de la categoría es obligatorio');
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      // Creamos la nueva categoría en el servidor
-      const newCategory = await createCategory({
-        name: newCategoryName,
+      const formData = new FormData();
+      formData.append('name', newCategoryName);
+      if (selectedImage) {
+        formData.append('image', selectedImage);
+      }
+
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        body: formData,
       });
+
+      if (!response.ok) {
+        throw new Error('Error al crear la categoría');
+      }
+
+      // Refrescar las categorías
+      await reloadCategories();
       
-      // Actualizamos el estado local con la nueva categoría
-      setCategories(prevCategories => [...prevCategories, newCategory]);
-      
-      // Limpiamos el formulario y cerramos el modal
+      // Limpiar el formulario
       setNewCategoryName('');
+      setSelectedImage(null);
+      setImagePreview(null);
       setIsNewCategoryModalOpen(false);
-      console.log('Nueva categoría creada:', newCategory);
+      toast.success('Categoría creada correctamente');
     } catch (error) {
-      console.error('Error al crear la categoría:', error);
+      console.error('Error:', error);
+      toast.error('Error al crear la categoría');
     } finally {
-      setIsCreatingCategory(false);
+      setIsLoading(false);
+    }
+  };
+
+  // Función para actualizar una categoría
+  const updateCategory = async () => {
+    if (!editCategoryName.trim() || !selectedCategoryId) {
+      toast.error('El nombre de la categoría es obligatorio');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('name', editCategoryName);
+      if (editCategoryImage) {
+        formData.append('image', editCategoryImage);
+      }
+
+      const response = await fetch(`/api/categories/${selectedCategoryId}`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar la categoría');
+      }
+
+      // Refrescar las categorías
+      await reloadCategories();
+      
+      // Limpiar el formulario y cerrar el modal
+      setEditCategoryName('');
+      setEditCategoryImage(null);
+      setEditImagePreview(null);
+      setSelectedCategoryId(null);
+      setIsEditModalOpen(false);
+      toast.success('Categoría actualizada correctamente');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Error al actualizar la categoría');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Función para eliminar la imagen de una categoría
+  const removeImage = async (categoryId: number) => {
+    try {
+      const response = await fetch(`/api/categories/${categoryId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image: null }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar la imagen');
+      }
+
+      // Refrescar las categorías
+      await reloadCategories();
+      toast.success('Imagen eliminada correctamente');
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error('Error al eliminar la imagen');
+    }
+  };
+
+  // Función para manejar la selección de imágenes
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Función para manejar la selección de una imagen para editar una categoría
+  const handleEditImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setEditCategoryImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Función para abrir el modal de creación
+  const openNewCategoryModal = () => {
+    setNewCategoryName('');
+    setSelectedImage(null);
+    setImagePreview(null);
+    setIsNewCategoryModalOpen(true);
+  };
+
+  // Función para recargar las categorías
+  const reloadCategories = async () => {
+    try {
+      const response = await fetch('/api/categories');
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      }
+    } catch (error) {
+      console.error('Error al cargar categorías:', error);
     }
   };
 
@@ -351,7 +469,7 @@ export default function DashboardPage() {
 
   // Ruta correcta de imágenes
   const verifyImagePath = (imagePath: string | null): string => {
-    if (!imagePath) return '/images/placeholder.png';
+    if (!imagePath) return '/placeholder.png';
     return imagePath.startsWith('/images/categories/') 
       ? imagePath 
       : `/images/categories/${imagePath}`;
@@ -365,10 +483,186 @@ export default function DashboardPage() {
     return `/images/main_logo/${client.main_logo}`;
   };
 
+  // Componente modal para crear nuevas categorías
+  const NewCategoryModal = () => {
+    if (!isNewCategoryModalOpen) return null;
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <h3 className="text-xl font-bold mb-4">Nueva Categoría</h3>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Nombre</label>
+            <input 
+              type="text" 
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              className="w-full p-2 border rounded"
+              placeholder="Nombre de la categoría"
+            />
+            {newCategoryName.trim() === '' && (
+              <p className="mt-1 text-xs text-red-500">El nombre es obligatorio</p>
+            )}
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Imagen</label>
+            <input 
+              type="file" 
+              accept="image/*"
+              onChange={handleImageSelect}
+              className="w-full p-2 border rounded"
+            />
+            
+            {imagePreview && (
+              <div className="mt-2">
+                <Image 
+                  src={imagePreview} 
+                  alt="Vista previa" 
+                  width={100} 
+                  height={100}
+                  className="rounded-lg object-cover"
+                />
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-3 mt-6">
+            <button 
+              onClick={() => {
+                setIsNewCategoryModalOpen(false);
+                setNewCategoryName('');
+                setSelectedImage(null);
+                setImagePreview(null);
+              }}
+              className="px-4 py-2 border rounded hover:bg-gray-100"
+              disabled={isLoading}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={createCategory}
+              className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-medium shadow-sm"
+              disabled={isLoading || newCategoryName.trim() === ''}
+              type="button"
+            >
+              {isLoading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creando...
+                </span>
+              ) : (
+                'Crear categoría'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Componente modal para editar categorías
+  const EditCategoryModal = () => {
+    if (!isEditModalOpen) return null;
+    
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <h3 className="text-xl font-bold mb-4">Editar Categoría</h3>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Nombre</label>
+            <input 
+              type="text" 
+              value={editCategoryName}
+              onChange={(e) => setEditCategoryName(e.target.value)}
+              className="w-full p-2 border rounded"
+              placeholder="Nombre de la categoría"
+            />
+            {editCategoryName.trim() === '' && (
+              <p className="mt-1 text-xs text-red-500">El nombre es obligatorio</p>
+            )}
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Imagen</label>
+            <input 
+              type="file" 
+              accept="image/*"
+              onChange={handleEditImageSelect}
+              className="w-full p-2 border rounded"
+            />
+            
+            {editImagePreview && (
+              <div className="mt-2 relative">
+                <Image 
+                  src={editImagePreview} 
+                  alt="Vista previa" 
+                  width={120} 
+                  height={120}
+                  className="rounded-lg object-cover"
+                />
+                <button
+                  onClick={() => setEditImagePreview(null)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm"
+                  type="button"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-3 mt-6">
+            <button 
+              onClick={() => {
+                setIsEditModalOpen(false);
+                setEditCategoryName('');
+                setEditCategoryImage(null);
+                setEditImagePreview(null);
+                setSelectedCategoryId(null);
+              }}
+              className="px-4 py-2 border rounded hover:bg-gray-100"
+              disabled={isLoading}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={updateCategory}
+              className="px-6 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-medium shadow-sm"
+              disabled={isLoading || editCategoryName.trim() === ''}
+              type="button"
+            >
+              {isLoading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Actualizando...
+                </span>
+              ) : (
+                'Guardar cambios'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col">
       <div className="flex flex-col lg:flex-row space-y-6 lg:space-y-0 lg:space-x-6">
-      <div className="flex-1">
+        <div className="flex-1">
           <h2 className="text-2xl font-bold mb-4 text-indigo-600">Categorías</h2>
 
           <div className="mb-4 flex justify-between">
@@ -382,7 +676,7 @@ export default function DashboardPage() {
               </button>
 
               <button 
-                onClick={() => setIsNewCategoryModalOpen(true)}
+                onClick={openNewCategoryModal}
                 className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white"
               >
                 <PlusIcon className="h-4 w-4 mr-2" /> Nueva categoría
@@ -390,7 +684,8 @@ export default function DashboardPage() {
             </div>
           </div>
           
-          <div className="overflow-hidden bg-white shadow rounded-lg">
+          {/* Vista de lista con tabla */}
+          <div className="overflow-hidden bg-white shadow rounded-lg mb-6">
             <DragDropContext onDragEnd={handleDragEnd}>
               <Droppable droppableId="categoriesDroppable">
                 {(provided) => (
@@ -404,6 +699,7 @@ export default function DashboardPage() {
                         <th className="px-6 py-3 text-left text-xs font-medium uppercase">ORDEN</th>
                         <th className="px-6 py-3 text-left text-xs font-medium uppercase">FOTO</th>
                         <th className="px-6 py-3 text-left text-xs font-medium uppercase">VISIBILIDAD</th>
+                        <th className="px-6 py-3 text-center text-xs font-medium uppercase">ACCIONES</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -420,7 +716,7 @@ export default function DashboardPage() {
                               {...provided.draggableProps}
                               className={`${snapshot.isDragging ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}
                             >
-                              <td className="px-6 py-4 flex items-center gap-2">
+                              <td className="px-6 py-2 flex items-center gap-2">
                                 <div {...provided.dragHandleProps} className="cursor-grab p-1 hover:bg-gray-100 rounded">
                                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="9" cy="5" r="1" />
@@ -439,14 +735,15 @@ export default function DashboardPage() {
                                   <PencilIcon className="h-4 w-4" />
                                 </button>
                               </td>
-                              <td className="px-6 py-4">{category.display_order}</td>
-                              <td className="px-6 py-4 text-center">
-                                <div className="relative w-16 h-16 mx-auto overflow-hidden rounded-md">
+                              <td className="px-6 py-2">{category.display_order}</td>
+                              <td className="px-6 py-2 text-center">
+                                <div className="relative w-12 h-12 mx-auto overflow-hidden rounded-full cursor-pointer"
+                                     onClick={() => setExpandedImage(verifyImagePath(category.image))}>
                                   <Image
                                     src={verifyImagePath(category.image)}
                                     alt={category.name}
                                     fill
-                                    sizes="64px"
+                                    sizes="48px"
                                     className="object-cover"
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
@@ -455,7 +752,7 @@ export default function DashboardPage() {
                                   />
                                 </div>
                               </td>
-                              <td className="px-6 py-4 text-center">
+                              <td className="px-6 py-2 text-center">
                                 <button 
                                   className="relative inline-flex items-center"
                                   onClick={() => handleToggleVisibility(category.id, category.status)}
@@ -471,6 +768,14 @@ export default function DashboardPage() {
                                   )}
                                 </button>
                               </td>
+                              <td className="px-6 py-2 text-center">
+                                <button 
+                                  onClick={(e) => openDeleteModal(category.id, e)}
+                                  className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                                >
+                                  <TrashIcon className="h-5 w-5" />
+                                </button>
+                              </td>
                             </tr>
                           )}
                         </Draggable>
@@ -478,7 +783,7 @@ export default function DashboardPage() {
                       {provided.placeholder}
                       {categories.length === 0 && (
                         <tr>
-                          <td colSpan={4} className="text-center py-4">No se encontraron categorías.</td>
+                          <td colSpan={5} className="text-center py-2">No se encontraron categorías.</td>
                         </tr>
                       )}
                     </tbody>
@@ -492,6 +797,45 @@ export default function DashboardPage() {
                 <span className="text-sm text-indigo-600">Actualizando orden...</span>
               </div>
             )}
+          </div>
+
+          {/* Vista de cuadrícula para categorías */}
+          <div className="bg-white shadow rounded-lg p-4 mb-6">
+            <h3 className="text-lg font-semibold mb-3">Vista de categorías en el menú</h3>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-1">
+              {categories.filter(cat => cat.status === 1).map((category) => (
+                <div key={category.id} className="relative bg-white rounded-lg p-1">
+                  <div className="flex flex-col items-center">
+                    <div className="relative h-14 w-14 cursor-pointer mb-1"
+                        onClick={() => setExpandedImage(verifyImagePath(category.image))}>
+                      <div className="absolute inset-0 rounded-full overflow-hidden">
+                        <Image
+                          src={verifyImagePath(category.image)}
+                          alt={category.name}
+                          fill
+                          sizes="(max-width: 768px) 56px, 56px"
+                          className="object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/placeholder.png";
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <h4 className="text-xs font-medium text-center truncate w-full">{category.name}</h4>
+                  </div>
+                </div>
+              ))}
+              <div className="flex flex-col items-center justify-center p-1">
+                <button 
+                  onClick={() => setIsNewCategoryModalOpen(true)}
+                  className="flex flex-col items-center justify-center w-14 h-14 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                >
+                  <PlusIcon className="h-6 w-6 text-gray-500" />
+                </button>
+                <span className="text-xs mt-1">Añadir</span>
+              </div>
+            </div>
           </div>
         </div>
       
@@ -513,9 +857,9 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Modal para editar nombre de categoría */}
-      <Transition appear show={isEditModalOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-10" onClose={() => setIsEditModalOpen(false)}>
+      {/* Modal para confirmar eliminación de categoría */}
+      <Transition appear show={isDeleteModalOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-10" onClose={() => !isDeletingCategory && setIsDeleteModalOpen(false)}>
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -540,45 +884,40 @@ export default function DashboardPage() {
                 leaveTo="opacity-0 scale-95"
               >
                 <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
-                    Editar categoría
-                  </Dialog.Title>
-                  <div className="mt-4">
-                    <label htmlFor="category-name" className="block text-sm font-medium text-gray-700">
-                      Nombre de la categoría
-                    </label>
-                    <div className="mt-1">
-                      <input
-                        type="text"
-                        id="category-name"
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        value={editingCategory?.name || ''}
-                        onChange={(e) => setEditingCategory(prev => prev ? { ...prev, name: e.target.value } : null)}
-                      />
+                  <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 flex items-center">
+                    <div className="mr-2 flex-shrink-0 flex items-center justify-center h-8 w-8 rounded-full bg-red-100">
+                      <TrashIcon className="h-5 w-5 text-red-600" />
                     </div>
+                    Eliminar categoría
+                  </Dialog.Title>
+                  <div className="mt-3">
+                    <p className="text-sm text-gray-500">
+                      ¿Estás seguro de que deseas eliminar esta categoría? Esta acción no se puede deshacer.
+                    </p>
                   </div>
 
                   <div className="mt-6 flex justify-end space-x-3">
                     <button
                       type="button"
                       className="inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsEditModalOpen(false)}
+                      onClick={() => setIsDeleteModalOpen(false)}
+                      disabled={isDeletingCategory}
                     >
                       Cancelar
                     </button>
                     <button
                       type="button"
-                      className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                      onClick={saveEditedCategoryName}
-                      disabled={isUpdatingName}
+                      className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                      onClick={handleDeleteCategory}
+                      disabled={isDeletingCategory}
                     >
-                      {isUpdatingName ? (
+                      {isDeletingCategory ? (
                         <>
                           <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
-                          Guardando...
+                          Eliminando...
                         </>
                       ) : (
-                        'Guardar'
+                        'Eliminar'
                       )}
                     </button>
                   </div>
@@ -589,81 +928,40 @@ export default function DashboardPage() {
         </Dialog>
       </Transition>
 
-      {/* Modal para crear nueva categoría */}
-      <Transition appear show={isNewCategoryModalOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-10" onClose={() => setIsNewCategoryModalOpen(false)}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black bg-opacity-25" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
-              >
-                <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                  <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
-                    Crear nueva categoría
-                  </Dialog.Title>
-                  <div className="mt-4">
-                    <label htmlFor="new-category-name" className="block text-sm font-medium text-gray-700">
-                      Nombre de la categoría
-                    </label>
-                    <div className="mt-1">
-                      <input
-                        type="text"
-                        id="new-category-name"
-                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      className="inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsNewCategoryModalOpen(false)}
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                      onClick={handleCreateCategory}
-                      disabled={isCreatingCategory || !newCategoryName.trim()}
-                    >
-                      {isCreatingCategory ? (
-                        <>
-                          <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
-                          Creando...
-                        </>
-                      ) : (
-                        'Crear'
-                      )}
-                    </button>
-                  </div>
-                </Dialog.Panel>
-              </Transition.Child>
+      {/* Expanded Image Modal */}
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+          onClick={() => setExpandedImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] w-full">
+            <button 
+              className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg z-10"
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpandedImage(null);
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="relative w-full h-[80vh]">
+              <Image
+                src={expandedImage}
+                alt="Imagen ampliada"
+                fill
+                className="object-contain"
+                onError={() => setExpandedImage("/placeholder.png")}
+              />
             </div>
           </div>
-        </Dialog>
-      </Transition>
+        </div>
+      )}
+
+      {/* Modales para crear y editar categorías */}
+      <NewCategoryModal />
+      <EditCategoryModal />
     </div>
   );
 }

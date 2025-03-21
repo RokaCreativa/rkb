@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { ChevronLeft, Search, Utensils } from 'lucide-react'
+import { ChevronLeft, Search, Utensils, X } from 'lucide-react'
 
 interface PhonePreviewProps {
   clientName?: string;
@@ -18,12 +18,13 @@ export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] 
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({})
   const [headerImage, setHeaderImage] = useState<string>("/images/restaurant-header.jpg")
   const [logoError, setLogoError] = useState<boolean>(false)
+  const [expandedImage, setExpandedImage] = useState<string | null>(null)
 
   // Usar las categorías pasadas como prop o un conjunto de ejemplo si no hay datos
   const defaultCategories = [
-    { id: 1, name: 'PASTAS', image: '1597307591_0da6af4d97d6a07721d3.jpg' },
-    { id: 2, name: 'Menu solo postres', image: '1599057482_3d2f44d30cf4cb1e4e6f.jpg' },
-    { id: 3, name: 'Carnes foryou', image: '1598359527_b5a3ce64b4b71068695b.jpg' },
+    { id: 1, name: 'PASTAS', image: '/images/categories/1597307591_0da6af4d97d6a07721d3.jpg' },
+    { id: 2, name: 'Menu solo postres', image: '/images/categories/1599057482_3d2f44d30cf4cb1e4e6f.jpg' },
+    { id: 3, name: 'Carnes foryou', image: '/images/categories/1598359527_b5a3ce64b4b71068695b.jpg' },
   ]
 
   const displayCategories = categories.length > 0 ? categories : defaultCategories
@@ -106,20 +107,63 @@ export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] 
             <h1 className="text-2xl font-bold mb-4">{clientName}</h1>
 
             {/* Categories */}
-            <div className="space-y-3 mt-4">
+            <div className="grid grid-cols-3 gap-1 mt-3">
               {displayCategories.map(category => (
                 <div 
                   key={category.id}
-                  className="flex items-center p-3 bg-white rounded-lg border border-gray-200"
+                  className="flex flex-col items-center"
                 >
-                  <Utensils className="w-5 h-5 text-gray-500 mr-3" />
-                  <span className="font-medium">{category.name}</span>
+                  {category.image && (
+                    <div 
+                      className="relative h-16 w-16 cursor-pointer"
+                      onClick={() => category.image ? setExpandedImage(category.image) : null}
+                    >
+                      <div className="absolute inset-0 rounded-full overflow-hidden border border-gray-200 shadow-sm">
+                        <Image
+                          src={imageErrors[category.id] ? "/placeholder.png" : category.image}
+                          alt={category.name}
+                          fill
+                          className="object-cover"
+                          onError={() => handleImageError(category.id)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div className="mt-1 w-full">
+                    <span className="font-medium text-xs text-center block truncate">{category.name}</span>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Expanded Image Modal */}
+      {expandedImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+          onClick={() => setExpandedImage(null)}
+        >
+          <div className="relative max-w-2xl max-h-[80vh] w-full">
+            <button 
+              className="absolute top-2 right-2 bg-white rounded-full p-1 z-10"
+              onClick={() => setExpandedImage(null)}
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="relative w-full h-[80vh]">
+              <Image
+                src={expandedImage}
+                alt="Imagen ampliada"
+                fill
+                className="object-contain"
+                onError={() => setExpandedImage("/placeholder.png")}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 } 

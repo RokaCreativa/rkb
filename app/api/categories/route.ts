@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from "@/prisma/prisma";
+import { writeFile } from 'fs/promises';
+import { join } from 'path';
 // O la ruta relativa que corresponda
 
 
@@ -16,8 +18,10 @@ interface ProcessedCategory {
   products: number;
 }
 
+const IMAGE_BASE_PATH = '/images/categories/';
+
 // Método GET para obtener las categorías del cliente autenticado
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -37,18 +41,25 @@ export async function GET() {
       orderBy: { display_order: 'asc' },
     });
 
-    const processedCategories: ProcessedCategory[] = categories.map((cat) => ({
-      id: cat.id,
-      name: cat.name || '',
-      image: cat.image,
-      status: cat.status ? 1 : 0, // Ahora status solo 1 o 0
-      display_order: cat.display_order || 0,
-      client_id: cat.client_id ?? 0, // Aquí corriges el error asignando 0 si es null
-      products: 0,
-    }));
+    console.log(`Recuperadas ${categories.length} categorías para el cliente ${user.client_id}`);
 
-    return NextResponse.json(processedCategories);
+    // Formatear la respuesta para que incluya la URL correcta de la imagen
+    const formattedCategories = categories.map(category => {
+      // Solo añadir la ruta base si hay una imagen
+      const imageUrl = category.image 
+        ? `${IMAGE_BASE_PATH}${category.image}` 
+        : null;
+      
+      return {
+        ...category,
+        image: imageUrl,
+        status: category.status ? 1 : 0, // Convertir boolean a 0/1 para frontend
+      };
+    });
+
+    return NextResponse.json(formattedCategories);
   } catch (error) {
+    console.error('Error al obtener categorías:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
@@ -56,7 +67,6 @@ export async function GET() {
 // Método POST para crear una nueva categoría
 export async function POST(request: Request) {
   try {
-    // Verificar la autenticación y obtener el usuario
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
@@ -70,46 +80,105 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
-    // Obtener datos de la solicitud
-    const data = await request.json();
+    let imageFileName = null;
+    let categoryData: any = {
+      client_id: user.client_id,
+      status: true,
+    };
     
-    if (!data.name) {
-      return NextResponse.json({ error: 'El nombre de la categoría es obligatorio' }, { status: 400 });
+    // Verificar si la solicitud es multipart/form-data o JSON
+    const contentType = request.headers.get('content-type') || '';
+    
+    if (contentType.includes('multipart/form-data')) {
+      // Procesar FormData para imagen
+      const formData = await request.formData();
+      const name = formData.get('name');
+      const image = formData.get('image') as File | null;
+      const displayOrder = formData.get('display_order');
+      
+      if (!name) {
+        return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
+      }
+      
+      categoryData.name = name.toString();
+      
+      if (displayOrder) {
+        categoryData.display_order = parseInt(displayOrder.toString());
+      }
+      
+      if (image) {
+        // Crear nombre de archivo único (timestamp + nombre original)
+        const timestamp = Date.now();
+        const fileName = image.name.toLowerCase().replace(/\s+/g, '-');
+        imageFileName = `${timestamp}-${fileName}`;
+        
+        // Guardar la imagen en el directorio público
+        const publicDir = join(process.cwd(), 'public');
+        const categoriesDir = join(publicDir, 'images', 'categories');
+        
+        try {
+          const bytes = await image.arrayBuffer();
+          const buffer = Buffer.from(bytes);
+          const imagePath = join(categoriesDir, imageFileName);
+          
+          await writeFile(imagePath, buffer);
+          categoryData.image = imageFileName;
+        } catch (error) {
+          console.error('Error al guardar la imagen:', error);
+          return NextResponse.json({ error: 'Error al procesar la imagen' }, { status: 500 });
+        }
+      }
+    } else {
+      // Procesar JSON para crear sin imagen
+      const data = await request.json();
+      
+      if (!data.name) {
+        return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
+      }
+      
+      categoryData.name = data.name;
+      
+      if (data.display_order !== undefined) {
+        categoryData.display_order = data.display_order;
+      }
+      
+      if (data.status !== undefined) {
+        categoryData.status = data.status === 1;
+      }
+      
+      if (data.image) {
+        categoryData.image = data.image;
+      }
     }
-
-    // Encontrar el máximo display_order actual para asignar uno nuevo incrementalmente
-    const maxOrderCategory = await prisma.categories.findFirst({
-      where: { client_id: user.client_id },
-      orderBy: { display_order: 'desc' },
-    });
     
-    const nextDisplayOrder = maxOrderCategory && maxOrderCategory.display_order !== null 
-      ? maxOrderCategory.display_order + 1 
-      : 1;
-
+    // Determinar el display_order si no se proporcionó
+    if (categoryData.display_order === undefined) {
+      const maxOrderCategory = await prisma.categories.findFirst({
+        where: { client_id: user.client_id },
+        orderBy: { display_order: 'desc' },
+      });
+      
+      categoryData.display_order = maxOrderCategory && maxOrderCategory.display_order !== null 
+        ? maxOrderCategory.display_order + 1 
+        : 1;
+    }
+    
     // Crear la nueva categoría
     const newCategory = await prisma.categories.create({
-      data: {
-        name: data.name,
-        image: data.image || null,
-        status: true, // Por defecto, visible
-        display_order: nextDisplayOrder,
-        client_id: user.client_id,
-      },
+      data: categoryData,
     });
 
-    // Procesar la categoría para la respuesta
-    const processedCategory: ProcessedCategory = {
-      id: newCategory.id,
-      name: newCategory.name || '',
-      image: newCategory.image,
+    // Formatear la imagen para la respuesta
+    const imageUrl = newCategory.image 
+      ? `${IMAGE_BASE_PATH}${newCategory.image}` 
+      : null;
+    
+    // Convertir el status a formato numérico para la respuesta
+    return NextResponse.json({
+      ...newCategory,
+      image: imageUrl,
       status: newCategory.status ? 1 : 0,
-      display_order: newCategory.display_order || 0,
-      client_id: newCategory.client_id ?? 0,
-      products: 0,
-    };
-
-    return NextResponse.json(processedCategory);
+    });
   } catch (error) {
     console.error('Error al crear la categoría:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
