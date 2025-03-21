@@ -11,7 +11,7 @@ import { PhonePreview } from '@/components/PhonePreview';
 
 // Definición de interfaces
 interface Category {
-  id: number;
+  category_id: number;
   name: string;
   image: string | null;
   status: number; // Se usa 1 (activo) o 0 (inactivo)
@@ -87,7 +87,7 @@ export default function CategoriesPage() {
         // Inicializar estados de visibilidad basados en `status`
         const initialStates: VisibilityState = {};
         formattedCategories.forEach((cat) => {
-          initialStates[cat.id] = cat.status === 1;
+          initialStates[cat.category_id] = cat.status === 1;
         });
 
         setVisibilityStates(initialStates);
@@ -131,8 +131,8 @@ export default function CategoriesPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: categoryId,
-          status: newVisibility ? 1 : 0, // Enviar 1/0
+          category_id: categoryId,
+          status: newVisibility ? 1 : 0,
         }),
       });
 
@@ -231,7 +231,7 @@ export default function CategoriesPage() {
               </tr>
             ) : (
               categories.map((category) => (
-                <tr key={category.id} className="border-b hover:bg-indigo-50 transition-colors">
+                <tr key={category.category_id} className="border-b hover:bg-indigo-50 transition-colors">
                   <td className="px-4 py-2 text-black font-semibold">{category.name}</td>
                   <td className="px-4 py-2 text-black">{category.display_order}</td>
                   <td className="px-4 py-2">
@@ -243,8 +243,8 @@ export default function CategoriesPage() {
                   <td className="px-4 py-2">
                     <div className="flex justify-center">
                       <VisibilitySwitch
-                        checked={visibilityStates[category.id] ?? false}
-                        onChange={() => toggleCategoryVisibility(category.id)}
+                        checked={visibilityStates[category.category_id] ?? false}
+                        onChange={() => toggleCategoryVisibility(category.category_id)}
                       />
                   </div>
                   </td>
@@ -269,9 +269,9 @@ export default function CategoriesPage() {
               clientName={client?.name || 'Roka'}
               clientLogo={client?.logoMain || ''}
               categories={categories
-                .filter(cat => visibilityStates[cat.id])
+                .filter(cat => visibilityStates[cat.category_id])
                 .map(cat => ({
-                  id: cat.id,
+                  id: cat.category_id,
                   name: cat.name,
                   // Extraer solo el nombre del archivo de la ruta completa y asegurar que no es null
                   image: cat.image ? cat.image.split('/').pop() || undefined : undefined

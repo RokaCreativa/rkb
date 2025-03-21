@@ -11,6 +11,8 @@ interface FormattedSection {
   image: string | null;
   display_order: number | null;
   status: boolean;
+  client_id: number;
+  category_id: number;
   products: Array<{
     id: number;
     name: string | null;
@@ -18,6 +20,17 @@ interface FormattedSection {
     price: Prisma.Decimal | null;
     description: string | null;
   }>;
+}
+
+// Interfaz para secciones procesadas en la respuesta del API
+interface ProcessedSection {
+  section_id: number;
+  name: string;
+  image: string | null;
+  status: number; // 1 o 0
+  display_order: number;
+  client_id: number;
+  category_id: number;
 }
 
 // GET /api/sections?categoryId=X
@@ -75,11 +88,23 @@ export async function GET(request: NextRequest) {
         image: section.image,
         display_order: section.display_order,
         status: section.status,
+        client_id: section.client_id ?? 0,
+        category_id: section.category_id ?? 0,
         products: filteredProducts
       };
     });
 
-    return NextResponse.json(formattedSections);
+    const processedSections: ProcessedSection[] = formattedSections.map(section => ({
+      section_id: section.id,
+      name: section.name || '',
+      image: section.image,
+      status: section.status ? 1 : 0,
+      display_order: section.display_order || 0,
+      client_id: section.client_id ?? 0,
+      category_id: section.category_id ?? 0,
+    }));
+
+    return NextResponse.json(processedSections);
   } catch (error) {
     console.error("Error al obtener secciones:", error);
     return NextResponse.json(
@@ -126,7 +151,18 @@ export async function POST(request: Request) {
       }
     });
 
-    return NextResponse.json(section);
+    // Procesar la sección creada para la respuesta
+    const processedSection: ProcessedSection = {
+      section_id: section.id,
+      name: section.name || '',
+      image: section.image,
+      status: section.status ? 1 : 0,
+      display_order: section.display_order || 0,
+      client_id: section.client_id ?? 0,
+      category_id: section.category_id ?? 0,
+    };
+
+    return NextResponse.json(processedSection);
   } catch (error) {
     console.error("Error al crear sección:", error);
     return NextResponse.json(
@@ -144,12 +180,12 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    const { id, ...data } = await request.json();
+    const { section_id, ...data } = await request.json();
     
     // Verificar que la sección existe
     const section = await prisma.sections.findFirst({
       where: {
-        id: id,
+        id: section_id,
         client_id: 3, // Cliente fijo para pruebas
         deleted: "N"
       }
@@ -163,7 +199,7 @@ export async function PUT(request: Request) {
     }
 
     const updatedSection = await prisma.sections.update({
-      where: { id: id },
+      where: { id: section_id },
       data: {
         name: data.name,
         image: data.image,
@@ -172,7 +208,21 @@ export async function PUT(request: Request) {
       }
     });
 
-    return NextResponse.json(updatedSection);
+    if (!updatedSection) {
+      return NextResponse.json({ error: 'No se pudo actualizar la sección' }, { status: 404 });
+    }
+
+    const processedSection: ProcessedSection = {
+      section_id: updatedSection.id,
+      name: updatedSection.name || '',
+      image: updatedSection.image,
+      status: updatedSection.status ? 1 : 0,
+      display_order: updatedSection.display_order || 0,
+      client_id: updatedSection.client_id ?? 0,
+      category_id: updatedSection.category_id ?? 0,
+    };
+
+    return NextResponse.json(processedSection);
   } catch (error) {
     console.error("Error al actualizar sección:", error);
     return NextResponse.json(

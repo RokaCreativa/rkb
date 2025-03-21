@@ -6,28 +6,35 @@ import { writeFile } from 'fs/promises';
 import { join } from 'path';
 // O la ruta relativa que corresponda
 
-// Definir una constante para la ruta base de las imágenes
+// Ruta base para las imágenes
 const IMAGE_BASE_PATH = '/images/categories/';
 
-// Interfaz para categorías procesadas en la respuesta del API
+// Interfaz para categorías procesadas para el frontend
 interface ProcessedCategory {
   category_id: number;
   name: string;
   image: string | null;
-  status: number; // Ahora solo 1 o 0
+  status: number; // 1 (activo) o 0 (inactivo)
   display_order: number;
-  client_id: number; // Ahora siempre es un número
+  client_id: number;
   products: number;
 }
 
-// Método GET para obtener las categorías
+/**
+ * Obtiene todas las categorías del cliente actual
+ * 
+ * @param request - Objeto de solicitud HTTP
+ * @returns Respuesta HTTP con las categorías o un mensaje de error
+ */
 export async function GET(request: Request) {
   try {
+    // 1. Verificación de autenticación
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
+    // 2. Obtener el usuario y verificar que tenga un cliente asociado
     const user = await prisma.users.findFirst({
       where: { email: session.user.email },
     });
@@ -36,184 +43,207 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
-    // Obtener categorías no eliminadas para el cliente actual
+    // 3. Obtener las categorías del cliente
     const categories = await prisma.categories.findMany({
       where: {
         client_id: user.client_id,
-        deleted: { not: 'Y' }, // Cualquier valor que no sea 'Y' (incluido null)
+        deleted: { not: 'Y' },
       },
       orderBy: {
         display_order: 'asc',
       },
     });
 
-    // Procesamos las categorías para el formato que espera el frontend
-    const formattedCategories = categories.map(category => ({
-      ...category,
-      image: category.image 
-        ? `${IMAGE_BASE_PATH}${category.image}`
-        : null,
-    }));
-
-    const processedCategories: ProcessedCategory[] = formattedCategories.map(category => ({
-      category_id: category.category_id,
-      name: category.name || '',
-      image: category.image,
-      status: category.status ? 1 : 0,
-      display_order: category.display_order || 0,
-      client_id: category.client_id ?? 0,
-      products: 0,
-    }));
-
-    return NextResponse.json(processedCategories);
-  } catch (error) {
-    console.error('Error al obtener categorías:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
-  }
-}
-
-// Método POST para crear una nueva categoría
-export async function POST(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
-
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-    }
-
-    // Verificar si el request es multipart/form-data
-    const contentType = request.headers.get('content-type') || '';
-    
-    let data: any = {};
-    let imageFile: ArrayBuffer | null = null;
-    let imageName: string | null = null;
-    
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await request.formData();
-      data.name = formData.get('name') as string;
-      
-      const file = formData.get('image') as File;
-      if (file && file.size > 0) {
-        imageFile = await file.arrayBuffer();
-        imageName = file.name; // Solo guardamos el nombre, no la ruta completa
-      }
-    } else {
-      data = await request.json();
-    }
-    
-    if (!data.name || data.name.trim() === '') {
-      return NextResponse.json({ error: 'El nombre es obligatorio' }, { status: 400 });
-    }
-
-    // Determinar el orden máximo actual
-    const maxOrderCategory = await prisma.categories.findFirst({
-      where: {
-        client_id: user.client_id,
-      },
-      orderBy: {
-        display_order: 'desc',
-      },
-    });
-
-    const maxOrder = maxOrderCategory?.display_order;
-
-    // Si hay una imagen, guardarla
-    if (imageFile && imageName) {
-      try {
-        // Asegurarse de que el directorio existe
-        const publicImagesDir = join(process.cwd(), 'public', 'images', 'categories');
-        
-        // Guardar la imagen
-        await writeFile(join(publicImagesDir, imageName), Buffer.from(imageFile));
-      } catch (error) {
-        console.error('Error al guardar la imagen:', error);
-        // Continuamos aunque haya error con la imagen
-      }
-    }
-
-    // Crear la categoría
-    const newCategory = await prisma.categories.create({
-      data: {
-        name: data.name,
-        image: imageName, // Guardamos solo el nombre de la imagen
-        status: true,
-        display_order: maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 1,
-        client_id: user.client_id,
-      },
-    });
-
-    // URL completo de la imagen para la respuesta
-    const imageUrl = imageName ? `${IMAGE_BASE_PATH}${imageName}` : null;
-    
-    // Procesar la categoría creada para la respuesta
-    const processedCategory: ProcessedCategory = {
-      category_id: newCategory.category_id,
-      name: newCategory.name || '',
-      image: imageUrl,
-      status: newCategory.status ? 1 : 0,
-      display_order: newCategory.display_order || 0,
-      client_id: newCategory.client_id ?? 0,
-      products: 0,
-    };
-
-    return NextResponse.json(processedCategory);
-  } catch (error) {
-    console.error('Error al crear la categoría:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
-  }
-}
-
-// Método PUT para cambiar la visibilidad de una categoría
-export async function PUT(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
-
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-    }
-
-    const data = await request.json();
-
-    if (!data.category_id || typeof data.status !== 'number') {
-      return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 });
-    }
-
-    const category = await prisma.categories.update({
-      where: {
-        category_id: data.category_id,
-      },
-      data: {
-        status: data.status === 1,
-      },
-    });
-
-    const processedCategory: ProcessedCategory = {
+    // 4. Procesar las categorías para el formato esperado por el frontend
+    const processedCategories = categories.map(category => ({
       category_id: category.category_id,
       name: category.name || '',
       image: category.image ? `${IMAGE_BASE_PATH}${category.image}` : null,
       status: category.status ? 1 : 0,
       display_order: category.display_order || 0,
-      client_id: category.client_id ?? 0,
-      products: 0,
+      client_id: category.client_id || 0,
+      products: 0, // Simplificación temporal: no calculamos productos para evitar errores
+    }));
+
+    // 5. Devolver las categorías procesadas
+    return NextResponse.json(processedCategories);
+  } catch (error) {
+    // 6. Manejo centralizado de errores
+    console.error('Error al obtener categorías:', error);
+    return NextResponse.json({ error: 'Error al obtener categorías' }, { status: 500 });
+  }
+}
+
+/**
+ * Crea una nueva categoría para el cliente actual
+ * 
+ * @param request - Objeto de solicitud HTTP con datos de la categoría
+ * @returns Respuesta HTTP con la categoría creada o un mensaje de error
+ */
+export async function POST(request: Request) {
+  try {
+    // 1. Verificación de autenticación
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    const user = await prisma.users.findFirst({
+      where: { email: session.user.email },
+    });
+
+    if (!user?.client_id) {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    }
+
+    // 3. Obtener y validar los datos del formulario
+    const formData = await request.formData();
+    const name = formData.get('name') as string;
+    const file = formData.get('image') as File | null;
+    const status = formData.get('status') === '1'; // Convertir a booleano
+
+    if (!name) {
+      return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
+    }
+
+    // 4. Determinar el próximo valor de display_order
+    const maxOrderResult = await prisma.$queryRaw`
+      SELECT MAX(display_order) as maxOrder 
+      FROM categories 
+      WHERE client_id = ${user.client_id}
+    `;
+    
+    // @ts-ignore - La respuesta SQL puede variar
+    const maxOrder = maxOrderResult[0]?.maxOrder || 0;
+
+    // 5. Procesar la imagen si existe
+    let imageUrl = null;
+    if (file) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      // Crear un nombre de archivo único con timestamp
+      const timestamp = Date.now();
+      const fileName = file.name;
+      const uniqueFileName = `${timestamp}_${fileName}`;
+      
+      // Guardar la imagen en el sistema de archivos
+      const path = join(process.cwd(), 'public', 'images', 'categories', uniqueFileName);
+      await writeFile(path, buffer);
+      
+      // URL relativa para la base de datos
+      imageUrl = uniqueFileName;
+    }
+
+    // 6. Crear la nueva categoría
+    const newCategory = await prisma.categories.create({
+      data: {
+        name,
+        image: imageUrl,
+        status,
+        display_order: maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 1,
+        client_id: user.client_id,
+        deleted: 'N', // Mantener compatibilidad con el esquema actual
+      },
+    });
+
+    // 7. Preparar la respuesta
+    const processedCategory: ProcessedCategory = {
+      category_id: newCategory.category_id,
+      name: newCategory.name || '',
+      image: imageUrl ? `${IMAGE_BASE_PATH}${imageUrl}` : null,
+      status: newCategory.status ? 1 : 0,
+      display_order: newCategory.display_order || 0,
+      client_id: newCategory.client_id || 0,
+      products: 0, // Nueva categoría, sin productos
     };
 
     return NextResponse.json(processedCategory);
   } catch (error) {
+    // 8. Manejo centralizado de errores
+    console.error('Error al crear la categoría:', error);
+    return NextResponse.json({ error: 'Error al crear la categoría' }, { status: 500 });
+  }
+}
+
+/**
+ * Actualiza una categoría existente (visibilidad, nombre, orden, etc.)
+ * 
+ * @param request - Objeto de solicitud HTTP con datos de actualización
+ * @returns Respuesta HTTP con la categoría actualizada o un mensaje de error
+ */
+export async function PUT(request: Request) {
+  try {
+    // 1. Verificación de autenticación
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    const user = await prisma.users.findFirst({
+      where: { email: session.user.email },
+    });
+
+    if (!user?.client_id) {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    }
+
+    // 3. Obtener y validar los datos de actualización
+    const data = await request.json();
+    console.log('PUT /api/categories - Datos recibidos:', data);
+
+    if (!data.category_id) {
+      return NextResponse.json({ error: 'ID de categoría requerido' }, { status: 400 });
+    }
+
+    // 4. Preparar los datos de actualización
+    const updateData: any = {};
+    
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.display_order !== undefined) updateData.display_order = data.display_order;
+    if (data.image !== undefined) updateData.image = data.image;
+    if (data.status !== undefined) updateData.status = data.status === 1; // Convertir numérico a booleano
+    
+    console.log('PUT /api/categories - Datos a actualizar:', updateData);
+
+    // 5. Actualizar la categoría
+    await prisma.categories.updateMany({
+      where: {
+        category_id: data.category_id,
+        client_id: user.client_id,
+      },
+      data: updateData,
+    });
+
+    // 6. Obtener la categoría actualizada
+    const updatedCategory = await prisma.categories.findFirst({
+      where: {
+        category_id: data.category_id,
+        client_id: user.client_id,
+      },
+    });
+
+    if (!updatedCategory) {
+      return NextResponse.json({ error: 'No se pudo actualizar la categoría' }, { status: 404 });
+    }
+
+    // 7. Preparar la respuesta
+    const processedCategory: ProcessedCategory = {
+      category_id: updatedCategory.category_id,
+      name: updatedCategory.name || '',
+      image: updatedCategory.image ? `${IMAGE_BASE_PATH}${updatedCategory.image}` : null,
+      status: updatedCategory.status ? 1 : 0,
+      display_order: updatedCategory.display_order || 0,
+      client_id: updatedCategory.client_id || 0,
+      products: 0, // No calculamos productos para esta respuesta
+    };
+
+    return NextResponse.json(processedCategory);
+  } catch (error) {
+    // 8. Manejo centralizado de errores
     console.error('Error al actualizar la categoría:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al actualizar la categoría' }, { status: 500 });
   }
 }

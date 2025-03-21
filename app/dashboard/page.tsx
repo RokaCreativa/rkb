@@ -12,13 +12,12 @@ import { toast } from 'react-hot-toast';
 
 // Interfaces ajustadas a la estructura actualizada
 interface Category {
-  id: number;
+  category_id: number;
   name: string;
   image: string | null;
-  status: number; // Solo 1 o 0
+  status: number; // 1 (activo) o 0 (inactivo)
   display_order: number;
   client_id: number;
-  products: number;
 }
 
 interface Client {
@@ -67,19 +66,31 @@ async function updateCategoryOrder(categoryId: number, newDisplayOrder: number) 
 // Actualizar la visibilidad de una categoría
 async function updateCategoryVisibility(categoryId: number, newStatus: number) {
   try {
-    const response = await fetch(`/api/categories/${categoryId}`, {
+    console.log(`DEBUG: Actualizando visibilidad de categoría ${categoryId} a ${newStatus}`);
+    
+    // Cambiar para usar el endpoint principal con método PUT en lugar de la URL con ID
+    const response = await fetch('/api/categories', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ status: newStatus }),
+      body: JSON.stringify({
+        category_id: categoryId,
+        status: newStatus
+      }),
     });
     
+    console.log('DEBUG: Respuesta recibida, status:', response.status);
+    
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('DEBUG: Error en respuesta:', errorData);
       throw new Error('Error al actualizar la visibilidad');
     }
     
-    return await response.json();
+    const data = await response.json();
+    console.log('DEBUG: Datos recibidos:', data);
+    return data;
   } catch (error) {
     console.error('Error al actualizar la visibilidad de la categoría:', error);
     throw error;
@@ -192,7 +203,7 @@ export default function DashboardPage() {
       
       await Promise.all(
         changedCategories.map(category => 
-          updateCategoryOrder(category.id, category.display_order)
+          updateCategoryOrder(category.category_id, category.display_order)
         )
       );
       
@@ -209,17 +220,17 @@ export default function DashboardPage() {
 
   // Función para manejar el cambio de visibilidad de una categoría
   const handleToggleVisibility = async (categoryId: number, currentStatus: number) => {
-    // Guardamos el ID de la categoría que está actualizando su visibilidad
-    setIsUpdatingVisibility(categoryId);
-    
-    // Nuevo estado (si es 1 pasa a 0, si es 0 pasa a 1)
-    const newStatus = currentStatus === 1 ? 0 : 1;
+    if (isUpdatingVisibility !== null) return; // No permitir múltiples actualizaciones
     
     try {
+      setIsUpdatingVisibility(categoryId);
+      
+      const newStatus = currentStatus === 1 ? 0 : 1;
+      
       // Actualizamos el estado localmente para una UI responsiva
       setCategories(prevCategories => 
         prevCategories.map(cat => 
-          cat.id === categoryId ? { ...cat, status: newStatus } : cat
+          cat.category_id === categoryId ? { ...cat, status: newStatus } : cat
         )
       );
       
@@ -232,7 +243,7 @@ export default function DashboardPage() {
       // Revertimos el cambio local si hay error
       setCategories(prevCategories => 
         prevCategories.map(cat => 
-          cat.id === categoryId ? { ...cat, status: currentStatus } : cat
+          cat.category_id === categoryId ? { ...cat, status: currentStatus } : cat
         )
       );
     } finally {
@@ -243,7 +254,7 @@ export default function DashboardPage() {
 
   // Función para abrir el modal de edición de categoría
   const openEditModal = (category: Category) => {
-    setSelectedCategoryId(category.id);
+    setSelectedCategoryId(category.category_id);
     setEditCategoryName(category.name);
     setEditImagePreview(category.image);
     setIsEditModalOpen(true);
@@ -268,7 +279,7 @@ export default function DashboardPage() {
       
       // Actualizar el estado local eliminando la categoría
       setCategories(prevCategories => 
-        prevCategories.filter(cat => cat.id !== categoryToDelete)
+        prevCategories.filter(cat => cat.category_id !== categoryToDelete)
       );
       
       // Cerrar el modal
@@ -486,8 +497,8 @@ export default function DashboardPage() {
   // Componente modal para crear nuevas categorías
   const NewCategoryModal = () => {
     if (!isNewCategoryModalOpen) return null;
-    
-    return (
+
+  return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
         <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4 text-sm">
           <div className="flex justify-between items-center mb-3">
@@ -537,7 +548,7 @@ export default function DashboardPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                 )}
-              </div>
+                </div>
               
               <div className="flex-1">
                 <input
@@ -568,9 +579,9 @@ export default function DashboardPage() {
                 <p className="mt-1 text-[10px] text-gray-500">
                   JPG, PNG o GIF. Recomendado 400x400px.
                 </p>
-              </div>
+                </div>
             </div>
-          </div>
+                </div>
           
           <div className="flex justify-end space-x-2 mt-4">
             <button
@@ -595,9 +606,9 @@ export default function DashboardPage() {
                 </span>
               ) : 'Crear Categoría'}
             </button>
-          </div>
-        </div>
-      </div>
+                </div>
+            </div>
+                </div>
     );
   };
 
@@ -618,7 +629,7 @@ export default function DashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-          </div>
+                </div>
           
           <div className="mb-3">
             <label htmlFor="edit-category-name" className="block text-xs font-medium text-gray-700 mb-1">
@@ -632,7 +643,7 @@ export default function DashboardPage() {
               className="w-full border-gray-300 rounded-md shadow-sm text-xs"
               placeholder="Ingrese nombre de categoría"
             />
-          </div>
+            </div>
           
           <div className="mb-3">
             <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -666,7 +677,7 @@ export default function DashboardPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                 )}
-              </div>
+                </div>
               
               <div className="flex-1">
                 <input
@@ -697,18 +708,18 @@ export default function DashboardPage() {
                 <p className="mt-1 text-[10px] text-gray-500">
                   JPG, PNG o GIF. Recomendado 400x400px.
                 </p>
-              </div>
+                </div>
             </div>
           </div>
           
           <div className="flex justify-end space-x-2 mt-4">
-            <button
+                            <button
               onClick={() => setSelectedCategory(null)}
               className="px-3 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium bg-white hover:bg-gray-50"
-            >
+                            >
               Cancelar
-            </button>
-            <button
+                            </button>
+                            <button
               onClick={updateCategory}
               disabled={isUpdatingName || !editCategoryName.trim()}
               className={`px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white
@@ -723,10 +734,10 @@ export default function DashboardPage() {
                   Actualizando...
                 </span>
               ) : 'Actualizar Categoría'}
-            </button>
-          </div>
-        </div>
-      </div>
+                            </button>
+                          </div>
+                        </div>
+                          </div>
     );
   };
 
@@ -752,9 +763,9 @@ export default function DashboardPage() {
               >
                 <PlusIcon className="h-3 w-3 mr-1" /> Nueva categoría
               </button>
-            </div>
-          </div>
-          
+                        </div>
+                      </div>
+                      
           {/* Vista de lista con tabla */}
           <div className="overflow-hidden bg-white shadow rounded-lg mb-4 text-xs">
             <DragDropContext onDragEnd={handleDragEnd}>
@@ -776,13 +787,13 @@ export default function DashboardPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {categories.map((category, index) => (
                         <Draggable 
-                          key={category.id.toString()} 
-                          draggableId={category.id.toString()} 
+                          key={category?.category_id?.toString() || `category-${index}`} 
+                          draggableId={category?.category_id?.toString() || `category-${index}`} 
                           index={index}
                         >
                           {(provided, snapshot) => (
                             <tr 
-                              key={category.id} 
+                              key={category?.category_id} 
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               className={`${snapshot.isDragging ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}
@@ -798,7 +809,7 @@ export default function DashboardPage() {
                                     <circle cx="15" cy="19" r="1" />
                                   </svg>
                                 </div>
-                                <span>{category.name}</span>
+                                <span>{category?.name}</span>
                                 <button 
                                   onClick={() => openEditModal(category)} 
                                   className="ml-1 p-1 text-gray-600 hover:text-indigo-600 hover:bg-gray-100 rounded-full transition-colors"
@@ -806,13 +817,13 @@ export default function DashboardPage() {
                                   <PencilIcon className="h-3 w-3" />
                                 </button>
                               </td>
-                              <td className="px-3 py-1">{category.display_order}</td>
+                              <td className="px-3 py-1">{category?.display_order}</td>
                               <td className="px-3 py-1 text-center">
                                 <div className="relative w-8 h-8 mx-auto overflow-hidden rounded-full cursor-pointer"
-                                     onClick={() => setExpandedImage(verifyImagePath(category.image))}>
-                                  <Image
-                                    src={verifyImagePath(category.image)}
-                                    alt={category.name}
+                                     onClick={() => category?.image ? setExpandedImage(verifyImagePath(category?.image)) : null}>
+                                        <Image
+                                    src={verifyImagePath(category?.image)}
+                                    alt={category?.name || ''}
                                     fill
                                     sizes="32px"
                                     className="object-cover"
@@ -820,19 +831,19 @@ export default function DashboardPage() {
                                       const target = e.target as HTMLImageElement;
                                       target.src = '/placeholder.png';
                                     }}
-                                  />
-                                </div>
+                                        />
+                                      </div>
                               </td>
                               <td className="px-3 py-1 text-center">
                                 <button 
                                   className="relative inline-flex items-center"
-                                  onClick={() => handleToggleVisibility(category.id, category.status)}
-                                  disabled={isUpdatingVisibility === category.id}
+                                  onClick={() => handleToggleVisibility(category?.category_id || 0, category?.status || 0)}
+                                  disabled={isUpdatingVisibility === category?.category_id}
                                 >
-                                  <div className={`w-9 h-5 rounded-full transition-colors ${category.status === 1 ? 'bg-indigo-600' : 'bg-gray-200'}`}>
-                                    <div className={`absolute w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 top-0.5 ${category.status === 1 ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                  <div className={`w-9 h-5 rounded-full transition-colors ${category?.status === 1 ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+                                    <div className={`absolute w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 top-0.5 ${category?.status === 1 ? 'translate-x-4' : 'translate-x-0.5'}`} />
                                   </div>
-                                  {isUpdatingVisibility === category.id && (
+                                  {isUpdatingVisibility === category?.category_id && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 rounded-full">
                                       <div className="w-2 h-2 border-2 border-indigo-600 border-t-transparent animate-spin rounded-full"></div>
                                     </div>
@@ -840,12 +851,12 @@ export default function DashboardPage() {
                                 </button>
                               </td>
                               <td className="px-3 py-1 text-center">
-                                <button 
-                                  onClick={(e) => openDeleteModal(category.id, e)}
+                                    <button 
+                                  onClick={(e) => openDeleteModal(category?.category_id || 0, e)}
                                   className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                                >
+                                    >
                                   <TrashIcon className="h-4 w-4" />
-                                </button>
+                                    </button>
                               </td>
                             </tr>
                           )}
@@ -866,23 +877,23 @@ export default function DashboardPage() {
               <div className="flex justify-center py-1 bg-indigo-50">
                 <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-indigo-500 mr-1"></div>
                 <span className="text-xs text-indigo-600">Actualizando orden...</span>
-              </div>
-            )}
+                        </div>
+                      )}
           </div>
 
           {/* Vista de cuadrícula para categorías */}
           <div className="bg-white shadow rounded-lg p-3 mb-4">
             <h3 className="text-sm font-semibold mb-2">Vista de categorías en el menú</h3>
             <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
-              {categories.filter(cat => cat.status === 1).map((category) => (
-                <div key={category.id} className="relative bg-white rounded-lg p-1">
+              {categories.filter(cat => cat?.status === 1).map((category, index) => (
+                <div key={`grid-category-${category?.category_id || index}`} className="relative bg-white rounded-lg p-1">
                   <div className="flex flex-col items-center">
                     <div className="relative h-10 w-10 cursor-pointer mb-1"
-                        onClick={() => setExpandedImage(verifyImagePath(category.image))}>
+                        onClick={() => category?.image ? setExpandedImage(verifyImagePath(category?.image)) : null}>
                       <div className="absolute inset-0 rounded-full overflow-hidden">
                         <Image
-                          src={verifyImagePath(category.image)}
-                          alt={category.name}
+                          src={verifyImagePath(category?.image)}
+                          alt={category?.name || ''}
                           fill
                           sizes="(max-width: 768px) 40px, 40px"
                           className="object-cover"
@@ -893,7 +904,9 @@ export default function DashboardPage() {
                         />
                       </div>
                     </div>
-                    <h4 className="text-[10px] font-medium text-center truncate w-full">{category.name}</h4>
+                    <span className="text-xs text-center line-clamp-1" title={category?.name || ''}>
+                      {category?.name || ''}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -906,9 +919,9 @@ export default function DashboardPage() {
                 </button>
                 <span className="text-[10px] mt-1">Añadir</span>
               </div>
-            </div>
           </div>
         </div>
+      </div>
       
         {/* Vista previa simplificada - Mantener el mismo tamaño */}
         <div className="w-full lg:w-auto">
@@ -918,7 +931,7 @@ export default function DashboardPage() {
               .filter(cat => cat.status === 1)
               .sort((a, b) => a.display_order - b.display_order)
               .map(cat => ({
-                id: cat.id,
+                id: cat.category_id,
                 name: cat.name || '',
                 image: verifyImagePath(cat.image)
               }))
@@ -927,7 +940,7 @@ export default function DashboardPage() {
           />
         </div>
       </div>
-
+      
       {/* Modal para confirmar eliminación de categoría - Reducido */}
       <Transition appear show={isDeleteModalOpen} as={Fragment}>
         <Dialog as="div" className="relative z-10" onClose={() => !isDeletingCategory && setIsDeleteModalOpen(false)}>
@@ -965,19 +978,19 @@ export default function DashboardPage() {
                     <p className="text-xs text-gray-500">
                       ¿Estás seguro de que deseas eliminar esta categoría? Esta acción no se puede deshacer.
                     </p>
-                  </div>
-
+              </div>
+              
                   <div className="mt-4 flex justify-end space-x-2">
-                    <button
-                      type="button"
+                <button
+                  type="button"
                       className="inline-flex justify-center rounded-md border border-transparent px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
                       onClick={() => setIsDeleteModalOpen(false)}
                       disabled={isDeletingCategory}
-                    >
+                >
                       Cancelar
-                    </button>
-                    <button
-                      type="button"
+                </button>
+                <button
+                  type="button"
                       className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
                       onClick={handleDeleteCategory}
                       disabled={isDeletingCategory}
@@ -990,8 +1003,8 @@ export default function DashboardPage() {
                       ) : (
                         'Eliminar'
                       )}
-                    </button>
-                  </div>
+                </button>
+              </div>
                 </Dialog.Panel>
               </Transition.Child>
             </div>

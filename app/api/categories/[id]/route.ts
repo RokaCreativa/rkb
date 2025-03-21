@@ -28,7 +28,7 @@ export async function PUT(
     // Verificar que la categoría exista y pertenezca al cliente
     const existingCategory = await prisma.categories.findFirst({
       where: {
-        id: categoryId,
+        category_id: categoryId,
         client_id: user.client_id,
       },
     });
@@ -103,7 +103,7 @@ export async function PUT(
     // Actualizar la categoría con los datos proporcionados
     const updatedCategory = await prisma.categories.update({
       where: {
-        id: categoryId,
+        category_id: categoryId,
       },
       data: updatedData,
     });
@@ -112,6 +112,7 @@ export async function PUT(
     return NextResponse.json({
       ...updatedCategory,
       status: updatedCategory.status ? 1 : 0,
+      category_id: updatedCategory.category_id,
     });
   } catch (error) {
     console.error('Error al actualizar la categoría:', error);
@@ -142,7 +143,7 @@ export async function DELETE(
     // Verificar que la categoría exista y pertenezca al cliente
     const existingCategory = await prisma.categories.findFirst({
       where: {
-        id: categoryId,
+        category_id: categoryId,
         client_id: user.client_id,
       },
     });
@@ -154,7 +155,7 @@ export async function DELETE(
     // Eliminar la categoría
     await prisma.categories.delete({
       where: {
-        id: categoryId,
+        category_id: categoryId,
       },
     });
 

@@ -14,6 +14,12 @@ interface PhonePreviewProps {
   clientLogo?: string;
 }
 
+interface Category {
+  id: number;
+  name: string;
+  image: string;
+}
+
 export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] }: PhonePreviewProps) {
   const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({})
   const [headerImage, setHeaderImage] = useState<string>("/images/restaurant-header.jpg")
@@ -49,7 +55,7 @@ export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] 
   }
 
   return (
-    <div className="relative mx-auto" style={{ width: '320px', height: '600px' }}>
+    <div className="relative w-full md:w-[375px] h-[670px] mx-auto">
       {/* Phone Frame - Color exactamente igual al botón Nueva categoría */}
       <div className="absolute inset-0 border-[10px] border-indigo-600 rounded-[40px] shadow-xl overflow-hidden bg-white">
         {/* Notch */}
@@ -70,7 +76,7 @@ export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] 
 
         {/* App Content */}
         <div className="absolute inset-0 pt-7 overflow-y-auto scrollbar-hide">
-          {/* Header Image o Logo */}
+          {/* Header Image or Logo */}
           <div className="relative h-40 w-full">
             {clientLogo && !logoError ? (
               <Image
@@ -107,31 +113,22 @@ export function PhonePreview({ clientName = "Roka", clientLogo, categories = [] 
             <h1 className="text-2xl font-bold mb-4">{clientName}</h1>
 
             {/* Categories */}
-            <div className="grid grid-cols-3 gap-1 mt-3">
-              {displayCategories.map(category => (
-                <div 
-                      key={category.id}
-                  className="flex flex-col items-center"
-                >
-                  {category.image && (
-                    <div 
-                      className="relative h-16 w-16 cursor-pointer"
-                      onClick={() => category.image ? setExpandedImage(category.image) : null}
-                    >
-                      <div className="absolute inset-0 rounded-full overflow-hidden border border-gray-200 shadow-sm">
-                        <Image
-                          src={imageErrors[category.id] ? "/placeholder.png" : category.image}
-                          alt={category.name}
-                          fill
-                          className="object-cover"
-                          onError={() => handleImageError(category.id)}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  <div className="mt-1 w-full">
-                    <span className="font-medium text-xs text-center block truncate">{category.name}</span>
+            <div className="grid grid-cols-3 gap-1 p-2 pb-16 mt-1 overflow-y-auto max-h-[520px]">
+              {displayCategories.map((category, index) => (
+                <div key={category.id?.toString() || `phone-category-${index}`} className="flex flex-col items-center">
+                  <div className="relative h-16 w-16 rounded-full overflow-hidden mb-1 border border-gray-200 shadow-sm">
+                    <Image 
+                      src={category.image || '/placeholder.png'} 
+                      alt={category.name || ''} 
+                      fill 
+                      className="object-cover" 
+                      sizes="64px"
+                      onError={(e) => {
+                        handleImageError(category.id)
+                      }}
+                    />
                   </div>
+                  <span className="text-xs text-center w-full truncate">{category.name}</span>
                 </div>
               ))}
             </div>
