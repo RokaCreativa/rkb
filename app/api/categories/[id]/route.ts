@@ -8,46 +8,60 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Usando cliente ID fijo para pruebas
-    const CLIENT_ID = 3;
-    
-    const data = await request.json();
-    const categoryId = parseInt(params.id);
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
 
-    // Verificar que la categoría existe
+    const user = await prisma.users.findFirst({
+      where: { email: session.user.email },
+    });
+
+    if (!user?.client_id) {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    }
+
+    const categoryId = parseInt(params.id);
+    
+    // Verificar que la categoría exista y pertenezca al cliente
     const existingCategory = await prisma.categories.findFirst({
       where: {
         id: categoryId,
-        client_id: CLIENT_ID,
-        deleted: "N"
-      }
+        client_id: user.client_id,
+      },
     });
 
     if (!existingCategory) {
-      return NextResponse.json(
-        { error: "Categoría no encontrada" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
     }
 
+    // Obtener los datos del body
+    const data = await request.json();
+    
     // Actualizar la categoría
-    const category = await prisma.categories.update({
-      where: { id: categoryId },
+    const updatedCategory = await prisma.categories.update({
+      where: {
+        id: categoryId,
+      },
       data: {
-        name: data.name,
-        image: data.image,
-        display_order: data.display_order,
-        status: data.status
-      }
+        // Actualizar display_order si está definido
+        ...(data.display_order !== undefined && { display_order: data.display_order }),
+        // Actualizar status si está definido (convertir de número a booleano para el modelo Prisma)
+        ...(data.status !== undefined && { status: data.status === 1 }),
+        // Permitir actualizar otros campos si se proporcionan
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.image !== undefined && { image: data.image }),
+      },
     });
 
-    return NextResponse.json(category);
+    // Convertir el status a formato numérico para la respuesta
+    return NextResponse.json({
+      ...updatedCategory,
+      status: updatedCategory.status ? 1 : 0,
+    });
   } catch (error) {
-    console.error("Error al actualizar categoría:", error);
-    return NextResponse.json(
-      { error: "Error al actualizar categoría" },
-      { status: 500 }
-    );
+    console.error('Error al actualizar la categoría:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
 
