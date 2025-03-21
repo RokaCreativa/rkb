@@ -223,7 +223,7 @@ export default function CategoriesPage() {
             </tr>
           </thead>
           <tbody>
-            {categories.length === 0 ? (
+      {categories.length === 0 ? (
               <tr>
                 <td colSpan={4} className="text-center py-4 text-gray-500">
                   No hay categorías disponibles.
@@ -246,14 +246,14 @@ export default function CategoriesPage() {
                         checked={visibilityStates[category.id] ?? false}
                         onChange={() => toggleCategoryVisibility(category.id)}
                       />
-                    </div>
+                  </div>
                   </td>
                 </tr>
               ))
-            )}
+                )}
           </tbody>
         </table>
-      </div>
+              </div>
 
       {/* Vista previa móvil */}
       <div className="mt-8 p-4 bg-white shadow-md rounded-md">
@@ -283,4 +283,4 @@ export default function CategoriesPage() {
       </div>
     </div>
   );
-}
+} 
