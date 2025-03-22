@@ -1,15 +1,21 @@
 import './globals.css'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { SessionProvider } from '@/components/SessionProvider'
 import { Toaster } from 'react-hot-toast'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata = {
-  title: 'Roka Menu',
-  description: 'La mejor app para menús digitales',
+export const metadata: Metadata = {
+  title: 'RokaMenu - Gestión de menús digitales',
+  description: 'Plataforma para la gestión de menús digitales',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default async function RootLayout({
@@ -17,11 +23,11 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions)
-
+  const session = await getServerSession();
+  
   return (
-    <html lang="es">
-      <body className={inter.className}>
+    <html lang="es" className="h-full">
+      <body className={`${inter.className} h-full bg-gray-50`}>
         <SessionProvider session={session}>
           {children}
           <Toaster position="top-right" />

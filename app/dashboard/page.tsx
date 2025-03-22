@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useRef } from 'react';
 import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon, TrashIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -10,6 +10,14 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
 import { getImagePath, handleImageError } from '@/lib/imageUtils';
+import MenuSectionProducts from '@/components/MenuSectionProducts';
+import ContentPanel from '@/components/ContentPanel';
+import CollapsiblePreview from '@/components/CollapsiblePreview';
+import CategoryTable from '@/components/CategoryTable';
+import SectionTable from '@/components/SectionTable';
+import ProductTable from '@/components/ProductTable';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import TopNavbar from '@/components/layout/TopNavbar';
 
 // Interfaces ajustadas a la estructura actualizada
 interface Category {
@@ -156,6 +164,16 @@ async function deleteCategory(categoryId: number) {
   }
 }
 
+// Función para crear un nuevo cliente
+async function createClient(clientData: FormData) {
+  const response = await fetch('/api/client', {
+    method: 'POST',
+    body: clientData
+  });
+  if (!response.ok) throw new Error('Error al crear cliente');
+  return await response.json();
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
@@ -187,6 +205,228 @@ export default function DashboardPage() {
   const [editCategoryImage, setEditCategoryImage] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<'categories' | 'sections' | 'products'>('categories');
+  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedSections, setSelectedSections] = useState<string[]>([]);
+  const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
+  const [isDeleteProductModalOpen, setIsDeleteProductModalOpen] = useState(false);
+  const [isReorderModeActive, setIsReorderModeActive] = useState(false);
+  
+  // Referencias para el scroll automático
+  const sectionListRef = useRef<HTMLDivElement>(null);
+  const productListRef = useRef<HTMLDivElement>(null);
+
+  // Función para reordenar categorías (drag and drop)
+  const handleReorderCategory = async (sourceIndex: number, destinationIndex: number) => {
+    if (sourceIndex === destinationIndex) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Crear una copia del array de categorías
+      const updatedCategories = [...categories];
+      
+      // Obtener la categoría que se está moviendo
+      const [movedCategory] = updatedCategories.splice(sourceIndex, 1);
+      
+      // Insertar la categoría en la nueva posición
+      updatedCategories.splice(destinationIndex, 0, movedCategory);
+      
+      // Actualizar los display_order de todas las categorías reordenadas
+      const reorderedCategories = updatedCategories.map((category, index) => ({
+        ...category,
+        display_order: index + 1,
+      }));
+      
+      // Actualizar el estado local inmediatamente para mejor UX
+      setCategories(reorderedCategories);
+      
+      // Enviar los cambios al servidor
+      const updatePromises = reorderedCategories.map(category => 
+        fetch(`/api/categories/${category.category_id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            display_order: category.display_order,
+            // Incluir otros campos necesarios para la API
+            name: category.name,
+            client_id: category.client_id,
+            image: category.image || null,
+            status: category.status
+          }),
+        })
+      );
+      
+      await Promise.all(updatePromises);
+      toast.success('Orden de categorías actualizado');
+    } catch (error) {
+      console.error('Error al reordenar categorías:', error);
+      toast.error('Error al actualizar el orden de las categorías');
+      
+      // Volver a cargar las categorías en caso de error
+      const loadCategories = async () => {
+        try {
+        const categoriesData = await fetchCategories();
+        setCategories(categoriesData);
+        } catch (err) {
+          console.error('Error al recargar categorías:', err);
+        }
+      };
+      
+      loadCategories();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+  // Función para reordenar secciones (drag and drop)
+  const handleReorderSection = async (sourceIndex: number, destinationIndex: number) => {
+    if (sourceIndex === destinationIndex || !selectedCategory) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Crear una copia del array de secciones
+      const currentSections = sections[selectedCategory.category_id] || [];
+      const updatedSections = [...currentSections];
+      
+      // Obtener la sección que se está moviendo
+      const [movedSection] = updatedSections.splice(sourceIndex, 1);
+      
+      // Insertar la sección en la nueva posición
+      updatedSections.splice(destinationIndex, 0, movedSection);
+      
+      // Actualizar los display_order de todas las secciones reordenadas
+      const reorderedSections = updatedSections.map((section, index) => ({
+        ...section,
+        display_order: index + 1,
+      }));
+      
+      // Actualizar el estado local inmediatamente para mejor UX
+      setSections(prev => ({
+        ...prev,
+        [selectedCategory.category_id]: reorderedSections
+      }));
+      
+      // Enviar los cambios al servidor
+      const updatePromises = reorderedSections.map(section => 
+        fetch(`/api/sections/${section.section_id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            display_order: section.display_order,
+            // Incluir otros campos necesarios para la API
+            name: section.name,
+            category_id: section.category_id,
+            client_id: section.client_id,
+            image: section.image || null,
+            status: section.status
+          }),
+        })
+      );
+      
+      await Promise.all(updatePromises);
+      toast.success('Orden de secciones actualizado');
+    } catch (error) {
+      console.error('Error al reordenar secciones:', error);
+      toast.error('Error al actualizar el orden de las secciones');
+      
+      // Volver a cargar las secciones en caso de error
+      if (selectedCategory) {
+        const loadSections = async (categoryId: number) => {
+          try {
+            const sectionsData = await fetchSections(categoryId);
+            setSections(prev => ({
+              ...prev,
+              [categoryId]: sectionsData
+            }));
+          } catch (err) {
+            console.error('Error al recargar secciones:', err);
+          }
+        };
+        
+        loadSections(selectedCategory.category_id);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Función para reordenar productos (drag and drop)
+  const handleReorderProduct = async (sourceIndex: number, destinationIndex: number) => {
+    if (sourceIndex === destinationIndex || !selectedSection) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Crear una copia del array de productos
+      const currentProducts = products[selectedSection.section_id] || [];
+      const updatedProducts = [...currentProducts];
+      
+      // Obtener el producto que se está moviendo
+      const [movedProduct] = updatedProducts.splice(sourceIndex, 1);
+      
+      // Insertar el producto en la nueva posición
+      updatedProducts.splice(destinationIndex, 0, movedProduct);
+      
+      // Actualizar los display_order de todos los productos reordenados
+      const reorderedProducts = updatedProducts.map((product, index) => ({
+        ...product,
+        display_order: index + 1,
+      }));
+      
+      // Actualizar el estado local inmediatamente para mejor UX
+      setProducts(prev => ({
+        ...prev,
+        [selectedSection.section_id]: reorderedProducts
+      }));
+      
+      // Enviar los cambios al servidor
+      const updatePromises = reorderedProducts.map(product => 
+        fetch(`/api/products/${product.product_id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            display_order: product.display_order,
+            // Incluir otros campos necesarios para la API
+            name: product.name,
+            section_id: product.section_id,
+            client_id: product.client_id,
+            image: product.image || null,
+            status: product.status,
+            price: product.price,
+            description: product.description || null
+          }),
+        })
+      );
+      
+      await Promise.all(updatePromises);
+      toast.success('Orden de productos actualizado');
+    } catch (error) {
+      console.error('Error al reordenar productos:', error);
+      toast.error('Error al actualizar el orden de los productos');
+      
+      // Volver a cargar los productos en caso de error
+      if (selectedSection) {
+        const loadProducts = async (sectionId: number) => {
+          try {
+            const productsData = await fetchProducts(sectionId);
+            setProducts(prev => ({
+              ...prev,
+              [sectionId]: productsData
+            }));
+          } catch (err) {
+            console.error('Error al recargar productos:', err);
+          }
+        };
+        
+        loadProducts(selectedSection.section_id);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Efecto para cargar datos iniciales al autenticarse
   useEffect(() => {
@@ -206,991 +446,385 @@ export default function DashboardPage() {
         
       } catch (err: any) {
         setError(err.message || 'Error desconocido al cargar datos');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    if (status === 'authenticated') loadData();
-  }, [status]);
-
-  // Función para manejar el final del arrastre
-  const handleDragEnd = async (result: any) => {
-    // Si no hay destino o es el mismo que el origen, no hacemos nada
-    if (!result.destination || result.destination.index === result.source.index) {
-      return;
-    }
-    
-    setIsUpdatingOrder(true);
-    
-    try {
-      // Creamos una copia del array para no mutar el estado directamente
-      const newCategoryList = Array.from(categories);
-      
-      // Removemos el elemento arrastrado de su posición original
-      const [movedCategory] = newCategoryList.splice(result.source.index, 1);
-      
-      // Insertamos el elemento en su nueva posición
-      newCategoryList.splice(result.destination.index, 0, movedCategory);
-      
-      // Actualizamos el display_order en la lista
-      const updatedCategories = newCategoryList.map((category, index) => ({
-        ...category,
-        display_order: index + 1
-      }));
-      
-      // Actualizamos el estado de forma optimista para una UI responsiva
-      setCategories(updatedCategories);
-      
-      // Enviamos las actualizaciones al servidor
-      // Solo actualizamos las categorías que cambiaron de posición
-      const changedCategories = updatedCategories.filter(
-        (cat, idx) => cat.display_order !== categories[idx]?.display_order
-      );
-      
-      await Promise.all(
-        changedCategories.map(category => 
-          updateCategoryOrder(category.category_id, category.display_order)
-        )
-      );
-      
-      console.log('Orden actualizado con éxito');
-    } catch (error) {
-      console.error('Error al guardar el nuevo orden:', error);
-      // Revertimos al estado anterior si hay error
-      const response = await fetchCategories();
-      setCategories(response);
-    } finally {
-      setIsUpdatingOrder(false);
-    }
-  };
-
-  // Función para manejar el cambio de visibilidad de una categoría
-  const handleToggleVisibility = async (categoryId: number, currentStatus: number) => {
-    if (isUpdatingVisibility !== null) return; // No permitir múltiples actualizaciones
-    
-    try {
-      setIsUpdatingVisibility(categoryId);
-      
-      const newStatus = currentStatus === 1 ? 0 : 1;
-      
-      // Actualizamos el estado localmente para una UI responsiva
-      setCategories(prevCategories => 
-        prevCategories.map(cat => 
-          cat.category_id === categoryId ? { ...cat, status: newStatus } : cat
-        )
-      );
-      
-      // Enviamos la actualización al servidor
-      await updateCategoryVisibility(categoryId, newStatus);
-      
-      console.log(`Visibilidad de la categoría ${categoryId} actualizada a ${newStatus}`);
-    } catch (error) {
-      console.error('Error al actualizar la visibilidad:', error);
-      // Revertimos el cambio local si hay error
-      setCategories(prevCategories => 
-        prevCategories.map(cat => 
-          cat.category_id === categoryId ? { ...cat, status: currentStatus } : cat
-        )
-      );
-    } finally {
-      // Limpiamos el estado de actualización
-      setIsUpdatingVisibility(null);
-    }
-  };
-
-  // Función para abrir el modal de edición de categoría
-  const openEditModal = (category: Category) => {
-    setSelectedCategoryId(category.category_id);
-    setEditCategoryName(category.name);
-    setEditImagePreview(category.image);
-    setIsEditModalOpen(true);
-  };
-  
-  // Función para abrir el modal de confirmación de eliminación
-  const openDeleteModal = (categoryId: number, e: React.MouseEvent) => {
-    e.stopPropagation(); // Evitar que el evento se propague a la fila
-    setCategoryToDelete(categoryId);
-    setIsDeleteModalOpen(true);
-  };
-
-  // Función para eliminar una categoría
-  const handleDeleteCategory = async () => {
-    if (!categoryToDelete) return;
-    
-    setIsDeletingCategory(true);
-    
-    try {
-      // Eliminar la categoría en el servidor
-      await deleteCategory(categoryToDelete);
-      
-      // Actualizar el estado local eliminando la categoría
-      setCategories(prevCategories => 
-        prevCategories.filter(cat => cat.category_id !== categoryToDelete)
-      );
-      
-      // Cerrar el modal
-      setIsDeleteModalOpen(false);
-      setCategoryToDelete(null);
-      console.log(`Categoría ${categoryToDelete} eliminada con éxito`);
-    } catch (error) {
-      console.error('Error al eliminar la categoría:', error);
-    } finally {
-      setIsDeletingCategory(false);
-    }
-  };
-
-  // Función para crear una nueva categoría
-  const createCategory = async () => {
-    if (!newCategoryName.trim()) {
-      toast.error('El nombre de la categoría es obligatorio');
-      return;
-    }
-
-      setIsLoading(true);
-      try {
-      const formData = new FormData();
-      formData.append('name', newCategoryName);
-      if (selectedImage) {
-        formData.append('image', selectedImage);
-      }
-
-      const response = await fetch('/api/categories', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al crear la categoría');
-      }
-
-      // Refrescar las categorías
-      await reloadCategories();
-      
-      // Limpiar el formulario
-      setNewCategoryName('');
-      setSelectedImage(null);
-      setImagePreview(null);
-      setIsNewCategoryModalOpen(false);
-      toast.success('Categoría creada correctamente');
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Error al crear la categoría');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Función para actualizar una categoría
-  const updateCategory = async () => {
-    if (!editCategoryName.trim() || !selectedCategoryId) {
-      toast.error('El nombre de la categoría es obligatorio');
-      return;
-    }
+    if (status === 'authenticated') loadData();
+  }, [status]);
 
-    setIsLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append('name', editCategoryName);
-      if (editCategoryImage) {
-        formData.append('image', editCategoryImage);
-      }
-
-      const response = await fetch(`/api/categories/${selectedCategoryId}`, {
-        method: 'PUT',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al actualizar la categoría');
-      }
-
-      // Refrescar las categorías
-      await reloadCategories();
+  // Función para manejar el click en una categoría
+  const handleCategoryClick = async (categoryId: number) => {
+    const isExpanded = expandedCategories[categoryId];
+    
+    // Actualizar el estado de expansión
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !isExpanded
+    }));
+    
+    // Si estamos expandiendo y no tenemos las secciones cargadas, cargarlas
+    if (!isExpanded && !sections[categoryId]) {
+      // Marcar como cargando
+      setLoadingSections(prev => ({
+        ...prev,
+        [categoryId]: true
+      }));
       
-      // Limpiar el formulario y cerrar el modal
-      setEditCategoryName('');
-      setEditCategoryImage(null);
-      setEditImagePreview(null);
-      setSelectedCategoryId(null);
-      setIsEditModalOpen(false);
-      toast.success('Categoría actualizada correctamente');
-      } catch (error) {
-      console.error('Error:', error);
-      toast.error('Error al actualizar la categoría');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-  // Función para eliminar la imagen de una categoría
-  const removeImage = async (categoryId: number) => {
-    try {
-      const response = await fetch(`/api/categories/${categoryId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ image: null }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al eliminar la imagen');
-      }
-
-      // Refrescar las categorías
-      await reloadCategories();
-      toast.success('Imagen eliminada correctamente');
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error('Error al eliminar la imagen');
-    }
-  };
-
-  // Función para manejar la selección de imágenes
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Función para manejar la selección de una imagen para editar una categoría
-  const handleEditImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setEditCategoryImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEditImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Función para abrir el modal de creación
-  const openNewCategoryModal = () => {
-    setNewCategoryName('');
-    setSelectedImage(null);
-    setImagePreview(null);
-    setIsNewCategoryModalOpen(true);
-  };
-
-  // Función para recargar las categorías
-  const reloadCategories = async () => {
-    try {
-      const response = await fetch('/api/categories');
-      if (response.ok) {
-        const data = await response.json();
-        setCategories(data);
-      }
-    } catch (error) {
-      console.error('Error al cargar categorías:', error);
-    }
-  };
-
-  // Función para expandir/colapsar una categoría
-  const toggleCategoryExpansion = async (categoryId: number) => {
-    const newExpandedState = !expandedCategories[categoryId];
-    
-    setExpandedCategories({
-      ...expandedCategories,
-      [categoryId]: newExpandedState
-    });
-    
-    // Si estamos expandiendo y aún no hemos cargado las secciones para esta categoría
-    if (newExpandedState && !sections[categoryId]) {
       try {
-        setLoadingSections({
-          ...loadingSections,
-          [categoryId]: true
-        });
-        
         const sectionsData = await fetchSections(categoryId);
         
-        setSections({
-          ...sections,
+        // Actualizar las secciones
+        setSections(prev => ({
+          ...prev,
           [categoryId]: sectionsData
-        });
+        }));
       } catch (error) {
-        console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
-        toast.error('Error al cargar secciones');
+        console.error('Error al cargar secciones:', error);
+        toast.error('Error al cargar las secciones');
       } finally {
-        setLoadingSections({
-          ...loadingSections,
+        setLoadingSections(prev => ({
+          ...prev,
           [categoryId]: false
-        });
+        }));
+      }
+    }
+    
+    // Hacer scroll automático a la sección expandida después de un breve retraso
+    setTimeout(() => {
+      if (!isExpanded) {
+        const element = document.getElementById(`category-${categoryId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    }, 100);
+  };
+
+  // Función para manejar el click en una sección
+  const handleSectionClick = async (sectionId: number) => {
+    const isExpanded = expandedSections[sectionId];
+    
+    // Actualizar el estado de expansión
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionId]: !isExpanded
+    }));
+    
+    // Si estamos expandiendo y no tenemos los productos cargados, cargarlos
+    if (!isExpanded && !products[sectionId]) {
+      // Marcar como cargando
+      setLoadingProducts(prev => ({
+        ...prev,
+        [sectionId]: true
+      }));
+      
+      try {
+        const productsData = await fetchProducts(sectionId);
+        
+        // Actualizar los productos
+        setProducts(prev => ({
+          ...prev,
+          [sectionId]: productsData
+        }));
+    } catch (error) {
+        console.error('Error al cargar productos:', error);
+        toast.error('Error al cargar los productos');
+    } finally {
+        setLoadingProducts(prev => ({
+          ...prev,
+          [sectionId]: false
+        }));
+      }
+    }
+    
+    // Hacer scroll automático a la sección expandida después de un breve retraso
+    setTimeout(() => {
+      if (!isExpanded) {
+        const element = document.getElementById(`section-${sectionId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    }, 100);
+  };
+
+  // Funciones para la navegación entre vistas
+  const navigateToCategory = (categoryId: number) => {
+    const category = categories.find(c => c.category_id === categoryId);
+    if (category) {
+      setSelectedCategory(category);
+      setCurrentView('sections');
+      
+      // Cargar secciones si no están cargadas
+      if (!sections[categoryId]) {
+        handleCategoryClick(categoryId);
       }
     }
   };
   
-  // Función para expandir/colapsar una sección
-  const toggleSectionExpansion = async (sectionId: number) => {
-    const newExpandedState = !expandedSections[sectionId];
+  const navigateToSection = (sectionId: number) => {
+    if (!selectedCategory) return;
     
-    setExpandedSections({
-      ...expandedSections,
-      [sectionId]: newExpandedState
-    });
-    
-    // Si estamos expandiendo y aún no hemos cargado los productos para esta sección
-    if (newExpandedState && !products[sectionId]) {
-      try {
-        setLoadingProducts({
-          ...loadingProducts,
-          [sectionId]: true
-        });
-        
-        const productsData = await fetchProducts(sectionId);
-        
-        setProducts({
-          ...products,
-          [sectionId]: productsData
-        });
-    } catch (error) {
-        console.error(`Error al cargar productos para sección ${sectionId}:`, error);
-        toast.error('Error al cargar productos');
-      } finally {
-        setLoadingProducts({
-          ...loadingProducts,
-          [sectionId]: false
-        });
+    const section = sections[selectedCategory.category_id]?.find(s => s.section_id === sectionId);
+    if (section) {
+      setSelectedSection(section);
+      setCurrentView('products');
+      
+      // Cargar productos si no están cargados
+      if (!products[sectionId]) {
+        handleSectionClick(sectionId);
       }
     }
   };
+  
+  const navigateBack = () => {
+    if (currentView === 'products') {
+      setCurrentView('sections');
+      setSelectedProduct(null);
+    } else if (currentView === 'sections') {
+      setCurrentView('categories');
+      setSelectedSection(null);
+    }
+  };
 
-  // Manejo cuando el usuario no está autenticado
-  if (status === 'unauthenticated') {
-    return (
-      <div className="p-4 bg-red-50 text-red-700 border-l-4 border-red-400">
-        Debes iniciar sesión para ver esta información.
-      </div>
-    );
-  }
+  // Función para actualizar la visibilidad de una categoría
+  const toggleCategoryVisibility = async (categoryId: number, currentStatus: number) => {
+    setIsUpdatingVisibility(categoryId);
+    try {
+      // Llamar a la API para actualizar el estado
+      await updateCategoryVisibility(categoryId, currentStatus === 1 ? 0 : 1);
+      
+      // Actualizar estado local
+      setCategories(prev => 
+        prev.map(cat => 
+          cat.category_id === categoryId 
+            ? { ...cat, status: currentStatus === 1 ? 0 : 1 } 
+            : cat
+        )
+      );
+      
+      toast.success('Estado actualizado correctamente');
+      } catch (error) {
+      console.error('Error al actualizar visibilidad:', error);
+      toast.error('Error al actualizar el estado');
+      } finally {
+      setIsUpdatingVisibility(null);
+    }
+  };
 
-  // Mostrar carga
+  // Función para editar una categoría
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory({
+      id: category.category_id,
+      name: category.name
+    });
+    setEditCategoryName(category.name);
+    setEditImagePreview(category.image ? getImagePath(category.image, 'categories') : null);
+    setIsEditModalOpen(true);
+  };
+
+  // Función para eliminar una categoría
+  const handleDeleteCategory = (categoryId: number) => {
+    setCategoryToDelete(categoryId);
+    setIsDeleteModalOpen(true);
+  };
+  
+  // Generar items para el componente de breadcrumbs
+  const getBreadcrumbItems = () => {
+    const items = [
+      { 
+        id: null, 
+        name: 'Categorías', 
+        onClick: () => setCurrentView('categories'), 
+        current: currentView === 'categories' 
+      }
+    ];
+    
+    if (currentView === 'sections' && selectedCategory) {
+      items.push({ 
+        id: selectedCategory.category_id, 
+        name: selectedCategory.name, 
+        onClick: () => {}, 
+        current: true 
+      });
+    }
+    
+    if (currentView === 'products' && selectedCategory && selectedSection) {
+      items.push({ 
+        id: selectedCategory.category_id, 
+        name: selectedCategory.name, 
+        onClick: () => navigateBack(), 
+        current: false 
+      });
+      
+      items.push({ 
+        id: selectedSection.section_id, 
+        name: selectedSection.name, 
+        onClick: () => {}, 
+        current: true 
+      });
+    }
+    
+    return items;
+  };
+
+  // Función para alternar el modo de reordenamiento
+  const toggleReorderMode = () => {
+    setIsReorderModeActive(prev => !prev);
+  };
+
+  // Mostrar indicador de carga mientras se cargan los datos
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      <div className="flex justify-center items-center h-full py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
         </div>
-    );
+    )
   }
 
-  // Mostrar error
+  // Mostrar mensaje de error si hay alguno
   if (error) {
     return (
-      <div className="p-8 bg-red-50 border-l-4 border-red-500 text-red-700">
-        <h2 className="text-xl font-bold">Error al cargar datos</h2>
-        <p>{error}</p>
-        <button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-          Reintentar
-        </button>
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+        <strong className="font-bold">Error:</strong>
+        <span className="block sm:inline"> {error}</span>
       </div>
-    );
+    )
   }
 
-  // Obtener la ruta del logo principal
-  const getMainLogoPath = (): string => {
-    if (!client || !client.main_logo) return '/images/client-logo.png';
-    
-    // Usar el nombre del archivo directamente desde main_logo
-    return `/images/main_logo/${client.main_logo}`;
-  };
-
-  // Componente modal para crear nuevas categorías
-  const NewCategoryModal = () => {
-    if (!isNewCategoryModalOpen) return null;
-
   return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4 text-sm">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-base font-medium text-gray-900">Nueva Categoría</h3>
-            <button 
-              onClick={() => setIsNewCategoryModalOpen(false)}
-              className="text-gray-400 hover:text-gray-500"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+    <>
+      <TopNavbar 
+        isReorderModeActive={isReorderModeActive}
+        onToggleReorderMode={toggleReorderMode}
+      />
+      <div className="max-w-6xl mx-auto pt-2">
+        {/* Breadcrumbs y botón de acción */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 px-4">
+          {/* Breadcrumbs */}
+          <div>
+            <Breadcrumbs items={getBreadcrumbItems()} />
           </div>
-          
-          <div className="mb-3">
-            <label htmlFor="new-category-name" className="block text-xs font-medium text-gray-700 mb-1">
-              Nombre de Categoría
-            </label>
-            <input
-              type="text"
-              id="new-category-name"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              className="w-full border-gray-300 rounded-md shadow-sm text-xs"
-              placeholder="Ingrese nombre de categoría"
-            />
-                </div>
-          
-          <div className="mb-3">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Imagen de Categoría
-            </label>
-            <div className="flex items-start space-x-3">
-              <div 
-                className="relative h-16 w-16 border-2 border-gray-300 border-dashed rounded-lg flex items-center justify-center overflow-hidden"
-                onClick={() => document.getElementById('new-category-image')?.click()}
-              >
-                {imagePreview ? (
-                  <Image
-                    src={imagePreview}
-                    alt="Vista previa"
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                )}
-                </div>
               
-              <div className="flex-1">
-                <input
-                  type="file"
-                  id="new-category-image"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                />
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('new-category-image')?.click()}
-                  className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
-                >
-                  <ArrowUpTrayIcon className="h-3 w-3 mr-1" />
-                  Subir imagen
-                </button>
-                {imagePreview && (
-                  <button
-                    type="button"
-                    onClick={() => setImagePreview(null)}
-                    className="inline-flex items-center ml-1 px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 text-red-600 hover:bg-red-50"
-                  >
-                    <TrashIcon className="h-3 w-3 mr-1" />
-                    Eliminar
-                  </button>
-                )}
-                <p className="mt-1 text-[10px] text-gray-500">
-                  JPG, PNG o GIF. Recomendado 400x400px.
-                </p>
-            </div>
-                </div>
-                </div>
-          
-          <div className="flex justify-end space-x-2 mt-4">
-            <button
-              onClick={() => setIsNewCategoryModalOpen(false)}
-              className="px-3 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium bg-white hover:bg-gray-50"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={createCategory}
-              disabled={isCreatingCategory || !newCategoryName.trim()}
-              className={`px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white
-                ${isCreatingCategory || !newCategoryName.trim() ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
-            >
-              {isCreatingCategory ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creando...
-                </span>
-              ) : 'Crear Categoría'}
-            </button>
-            </div>
-                </div>
-                </div>
-    );
-  };
-
-  // Componente modal para editar categorías
-  const EditCategoryModal = () => {
-    if (!isEditModalOpen) return null;
-    
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4 text-sm">
-          <div className="flex justify-between items-center mb-3">
-            <h3 className="text-base font-medium text-gray-900">Editar Categoría</h3>
-            <button 
-              onClick={() => setSelectedCategory(null)}
-              className="text-gray-400 hover:text-gray-500"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          <div className="mb-3">
-            <label htmlFor="edit-category-name" className="block text-xs font-medium text-gray-700 mb-1">
-              Nombre de Categoría
-            </label>
-            <input
-              type="text"
-              id="edit-category-name"
-              value={editCategoryName}
-              onChange={(e) => setEditCategoryName(e.target.value)}
-              className="w-full border-gray-300 rounded-md shadow-sm text-xs"
-              placeholder="Ingrese nombre de categoría"
-            />
-            </div>
+          {/* Botón de acción según la vista */}
+          <div>
+            {currentView === 'categories' && (
+              <button
+                onClick={() => setIsNewCategoryModalOpen(true)}
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Nueva Categoría
+              </button>
+            )}
             
-          <div className="mb-3">
-            <label className="block text-xs font-medium text-gray-700 mb-1">
-              Imagen de Categoría
-            </label>
-            <div className="flex items-start space-x-3">
-              <div 
-                className="relative h-16 w-16 border-2 border-gray-300 border-dashed rounded-lg flex items-center justify-center overflow-hidden"
-                onClick={() => document.getElementById('edit-category-image')?.click()}
+            {currentView === 'sections' && selectedCategory && (
+            <button
+                onClick={() => console.log('Abrir modal de nueva sección')}
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Nueva Sección
+            </button>
+            )}
+            
+            {currentView === 'products' && selectedSection && (
+                            <button
+                onClick={() => console.log('Abrir modal de nuevo producto')}
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
-                {editImagePreview ? (
-                  <Image
-                    src={editImagePreview}
-                    alt="Vista previa"
-                    fill
-                    className="object-cover"
-                  />
-                ) : selectedCategory?.image ? (
-                  <Image
-                    src={getImagePath(selectedCategory.image, 'categories')}
-                    alt={selectedCategory.name}
-                    fill
-                    className="object-cover"
-                    onError={handleImageError}
-                  />
-                ) : (
-                  <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                )}
-                          </div>
-              
-              <div className="flex-1">
-                <input
-                  type="file"
-                  id="edit-category-image"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleEditImageSelect}
-                />
-                            <button
-                  type="button"
-                  onClick={() => document.getElementById('edit-category-image')?.click()}
-                  className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
-                            >
-                  <ArrowUpTrayIcon className="h-3 w-3 mr-1" />
-                  Cambiar imagen
-                            </button>
-                {(editImagePreview || selectedCategory?.image) && (
-                            <button
-                    type="button"
-                    onClick={() => removeImage(selectedCategoryId!)}
-                    className="inline-flex items-center ml-1 px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 text-red-600 hover:bg-red-50"
-                  >
-                    <TrashIcon className="h-3 w-3 mr-1" />
-                    Eliminar
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Nuevo Producto
                             </button>
                 )}
-                <p className="mt-1 text-[10px] text-gray-500">
-                  JPG, PNG o GIF. Recomendado 400x400px.
-                </p>
-                          </div>
                         </div>
                           </div>
           
-          <div className="flex justify-end space-x-2 mt-4">
-                            <button
-              onClick={() => setSelectedCategory(null)}
-              className="px-3 py-1 border border-gray-300 rounded-md shadow-sm text-xs font-medium bg-white hover:bg-gray-50"
-                            >
-              Cancelar
-                            </button>
-                            <button
-              onClick={updateCategory}
-              disabled={isUpdatingName || !editCategoryName.trim()}
-              className={`px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white
-                ${isUpdatingName || !editCategoryName.trim() ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'}`}
-            >
-              {isUpdatingName ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Actualizando...
-                            </span>
-              ) : 'Actualizar Categoría'}
-                            </button>
+        {/* Contenido principal según la vista */}
+        <div className="space-y-3" ref={sectionListRef}>
+          {currentView === 'categories' && (
+            <CategoryTable 
+              categories={categories}
+              expandedCategories={expandedCategories}
+              onCategoryClick={handleCategoryClick}
+              onEditCategory={handleEditCategory}
+              onDeleteCategory={handleDeleteCategory}
+              onToggleVisibility={toggleCategoryVisibility}
+              isUpdatingVisibility={isUpdatingVisibility}
+              onReorderCategory={handleReorderCategory}
+            />
+          )}
+          
+          {currentView === 'sections' && selectedCategory && (
+            <div className="space-y-4">
+              <SectionTable 
+                sections={sections[selectedCategory.category_id] || []}
+                expandedSections={expandedSections}
+                onSectionClick={handleSectionClick}
+                onBackClick={navigateBack}
+                categoryName={selectedCategory.name}
+                onToggleVisibility={(sectionId, status) => console.log('Toggle visibility', sectionId, status)}
+              />
                           </div>
-                        </div>
-                      </div>
-    );
-  };
-
-  return (
-    <div className="flex flex-col text-sm">
-      <div className="flex flex-col lg:flex-row space-y-4 lg:space-y-0 lg:space-x-4">
-        <div className="flex-1">
-          <h2 className="text-xl font-bold mb-3 text-indigo-600">Categorías</h2>
-
-          <div className="mb-3 flex justify-between">
-            <button className="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded-md bg-white">
-              <EyeIcon className="h-3 w-3 mr-1" /> Ver categoría
-            </button>
-
-            <div className="flex space-x-2">
-              <button className="inline-flex items-center px-3 py-1 border border-gray-300 text-xs font-medium rounded-md bg-white">
-                Acciones <ChevronDownIcon className="ml-1 h-3 w-3" />
-              </button>
-
-              <button 
-                onClick={openNewCategoryModal}
-                className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-md bg-indigo-600 text-white"
-              >
-                <PlusIcon className="h-3 w-3 mr-1" /> Nueva categoría
-              </button>
-                                      </div>
-                                    </div>
-                      
-          {/* Vista de lista con tabla */}
-          <div className="overflow-hidden bg-white shadow rounded-lg mb-4 text-xs">
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="categoriesDroppable">
-                {(provided) => (
-                  <table className="min-w-full divide-y divide-gray-200"
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                  >
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium uppercase">NOMBRE</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium uppercase">ORDEN</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium uppercase">FOTO</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium uppercase">VISIBILIDAD</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium uppercase">ACCIONES</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {categories.map((category, index) => (
-                        <Fragment key={`category-${category?.category_id || index}`}>
-                          <Draggable 
-                            key={category?.category_id?.toString() || `category-${index}`} 
-                            draggableId={category?.category_id?.toString() || `category-${index}`} 
-                            index={index}
-                          >
-                            {(provided, snapshot) => (
-                              <tr 
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                className={`${snapshot.isDragging ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}
-                              >
-                                <td className="px-3 py-1 flex items-center gap-1">
-                                  <button 
-                                    onClick={() => toggleCategoryExpansion(category.category_id)}
-                                    className="p-1 rounded hover:bg-gray-100"
-                                  >
-                                    <ChevronDownIcon 
-                                      className={`h-3 w-3 text-gray-500 transition-transform ${
-                                        expandedCategories[category.category_id] ? 'rotate-180' : ''
-                                      }`} 
-                                    />
-                                  </button>
-                                  <div {...provided.dragHandleProps} className="cursor-grab p-1 hover:bg-gray-100 rounded">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                      <circle cx="9" cy="5" r="1" />
-                                      <circle cx="9" cy="12" r="1" />
-                                      <circle cx="9" cy="19" r="1" />
-                                      <circle cx="15" cy="5" r="1" />
-                                      <circle cx="15" cy="12" r="1" />
-                                      <circle cx="15" cy="19" r="1" />
-                                    </svg>
-                                  </div>
-                                  <span className="font-medium">{category?.name}</span>
-                                    <button 
-                                    onClick={() => openEditModal(category)} 
-                                    className="ml-1 p-1 text-gray-600 hover:text-indigo-600 hover:bg-gray-100 rounded-full transition-colors"
-                                    >
-                                    <PencilIcon className="h-3 w-3" />
-                                    </button>
-                                </td>
-                                <td className="px-3 py-1">{category?.display_order}</td>
-                                <td className="px-3 py-1 text-center">
-                                  <div className="relative w-8 h-8 mx-auto overflow-hidden rounded-full cursor-pointer"
-                                       onClick={() => category?.image ? setExpandedImage(getImagePath(category?.image, 'categories')) : null}>
-                                    <Image
-                                      src={getImagePath(category?.image, 'categories')}
-                                      alt={category?.name || ''}
-                                      fill
-                                      sizes="32px"
-                                      className="object-cover"
-                                      onError={handleImageError}
-                                    />
-                                  </div>
-                                </td>
-                                <td className="px-3 py-1 text-center">
-                                  <button 
-                                    className="relative inline-flex items-center"
-                                    onClick={() => handleToggleVisibility(category?.category_id || 0, category?.status || 0)}
-                                    disabled={isUpdatingVisibility === category?.category_id}
-                                  >
-                                    <div className={`w-9 h-5 rounded-full transition-colors ${category?.status === 1 ? 'bg-indigo-600' : 'bg-gray-200'}`}>
-                                      <div className={`absolute w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 top-0.5 ${category?.status === 1 ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                          </div>
-                                    {isUpdatingVisibility === category?.category_id && (
-                                      <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 rounded-full">
-                                        <div className="w-2 h-2 border-2 border-indigo-600 border-t-transparent animate-spin rounded-full"></div>
-                        </div>
-                      )}
-                                  </button>
-                                </td>
-                                <td className="px-3 py-1 text-center">
-                                  <button 
-                                    onClick={(e) => openDeleteModal(category?.category_id || 0, e)}
-                                    className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                                  >
-                                    <TrashIcon className="h-4 w-4" />
-                                  </button>
-                                </td>
-                              </tr>
-                            )}
-                          </Draggable>
-                          
-                          {/* Secciones de la categoría */}
-                          {expandedCategories[category.category_id] && (
-                            <>
-                              {loadingSections[category.category_id] ? (
-                                <tr className="bg-gray-50">
-                                  <td colSpan={5} className="px-3 py-2 text-center text-xs text-gray-500">
-                                    <div className="flex justify-center items-center">
-                                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-indigo-500 mr-1"></div>
-                                      <span>Cargando secciones...</span>
-                                    </div>
-                                  </td>
-                                </tr>
-                              ) : sections[category.category_id]?.length > 0 ? (
-                                sections[category.category_id].map((section) => (
-                                  <Fragment key={`section-${section.section_id}`}>
-                                    <tr className="bg-gray-50">
-                                      <td className="px-3 py-1">
-                                        <div className="flex items-center ml-6">
-                                          <button 
-                                            onClick={() => toggleSectionExpansion(section.section_id)}
-                                            className="p-1 rounded hover:bg-gray-200"
-                                          >
-                                            <ChevronDownIcon 
-                                              className={`h-3 w-3 text-gray-500 transition-transform ${
-                                                expandedSections[section.section_id] ? 'rotate-180' : ''
-                                              }`} 
-                                            />
-                                          </button>
-                                          <span className="ml-1 text-gray-700">{section.name}</span>
-                                          <span className="ml-1 text-xs text-gray-500">({section.products_count} productos)</span>
-                          </div>
-                                      </td>
-                                      <td className="px-3 py-1 text-gray-500">{section.display_order}</td>
-                                      <td className="px-3 py-1 text-center">
-                                        <div className="relative w-6 h-6 mx-auto overflow-hidden rounded-full">
-                                          <Image
-                                            src={getImagePath(section.image, 'sections')}
-                                            alt={section.name || ''}
-                                            fill
-                                            sizes="24px"
-                                            className="object-cover"
-                                            onError={handleImageError}
-                                          />
-                                        </div>
-                                      </td>
-                                      <td className="px-3 py-1 text-center">
-                                        <div className={`w-8 h-4 mx-auto rounded-full ${section.status === 1 ? 'bg-green-100' : 'bg-gray-200'}`}>
-                                          <div className={`w-2 h-2 mx-auto rounded-full ${section.status === 1 ? 'bg-green-500' : 'bg-gray-400'}`} />
-                                        </div>
-                                      </td>
-                                      <td className="px-3 py-1 text-center">
-                                        <div className="flex justify-center space-x-1">
-                                          <button className="p-0.5 text-gray-500 hover:text-indigo-500">
-                                            <PencilIcon className="h-3 w-3" />
-                                          </button>
-                                          <button className="p-0.5 text-gray-500 hover:text-red-500">
-                                            <TrashIcon className="h-3 w-3" />
-                                          </button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                    
-                                    {/* Productos de la sección */}
-                                    {expandedSections[section.section_id] && (
-                                      <>
-                                        {loadingProducts[section.section_id] ? (
-                                          <tr className="bg-gray-100">
-                                            <td colSpan={5} className="px-3 py-2 text-center text-xs text-gray-500">
-                                              <div className="flex justify-center items-center">
-                                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-indigo-500 mr-1"></div>
-                                                <span>Cargando productos...</span>
-                                              </div>
-                                            </td>
-                                          </tr>
-                                        ) : products[section.section_id]?.length > 0 ? (
-                                          products[section.section_id].map((product) => (
-                                            <tr key={`product-${product.product_id}`} className="bg-gray-100">
-                                              <td className="px-3 py-1">
-                                                <div className="flex items-center ml-12">
-                                                  <span className="text-gray-700">{product.name}</span>
-                                                  {product.price > 0 && (
-                                                    <span className="ml-1 text-xs text-gray-500">€{product.price.toFixed(2)}</span>
-                      )}
-                    </div>
-                                              </td>
-                                              <td className="px-3 py-1 text-gray-500">{product.display_order}</td>
-                                              <td className="px-3 py-1 text-center">
-                                                <div className="relative w-5 h-5 mx-auto overflow-hidden rounded-full">
-                                                  <Image
-                                                    src={getImagePath(product.image, 'products')}
-                                                    alt={product.name || ''}
-                                                    fill
-                                                    sizes="20px"
-                                                    className="object-cover"
-                                                    onError={handleImageError}
+          )}
+          
+          {currentView === 'products' && selectedSection && (
+            <div className="space-y-4" ref={productListRef}>
+              <ProductTable 
+                products={products[selectedSection.section_id] || []}
+                onBackClick={navigateBack}
+                sectionName={selectedSection.name}
+                onToggleVisibility={(productId, status) => console.log('Toggle visibility', productId, status)}
                                                   />
             </div>
-                                              </td>
-                                              <td className="px-3 py-1 text-center">
-                                                <div className={`w-6 h-3 mx-auto rounded-full ${product.status === 1 ? 'bg-green-100' : 'bg-gray-200'}`}>
-                                                  <div className={`w-1.5 h-1.5 mx-auto rounded-full ${product.status === 1 ? 'bg-green-500' : 'bg-gray-400'}`} />
-          </div>
-                                              </td>
-                                              <td className="px-3 py-1 text-center">
-                                                <div className="flex justify-center space-x-1">
-                                                  <button className="p-0.5 text-gray-400 hover:text-indigo-500">
-                                                    <PencilIcon className="h-2.5 w-2.5" />
-                                                  </button>
-                                                  <button className="p-0.5 text-gray-400 hover:text-red-500">
-                                                    <TrashIcon className="h-2.5 w-2.5" />
-                                                  </button>
-        </div>
-                                              </td>
-                                            </tr>
-                                          ))
-                                        ) : (
-                                          <tr className="bg-gray-100">
-                                            <td colSpan={5} className="px-3 py-1 text-center text-xs text-gray-500">
-                                              No hay productos en esta sección
-                                            </td>
-                                          </tr>
-                                        )}
-                                      </>
-                                    )}
-                                  </Fragment>
-                                ))
-                              ) : (
-                                <tr className="bg-gray-50">
-                                  <td colSpan={5} className="px-3 py-1 text-center text-xs text-gray-500">
-                                    No hay secciones en esta categoría
-                                  </td>
-                                </tr>
-                              )}
-                            </>
-                          )}
-                        </Fragment>
-                      ))}
-                      {provided.placeholder}
-                      {categories.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="text-center py-2">No se encontraron categorías.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                )}
-              </Droppable>
-            </DragDropContext>
-            {isUpdatingOrder && (
-              <div className="flex justify-center py-1 bg-indigo-50">
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-indigo-500 mr-1"></div>
-                <span className="text-xs text-indigo-600">Actualizando orden...</span>
-                        </div>
                       )}
       </div>
       
-          {/* Vista de cuadrícula para categorías */}
-          <div className="bg-white shadow rounded-lg p-3 mb-4">
-            <h3 className="text-sm font-semibold mb-2">Vista de categorías en el menú</h3>
-            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-1">
-              {categories.filter(cat => cat?.status === 1).map((category, index) => (
-                <div key={`grid-category-${category?.category_id || index}`} className="relative bg-white rounded-lg p-1">
-                  <div className="flex flex-col items-center">
-                    <div className="relative h-10 w-10 cursor-pointer mb-1"
-                        onClick={() => category?.image ? setExpandedImage(getImagePath(category?.image, 'categories')) : null}>
-                      <div className="absolute inset-0 rounded-full overflow-hidden">
-                        <Image
-                          src={getImagePath(category?.image, 'categories')}
-                          alt={category?.name || ''}
-                          fill
-                          sizes="(max-width: 768px) 40px, 40px"
-                          className="object-cover"
-                          onError={handleImageError}
-                        />
-                      </div>
-                    </div>
-                    <span className="text-xs text-center line-clamp-1" title={category?.name || ''}>
-                      {category?.name || ''}
-                    </span>
-                  </div>
-                </div>
-              ))}
-              <div className="flex flex-col items-center justify-center p-1">
-                <button
-                  onClick={() => setIsNewCategoryModalOpen(true)}
-                  className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-                >
-                  <PlusIcon className="h-4 w-4 text-gray-500" />
-                </button>
-                <span className="text-[10px] mt-1">Añadir</span>
-              </div>
-                    </div>
-        </div>
-                    </div>
-                    
-        {/* Vista previa simplificada - Mantener el mismo tamaño */}
-        <div className="w-full lg:w-auto">
-          <PhonePreview 
-            clientName={client?.name || "Roka"} 
-            categories={categories
-              .filter(cat => cat.status === 1)
-              .sort((a, b) => a.display_order - b.display_order)
-              .map(cat => ({
-                id: cat.category_id,
-                name: cat.name,
-                image: getImagePath(cat.image, 'categories')
-              }))
-            }
-            clientLogo={getMainLogoPath()}
+        {/* Secciones expandidas para categorías */}
+        {currentView === 'categories' && categories.map(category => {
+          if (!expandedCategories[category.category_id]) return null;
+          
+          return (
+            <div 
+              key={`category-${category.category_id}`}
+              id={`category-${category.category_id}`}
+              className="mt-4 pl-4 border-l-2 border-indigo-100"
+            >
+              <SectionTable 
+                sections={sections[category.category_id] || []}
+                expandedSections={expandedSections}
+                onSectionClick={handleSectionClick}
+                categoryName={category.name}
+                onToggleVisibility={(sectionId, status) => console.log('Toggle visibility', sectionId, status)}
+              />
+              
+              {/* Productos expandidos para secciones */}
+              {sections[category.category_id]?.map(section => {
+                if (!expandedSections[section.section_id]) return null;
+                
+                return (
+                  <div 
+                    key={`section-${section.section_id}`}
+                    id={`section-${section.section_id}`}
+                    className="mt-4 pl-4 border-l-2 border-indigo-100"
+                  >
+                    <ProductTable 
+                      products={products[section.section_id] || []}
+                      sectionName={section.name}
+                      onToggleVisibility={(productId, status) => console.log('Toggle visibility', productId, status)}
           />
         </div>
+                );
+              })}
                     </div>
-                    
-      {/* Modal para confirmar eliminación de categoría - Reducido */}
-      <Transition appear show={isDeleteModalOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-10" onClose={() => !isDeletingCategory && setIsDeleteModalOpen(false)}>
+          );
+        })}
+        
+        {/* Modal para nueva categoría */}
+        <Transition appear show={isNewCategoryModalOpen} as={Fragment}>
+          <Dialog as="div" className="relative z-10" onClose={() => setIsNewCategoryModalOpen(false)}>
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -1214,41 +848,101 @@ export default function DashboardPage() {
                 leaveFrom="opacity-100 scale-100"
                 leaveTo="opacity-0 scale-95"
               >
-                <Dialog.Panel className="w-full max-w-sm transform overflow-hidden rounded-lg bg-white p-4 text-left align-middle shadow-xl transition-all text-sm">
-                  <Dialog.Title as="h3" className="text-base font-medium leading-6 text-gray-900 flex items-center">
-                    <div className="mr-2 flex-shrink-0 flex items-center justify-center h-6 w-6 rounded-full bg-red-100">
-                      <TrashIcon className="h-4 w-4 text-red-600" />
-                    </div>
-                    Eliminar categoría
+                  <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
+                    <Dialog.Title
+                      as="h3"
+                      className="text-lg font-medium leading-6 text-gray-900"
+                    >
+                      Nueva Categoría
                   </Dialog.Title>
-                  <div className="mt-2">
-                    <p className="text-xs text-gray-500">
-                      ¿Estás seguro de que deseas eliminar esta categoría? Esta acción no se puede deshacer.
-                    </p>
+                    <div className="mt-4">
+                      <form>
+                        <div className="mb-4">
+                          <label htmlFor="categoryName" className="block text-sm font-medium text-gray-700">
+                            Nombre
+                          </label>
+                          <input
+                            type="text"
+                            id="categoryName"
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            placeholder="Nombre de la categoría"
+                          />
+                        </div>
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Imagen
+                          </label>
+                          <div className="mt-1 flex items-center space-x-4">
+                            <div className="h-16 w-16 rounded-full overflow-hidden bg-gray-100 border border-gray-300">
+                              {imagePreview ? (
+                                <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center text-gray-400">
+                                  <ArrowUpTrayIcon className="h-6 w-6" />
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <input
+                                type="file"
+                                id="categoryImage"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setSelectedImage(file);
+                                    const reader = new FileReader();
+                                    reader.onload = (e) => {
+                                      setImagePreview(e.target?.result as string);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                              />
+                              <label
+                                htmlFor="categoryImage"
+                                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                              >
+                                Seleccionar imagen
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </form>
               </div>
               
-                  <div className="mt-4 flex justify-end space-x-2">
+                    <div className="mt-6 flex justify-end space-x-3">
                 <button
                   type="button"
-                      className="inline-flex justify-center rounded-md border border-transparent px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-100"
-                      onClick={() => setIsDeleteModalOpen(false)}
-                      disabled={isDeletingCategory}
+                        className="inline-flex justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        onClick={() => {
+                          setIsNewCategoryModalOpen(false);
+                          setNewCategoryName('');
+                          setSelectedImage(null);
+                          setImagePreview(null);
+                        }}
                 >
                       Cancelar
                 </button>
                 <button
                   type="button"
-                      className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
-                      onClick={handleDeleteCategory}
-                      disabled={isDeletingCategory}
-                    >
-                      {isDeletingCategory ? (
-                        <>
-                          <span className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-white mr-1"></span>
-                          Eliminando...
+                        className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        onClick={() => console.log('Crear categoría')}
+                        disabled={isCreatingCategory || !newCategoryName.trim()}
+                      >
+                        {isCreatingCategory ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Creando...
                         </>
                       ) : (
-                        'Eliminar'
+                          'Crear Categoría'
                       )}
                 </button>
               </div>
@@ -1259,40 +953,12 @@ export default function DashboardPage() {
         </Dialog>
       </Transition>
 
-      {/* Modales para crear y editar categorías */}
-      <NewCategoryModal />
-      <EditCategoryModal />
-
-      {/* Expanded Image Modal */}
-      {expandedImage && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
-          onClick={() => setExpandedImage(null)}
-        >
-          <div className="relative max-w-4xl max-h-[90vh] w-full">
-            <button 
-              className="absolute top-3 right-3 bg-white rounded-full p-1 shadow-lg z-10"
-              onClick={(e) => {
-                e.stopPropagation();
-                setExpandedImage(null);
-              }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="relative w-full h-[80vh]">
-              <Image
-                src={expandedImage}
-                alt="Imagen ampliada"
-                fill
-                className="object-contain"
-                onError={() => setExpandedImage("/placeholder.png")}
-              />
+        {/* Modal para editar categoría */}
+        {/* Transición y diálogo similar al de nueva categoría */}
+        
+        {/* Modal para eliminar categoría */}
+        {/* Transición y diálogo para confirmar eliminación */}
             </div>
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
