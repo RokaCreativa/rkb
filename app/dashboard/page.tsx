@@ -9,6 +9,7 @@ import { PhonePreview } from '@/components/PhonePreview';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
+import { getImagePath, handleImageError } from '@/lib/imageUtils';
 
 // Interfaces ajustadas a la estructura actualizada
 interface Category {
@@ -594,14 +595,6 @@ export default function DashboardPage() {
     );
   }
 
-  // Ruta correcta de imágenes
-  const verifyImagePath = (imagePath: string | null): string => {
-    if (!imagePath) return '/placeholder.png';
-    return imagePath.startsWith('/images/categories/') 
-      ? imagePath 
-      : `/images/categories/${imagePath}`;
-  };
-
   // Obtener la ruta del logo principal
   const getMainLogoPath = (): string => {
     if (!client || !client.main_logo) return '/images/client-logo.png';
@@ -779,14 +772,11 @@ export default function DashboardPage() {
                   />
                 ) : selectedCategory?.image ? (
                   <Image
-                    src={verifyImagePath(selectedCategory.image)}
+                    src={getImagePath(selectedCategory.image, 'categories')}
                     alt={selectedCategory.name}
                     fill
                     className="object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = '/placeholder.png';
-                    }}
+                    onError={handleImageError}
                   />
                 ) : (
                   <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -946,17 +936,14 @@ export default function DashboardPage() {
                                 <td className="px-3 py-1">{category?.display_order}</td>
                                 <td className="px-3 py-1 text-center">
                                   <div className="relative w-8 h-8 mx-auto overflow-hidden rounded-full cursor-pointer"
-                                       onClick={() => category?.image ? setExpandedImage(verifyImagePath(category?.image)) : null}>
+                                       onClick={() => category?.image ? setExpandedImage(getImagePath(category?.image, 'categories')) : null}>
                                     <Image
-                                      src={verifyImagePath(category?.image)}
+                                      src={getImagePath(category?.image, 'categories')}
                                       alt={category?.name || ''}
                                       fill
                                       sizes="32px"
                                       className="object-cover"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.src = '/placeholder.png';
-                                      }}
+                                      onError={handleImageError}
                                     />
                                   </div>
                                 </td>
@@ -1024,17 +1011,14 @@ export default function DashboardPage() {
                                       <td className="px-3 py-1 text-center">
                                         <div className="relative w-6 h-6 mx-auto overflow-hidden rounded-full">
                                           <Image
-                                            src={section.image ? `/images/sections/${section.image}` : '/placeholder.png'}
+                                            src={getImagePath(section.image, 'sections')}
                                             alt={section.name || ''}
                                             fill
                                             sizes="24px"
                                             className="object-cover"
-                                            onError={(e) => {
-                                              const target = e.target as HTMLImageElement;
-                                              target.src = '/placeholder.png';
-                                            }}
+                                            onError={handleImageError}
                                           />
-                        </div>
+                                        </div>
                                       </td>
                                       <td className="px-3 py-1 text-center">
                                         <div className={`w-8 h-4 mx-auto rounded-full ${section.status === 1 ? 'bg-green-100' : 'bg-gray-200'}`}>
@@ -1080,15 +1064,12 @@ export default function DashboardPage() {
                                               <td className="px-3 py-1 text-center">
                                                 <div className="relative w-5 h-5 mx-auto overflow-hidden rounded-full">
                                                   <Image
-                                                    src={product.image ? `/images/products/${product.image}` : '/placeholder.png'}
+                                                    src={getImagePath(product.image, 'products')}
                                                     alt={product.name || ''}
                                                     fill
                                                     sizes="20px"
                                                     className="object-cover"
-                                                    onError={(e) => {
-                                                      const target = e.target as HTMLImageElement;
-                                                      target.src = '/placeholder.png';
-                                                    }}
+                                                    onError={handleImageError}
                                                   />
             </div>
                                               </td>
@@ -1158,20 +1139,17 @@ export default function DashboardPage() {
                 <div key={`grid-category-${category?.category_id || index}`} className="relative bg-white rounded-lg p-1">
                   <div className="flex flex-col items-center">
                     <div className="relative h-10 w-10 cursor-pointer mb-1"
-                        onClick={() => category?.image ? setExpandedImage(verifyImagePath(category?.image)) : null}>
+                        onClick={() => category?.image ? setExpandedImage(getImagePath(category?.image, 'categories')) : null}>
                       <div className="absolute inset-0 rounded-full overflow-hidden">
                         <Image
-                          src={verifyImagePath(category?.image)}
+                          src={getImagePath(category?.image, 'categories')}
                           alt={category?.name || ''}
                           fill
                           sizes="(max-width: 768px) 40px, 40px"
                           className="object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "/placeholder.png";
-                          }}
-        />
-      </div>
+                          onError={handleImageError}
+                        />
+                      </div>
                     </div>
                     <span className="text-xs text-center line-clamp-1" title={category?.name || ''}>
                       {category?.name || ''}
@@ -1201,8 +1179,8 @@ export default function DashboardPage() {
               .sort((a, b) => a.display_order - b.display_order)
               .map(cat => ({
                 id: cat.category_id,
-                name: cat.name || '',
-                image: verifyImagePath(cat.image)
+                name: cat.name,
+                image: getImagePath(cat.image, 'categories')
               }))
             }
             clientLogo={getMainLogoPath()}

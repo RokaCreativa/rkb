@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Image from 'next/image'
 import { ChevronLeft, Search, X, Globe, ChevronDown } from 'lucide-react'
+import { getImagePath, handleImageError } from '@/lib/imageUtils'
 
 /**
  * Interface para las propiedades del componente PhonePreview
@@ -73,7 +74,7 @@ export function PhonePreview({
   }, [])
 
   // Manejar errores de carga de imágenes de categorías
-  const handleImageError = useCallback((categoryId: number) => {
+  const handleCategoryImageError = useCallback((categoryId: number) => {
     setImageErrors(prev => ({
       ...prev,
       [categoryId]: true
@@ -169,12 +170,15 @@ export function PhonePreview({
                     onClick={() => category.image && handleImageClick(category.image)}
                   >
                     <Image 
-                      src={category.image || '/images/placeholder.png'} 
+                      src={getImagePath(category.image || null, 'categories')} 
                       alt={category.name || ''} 
                       fill 
                       className="object-cover" 
                       sizes="80px"
-                      onError={() => handleImageError(category.id)}
+                      onError={(e) => {
+                        handleImageError(e);
+                        handleCategoryImageError(category.id);
+                      }}
                     />
                   </div>
                   <span className="text-xs font-medium text-center w-full truncate px-1">
@@ -209,7 +213,7 @@ export function PhonePreview({
                 alt="Imagen ampliada"
                 fill
                 className="object-contain"
-                onError={() => setExpandedImage(null)}
+                onError={handleImageError}
                 sizes="100vw"
               />
             </div>

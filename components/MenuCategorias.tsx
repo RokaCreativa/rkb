@@ -4,6 +4,7 @@ import { useState } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import Image from "next/image";
+import { getImagePath, handleImageError } from "@/lib/imageUtils";
 
 // Definimos las interfaces para tipar correctamente
 interface Categoria {
@@ -57,11 +58,12 @@ export default function MenuCategorias({ categorias, setCategorias }: MenuCatego
                     >
                       <div className="flex items-center space-x-4">
                         <Image
-                          src={categoria.image || "/images/placeholder.png"}
+                          src={getImagePath(categoria.image, 'categories')}
                           alt={categoria.name}
                           width={40}
                           height={40}
                           className="rounded-full"
+                          onError={handleImageError}
                         />
                         <span className="text-lg font-medium">{categoria.name}</span>
                       </div>
@@ -82,11 +84,12 @@ export default function MenuCategorias({ categorias, setCategorias }: MenuCatego
           <h3 className="text-lg font-medium mb-4 text-center">{selectedCategory.name}</h3>
           {selectedCategory.image && (
             <Image
-              src={selectedCategory.image}
+              src={getImagePath(selectedCategory.image, 'categories')}
               alt={selectedCategory.name}
               width={320}
               height={160}
               className="rounded mx-auto"
+              onError={handleImageError}
             />
           )}
         </div>
