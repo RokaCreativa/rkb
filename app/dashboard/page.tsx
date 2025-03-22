@@ -47,8 +47,9 @@ interface Product {
   status: number; // 1 (activo) o 0 (inactivo)
   display_order: number;
   client_id: number;
-  price: number;
+  price: string;
   description: string | null;
+  section_id: number;
   sections: {
     section_id: number;
     name: string;
@@ -172,6 +173,72 @@ async function createClient(clientData: FormData) {
   });
   if (!response.ok) throw new Error('Error al crear cliente');
   return await response.json();
+}
+
+// Actualizar la visibilidad de una sección
+async function updateSectionVisibility(sectionId: number, newStatus: number) {
+  try {
+    console.log(`DEBUG: Actualizando visibilidad de sección ${sectionId} a ${newStatus}`);
+    
+    const response = await fetch('/api/sections', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        section_id: sectionId,
+        status: newStatus
+      }),
+    });
+    
+    console.log('DEBUG: Respuesta recibida, status:', response.status);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('DEBUG: Error en respuesta:', errorData);
+      throw new Error('Error al actualizar la visibilidad');
+    }
+    
+    const data = await response.json();
+    console.log('DEBUG: Datos recibidos:', data);
+    return data;
+  } catch (error) {
+    console.error('Error al actualizar la visibilidad de la sección:', error);
+    throw error;
+  }
+}
+
+// Actualizar la visibilidad de un producto
+async function updateProductVisibility(productId: number, newStatus: number) {
+  try {
+    console.log(`DEBUG: Actualizando visibilidad de producto ${productId} a ${newStatus}`);
+    
+    const response = await fetch('/api/products', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        product_id: productId,
+        status: newStatus
+      }),
+    });
+    
+    console.log('DEBUG: Respuesta recibida, status:', response.status);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('DEBUG: Error en respuesta:', errorData);
+      throw new Error('Error al actualizar la visibilidad');
+    }
+    
+    const data = await response.json();
+    console.log('DEBUG: Datos recibidos:', data);
+    return data;
+  } catch (error) {
+    console.error('Error al actualizar la visibilidad del producto:', error);
+    throw error;
+  }
 }
 
 export default function DashboardPage() {
@@ -391,7 +458,7 @@ export default function DashboardPage() {
             display_order: product.display_order,
             // Incluir otros campos necesarios para la API
             name: product.name,
-            section_id: product.section_id,
+            section_id: selectedSection.section_id,
             client_id: product.client_id,
             image: product.image || null,
             status: product.status,
@@ -614,6 +681,74 @@ export default function DashboardPage() {
     }
   };
 
+  // Función para actualizar la visibilidad de una sección
+  const toggleSectionVisibility = async (sectionId: number, currentStatus: number) => {
+    setIsUpdatingVisibility(sectionId);
+    try {
+      // Llamar a la API para actualizar el estado
+      await updateSectionVisibility(sectionId, currentStatus === 1 ? 0 : 1);
+      
+      // Actualizar estado local
+      setSections(prev => {
+        const updated = {...prev};
+        
+        // Actualizar todas las secciones que coincidan con sectionId
+        Object.keys(updated).forEach(categoryId => {
+          if (updated[Number(categoryId)]) {
+            updated[Number(categoryId)] = updated[Number(categoryId)].map(section => 
+              section.section_id === sectionId 
+                ? { ...section, status: currentStatus === 1 ? 0 : 1 } 
+                : section
+            );
+          }
+        });
+        
+        return updated;
+      });
+      
+      toast.success('Estado actualizado correctamente');
+    } catch (error) {
+      console.error('Error al actualizar visibilidad:', error);
+      toast.error('Error al actualizar el estado');
+    } finally {
+      setIsUpdatingVisibility(null);
+    }
+  };
+
+  // Función para actualizar la visibilidad de un producto
+  const toggleProductVisibility = async (productId: number, currentStatus: number) => {
+    setIsUpdatingVisibility(productId);
+    try {
+      // Llamar a la API para actualizar el estado
+      await updateProductVisibility(productId, currentStatus === 1 ? 0 : 1);
+      
+      // Actualizar estado local
+      setProducts(prev => {
+        const updated = {...prev};
+        
+        // Actualizar todos los productos que coincidan con productId
+        Object.keys(updated).forEach(sectionId => {
+          if (updated[Number(sectionId)]) {
+            updated[Number(sectionId)] = updated[Number(sectionId)].map(product => 
+              product.product_id === productId 
+                ? { ...product, status: currentStatus === 1 ? 0 : 1 } 
+                : product
+            );
+          }
+        });
+        
+        return updated;
+      });
+      
+      toast.success('Estado actualizado correctamente');
+    } catch (error) {
+      console.error('Error al actualizar visibilidad:', error);
+      toast.error('Error al actualizar el estado');
+    } finally {
+      setIsUpdatingVisibility(null);
+    }
+  };
+
   // Función para editar una categoría
   const handleEditCategory = (category: Category) => {
     setEditingCategory({
@@ -635,7 +770,7 @@ export default function DashboardPage() {
   const getBreadcrumbItems = () => {
     const items = [
       { 
-        id: null, 
+        id: 'categories', 
         name: 'Categorías', 
         onClick: () => setCurrentView('categories'), 
         current: currentView === 'categories' 
@@ -644,7 +779,7 @@ export default function DashboardPage() {
     
     if (currentView === 'sections' && selectedCategory) {
       items.push({ 
-        id: selectedCategory.category_id, 
+        id: `category-${selectedCategory.category_id}`, 
         name: selectedCategory.name, 
         onClick: () => {}, 
         current: true 
@@ -653,14 +788,14 @@ export default function DashboardPage() {
     
     if (currentView === 'products' && selectedCategory && selectedSection) {
       items.push({ 
-        id: selectedCategory.category_id, 
+        id: `category-${selectedCategory.category_id}`, 
         name: selectedCategory.name, 
         onClick: () => navigateBack(), 
         current: false 
       });
       
       items.push({ 
-        id: selectedSection.section_id, 
+        id: `section-${selectedSection.section_id}`, 
         name: selectedSection.name, 
         onClick: () => {}, 
         current: true 
@@ -765,7 +900,8 @@ export default function DashboardPage() {
                 onSectionClick={handleSectionClick}
                 onBackClick={navigateBack}
                 categoryName={selectedCategory.name}
-                onToggleVisibility={(sectionId, status) => console.log('Toggle visibility', sectionId, status)}
+                onToggleVisibility={toggleSectionVisibility}
+                isUpdatingVisibility={isUpdatingVisibility}
               />
                           </div>
           )}
@@ -776,7 +912,8 @@ export default function DashboardPage() {
                 products={products[selectedSection.section_id] || []}
                 onBackClick={navigateBack}
                 sectionName={selectedSection.name}
-                onToggleVisibility={(productId, status) => console.log('Toggle visibility', productId, status)}
+                onToggleVisibility={toggleProductVisibility}
+                isUpdatingVisibility={isUpdatingVisibility}
                                                   />
             </div>
                       )}
@@ -797,7 +934,8 @@ export default function DashboardPage() {
                 expandedSections={expandedSections}
                 onSectionClick={handleSectionClick}
                 categoryName={category.name}
-                onToggleVisibility={(sectionId, status) => console.log('Toggle visibility', sectionId, status)}
+                onToggleVisibility={toggleSectionVisibility}
+                isUpdatingVisibility={isUpdatingVisibility}
               />
               
               {/* Productos expandidos para secciones */}
@@ -813,9 +951,10 @@ export default function DashboardPage() {
                     <ProductTable 
                       products={products[section.section_id] || []}
                       sectionName={section.name}
-                      onToggleVisibility={(productId, status) => console.log('Toggle visibility', productId, status)}
-          />
-        </div>
+                      onToggleVisibility={toggleProductVisibility}
+                      isUpdatingVisibility={isUpdatingVisibility}
+                    />
+                  </div>
                 );
               })}
                     </div>
