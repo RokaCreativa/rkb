@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { PencilIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon, ArrowLeftIcon, ViewColumnsIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/solid';
@@ -47,6 +47,12 @@ export default function SectionTable({
   categoryName,
   onReorderSection
 }: SectionTableProps) {
+  
+  const [showHiddenSections, setShowHiddenSections] = useState(false);
+  
+  // Separar secciones visibles y no visibles
+  const visibleSections = sections.filter(sec => sec.status === 1);
+  const hiddenSections = sections.filter(sec => sec.status !== 1);
   
   // Manejar el evento de drag and drop finalizado
   const handleDragEnd = (result: DropResult) => {
@@ -102,7 +108,8 @@ export default function SectionTable({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {sections.map((section, index) => (
+                {/* Secciones visibles */}
+                {visibleSections.map((section, index) => (
                   <Draggable 
                     key={section.section_id.toString()} 
                     draggableId={section.section_id.toString()} 
@@ -222,6 +229,134 @@ export default function SectionTable({
                     )}
                   </Draggable>
                 ))}
+
+                {/* Sección de secciones no visibles */}
+                {hiddenSections.length > 0 && (
+                  <tr className="bg-gray-50 hover:bg-gray-100">
+                    <td colSpan={6} className="py-2 px-4">
+                      <button 
+                        className="w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowHiddenSections(!showHiddenSections)}
+                      >
+                        <span>{hiddenSections.length} {hiddenSections.length === 1 ? 'sección' : 'secciones'} no visible{hiddenSections.length !== 1 ? 's' : ''}</span>
+                        <ChevronDownIcon className={`h-4 w-4 transition-transform ${showHiddenSections ? 'rotate-180' : ''}`} />
+                      </button>
+                    </td>
+                  </tr>
+                )}
+
+                {/* Secciones no visibles (mostrar solo si está expandido) */}
+                {showHiddenSections && hiddenSections.map((section, index) => (
+                  <Draggable 
+                    key={section.section_id.toString()} 
+                    draggableId={section.section_id.toString()} 
+                    index={visibleSections.length + index}
+                  >
+                    {(provided, snapshot) => (
+                      <tr 
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`${
+                          snapshot.isDragging 
+                            ? "bg-blue-50" 
+                            : expandedSections[section.section_id] 
+                              ? "bg-gray-100" 
+                              : "bg-gray-50 hover:bg-gray-100"
+                        }`}
+                      >
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-8">
+                          <div className="flex items-center">
+                            <button 
+                              onClick={() => onSectionClick && onSectionClick(section.section_id)}
+                              className={`p-1 rounded-full transition-colors ${
+                                expandedSections[section.section_id] 
+                                  ? "bg-gray-200 text-gray-700" 
+                                  : "hover:bg-gray-200 text-gray-500"
+                              }`}
+                              aria-label={expandedSections[section.section_id] ? "Colapsar" : "Expandir"}
+                            >
+                              {expandedSections[section.section_id] ? (
+                                <ChevronDownIcon className="h-5 w-5" />
+                              ) : (
+                                <ChevronRightIcon className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                        <td 
+                          className="px-3 py-2 whitespace-nowrap"
+                          {...provided.dragHandleProps}
+                        >
+                          <div className="flex items-center">
+                            <div className="text-gray-400 mr-2">
+                              <Bars3Icon className="h-5 w-5" />
+                            </div>
+                            <div className="font-medium text-sm text-gray-500 max-w-xs truncate">
+                              {section.name}
+                              {section.products_count !== undefined && (
+                                <span className="ml-2 text-xs text-gray-500">
+                                  ({section.products_count > 0 ? `${section.products_count}` : 'Sin'} productos)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-center text-gray-500">
+                          {section.display_order}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="flex justify-center">
+                            <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200 opacity-70">
+                              <Image
+                                src={getImagePath(section.image, 'sections')}
+                                alt={section.name || ''}
+                                width={32}
+                                height={32}
+                                className="object-cover w-full h-full"
+                                onError={handleImageError}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 whitespace-nowrap text-center">
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => onToggleVisibility && onToggleVisibility(section.section_id, section.status)}
+                              disabled={isUpdatingVisibility === section.section_id}
+                              className="p-1.5 rounded-full transition-colors text-gray-400 bg-gray-50 hover:bg-gray-100"
+                              title="No visible"
+                            >
+                              {isUpdatingVisibility === section.section_id ? (
+                                <div className="w-5 h-5 flex items-center justify-center">
+                                  <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
+                                </div>
+                              ) : (
+                                <EyeSlashIcon className="w-5 h-5" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center">
+                          <div className="flex justify-center space-x-1">
+                            <button
+                              onClick={() => onEditSection && onEditSection(section)}
+                              className="p-1 text-gray-500 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => onDeleteSection && onDeleteSection(section.section_id)}
+                              className="p-1 text-pink-600 hover:text-pink-900 rounded-full hover:bg-pink-50"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Draggable>
+                ))}
+                
                 {provided.placeholder}
               </tbody>
             </table>

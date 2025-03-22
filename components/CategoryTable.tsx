@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { PencilIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon, ViewColumnsIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/solid';
@@ -42,6 +42,12 @@ export default function CategoryTable({
   isUpdatingVisibility,
   onReorderCategory
 }: CategoryTableProps) {
+  
+  const [showHiddenCategories, setShowHiddenCategories] = useState(false);
+  
+  // Separar categorías visibles y no visibles
+  const visibleCategories = categories.filter(cat => cat.status === 1);
+  const hiddenCategories = categories.filter(cat => cat.status !== 1);
   
   // Manejar el evento de drag and drop finalizado
   const handleDragEnd = (result: DropResult) => {
@@ -87,7 +93,8 @@ export default function CategoryTable({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {categories.map((category, index) => (
+                {/* Categorías visibles */}
+                {visibleCategories.map((category, index) => (
                   <Draggable 
                     key={category.category_id.toString()} 
                     draggableId={category.category_id.toString()} 
@@ -207,6 +214,134 @@ export default function CategoryTable({
                     )}
                   </Draggable>
                 ))}
+
+                {/* Sección de categorías no visibles */}
+                {hiddenCategories.length > 0 && (
+                  <tr className="bg-gray-50 hover:bg-gray-100">
+                    <td colSpan={6} className="py-2 px-4">
+                      <button 
+                        className="w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowHiddenCategories(!showHiddenCategories)}
+                      >
+                        <span>{hiddenCategories.length} {hiddenCategories.length === 1 ? 'categoría' : 'categorías'} no visible{hiddenCategories.length !== 1 ? 's' : ''}</span>
+                        <ChevronDownIcon className={`h-4 w-4 transition-transform ${showHiddenCategories ? 'rotate-180' : ''}`} />
+                      </button>
+                    </td>
+                  </tr>
+                )}
+
+                {/* Categorías no visibles (mostrar solo si está expandido) */}
+                {showHiddenCategories && hiddenCategories.map((category, index) => (
+                  <Draggable 
+                    key={category.category_id.toString()} 
+                    draggableId={category.category_id.toString()} 
+                    index={visibleCategories.length + index}
+                  >
+                    {(provided, snapshot) => (
+                      <tr 
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`${
+                          snapshot.isDragging 
+                            ? "bg-blue-50" 
+                            : expandedCategories[category.category_id] 
+                              ? "bg-gray-100" 
+                              : "bg-gray-50 hover:bg-gray-100"
+                        }`}
+                      >
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-8">
+                          <div className="flex items-center">
+                            <button 
+                              onClick={() => onCategoryClick && onCategoryClick(category.category_id)}
+                              className={`p-1 rounded-full transition-colors ${
+                                expandedCategories[category.category_id] 
+                                  ? "bg-gray-200 text-gray-700" 
+                                  : "hover:bg-gray-200 text-gray-500"
+                              }`}
+                              aria-label={expandedCategories[category.category_id] ? "Colapsar" : "Expandir"}
+                            >
+                              {expandedCategories[category.category_id] ? (
+                                <ChevronDownIcon className="h-5 w-5" />
+                              ) : (
+                                <ChevronRightIcon className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                        <td 
+                          className="px-3 py-2 whitespace-nowrap"
+                          {...provided.dragHandleProps}
+                        >
+                          <div className="flex items-center">
+                            <div className="text-gray-400 mr-2">
+                              <Bars3Icon className="h-5 w-5" />
+                            </div>
+                            <div className="font-medium text-sm text-gray-500 max-w-xs truncate">
+                              {category.name}
+                              {category.sections_count !== undefined && (
+                                <span className="ml-2 text-xs text-gray-500">
+                                  ({category.sections_count > 0 ? `${category.sections_count}` : 'Sin'} secciones)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-center text-gray-500">
+                          {category.display_order}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="flex justify-center">
+                            <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200 opacity-70">
+                              <Image
+                                src={getImagePath(category.image, 'categories')}
+                                alt={category.name || ''}
+                                width={32}
+                                height={32}
+                                className="object-cover w-full h-full"
+                                onError={handleImageError}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 whitespace-nowrap text-center">
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => onToggleVisibility && onToggleVisibility(category.category_id, category.status)}
+                              disabled={isUpdatingVisibility === category.category_id}
+                              className="p-1.5 rounded-full transition-colors text-gray-400 bg-gray-50 hover:bg-gray-100"
+                              title="No visible"
+                            >
+                              {isUpdatingVisibility === category.category_id ? (
+                                <div className="w-5 h-5 flex items-center justify-center">
+                                  <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
+                                </div>
+                              ) : (
+                                <EyeSlashIcon className="w-5 h-5" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center">
+                          <div className="flex justify-center space-x-1">
+                            <button
+                              onClick={() => onEditCategory && onEditCategory(category)}
+                              className="p-1 text-gray-500 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => onDeleteCategory && onDeleteCategory(category.category_id)}
+                              className="p-1 text-pink-600 hover:text-pink-900 rounded-full hover:bg-pink-50"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Draggable>
+                ))}
+                
                 {provided.placeholder}
               </tbody>
             </table>

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { PhonePreview } from '@/components/PhonePreview';
+import FloatingPhonePreview from '@/components/FloatingPhonePreview';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
@@ -1098,6 +1099,20 @@ export default function DashboardPage() {
         {/* Modal para eliminar categoría */}
         {/* Transición y diálogo para confirmar eliminación */}
             </div>
+
+      {/* Componente de vista previa móvil flotante */}
+      <FloatingPhonePreview 
+        clientName={client?.name} 
+        clientLogo={client?.logo ? getImagePath(client.logo, 'clients') : undefined}
+        categories={categories.map(cat => ({
+          id: cat.category_id,
+          category_id: cat.category_id,
+          name: cat.name,
+          image: cat.image ? getImagePath(cat.image, 'categories') : undefined
+        }))}
+        selectedCategory={selectedCategory}
+        selectedSection={selectedSection}
+      />
     </>
   );
 }
