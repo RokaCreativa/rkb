@@ -3,19 +3,36 @@ import { PhoneIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { PhonePreview } from './PhonePreview';
 import Draggable from 'react-draggable';
 
+interface Product {
+  id: number;
+  name: string;
+  price: string | number;
+  description?: string;
+  image?: string;
+}
+
+interface Section {
+  id: number;
+  name: string;
+  image?: string;
+  products?: Product[];
+}
+
 interface Category {
   id: number;
   category_id?: number;
   name: string;
   image?: string;
+  sections?: Section[];
 }
 
 interface FloatingPhonePreviewProps {
   clientName?: string;
   clientLogo?: string;
+  clientMainLogo?: string;
   categories?: Category[];
   selectedCategory?: Category | null;
-  selectedSection?: any | null;
+  selectedSection?: Section | null;
   language?: string;
 }
 
@@ -27,6 +44,7 @@ interface FloatingPhonePreviewProps {
 export default function FloatingPhonePreview({ 
   clientName = "Mi Restaurante", 
   clientLogo,
+  clientMainLogo,
   categories = [],
   selectedCategory = null,
   selectedSection = null,
@@ -39,7 +57,8 @@ export default function FloatingPhonePreview({
   const adaptedCategories = categories.map(cat => ({
     id: cat.category_id || cat.id,
     name: cat.name,
-    image: cat.image
+    image: cat.image,
+    sections: cat.sections || []
   }));
   
   return (
@@ -56,7 +75,7 @@ export default function FloatingPhonePreview({
       {isPreviewOpen && (
         <div className="fixed inset-0 z-50 pointer-events-none">
           <Draggable 
-            nodeRef={nodeRef} 
+            nodeRef={nodeRef as React.RefObject<HTMLElement>} 
             handle=".handle"
             defaultPosition={{x: window.innerWidth - 300, y: 100}}
             bounds="parent"
@@ -86,6 +105,7 @@ export default function FloatingPhonePreview({
                   <PhonePreview
                     clientName={clientName}
                     clientLogo={clientLogo}
+                    clientMainLogo={clientMainLogo}
                     categories={adaptedCategories}
                     language={language}
                   />

@@ -57,6 +57,30 @@ interface Product {
   }[];
 }
 
+// Interfaz para FloatingPhonePreview
+interface FloatingPhoneCategory {
+  id: number;
+  category_id?: number;
+  name: string;
+  image?: string;
+  sections?: FloatingPhoneSection[];
+}
+
+interface FloatingPhoneSection {
+  id: number;
+  name: string;
+  image?: string;
+  products?: FloatingPhoneProduct[];
+}
+
+interface FloatingPhoneProduct {
+  id: number;
+  name: string;
+  price: string | number;
+  description?: string;
+  image?: string;
+}
+
 interface Client {
   id: number;
   name: string;
@@ -495,6 +519,54 @@ export default function DashboardPage() {
       setIsLoading(false);
     }
   };
+
+  // Precargar datos cuando se carga el dashboard
+  useEffect(() => {
+    if (categories.length > 0 && !isLoading) {
+      console.log("Iniciando precarga de datos para todas las categorías...");
+      const preloadAllData = async () => {
+        const activeCategories = categories.filter(cat => cat.status === 1);
+        console.log(`Precargando datos para ${activeCategories.length} categorías activas`);
+        
+        // Precargar todas las secciones primero
+        for (const category of activeCategories) {
+          if (!sections[category.category_id]) {
+            try {
+              console.log(`Precargando secciones para categoría ${category.name}`);
+              const sectionsData = await fetchSections(category.category_id);
+              
+              setSections(prev => ({
+                ...prev,
+                [category.category_id]: sectionsData
+              }));
+              
+              // Precargar productos para cada sección
+              const activeSections = sectionsData.filter((sec: Section) => sec.status === 1);
+              for (const section of activeSections) {
+                if (!products[section.section_id]) {
+                  console.log(`Precargando productos para sección ${section.name}`);
+                  try {
+                    const productsData = await fetchProducts(section.section_id);
+                    setProducts(prev => ({
+                      ...prev,
+                      [section.section_id]: productsData
+                    }));
+                  } catch (error) {
+                    console.error(`Error al precargar productos para sección ${section.name}:`, error);
+                  }
+                }
+              }
+            } catch (err) {
+              console.error(`Error al precargar secciones para categoría ${category.name}:`, err);
+            }
+          }
+        }
+        console.log("Precarga de datos completada.");
+      };
+      
+      preloadAllData();
+    }
+  }, [categories, isLoading]);
 
   // Efecto para cargar datos iniciales al autenticarse
   useEffect(() => {
@@ -1103,15 +1175,38 @@ export default function DashboardPage() {
       {/* Componente de vista previa móvil flotante */}
       <FloatingPhonePreview 
         clientName={client?.name} 
-        clientLogo={client?.logo ? getImagePath(client.logo, 'clients') : undefined}
-        categories={categories.map(cat => ({
-          id: cat.category_id,
-          category_id: cat.category_id,
-          name: cat.name,
-          image: cat.image ? getImagePath(cat.image, 'categories') : undefined
-        }))}
-        selectedCategory={selectedCategory}
-        selectedSection={selectedSection}
+        clientLogo={client?.logo ? `/images/clients/${client.logo}` : undefined}
+        clientMainLogo={client?.main_logo ? `/images/main_logo/${client.main_logo}` : undefined}
+        categories={categories
+          .filter(cat => cat.status === 1) // Solo categorías activas
+          .map(cat => ({
+            id: cat.category_id,
+            category_id: cat.category_id,
+            name: cat.name,
+            image: cat.image ? getImagePath(cat.image, 'categories') : undefined,
+            sections: sections[cat.category_id]?.filter(sec => sec.status === 1).map(sec => ({
+              id: sec.section_id,
+              name: sec.name,
+              image: sec.image ? getImagePath(sec.image, 'sections') : undefined,
+              products: products[sec.section_id]?.filter(prod => prod.status === 1).map(prod => ({
+                id: prod.product_id,
+                name: prod.name,
+                price: prod.price,
+                description: prod.description ?? undefined,
+                image: prod.image ? getImagePath(prod.image, 'products') : undefined
+              })) || []
+            })) || []
+          })) as FloatingPhoneCategory[]}
+        selectedCategory={selectedCategory ? {
+          id: selectedCategory.category_id,
+          name: selectedCategory.name,
+          image: selectedCategory.image ? getImagePath(selectedCategory.image, 'categories') : undefined
+        } : null}
+        selectedSection={selectedSection ? {
+          id: selectedSection.section_id,
+          name: selectedSection.name,
+          image: selectedSection.image ? getImagePath(selectedSection.image, 'sections') : undefined
+        } : null}
       />
     </>
   );
