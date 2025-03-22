@@ -3,6 +3,11 @@ import prisma from '@/prisma/prisma';
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Prisma } from "@prisma/client";
+import { writeFile } from 'fs/promises';
+import { join } from 'path';
+
+// Ruta base para las imágenes de secciones
+const IMAGE_BASE_PATH = '/images/sections/';
 
 // Interfaz para los datos de sección procesados
 interface FormattedSection {
@@ -31,250 +36,324 @@ interface ProcessedSection {
   display_order: number;
   client_id: number;
   category_id: number;
+  products_count: number;
 }
 
 // GET /api/sections?categoryId=X
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    // Cliente fijo para pruebas
-    const CLIENT_ID = 3;
-
-    const { searchParams } = new URL(request.url);
-    const categoryId = searchParams.get("categoryId");
-
-    if (!categoryId) {
-      return NextResponse.json(
-        { error: "categoryId es requerido" },
-        { status: 400 }
-      );
+    // 1. Verificación de autenticación
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    // Obtener secciones con sus relaciones
+    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    const user = await prisma.users.findFirst({
+      where: { email: session.user.email },
+    });
+
+    if (!user?.client_id) {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    }
+
+    // 3. Obtener parámetros de consulta (si existe category_id)
+    const url = new URL(request.url);
+    const categoryId = url.searchParams.get('category_id');
+
+    // 4. Construir la consulta base
+    const whereClause: any = {
+      client_id: user.client_id,
+      deleted: { not: 'Y' },
+    };
+
+    // 5. Añadir filtro por categoría si se especifica
+    if (categoryId) {
+      whereClause.category_id = parseInt(categoryId);
+    }
+
+    // 6. Obtener las secciones con los filtros aplicados
     const sections = await prisma.sections.findMany({
-      where: {
-        category_id: parseInt(categoryId),
-        status: true,
-        deleted: "N",
-        client_id: CLIENT_ID
-      },
-      include: {
-        products_sections: {
-          include: {
-            products: true
-          }
-        }
-      },
+      where: whereClause,
       orderBy: {
-        display_order: "asc",
+        display_order: 'asc',
       },
     });
 
-    // Transformar los datos a un formato más amigable
-    const formattedSections: FormattedSection[] = sections.map(section => {
-      // Productos filtrados por estado activo
-      const filteredProducts = section.products_sections
-        .filter(ps => ps.products && ps.products.status && ps.products.deleted === "N")
-        .map(ps => ({
-          id: ps.products.id,
-          name: ps.products.name,
-          image: ps.products.image,
-          price: ps.products.price,
-          description: ps.products.description
-        }));
+    // 7. Procesar las secciones para el formato esperado por el frontend
+    const processedSections = await Promise.all(sections.map(async (section) => {
+      // Contar productos por sección
+      const productsCount = await prisma.products_sections.count({
+        where: {
+          section_id: section.section_id,
+        },
+      });
 
       return {
-        id: section.id,
-        name: section.name,
-        image: section.image,
-        display_order: section.display_order,
-        status: section.status,
-        client_id: section.client_id ?? 0,
-        category_id: section.category_id ?? 0,
-        products: filteredProducts
+        section_id: section.section_id,
+        name: section.name || '',
+        image: section.image ? `${IMAGE_BASE_PATH}${section.image}` : null,
+        status: section.status ? 1 : 0,
+        display_order: section.display_order || 0,
+        client_id: section.client_id || 0,
+        category_id: section.category_id || 0,
+        products_count: productsCount,
       };
-    });
-
-    const processedSections: ProcessedSection[] = formattedSections.map(section => ({
-      section_id: section.id,
-      name: section.name || '',
-      image: section.image,
-      status: section.status ? 1 : 0,
-      display_order: section.display_order || 0,
-      client_id: section.client_id ?? 0,
-      category_id: section.category_id ?? 0,
     }));
 
+    // 8. Devolver las secciones procesadas
     return NextResponse.json(processedSections);
   } catch (error) {
-    console.error("Error al obtener secciones:", error);
-    return NextResponse.json(
-      { error: "Error al obtener las secciones" },
-      { status: 500 }
-    );
+    // 9. Manejo centralizado de errores
+    console.error('Error al obtener secciones:', error);
+    return NextResponse.json({ error: 'Error al obtener secciones' }, { status: 500 });
   }
 }
 
 // POST /api/sections
 export async function POST(request: Request) {
   try {
-    // Cliente fijo para pruebas
-    const CLIENT_ID = 3;
-
-    const data = await request.json();
-    
-    // Validaciones básicas
-    if (!data.name) {
-      return NextResponse.json(
-        { error: "El nombre es requerido" },
-        { status: 400 }
-      );
+    // 1. Verificación de autenticación
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    if (!data.category_id) {
-      return NextResponse.json(
-        { error: "La categoría es requerida" },
-        { status: 400 }
-      );
-    }
-
-    // Crear sección
-    const section = await prisma.sections.create({
-      data: {
-        name: data.name,
-        image: data.image,
-        status: true,
-        display_order: data.display_order || 0,
-        category_id: parseInt(data.category_id),
-        client_id: CLIENT_ID,
-        registered_at: new Date(),
-        deleted: "N"
-      }
+    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    const user = await prisma.users.findFirst({
+      where: { email: session.user.email },
     });
 
-    // Procesar la sección creada para la respuesta
+    if (!user?.client_id) {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    }
+
+    // 3. Obtener y validar los datos del formulario
+    const formData = await request.formData();
+    const name = formData.get('name') as string;
+    const categoryId = parseInt(formData.get('category_id') as string);
+    const file = formData.get('image') as File | null;
+    const status = formData.get('status') === '1'; // Convertir a booleano
+
+    if (!name) {
+      return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
+    }
+
+    if (!categoryId || isNaN(categoryId)) {
+      return NextResponse.json({ error: 'La categoría es requerida' }, { status: 400 });
+    }
+
+    // 4. Verificar que la categoría existe y pertenece al cliente
+    const category = await prisma.categories.findFirst({
+      where: {
+        category_id: categoryId,
+        client_id: user.client_id,
+        deleted: { not: 'Y' },
+      },
+    });
+
+    if (!category) {
+      return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
+    }
+
+    // 5. Determinar el próximo valor de display_order
+    const maxOrderResult = await prisma.$queryRaw`
+      SELECT MAX(display_order) as maxOrder 
+      FROM sections 
+      WHERE client_id = ${user.client_id} 
+      AND category_id = ${categoryId}
+    `;
+    
+    // @ts-ignore - La respuesta SQL puede variar
+    const maxOrder = maxOrderResult[0]?.maxOrder || 0;
+
+    // 6. Procesar la imagen si existe
+    let imageUrl = null;
+    if (file) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      // Crear un nombre de archivo único con timestamp
+      const timestamp = Date.now();
+      const fileName = file.name;
+      const uniqueFileName = `${timestamp}_${fileName}`;
+      
+      // Guardar la imagen en el sistema de archivos
+      const path = join(process.cwd(), 'public', 'images', 'sections', uniqueFileName);
+      await writeFile(path, buffer);
+      
+      // URL relativa para la base de datos
+      imageUrl = uniqueFileName;
+    }
+
+    // 7. Crear la nueva sección
+    const newSection = await prisma.sections.create({
+      data: {
+        name,
+        image: imageUrl,
+        status,
+        display_order: maxOrder + 1,
+        client_id: user.client_id,
+        category_id: categoryId,
+        deleted: 'N', // Mantener compatibilidad con el esquema actual
+      },
+    });
+
+    // 8. Preparar la respuesta
     const processedSection: ProcessedSection = {
-      section_id: section.id,
-      name: section.name || '',
-      image: section.image,
-      status: section.status ? 1 : 0,
-      display_order: section.display_order || 0,
-      client_id: section.client_id ?? 0,
-      category_id: section.category_id ?? 0,
+      section_id: newSection.section_id,
+      name: newSection.name || '',
+      image: imageUrl ? `${IMAGE_BASE_PATH}${imageUrl}` : null,
+      status: newSection.status ? 1 : 0,
+      display_order: newSection.display_order || 0,
+      client_id: newSection.client_id || 0,
+      category_id: newSection.category_id || 0,
+      products_count: 0, // Nueva sección, sin productos
     };
 
     return NextResponse.json(processedSection);
   } catch (error) {
-    console.error("Error al crear sección:", error);
-    return NextResponse.json(
-      { error: "Error al crear la sección" },
-      { status: 500 }
-    );
+    // 9. Manejo centralizado de errores
+    console.error('Error al crear la sección:', error);
+    return NextResponse.json({ error: 'Error al crear la sección' }, { status: 500 });
   }
 }
 
 // PUT /api/sections
 export async function PUT(request: Request) {
   try {
+    // 1. Verificación de autenticación
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { section_id, ...data } = await request.json();
-    
-    // Verificar que la sección existe
-    const section = await prisma.sections.findFirst({
-      where: {
-        id: section_id,
-        client_id: 3, // Cliente fijo para pruebas
-        deleted: "N"
-      }
+    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    const user = await prisma.users.findFirst({
+      where: { email: session.user.email },
     });
 
-    if (!section) {
-      return NextResponse.json(
-        { error: "Sección no encontrada" },
-        { status: 404 }
-      );
+    if (!user?.client_id) {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
-    const updatedSection = await prisma.sections.update({
-      where: { id: section_id },
-      data: {
-        name: data.name,
-        image: data.image,
-        display_order: data.display_order,
-        status: data.status
-      }
+    // 3. Obtener y validar los datos de actualización
+    const data = await request.json();
+    console.log('PUT /api/sections - Datos recibidos:', data);
+
+    if (!data.section_id) {
+      return NextResponse.json({ error: 'ID de sección requerido' }, { status: 400 });
+    }
+
+    // 4. Preparar los datos de actualización
+    const updateData: any = {};
+    
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.display_order !== undefined) updateData.display_order = data.display_order;
+    if (data.image !== undefined) updateData.image = data.image;
+    if (data.status !== undefined) updateData.status = data.status === 1; // Convertir numérico a booleano
+    if (data.category_id !== undefined) updateData.category_id = data.category_id;
+    
+    console.log('PUT /api/sections - Datos a actualizar:', updateData);
+
+    // 5. Actualizar la sección
+    await prisma.sections.updateMany({
+      where: {
+        section_id: data.section_id,
+        client_id: user.client_id,
+      },
+      data: updateData,
+    });
+
+    // 6. Obtener la sección actualizada
+    const updatedSection = await prisma.sections.findFirst({
+      where: {
+        section_id: data.section_id,
+        client_id: user.client_id,
+      },
     });
 
     if (!updatedSection) {
       return NextResponse.json({ error: 'No se pudo actualizar la sección' }, { status: 404 });
     }
 
+    // 7. Contar productos de la sección
+    const productsCount = await prisma.products_sections.count({
+      where: {
+        section_id: data.section_id,
+      },
+    });
+
+    // 8. Preparar la respuesta
     const processedSection: ProcessedSection = {
-      section_id: updatedSection.id,
+      section_id: updatedSection.section_id,
       name: updatedSection.name || '',
-      image: updatedSection.image,
+      image: updatedSection.image ? `${IMAGE_BASE_PATH}${updatedSection.image}` : null,
       status: updatedSection.status ? 1 : 0,
       display_order: updatedSection.display_order || 0,
-      client_id: updatedSection.client_id ?? 0,
-      category_id: updatedSection.category_id ?? 0,
+      client_id: updatedSection.client_id || 0,
+      category_id: updatedSection.category_id || 0,
+      products_count: productsCount,
     };
 
     return NextResponse.json(processedSection);
   } catch (error) {
-    console.error("Error al actualizar sección:", error);
-    return NextResponse.json(
-      { error: "Error al actualizar la sección" },
-      { status: 500 }
-    );
+    // 9. Manejo centralizado de errores
+    console.error('Error al actualizar la sección:', error);
+    return NextResponse.json({ error: 'Error al actualizar la sección' }, { status: 500 });
   }
 }
 
 // DELETE /api/sections
 export async function DELETE(request: Request) {
   try {
+    // 1. Verificación de autenticación
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    const { id } = await request.json();
-    
-    // Verificar que la sección existe
+    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    const user = await prisma.users.findFirst({
+      where: { email: session.user.email },
+    });
+
+    if (!user?.client_id) {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    }
+
+    // 3. Obtener y validar el ID de la sección
+    const url = new URL(request.url);
+    const sectionId = url.searchParams.get('section_id');
+
+    if (!sectionId) {
+      return NextResponse.json({ error: 'ID de sección no proporcionado' }, { status: 400 });
+    }
+
+    // 4. Verificar que la sección exista y pertenezca al cliente
     const section = await prisma.sections.findFirst({
       where: {
-        id: id,
-        client_id: 3, // Cliente fijo para pruebas
-        deleted: "N"
-      }
+        section_id: parseInt(sectionId),
+        client_id: user.client_id,
+      },
     });
 
     if (!section) {
-      return NextResponse.json(
-        { error: "Sección no encontrada" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Sección no encontrada' }, { status: 404 });
     }
 
-    // Soft delete - marcar como eliminado en lugar de eliminar físicamente
-    await prisma.sections.update({
-      where: { id: id },
-      data: {
-        deleted: "S",
-        deleted_at: new Date().toISOString(),
-        deleted_by: session.user.email || "sistema",
-        deleted_ip: "127.0.0.1" // IP ficticia para pruebas
-      }
+    // 5. Eliminar la sección
+    await prisma.sections.delete({
+      where: {
+        section_id: parseInt(sectionId),
+      },
     });
 
-    return NextResponse.json({ success: true });
+    // 6. Devolver respuesta de éxito
+    return NextResponse.json({ message: 'Sección eliminada correctamente' });
   } catch (error) {
-    console.error("Error al eliminar sección:", error);
-    return NextResponse.json(
-      { error: "Error al eliminar la sección" },
-      { status: 500 }
-    );
+    // 7. Manejo centralizado de errores
+    console.error('Error al eliminar la sección:', error);
+    return NextResponse.json({ error: 'Error al eliminar la sección' }, { status: 500 });
   }
 } 

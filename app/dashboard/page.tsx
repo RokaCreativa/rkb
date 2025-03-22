@@ -20,6 +20,32 @@ interface Category {
   client_id: number;
 }
 
+interface Section {
+  section_id: number;
+  name: string;
+  image: string | null;
+  status: number; // 1 (activo) o 0 (inactivo)
+  display_order: number;
+  client_id: number;
+  category_id: number;
+  products_count: number;
+}
+
+interface Product {
+  product_id: number;
+  name: string;
+  image: string | null;
+  status: number; // 1 (activo) o 0 (inactivo)
+  display_order: number;
+  client_id: number;
+  price: number;
+  description: string | null;
+  sections: {
+    section_id: number;
+    name: string;
+  }[];
+}
+
 interface Client {
   id: number;
   name: string;
@@ -38,6 +64,20 @@ async function fetchClientData() {
 async function fetchCategories() {
   const response = await fetch('/api/categories');
   if (!response.ok) throw new Error('Error al cargar categorías');
+  return await response.json();
+}
+
+// Obtener secciones para una categoría específica
+async function fetchSections(categoryId: number) {
+  const response = await fetch(`/api/sections?category_id=${categoryId}`);
+  if (!response.ok) throw new Error('Error al cargar secciones');
+  return await response.json();
+}
+
+// Obtener productos para una sección específica
+async function fetchProducts(sectionId: number) {
+  const response = await fetch(`/api/products?section_id=${sectionId}`);
+  if (!response.ok) throw new Error('Error al cargar productos');
   return await response.json();
 }
 
@@ -120,6 +160,12 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [client, setClient] = useState<Client | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [sections, setSections] = useState<Record<number, Section[]>>({});
+  const [products, setProducts] = useState<Record<number, Product[]>>({});
+  const [expandedCategories, setExpandedCategories] = useState<Record<number, boolean>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
+  const [loadingSections, setLoadingSections] = useState<Record<number, boolean>>({});
+  const [loadingProducts, setLoadingProducts] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
@@ -300,8 +346,8 @@ export default function DashboardPage() {
       return;
     }
 
-    setIsLoading(true);
-    try {
+      setIsLoading(true);
+      try {
       const formData = new FormData();
       formData.append('name', newCategoryName);
       if (selectedImage) {
@@ -368,14 +414,14 @@ export default function DashboardPage() {
       setSelectedCategoryId(null);
       setIsEditModalOpen(false);
       toast.success('Categoría actualizada correctamente');
-    } catch (error) {
+      } catch (error) {
       console.error('Error:', error);
       toast.error('Error al actualizar la categoría');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
   // Función para eliminar la imagen de una categoría
   const removeImage = async (categoryId: number) => {
     try {
@@ -444,6 +490,76 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error('Error al cargar categorías:', error);
+    }
+  };
+
+  // Función para expandir/colapsar una categoría
+  const toggleCategoryExpansion = async (categoryId: number) => {
+    const newExpandedState = !expandedCategories[categoryId];
+    
+    setExpandedCategories({
+      ...expandedCategories,
+      [categoryId]: newExpandedState
+    });
+    
+    // Si estamos expandiendo y aún no hemos cargado las secciones para esta categoría
+    if (newExpandedState && !sections[categoryId]) {
+      try {
+        setLoadingSections({
+          ...loadingSections,
+          [categoryId]: true
+        });
+        
+        const sectionsData = await fetchSections(categoryId);
+        
+        setSections({
+          ...sections,
+          [categoryId]: sectionsData
+        });
+      } catch (error) {
+        console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
+        toast.error('Error al cargar secciones');
+      } finally {
+        setLoadingSections({
+          ...loadingSections,
+          [categoryId]: false
+        });
+      }
+    }
+  };
+  
+  // Función para expandir/colapsar una sección
+  const toggleSectionExpansion = async (sectionId: number) => {
+    const newExpandedState = !expandedSections[sectionId];
+    
+    setExpandedSections({
+      ...expandedSections,
+      [sectionId]: newExpandedState
+    });
+    
+    // Si estamos expandiendo y aún no hemos cargado los productos para esta sección
+    if (newExpandedState && !products[sectionId]) {
+      try {
+        setLoadingProducts({
+          ...loadingProducts,
+          [sectionId]: true
+        });
+        
+        const productsData = await fetchProducts(sectionId);
+        
+        setProducts({
+          ...products,
+          [sectionId]: productsData
+        });
+    } catch (error) {
+        console.error(`Error al cargar productos para sección ${sectionId}:`, error);
+        toast.error('Error al cargar productos');
+      } finally {
+        setLoadingProducts({
+          ...loadingProducts,
+          [sectionId]: false
+        });
+      }
     }
   };
 
@@ -525,7 +641,7 @@ export default function DashboardPage() {
               className="w-full border-gray-300 rounded-md shadow-sm text-xs"
               placeholder="Ingrese nombre de categoría"
             />
-          </div>
+                </div>
           
           <div className="mb-3">
             <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -579,8 +695,8 @@ export default function DashboardPage() {
                 <p className="mt-1 text-[10px] text-gray-500">
                   JPG, PNG o GIF. Recomendado 400x400px.
                 </p>
-                </div>
             </div>
+                </div>
                 </div>
           
           <div className="flex justify-end space-x-2 mt-4">
@@ -606,8 +722,8 @@ export default function DashboardPage() {
                 </span>
               ) : 'Crear Categoría'}
             </button>
-                </div>
             </div>
+                </div>
                 </div>
     );
   };
@@ -629,7 +745,7 @@ export default function DashboardPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-                </div>
+          </div>
           
           <div className="mb-3">
             <label htmlFor="edit-category-name" className="block text-xs font-medium text-gray-700 mb-1">
@@ -644,7 +760,7 @@ export default function DashboardPage() {
               placeholder="Ingrese nombre de categoría"
             />
             </div>
-          
+            
           <div className="mb-3">
             <label className="block text-xs font-medium text-gray-700 mb-1">
               Imagen de Categoría
@@ -677,7 +793,7 @@ export default function DashboardPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                 )}
-                </div>
+                          </div>
               
               <div className="flex-1">
                 <input
@@ -687,30 +803,30 @@ export default function DashboardPage() {
                   accept="image/*"
                   onChange={handleEditImageSelect}
                 />
-                <button
+                            <button
                   type="button"
                   onClick={() => document.getElementById('edit-category-image')?.click()}
                   className="inline-flex items-center px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 hover:bg-gray-50"
-                >
+                            >
                   <ArrowUpTrayIcon className="h-3 w-3 mr-1" />
                   Cambiar imagen
-                </button>
+                            </button>
                 {(editImagePreview || selectedCategory?.image) && (
-                  <button
+                            <button
                     type="button"
                     onClick={() => removeImage(selectedCategoryId!)}
                     className="inline-flex items-center ml-1 px-2 py-1 text-xs font-medium rounded bg-white border border-gray-300 text-red-600 hover:bg-red-50"
                   >
                     <TrashIcon className="h-3 w-3 mr-1" />
                     Eliminar
-                  </button>
+                            </button>
                 )}
                 <p className="mt-1 text-[10px] text-gray-500">
                   JPG, PNG o GIF. Recomendado 400x400px.
                 </p>
-                </div>
-            </div>
-          </div>
+                          </div>
+                        </div>
+                          </div>
           
           <div className="flex justify-end space-x-2 mt-4">
                             <button
@@ -732,12 +848,12 @@ export default function DashboardPage() {
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Actualizando...
-                </span>
+                            </span>
               ) : 'Actualizar Categoría'}
                             </button>
                           </div>
                         </div>
-                          </div>
+                      </div>
     );
   };
 
@@ -763,8 +879,8 @@ export default function DashboardPage() {
               >
                 <PlusIcon className="h-3 w-3 mr-1" /> Nueva categoría
               </button>
-                        </div>
-                      </div>
+                                      </div>
+                                    </div>
                       
           {/* Vista de lista con tabla */}
           <div className="overflow-hidden bg-white shadow rounded-lg mb-4 text-xs">
@@ -786,81 +902,234 @@ export default function DashboardPage() {
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                       {categories.map((category, index) => (
-                        <Draggable 
-                          key={category?.category_id?.toString() || `category-${index}`} 
-                          draggableId={category?.category_id?.toString() || `category-${index}`} 
-                          index={index}
-                        >
-                          {(provided, snapshot) => (
-                            <tr 
-                              key={category?.category_id} 
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className={`${snapshot.isDragging ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}
-                            >
-                              <td className="px-3 py-1 flex items-center gap-1">
-                                <div {...provided.dragHandleProps} className="cursor-grab p-1 hover:bg-gray-100 rounded">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="9" cy="5" r="1" />
-                                    <circle cx="9" cy="12" r="1" />
-                                    <circle cx="9" cy="19" r="1" />
-                                    <circle cx="15" cy="5" r="1" />
-                                    <circle cx="15" cy="12" r="1" />
-                                    <circle cx="15" cy="19" r="1" />
-                                  </svg>
-                                </div>
-                                <span>{category?.name}</span>
-                                <button 
-                                  onClick={() => openEditModal(category)} 
-                                  className="ml-1 p-1 text-gray-600 hover:text-indigo-600 hover:bg-gray-100 rounded-full transition-colors"
-                                >
-                                  <PencilIcon className="h-3 w-3" />
-                                </button>
-                              </td>
-                              <td className="px-3 py-1">{category?.display_order}</td>
-                              <td className="px-3 py-1 text-center">
-                                <div className="relative w-8 h-8 mx-auto overflow-hidden rounded-full cursor-pointer"
-                                     onClick={() => category?.image ? setExpandedImage(verifyImagePath(category?.image)) : null}>
-                                        <Image
-                                    src={verifyImagePath(category?.image)}
-                                    alt={category?.name || ''}
-                                    fill
-                                    sizes="32px"
-                                    className="object-cover"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.src = '/placeholder.png';
-                                    }}
-                                        />
-                                      </div>
-                              </td>
-                              <td className="px-3 py-1 text-center">
-                                <button 
-                                  className="relative inline-flex items-center"
-                                  onClick={() => handleToggleVisibility(category?.category_id || 0, category?.status || 0)}
-                                  disabled={isUpdatingVisibility === category?.category_id}
-                                >
-                                  <div className={`w-9 h-5 rounded-full transition-colors ${category?.status === 1 ? 'bg-indigo-600' : 'bg-gray-200'}`}>
-                                    <div className={`absolute w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 top-0.5 ${category?.status === 1 ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                        <Fragment key={`category-${category?.category_id || index}`}>
+                          <Draggable 
+                            key={category?.category_id?.toString() || `category-${index}`} 
+                            draggableId={category?.category_id?.toString() || `category-${index}`} 
+                            index={index}
+                          >
+                            {(provided, snapshot) => (
+                              <tr 
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`${snapshot.isDragging ? 'bg-indigo-50' : 'hover:bg-gray-50'}`}
+                              >
+                                <td className="px-3 py-1 flex items-center gap-1">
+                                  <button 
+                                    onClick={() => toggleCategoryExpansion(category.category_id)}
+                                    className="p-1 rounded hover:bg-gray-100"
+                                  >
+                                    <ChevronDownIcon 
+                                      className={`h-3 w-3 text-gray-500 transition-transform ${
+                                        expandedCategories[category.category_id] ? 'rotate-180' : ''
+                                      }`} 
+                                    />
+                                  </button>
+                                  <div {...provided.dragHandleProps} className="cursor-grab p-1 hover:bg-gray-100 rounded">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <circle cx="9" cy="5" r="1" />
+                                      <circle cx="9" cy="12" r="1" />
+                                      <circle cx="9" cy="19" r="1" />
+                                      <circle cx="15" cy="5" r="1" />
+                                      <circle cx="15" cy="12" r="1" />
+                                      <circle cx="15" cy="19" r="1" />
+                                    </svg>
                                   </div>
-                                  {isUpdatingVisibility === category?.category_id && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 rounded-full">
-                                      <div className="w-2 h-2 border-2 border-indigo-600 border-t-transparent animate-spin rounded-full"></div>
-                                    </div>
-                                  )}
-                                </button>
-                              </td>
-                              <td className="px-3 py-1 text-center">
+                                  <span className="font-medium">{category?.name}</span>
                                     <button 
-                                  onClick={(e) => openDeleteModal(category?.category_id || 0, e)}
-                                  className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                                    onClick={() => openEditModal(category)} 
+                                    className="ml-1 p-1 text-gray-600 hover:text-indigo-600 hover:bg-gray-100 rounded-full transition-colors"
                                     >
-                                  <TrashIcon className="h-4 w-4" />
+                                    <PencilIcon className="h-3 w-3" />
                                     </button>
-                              </td>
-                            </tr>
+                                </td>
+                                <td className="px-3 py-1">{category?.display_order}</td>
+                                <td className="px-3 py-1 text-center">
+                                  <div className="relative w-8 h-8 mx-auto overflow-hidden rounded-full cursor-pointer"
+                                       onClick={() => category?.image ? setExpandedImage(verifyImagePath(category?.image)) : null}>
+                                    <Image
+                                      src={verifyImagePath(category?.image)}
+                                      alt={category?.name || ''}
+                                      fill
+                                      sizes="32px"
+                                      className="object-cover"
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = '/placeholder.png';
+                                      }}
+                                    />
+                                  </div>
+                                </td>
+                                <td className="px-3 py-1 text-center">
+                                  <button 
+                                    className="relative inline-flex items-center"
+                                    onClick={() => handleToggleVisibility(category?.category_id || 0, category?.status || 0)}
+                                    disabled={isUpdatingVisibility === category?.category_id}
+                                  >
+                                    <div className={`w-9 h-5 rounded-full transition-colors ${category?.status === 1 ? 'bg-indigo-600' : 'bg-gray-200'}`}>
+                                      <div className={`absolute w-4 h-4 bg-white rounded-full shadow transform transition-transform duration-200 top-0.5 ${category?.status === 1 ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                          </div>
+                                    {isUpdatingVisibility === category?.category_id && (
+                                      <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-50 rounded-full">
+                                        <div className="w-2 h-2 border-2 border-indigo-600 border-t-transparent animate-spin rounded-full"></div>
+                        </div>
+                      )}
+                                  </button>
+                                </td>
+                                <td className="px-3 py-1 text-center">
+                                  <button 
+                                    onClick={(e) => openDeleteModal(category?.category_id || 0, e)}
+                                    className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                                  >
+                                    <TrashIcon className="h-4 w-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            )}
+                          </Draggable>
+                          
+                          {/* Secciones de la categoría */}
+                          {expandedCategories[category.category_id] && (
+                            <>
+                              {loadingSections[category.category_id] ? (
+                                <tr className="bg-gray-50">
+                                  <td colSpan={5} className="px-3 py-2 text-center text-xs text-gray-500">
+                                    <div className="flex justify-center items-center">
+                                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-indigo-500 mr-1"></div>
+                                      <span>Cargando secciones...</span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ) : sections[category.category_id]?.length > 0 ? (
+                                sections[category.category_id].map((section) => (
+                                  <Fragment key={`section-${section.section_id}`}>
+                                    <tr className="bg-gray-50">
+                                      <td className="px-3 py-1">
+                                        <div className="flex items-center ml-6">
+                                          <button 
+                                            onClick={() => toggleSectionExpansion(section.section_id)}
+                                            className="p-1 rounded hover:bg-gray-200"
+                                          >
+                                            <ChevronDownIcon 
+                                              className={`h-3 w-3 text-gray-500 transition-transform ${
+                                                expandedSections[section.section_id] ? 'rotate-180' : ''
+                                              }`} 
+                                            />
+                                          </button>
+                                          <span className="ml-1 text-gray-700">{section.name}</span>
+                                          <span className="ml-1 text-xs text-gray-500">({section.products_count} productos)</span>
+                          </div>
+                                      </td>
+                                      <td className="px-3 py-1 text-gray-500">{section.display_order}</td>
+                                      <td className="px-3 py-1 text-center">
+                                        <div className="relative w-6 h-6 mx-auto overflow-hidden rounded-full">
+                                          <Image
+                                            src={section.image ? `/images/sections/${section.image}` : '/placeholder.png'}
+                                            alt={section.name || ''}
+                                            fill
+                                            sizes="24px"
+                                            className="object-cover"
+                                            onError={(e) => {
+                                              const target = e.target as HTMLImageElement;
+                                              target.src = '/placeholder.png';
+                                            }}
+                                          />
+                        </div>
+                                      </td>
+                                      <td className="px-3 py-1 text-center">
+                                        <div className={`w-8 h-4 mx-auto rounded-full ${section.status === 1 ? 'bg-green-100' : 'bg-gray-200'}`}>
+                                          <div className={`w-2 h-2 mx-auto rounded-full ${section.status === 1 ? 'bg-green-500' : 'bg-gray-400'}`} />
+                                        </div>
+                                      </td>
+                                      <td className="px-3 py-1 text-center">
+                                        <div className="flex justify-center space-x-1">
+                                          <button className="p-0.5 text-gray-500 hover:text-indigo-500">
+                                            <PencilIcon className="h-3 w-3" />
+                                          </button>
+                                          <button className="p-0.5 text-gray-500 hover:text-red-500">
+                                            <TrashIcon className="h-3 w-3" />
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                    
+                                    {/* Productos de la sección */}
+                                    {expandedSections[section.section_id] && (
+                                      <>
+                                        {loadingProducts[section.section_id] ? (
+                                          <tr className="bg-gray-100">
+                                            <td colSpan={5} className="px-3 py-2 text-center text-xs text-gray-500">
+                                              <div className="flex justify-center items-center">
+                                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-indigo-500 mr-1"></div>
+                                                <span>Cargando productos...</span>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        ) : products[section.section_id]?.length > 0 ? (
+                                          products[section.section_id].map((product) => (
+                                            <tr key={`product-${product.product_id}`} className="bg-gray-100">
+                                              <td className="px-3 py-1">
+                                                <div className="flex items-center ml-12">
+                                                  <span className="text-gray-700">{product.name}</span>
+                                                  {product.price > 0 && (
+                                                    <span className="ml-1 text-xs text-gray-500">€{product.price.toFixed(2)}</span>
+                      )}
+                    </div>
+                                              </td>
+                                              <td className="px-3 py-1 text-gray-500">{product.display_order}</td>
+                                              <td className="px-3 py-1 text-center">
+                                                <div className="relative w-5 h-5 mx-auto overflow-hidden rounded-full">
+                                                  <Image
+                                                    src={product.image ? `/images/products/${product.image}` : '/placeholder.png'}
+                                                    alt={product.name || ''}
+                                                    fill
+                                                    sizes="20px"
+                                                    className="object-cover"
+                                                    onError={(e) => {
+                                                      const target = e.target as HTMLImageElement;
+                                                      target.src = '/placeholder.png';
+                                                    }}
+                                                  />
+            </div>
+                                              </td>
+                                              <td className="px-3 py-1 text-center">
+                                                <div className={`w-6 h-3 mx-auto rounded-full ${product.status === 1 ? 'bg-green-100' : 'bg-gray-200'}`}>
+                                                  <div className={`w-1.5 h-1.5 mx-auto rounded-full ${product.status === 1 ? 'bg-green-500' : 'bg-gray-400'}`} />
+          </div>
+                                              </td>
+                                              <td className="px-3 py-1 text-center">
+                                                <div className="flex justify-center space-x-1">
+                                                  <button className="p-0.5 text-gray-400 hover:text-indigo-500">
+                                                    <PencilIcon className="h-2.5 w-2.5" />
+                                                  </button>
+                                                  <button className="p-0.5 text-gray-400 hover:text-red-500">
+                                                    <TrashIcon className="h-2.5 w-2.5" />
+                                                  </button>
+        </div>
+                                              </td>
+                                            </tr>
+                                          ))
+                                        ) : (
+                                          <tr className="bg-gray-100">
+                                            <td colSpan={5} className="px-3 py-1 text-center text-xs text-gray-500">
+                                              No hay productos en esta sección
+                                            </td>
+                                          </tr>
+                                        )}
+                                      </>
+                                    )}
+                                  </Fragment>
+                                ))
+                              ) : (
+                                <tr className="bg-gray-50">
+                                  <td colSpan={5} className="px-3 py-1 text-center text-xs text-gray-500">
+                                    No hay secciones en esta categoría
+                                  </td>
+                                </tr>
+                              )}
+                            </>
                           )}
-                        </Draggable>
+                        </Fragment>
                       ))}
                       {provided.placeholder}
                       {categories.length === 0 && (
@@ -879,8 +1148,8 @@ export default function DashboardPage() {
                 <span className="text-xs text-indigo-600">Actualizando orden...</span>
                         </div>
                       )}
-          </div>
-
+      </div>
+      
           {/* Vista de cuadrícula para categorías */}
           <div className="bg-white shadow rounded-lg p-3 mb-4">
             <h3 className="text-sm font-semibold mb-2">Vista de categorías en el menú</h3>
@@ -901,8 +1170,8 @@ export default function DashboardPage() {
                             const target = e.target as HTMLImageElement;
                             target.src = "/placeholder.png";
                           }}
-                        />
-                      </div>
+        />
+      </div>
                     </div>
                     <span className="text-xs text-center line-clamp-1" title={category?.name || ''}>
                       {category?.name || ''}
@@ -911,18 +1180,18 @@ export default function DashboardPage() {
                 </div>
               ))}
               <div className="flex flex-col items-center justify-center p-1">
-                <button 
+                <button
                   onClick={() => setIsNewCategoryModalOpen(true)}
                   className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
                 >
                   <PlusIcon className="h-4 w-4 text-gray-500" />
                 </button>
                 <span className="text-[10px] mt-1">Añadir</span>
-            </div>
-          </div>
+              </div>
+                    </div>
         </div>
-      </div>
-      
+                    </div>
+                    
         {/* Vista previa simplificada - Mantener el mismo tamaño */}
         <div className="w-full lg:w-auto">
           <PhonePreview 
@@ -939,8 +1208,8 @@ export default function DashboardPage() {
             clientLogo={getMainLogoPath()}
           />
         </div>
-      </div>
-      
+                    </div>
+                    
       {/* Modal para confirmar eliminación de categoría - Reducido */}
       <Transition appear show={isDeleteModalOpen} as={Fragment}>
         <Dialog as="div" className="relative z-10" onClose={() => !isDeletingCategory && setIsDeleteModalOpen(false)}>
