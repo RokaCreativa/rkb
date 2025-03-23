@@ -69,7 +69,7 @@ export default function SectionTable({
   
   return (
     <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+      <div className="flex items-center justify-between px-4 py-3 bg-teal-50 border-b border-teal-100">
         <div className="flex items-center space-x-2">
           {onBackClick && (
             <button
@@ -79,7 +79,7 @@ export default function SectionTable({
               <ArrowLeftIcon className="h-4 w-4" />
             </button>
           )}
-          <h2 className="text-base font-medium text-indigo-600">
+          <h2 className="text-base font-medium text-teal-600">
             {categoryName || 'Secciones'}
           </h2>
         </div>
@@ -91,7 +91,7 @@ export default function SectionTable({
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="sections">
           {(provided) => (
-            <table className="min-w-full divide-y divide-gray-200" {...provided.droppableProps} ref={provided.innerRef}>
+            <table className="min-w-full divide-y divide-teal-100" {...provided.droppableProps} ref={provided.innerRef}>
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
@@ -107,7 +107,7 @@ export default function SectionTable({
                   <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-teal-100">
                 {/* Secciones visibles */}
                 {visibleSections.map((section, index) => (
                   <Draggable 
@@ -121,10 +121,10 @@ export default function SectionTable({
                         {...provided.draggableProps}
                         className={`${
                           snapshot.isDragging 
-                            ? "bg-blue-50" 
+                            ? "bg-teal-50" 
                             : expandedSections[section.section_id] 
-                              ? "bg-indigo-50" 
-                              : "hover:bg-gray-50"
+                              ? "bg-teal-50" 
+                              : "hover:bg-teal-50/50"
                         }`}
                       >
                         <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-8">
@@ -133,13 +133,13 @@ export default function SectionTable({
                               onClick={() => onSectionClick && onSectionClick(section.section_id)}
                               className={`p-1 rounded-full transition-colors ${
                                 expandedSections[section.section_id] 
-                                  ? "bg-indigo-100 text-indigo-600" 
-                                  : "hover:bg-gray-200 text-gray-500"
+                                  ? "bg-teal-100 text-teal-600" 
+                                  : "hover:bg-teal-50"
                               }`}
                               aria-label={expandedSections[section.section_id] ? "Colapsar" : "Expandir"}
                             >
                               {expandedSections[section.section_id] ? (
-                                <ChevronDownIcon className="h-5 w-5" />
+                                <ChevronDownIcon className="h-5 w-5 text-teal-600" />
                               ) : (
                                 <ChevronRightIcon className="h-4 w-4" />
                               )}
@@ -156,7 +156,7 @@ export default function SectionTable({
                             </div>
                             <div className={`font-medium text-sm max-w-xs truncate ${
                               expandedSections[section.section_id] 
-                                ? "text-indigo-700" 
+                                ? "text-teal-700" 
                                 : "text-gray-600"
                             }`}>
                               {section.name}
@@ -192,7 +192,7 @@ export default function SectionTable({
                               disabled={isUpdatingVisibility === section.section_id}
                               className={`p-1.5 rounded-full transition-colors ${
                                 section.status === 1 
-                                  ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' 
+                                  ? 'text-teal-600 bg-teal-50 hover:bg-teal-100' 
                                   : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
                               }`}
                               title={section.status === 1 ? "Visible" : "No visible"}
@@ -213,13 +213,13 @@ export default function SectionTable({
                           <div className="flex justify-center space-x-1">
                             <button
                               onClick={() => onEditSection && onEditSection(section)}
-                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                              className="p-1 text-teal-600 hover:text-teal-900 rounded-full hover:bg-teal-50"
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => onDeleteSection && onDeleteSection(section.section_id)}
-                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                              className="p-1 text-teal-600 hover:text-teal-900 rounded-full hover:bg-teal-50"
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>
@@ -232,7 +232,7 @@ export default function SectionTable({
 
                 {/* Sección de secciones no visibles */}
                 {hiddenSections.length > 0 && (
-                  <tr className="bg-gray-50 hover:bg-gray-100">
+                  <tr className="bg-teal-50/30 hover:bg-teal-50/50">
                     <td colSpan={6} className="py-2 px-4">
                       <button 
                         className="w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-700"
@@ -258,10 +258,10 @@ export default function SectionTable({
                         {...provided.draggableProps}
                         className={`${
                           snapshot.isDragging 
-                            ? "bg-blue-50" 
+                            ? "bg-teal-50" 
                             : expandedSections[section.section_id] 
-                              ? "bg-gray-100" 
-                              : "bg-gray-50 hover:bg-gray-100"
+                              ? "bg-teal-50" 
+                              : "hover:bg-teal-50/50"
                         }`}
                       >
                         <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-8">
@@ -270,13 +270,13 @@ export default function SectionTable({
                               onClick={() => onSectionClick && onSectionClick(section.section_id)}
                               className={`p-1 rounded-full transition-colors ${
                                 expandedSections[section.section_id] 
-                                  ? "bg-gray-200 text-gray-700" 
-                                  : "hover:bg-gray-200 text-gray-500"
+                                  ? "bg-teal-100 text-teal-600" 
+                                  : "hover:bg-teal-50"
                               }`}
                               aria-label={expandedSections[section.section_id] ? "Colapsar" : "Expandir"}
                             >
                               {expandedSections[section.section_id] ? (
-                                <ChevronDownIcon className="h-5 w-5" />
+                                <ChevronDownIcon className="h-5 w-5 text-teal-600" />
                               ) : (
                                 <ChevronRightIcon className="h-4 w-4" />
                               )}
@@ -340,13 +340,13 @@ export default function SectionTable({
                           <div className="flex justify-center space-x-1">
                             <button
                               onClick={() => onEditSection && onEditSection(section)}
-                              className="p-1 text-gray-500 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                              className="p-1 text-gray-500 hover:text-teal-900 rounded-full hover:bg-teal-50"
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => onDeleteSection && onDeleteSection(section.section_id)}
-                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                              className="p-1 text-teal-600 hover:text-teal-900 rounded-full hover:bg-teal-50"
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>

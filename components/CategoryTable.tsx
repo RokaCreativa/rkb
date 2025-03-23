@@ -76,7 +76,7 @@ export default function CategoryTable({
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="categories">
           {(provided) => (
-            <table className="min-w-full divide-y divide-gray-200" {...provided.droppableProps} ref={provided.innerRef}>
+            <table className="min-w-full divide-y divide-indigo-100" {...provided.droppableProps} ref={provided.innerRef}>
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
@@ -92,7 +92,7 @@ export default function CategoryTable({
                   <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-indigo-100">
                 {/* Categorías visibles */}
                 {visibleCategories.map((category, index) => (
                   <Draggable 
@@ -217,7 +217,7 @@ export default function CategoryTable({
 
                 {/* Sección de categorías no visibles */}
                 {hiddenCategories.length > 0 && (
-                  <tr className="bg-gray-50 hover:bg-gray-100">
+                  <tr className="bg-indigo-50/30 hover:bg-indigo-50/50">
                     <td colSpan={6} className="py-2 px-4">
                       <button 
                         className="w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-700"
@@ -245,8 +245,8 @@ export default function CategoryTable({
                           snapshot.isDragging 
                             ? "bg-blue-50" 
                             : expandedCategories[category.category_id] 
-                              ? "bg-gray-100" 
-                              : "bg-gray-50 hover:bg-gray-100"
+                              ? "bg-indigo-100" 
+                              : "bg-indigo-50 hover:bg-indigo-50"
                         }`}
                       >
                         <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-8">
@@ -255,7 +255,7 @@ export default function CategoryTable({
                               onClick={() => onCategoryClick && onCategoryClick(category.category_id)}
                               className={`p-1 rounded-full transition-colors ${
                                 expandedCategories[category.category_id] 
-                                  ? "bg-gray-200 text-gray-700" 
+                                  ? "bg-indigo-100 text-indigo-600" 
                                   : "hover:bg-gray-200 text-gray-500"
                               }`}
                               aria-label={expandedCategories[category.category_id] ? "Colapsar" : "Expandir"}

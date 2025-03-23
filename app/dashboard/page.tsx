@@ -1387,7 +1387,7 @@ export default function DashboardPage() {
             <div 
               key={`category-${category.category_id}`}
               id={`category-${category.category_id}`}
-              className="mt-4 pl-4 border-l-2 border-indigo-100"
+              className="mt-4 pl-4 pr-4 border-l-2 border-indigo-100 max-w-[95%] mx-auto"
             >
               <div className="mb-4">
                 <button
@@ -1395,7 +1395,7 @@ export default function DashboardPage() {
                     setSelectedCategory(category);
                     setIsNewSectionModalOpen(true);
                   }}
-                  className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
+                  className="w-full flex items-center justify-center px-4 py-2 border border-teal-300 text-sm font-medium rounded-md text-teal-700 bg-teal-50 hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 shadow-sm"
                 >
                   <PlusIcon className="h-5 w-5 mr-2" />
                   Nueva Sección
@@ -1420,7 +1420,7 @@ export default function DashboardPage() {
                   <div 
                     key={`section-${section.section_id}`}
                     id={`section-${section.section_id}`}
-                    className="mt-4 pl-4 border-l-2 border-indigo-100"
+                    className="mt-4 pl-4 pr-4 border-l-2 border-teal-100 max-w-[90%] mx-auto"
                   >
                     <div className="mb-4">
                       <button
@@ -1428,7 +1428,7 @@ export default function DashboardPage() {
                           setSelectedSection(section);
                           setIsNewProductModalOpen(true);
                         }}
-                        className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
+                        className="w-full flex items-center justify-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 shadow-sm"
                       >
                         <PlusIcon className="h-5 w-5 mr-2" />
                         Nuevo Producto

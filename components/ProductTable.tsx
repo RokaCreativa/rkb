@@ -65,7 +65,7 @@ export default function ProductTable({
   
   return (
     <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
-      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+      <div className="flex items-center justify-between px-4 py-3 bg-amber-50 border-b border-amber-100">
         <div className="flex items-center space-x-2">
           {onBackClick && (
             <button
@@ -75,7 +75,7 @@ export default function ProductTable({
               <ArrowLeftIcon className="h-4 w-4" />
             </button>
           )}
-          <h2 className="text-base font-medium text-indigo-600">
+          <h2 className="text-base font-medium text-amber-600">
             {sectionName || 'Productos'}
           </h2>
         </div>
@@ -87,7 +87,7 @@ export default function ProductTable({
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="products">
           {(provided) => (
-            <table className="min-w-full divide-y divide-gray-200" {...provided.droppableProps} ref={provided.innerRef}>
+            <table className="min-w-full divide-y divide-amber-100" {...provided.droppableProps} ref={provided.innerRef}>
               <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -115,7 +115,7 @@ export default function ProductTable({
                       <tr 
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`${snapshot.isDragging ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                        className={`${snapshot.isDragging ? "bg-amber-100" : "hover:bg-amber-50/50"}`}
                       >
                         <td 
                           className="px-3 py-2 whitespace-nowrap"
@@ -125,7 +125,7 @@ export default function ProductTable({
                             <div className="text-gray-400 mr-2">
                               <Bars3Icon className="h-5 w-5" />
                             </div>
-                            <div className="font-medium text-sm text-gray-600 max-w-xs truncate">
+                            <div className="font-medium text-sm text-amber-700 max-w-xs truncate">
                               {product.name}
                             </div>
                           </div>
@@ -159,7 +159,7 @@ export default function ProductTable({
                               disabled={isUpdatingVisibility === product.product_id}
                               className={`p-1.5 rounded-full transition-colors ${
                                 product.status === 1 
-                                  ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' 
+                                  ? 'text-amber-600 bg-amber-50 hover:bg-amber-100' 
                                   : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
                               }`}
                               title={product.status === 1 ? "Visible" : "No visible"}
@@ -180,13 +180,13 @@ export default function ProductTable({
                           <div className="flex justify-center space-x-1">
                             <button
                               onClick={() => onEditProduct && onEditProduct(product)}
-                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                              className="p-1 text-amber-600 hover:text-amber-900 rounded-full hover:bg-amber-50"
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => onDeleteProduct && onDeleteProduct(product.product_id)}
-                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                              className="p-1 text-amber-600 hover:text-amber-900 rounded-full hover:bg-amber-50"
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>
@@ -199,7 +199,7 @@ export default function ProductTable({
 
                 {/* Sección de productos no visibles */}
                 {hiddenProducts.length > 0 && (
-                  <tr className="bg-gray-50 hover:bg-gray-100">
+                  <tr className="bg-amber-50/30 hover:bg-amber-50/50">
                     <td colSpan={6} className="py-2 px-4">
                       <button 
                         className="w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-700"
@@ -223,7 +223,7 @@ export default function ProductTable({
                       <tr 
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`${snapshot.isDragging ? "bg-blue-50" : "bg-gray-50 hover:bg-gray-100"}`}
+                        className={`${snapshot.isDragging ? "bg-amber-100" : "bg-amber-50/30 hover:bg-amber-50/50"}`}
                       >
                         <td 
                           className="px-3 py-2 whitespace-nowrap"
@@ -233,7 +233,7 @@ export default function ProductTable({
                             <div className="text-gray-400 mr-2">
                               <Bars3Icon className="h-5 w-5" />
                             </div>
-                            <div className="font-medium text-sm text-gray-500 max-w-xs truncate">
+                            <div className="font-medium text-sm text-amber-700 max-w-xs truncate">
                               {product.name}
                             </div>
                           </div>
@@ -282,13 +282,13 @@ export default function ProductTable({
                           <div className="flex justify-center space-x-1">
                             <button
                               onClick={() => onEditProduct && onEditProduct(product)}
-                              className="p-1 text-gray-500 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                              className="p-1 text-amber-600 hover:text-amber-900 rounded-full hover:bg-amber-50"
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => onDeleteProduct && onDeleteProduct(product.product_id)}
-                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                              className="p-1 text-amber-600 hover:text-amber-900 rounded-full hover:bg-amber-50"
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>
