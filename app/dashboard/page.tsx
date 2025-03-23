@@ -267,6 +267,42 @@ async function updateProductVisibility(productId: number, newStatus: number) {
   }
 }
 
+// Eliminar una sección
+async function deleteSection(sectionId: number) {
+  try {
+    const response = await fetch(`/api/sections/${sectionId}`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al eliminar la sección');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error al eliminar la sección:', error);
+    throw error;
+  }
+}
+
+// Eliminar un producto
+async function deleteProduct(productId: number) {
+  try {
+    const response = await fetch(`/api/products/${productId}`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      throw new Error('Error al eliminar el producto');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error al eliminar el producto:', error);
+    throw error;
+  }
+}
+
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
@@ -317,6 +353,28 @@ export default function DashboardPage() {
   const [newProductImage, setNewProductImage] = useState<File | null>(null);
   const [newProductImagePreview, setNewProductImagePreview] = useState<string | null>(null);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
+  const [isDeleteSectionModalOpen, setIsDeleteSectionModalOpen] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState<number | null>(null);
+  const [isDeletingSection, setIsDeletingSection] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<number | null>(null);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+  
+  // Estados para edición de sección
+  const [isEditSectionModalOpen, setIsEditSectionModalOpen] = useState(false);
+  const [editingSection, setEditingSection] = useState<{ id: number; name: string } | null>(null);
+  const [editSectionName, setEditSectionName] = useState('');
+  const [editSectionImage, setEditSectionImage] = useState<File | null>(null);
+  const [editSectionImagePreview, setEditSectionImagePreview] = useState<string | null>(null);
+  const [isUpdatingSectionName, setIsUpdatingSectionName] = useState(false);
+  
+  // Estados para edición de producto
+  const [editingProduct, setEditingProduct] = useState<{ id: number; name: string } | null>(null);
+  const [editProductName, setEditProductName] = useState('');
+  const [editProductPrice, setEditProductPrice] = useState('');
+  const [editProductDescription, setEditProductDescription] = useState('');
+  const [editProductImage, setEditProductImage] = useState<File | null>(null);
+  const [editProductImagePreview, setEditProductImagePreview] = useState<string | null>(null);
+  const [isUpdatingProductName, setIsUpdatingProductName] = useState(false);
   
   // Referencias para el scroll automático
   const sectionListRef = useRef<HTMLDivElement>(null);
@@ -599,11 +657,11 @@ export default function DashboardPage() {
         
       } catch (err: any) {
         setError(err.message || 'Error desconocido al cargar datos');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
     if (status === 'authenticated') loadData();
   }, [status]);
 
@@ -762,7 +820,7 @@ export default function DashboardPage() {
       } catch (error) {
       console.error('Error al actualizar visibilidad:', error);
       toast.error('Error al actualizar el estado');
-      } finally {
+    } finally {
       setIsUpdatingVisibility(null);
     }
   };
@@ -918,7 +976,7 @@ export default function DashboardPage() {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al crear la sección');
       }
@@ -970,7 +1028,7 @@ export default function DashboardPage() {
       reader.readAsDataURL(file);
     }
   };
-  
+
   // Manejador para la creación de un nuevo producto
   const handleCreateProduct = async () => {
     if (!selectedSection || !client) return;
@@ -1027,7 +1085,7 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error al crear el producto:', error);
       toast.error('Error al crear el producto');
-    } finally {
+      } finally {
       setIsCreatingProduct(false);
     }
   };
@@ -1066,6 +1124,42 @@ export default function DashboardPage() {
     )
   }
 
+  // Función para editar una sección
+  const handleEditSection = (section: Section) => {
+    setEditingSection({
+      id: section.section_id,
+      name: section.name
+    });
+    setEditSectionName(section.name);
+    setEditSectionImagePreview(section.image ? getImagePath(section.image, 'sections') : null);
+    setIsEditSectionModalOpen(true);
+  };
+
+  // Función para eliminar una sección
+  const handleDeleteSection = (sectionId: number) => {
+    setSectionToDelete(sectionId);
+    setIsDeleteSectionModalOpen(true);
+  };
+  
+  // Función para editar un producto
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct({
+      id: product.product_id,
+      name: product.name
+    });
+    setEditProductName(product.name);
+    setEditProductPrice(product.price);
+    setEditProductDescription(product.description || '');
+    setEditProductImagePreview(product.image ? getImagePath(product.image, 'products') : null);
+    setIsEditProductModalOpen(true);
+  };
+
+  // Función para eliminar un producto
+  const handleDeleteProduct = (productId: number) => {
+    setProductToDelete(productId);
+    setIsDeleteProductModalOpen(true);
+  };
+
   return (
     <>
       <TopNavbar 
@@ -1083,13 +1177,13 @@ export default function DashboardPage() {
           {/* Botón de acción según la vista */}
           <div>
             {currentView === 'categories' && (
-              <button
+            <button 
                 onClick={() => setIsNewCategoryModalOpen(true)}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
+            >
                 <PlusIcon className="h-4 w-4 mr-1" />
                 Nueva Categoría
-              </button>
+            </button>
             )}
             
             {currentView === 'sections' && selectedCategory && (
@@ -1112,48 +1206,177 @@ export default function DashboardPage() {
                             </button>
                 )}
                         </div>
-                          </div>
+          </div>
           
         {/* Contenido principal según la vista */}
         <div className="space-y-3" ref={sectionListRef}>
           {currentView === 'categories' && (
-            <CategoryTable 
-              categories={categories}
-              expandedCategories={expandedCategories}
-              onCategoryClick={handleCategoryClick}
-              onEditCategory={handleEditCategory}
-              onDeleteCategory={handleDeleteCategory}
-              onToggleVisibility={toggleCategoryVisibility}
-              isUpdatingVisibility={isUpdatingVisibility}
-              onReorderCategory={handleReorderCategory}
-            />
+            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 px-4">
+              <div className="w-full md:w-2/3">
+                <div className="mb-4">
+                  <button
+                    onClick={() => setIsNewCategoryModalOpen(true)}
+                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <PlusIcon className="h-5 w-5 mr-2" />
+                    Añadir nueva categoría
+                  </button>
+                </div>
+                <CategoryTable 
+                  categories={categories}
+                  expandedCategories={expandedCategories}
+                  onCategoryClick={handleCategoryClick}
+                  onEditCategory={handleEditCategory}
+                  onDeleteCategory={handleDeleteCategory}
+                  onToggleVisibility={toggleCategoryVisibility}
+                  isUpdatingVisibility={isUpdatingVisibility}
+                  onReorderCategory={handleReorderCategory}
+                />
+              </div>
+              <div className="w-full md:w-1/3">
+                <FloatingPhonePreview 
+                  clientName={client?.name || "Mi Restaurante"}
+                  clientMainLogo={client?.main_logo || undefined}
+                  categories={categories.filter(cat => cat.status === 1).map(cat => ({
+                    id: cat.category_id,
+                    name: cat.name,
+                    image: cat.image || undefined
+                  }))}
+                />
+              </div>
+            </div>
           )}
           
           {currentView === 'sections' && selectedCategory && (
-            <div className="space-y-4">
-              <SectionTable 
-                sections={sections[selectedCategory.category_id] || []}
-                expandedSections={expandedSections}
-                onSectionClick={handleSectionClick}
-                onBackClick={navigateBack}
-                categoryName={selectedCategory.name}
-                onToggleVisibility={toggleSectionVisibility}
-                isUpdatingVisibility={isUpdatingVisibility}
-              />
-                          </div>
+            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 px-4">
+              <div className="w-full md:w-2/3">
+                <div className="mb-4">
+                  <button
+                    onClick={() => setIsNewSectionModalOpen(true)}
+                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <PlusIcon className="h-5 w-5 mr-2" />
+                    Añadir nueva sección a {selectedCategory.name}
+                  </button>
+                </div>
+                {sections[selectedCategory.category_id] ? (
+                  <SectionTable 
+                    sections={sections[selectedCategory.category_id]}
+                    expandedSections={expandedSections}
+                    onSectionClick={handleSectionClick}
+                    onBackClick={navigateBack}
+                    categoryName={selectedCategory.name}
+                    onEditSection={(sectionToEdit) => {
+                      // Asegurar compatibilidad de tipos
+                      const section: Section = {
+                        ...sectionToEdit,
+                        products_count: sectionToEdit.products_count || 0
+                      };
+                      handleEditSection(section);
+                    }}
+                    onDeleteSection={handleDeleteSection}
+                    onToggleVisibility={toggleSectionVisibility}
+                    isUpdatingVisibility={isUpdatingVisibility}
+                    onReorderSection={(sourceIndex, destinationIndex) => {
+                      // Implementar reordenamiento de secciones
+                      console.log('Reordenar secciones', sourceIndex, destinationIndex);
+                    }}
+                  />
+                ) : (
+                  <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                  </div>
+                )}
+              </div>
+              <div className="w-full md:w-1/3">
+                <FloatingPhonePreview 
+                  clientName={client?.name || "Mi Restaurante"}
+                  clientMainLogo={client?.main_logo || undefined}
+                  categories={[{
+                    id: selectedCategory.category_id,
+                    name: selectedCategory.name,
+                    image: selectedCategory.image || undefined,
+                    sections: sections[selectedCategory.category_id]
+                      ?.filter(sec => sec.status === 1)
+                      .map(sec => ({
+                        id: sec.section_id,
+                        name: sec.name,
+                        image: sec.image || undefined
+                      }))
+                  }]}
+                />
+              </div>
+            </div>
           )}
           
-          {currentView === 'products' && selectedSection && (
-            <div className="space-y-4" ref={productListRef}>
-              <ProductTable 
-                products={products[selectedSection.section_id] || []}
-                onBackClick={navigateBack}
-                sectionName={selectedSection.name}
-                onToggleVisibility={toggleProductVisibility}
-                isUpdatingVisibility={isUpdatingVisibility}
-                                                  />
+          {currentView === 'products' && selectedCategory && selectedSection && (
+            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 px-4">
+              <div className="w-full md:w-2/3">
+                <div className="mb-4">
+                  <button
+                    onClick={() => setIsNewProductModalOpen(true)}
+                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <PlusIcon className="h-5 w-5 mr-2" />
+                    Añadir nuevo producto a {selectedSection.name}
+                  </button>
+                </div>
+                {products[selectedSection.section_id] ? (
+                  <ProductTable 
+                    products={products[selectedSection.section_id]}
+                    onBackClick={navigateBack}
+                    sectionName={selectedSection.name}
+                    onEditProduct={(productToEdit) => {
+                      // Asegurar compatibilidad de tipos agregando propiedades faltantes
+                      const product: Product = {
+                        ...productToEdit,
+                        // Acceder a description de manera segura, verificando que exista en productToEdit
+                        description: 'description' in productToEdit ? productToEdit.description as string | null : null,
+                        sections: [] // Asumiendo que esta propiedad es necesaria según la definición de Product
+                      };
+                      handleEditProduct(product);
+                    }}
+                    onDeleteProduct={handleDeleteProduct}
+                    onToggleVisibility={toggleProductVisibility}
+                    isUpdatingVisibility={isUpdatingVisibility}
+                    onReorderProduct={(sourceIndex, destinationIndex) => {
+                      // Implementar reordenamiento de productos
+                      console.log('Reordenar productos', sourceIndex, destinationIndex);
+                    }}
+                  />
+                ) : (
+                  <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                  </div>
+                )}
+              </div>
+              <div className="w-full md:w-1/3">
+                <FloatingPhonePreview 
+                  clientName={client?.name || "Mi Restaurante"}
+                  clientMainLogo={client?.main_logo || undefined}
+                  categories={[{
+                    id: selectedCategory.category_id,
+                    name: selectedCategory.name,
+                    image: selectedCategory.image || undefined,
+                    sections: [{
+                      id: selectedSection.section_id,
+                      name: selectedSection.name,
+                      image: selectedSection.image || undefined,
+                      products: products[selectedSection.section_id]
+                        ?.filter(prod => prod.status === 1)
+                        .map(prod => ({
+                          id: prod.product_id,
+                          name: prod.name,
+                          image: prod.image || undefined,
+                          price: prod.price,
+                          description: prod.description || undefined
+                        }))
+                    }]
+                  }]}
+                />
+              </div>
             </div>
-                      )}
+          )}
       </div>
       
         {/* Secciones expandidas para categorías */}
@@ -1245,28 +1468,28 @@ export default function DashboardPage() {
                     <div className="mb-4">
                       <label htmlFor="categoryName" className="block text-sm font-medium text-gray-700">
                         Nombre de la categoría
-                      </label>
-                      <input
-                        type="text"
+            </label>
+            <input
+              type="text"
                         name="categoryName"
                         id="categoryName"
                         className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                        value={newCategoryName}
-                        onChange={(e) => setNewCategoryName(e.target.value)}
-                      />
-                    </div>
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+            />
+                </div>
                     <div className="mb-4">
                       <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700">
                         Imagen de la categoría
-                      </label>
+            </label>
                       <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                         <div className="space-y-1 text-center">
-                          {imagePreview ? (
+                {imagePreview ? (
                             <div className="relative mx-auto w-24 h-24 mb-2">
-                              <Image 
-                                src={imagePreview} 
-                                alt="Vista previa" 
-                                fill
+                  <Image
+                    src={imagePreview}
+                    alt="Vista previa"
+                    fill
                                 className="object-cover rounded-full"
                               />
                               <button
@@ -1294,20 +1517,20 @@ export default function DashboardPage() {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                               />
-                            </svg>
-                          )}
+                  </svg>
+                )}
                           <div className="flex text-sm text-gray-600">
                             <label
                               htmlFor="category-image-upload"
                               className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
                             >
                               <span>Subir imagen</span>
-                              <input 
+                <input
                                 id="category-image-upload" 
                                 name="category-image-upload" 
-                                type="file" 
+                  type="file"
                                 className="sr-only" 
-                                accept="image/*"
+                  accept="image/*"
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
@@ -1322,20 +1545,20 @@ export default function DashboardPage() {
                               />
                             </label>
                             <p className="pl-1">o arrastra y suelta</p>
-                          </div>
+            </div>
                           <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
-                        </div>
-                      </div>
+                </div>
+                </div>
                     </div>
                     <div className="flex justify-between">
-                      <button
+            <button
                         type="button"
                         className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
-                        onClick={() => setIsNewCategoryModalOpen(false)}
-                      >
-                        Cancelar
-                      </button>
-                      <button
+              onClick={() => setIsNewCategoryModalOpen(false)}
+            >
+              Cancelar
+            </button>
+            <button
                         type="button"
                         className={`inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm ${
                           isCreatingCategory ? 'opacity-50 cursor-not-allowed' : ''
@@ -1383,20 +1606,20 @@ export default function DashboardPage() {
                             setIsCreatingCategory(false);
                           });
                         }}
-                        disabled={isCreatingCategory || !newCategoryName.trim()}
-                      >
-                        {isCreatingCategory ? (
+              disabled={isCreatingCategory || !newCategoryName.trim()}
+            >
+              {isCreatingCategory ? (
                           <>
                             <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Creando...
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creando...
                           </>
-                        ) : 'Crear Categoría'}
-                      </button>
-                    </div>
-                  </div>
+              ) : 'Crear Categoría'}
+            </button>
+            </div>
+                </div>
                 </div>
               </Transition.Child>
             </div>
@@ -1434,7 +1657,7 @@ export default function DashboardPage() {
                   <div>
                     <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
                       <PlusIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                    </div>
+          </div>
                     <div className="mt-3 text-center sm:mt-5">
                       <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
                         Nueva sección
@@ -1450,28 +1673,28 @@ export default function DashboardPage() {
                     <div className="mb-4">
                       <label htmlFor="sectionName" className="block text-sm font-medium text-gray-700">
                         Nombre de la sección
-                      </label>
-                      <input
-                        type="text"
+            </label>
+            <input
+              type="text"
                         name="sectionName"
                         id="sectionName"
                         className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                         value={newSectionName}
                         onChange={(e) => setNewSectionName(e.target.value)}
-                      />
-                    </div>
+            />
+            </div>
                     <div className="mb-4">
                       <label htmlFor="sectionImage" className="block text-sm font-medium text-gray-700">
                         Imagen de la sección
-                      </label>
+            </label>
                       <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                         <div className="space-y-1 text-center">
                           {newSectionImagePreview ? (
                             <div className="relative mx-auto w-24 h-24 mb-2">
-                              <Image 
+                  <Image
                                 src={newSectionImagePreview} 
-                                alt="Vista previa" 
-                                fill
+                    alt="Vista previa"
+                    fill
                                 className="object-cover rounded-full"
                               />
                               <button
@@ -1499,20 +1722,20 @@ export default function DashboardPage() {
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                               />
-                            </svg>
-                          )}
+                  </svg>
+                )}
                           <div className="flex text-sm text-gray-600">
                             <label
                               htmlFor="section-image-upload"
                               className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
                             >
                               <span>Subir imagen</span>
-                              <input 
+                <input
                                 id="section-image-upload" 
                                 name="section-image-upload" 
-                                type="file" 
+                  type="file"
                                 className="sr-only" 
-                                accept="image/*"
+                  accept="image/*"
                                 onChange={handleNewSectionImageChange}
                               />
                             </label>
@@ -1523,15 +1746,15 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex justify-between">
-                      <button
-                        type="button"
+                            <button
+                  type="button"
                         className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
                         onClick={() => setIsNewSectionModalOpen(false)}
-                      >
+                            >
                         Cancelar
-                      </button>
-                      <button
-                        type="button"
+                            </button>
+                            <button
+                    type="button"
                         className={`inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm ${
                           isCreatingSection ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
@@ -1547,10 +1770,10 @@ export default function DashboardPage() {
                             Creando...
                           </>
                         ) : 'Crear sección'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                            </button>
+                          </div>
+                        </div>
+                          </div>
               </Transition.Child>
             </div>
           </Dialog>
@@ -1660,7 +1883,7 @@ export default function DashboardPage() {
                                 fill
                                 className="object-cover rounded-md"
                               />
-                              <button
+                            <button
                                 type="button"
                                 className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
                                 onClick={() => {
@@ -1713,10 +1936,10 @@ export default function DashboardPage() {
                         type="button"
                         className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
                         onClick={() => setIsNewProductModalOpen(false)}
-                      >
-                        Cancelar
-                      </button>
-                      <button
+                            >
+              Cancelar
+                            </button>
+                            <button
                         type="button"
                         className={`inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm ${
                           isCreatingProduct ? 'opacity-50 cursor-not-allowed' : ''
@@ -1727,16 +1950,16 @@ export default function DashboardPage() {
                         {isCreatingProduct ? (
                           <>
                             <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
                             Creando...
                           </>
                         ) : 'Crear producto'}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
               </Transition.Child>
             </div>
           </Dialog>
@@ -1773,7 +1996,7 @@ export default function DashboardPage() {
                   <div>
                     <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
                       <PencilIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                    </div>
+                                      </div>
                     <div className="mt-3 text-center sm:mt-5">
                       <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
                         Editar categoría
@@ -1782,7 +2005,7 @@ export default function DashboardPage() {
                         <p className="text-sm text-gray-500">
                           Modifica los detalles de la categoría
                         </p>
-                      </div>
+                                    </div>
                     </div>
                   </div>
                   <div className="mt-5 sm:mt-6">
@@ -1798,7 +2021,7 @@ export default function DashboardPage() {
                         value={editCategoryName}
                         onChange={(e) => setEditCategoryName(e.target.value)}
                       />
-                    </div>
+                                  </div>
                     <div className="mb-4">
                       <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700">
                         Imagen de la categoría
@@ -1813,7 +2036,7 @@ export default function DashboardPage() {
                                 fill
                                 className="object-cover rounded-full"
                               />
-                              <button
+                                    <button 
                                 type="button"
                                 className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
                                 onClick={() => {
@@ -1822,7 +2045,7 @@ export default function DashboardPage() {
                                 }}
                               >
                                 <XMarkIcon className="h-4 w-4" aria-hidden="true" />
-                              </button>
+                                    </button>
                             </div>
                           ) : (
                             <svg
@@ -1867,20 +2090,20 @@ export default function DashboardPage() {
                               />
                             </label>
                             <p className="pl-1">o arrastra y suelta</p>
-                          </div>
+                                  </div>
                           <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+                          </div>
                         </div>
-                      </div>
                     </div>
                     <div className="flex justify-between">
-                      <button
+                                  <button 
                         type="button"
                         className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
                         onClick={() => setIsEditModalOpen(false)}
-                      >
+                                  >
                         Cancelar
-                      </button>
-                      <button
+                                  </button>
+                                          <button 
                         type="button"
                         className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm"
                         onClick={() => {
@@ -1935,12 +2158,12 @@ export default function DashboardPage() {
                         }}
                       >
                         Guardar Cambios
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                                          </button>
+                          </div>
+                        </div>
+                                        </div>
               </Transition.Child>
-            </div>
+                                        </div>
           </Dialog>
         </Transition.Root>
         
@@ -1975,7 +2198,7 @@ export default function DashboardPage() {
                   <div>
                     <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
                       <TrashIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
-                    </div>
+                                              </div>
                     <div className="mt-3 text-center sm:mt-5">
                       <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
                         Eliminar categoría
@@ -1985,9 +2208,9 @@ export default function DashboardPage() {
                           ¿Estás seguro de que deseas eliminar esta categoría?
                           Esta acción no se puede deshacer.
                         </p>
-                      </div>
                     </div>
-                  </div>
+            </div>
+          </div>
                   <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
                     <button
                       type="button"
@@ -2037,7 +2260,7 @@ export default function DashboardPage() {
                           Eliminando...
                         </>
                       ) : 'Eliminar'}
-                    </button>
+                                                  </button>
                     <button
                       type="button"
                       className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
@@ -2048,7 +2271,668 @@ export default function DashboardPage() {
                       disabled={isDeletingCategory}
                     >
                       Cancelar
+                                                  </button>
+        </div>
+                        </div>
+              </Transition.Child>
+      </div>
+          </Dialog>
+        </Transition.Root>
+        
+        {/* Modal para editar sección */}
+        <Transition.Root show={isEditSectionModalOpen} as={Fragment}>
+          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsEditSectionModalOpen}>
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              </Transition.Child>
+
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        Editar sección
+                      </Dialog.Title>
+                      <div className="mt-2">
+                        <div className="mb-4">
+                          <label htmlFor="sectionName" className="block text-sm font-medium text-gray-700">
+                            Nombre de la sección
+                          </label>
+                          <input
+                            type="text"
+                            name="sectionName"
+                            id="sectionName"
+                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                            value={editSectionName}
+                            onChange={(e) => setEditSectionName(e.target.value)}
+                            placeholder="Nombre de la sección"
+                          />
+                        </div>
+                        <div className="mb-4">
+                          <label htmlFor="sectionImage" className="block text-sm font-medium text-gray-700">
+                            Imagen de la sección
+                          </label>
+                          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                            <div className="space-y-1 text-center">
+                              {editSectionImagePreview ? (
+                                <div className="relative mx-auto w-24 h-24 mb-2">
+                        <Image
+                                    src={editSectionImagePreview} 
+                                    alt="Vista previa" 
+                                    fill
+                                    className="object-cover rounded-full"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
+                                    onClick={() => {
+                                      setEditSectionImage(null);
+                                      setEditSectionImagePreview(null);
+                                    }}
+                                  >
+                                    <XMarkIcon className="h-4 w-4" aria-hidden="true" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <svg
+                                  className="mx-auto h-12 w-12 text-gray-400"
+                                  stroke="currentColor"
+                                  fill="none"
+                                  viewBox="0 0 48 48"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                    strokeWidth={2}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              )}
+                              <div className="flex text-sm text-gray-600">
+                                <label
+                                  htmlFor="edit-section-image-upload"
+                                  className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                                >
+                                  <span>Subir imagen</span>
+                                  <input 
+                                    id="edit-section-image-upload" 
+                                    name="edit-section-image-upload" 
+                                    type="file" 
+                                    className="sr-only" 
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        setEditSectionImage(file);
+                                        
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                          setEditSectionImagePreview(reader.result as string);
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                                <p className="pl-1">o arrastra y suelta</p>
+      </div>
+                              <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+                    </div>
+                  </div>
+                </div>
+                        <div className="flex justify-between">
+                <button
+                            type="button"
+                            className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
+                            onClick={() => setIsEditSectionModalOpen(false)}
+                >
+                            Cancelar
+                </button>
+                          <button
+                            type="button"
+                            className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm"
+                            onClick={() => {
+                              if (!editingSection || !client) return;
+                              
+                              setIsUpdatingSectionName(true);
+                              
+                              const formData = new FormData();
+                              formData.append('name', editSectionName);
+                              formData.append('client_id', client.id.toString());
+                              
+                              if (editSectionImage) {
+                                formData.append('image', editSectionImage);
+                              }
+                              
+                              fetch(`/api/sections/${editingSection.id}`, {
+                                method: 'PUT',
+                                body: formData
+                              })
+                              .then(response => {
+                                if (!response.ok) {
+                                  throw new Error('Error al actualizar la sección');
+                                }
+                                return response.json();
+                              })
+                              .then(updatedSection => {
+                                // Actualizar estado local
+                                setSections(prev => {
+                                  const updated = {...prev};
+                                  Object.keys(updated).forEach(categoryId => {
+                                    if (updated[Number(categoryId)]) {
+                                      updated[Number(categoryId)] = updated[Number(categoryId)].map(section => 
+                                        section.section_id === editingSection.id 
+                                          ? updatedSection 
+                                          : section
+                                      );
+                                    }
+                                  });
+                                  return updated;
+                                });
+                                
+                                // Limpiar formulario y cerrar modal
+                                setIsEditSectionModalOpen(false);
+                                setEditSectionName('');
+                                setEditSectionImage(null);
+                                setEditSectionImagePreview(null);
+                                setEditingSection(null);
+                                
+                                toast.success('Sección actualizada correctamente');
+                              })
+                              .catch(error => {
+                                console.error('Error al actualizar la sección:', error);
+                                toast.error('Error al actualizar la sección');
+                              })
+                              .finally(() => {
+                                setIsUpdatingSectionName(false);
+                              });
+                            }}
+                          >
+                            Guardar Cambios
+                          </button>
+              </div>
+                    </div>
+        </div>
+                    </div>
+        </div>
+              </Transition.Child>
+                    </div>
+          </Dialog>
+        </Transition.Root>
+        
+        {/* Modal para eliminar sección */}
+        <Transition.Root show={isDeleteSectionModalOpen} as={Fragment}>
+          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsDeleteSectionModalOpen}>
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          </Transition.Child>
+
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                  <div>
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                      <TrashIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                    </div>
+                    <div className="mt-3 text-center sm:mt-5">
+                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        Eliminar sección
+                  </Dialog.Title>
+                  <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          ¿Estás seguro de que deseas eliminar esta sección?
+                          Esta acción no se puede deshacer.
+                    </p>
+              </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                    <button
+                      type="button"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm"
+                      onClick={() => {
+                        if (!sectionToDelete) return;
+                        
+                        setIsDeletingSection(true);
+                        
+                        deleteSection(sectionToDelete)
+                          .then(() => {
+                            // Actualizar estado local
+                            if (selectedCategory) {
+                              setSections(prev => {
+                                const updated = {...prev};
+                                if (updated[selectedCategory.category_id]) {
+                                  updated[selectedCategory.category_id] = updated[selectedCategory.category_id].filter(
+                                    section => section.section_id !== sectionToDelete
+                                  );
+                                }
+                                return updated;
+                              });
+                            }
+                            
+                            // Cerrar modal
+                            setIsDeleteSectionModalOpen(false);
+                            setSectionToDelete(null);
+                            
+                            toast.success('Sección eliminada correctamente');
+                          })
+                          .catch(error => {
+                            console.error('Error al eliminar la sección:', error);
+                            toast.error('Error al eliminar la sección');
+                          })
+                          .finally(() => {
+                            setIsDeletingSection(false);
+                          });
+                      }}
+                      disabled={isDeletingSection}
+                    >
+                      {isDeletingSection ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Eliminando...
+                        </>
+                      ) : 'Eliminar'}
                     </button>
+                <button
+                  type="button"
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                      onClick={() => {
+                        setIsDeleteSectionModalOpen(false);
+                        setSectionToDelete(null);
+                      }}
+                      disabled={isDeletingSection}
+                >
+                      Cancelar
+                </button>
+                  </div>
+                </div>
+              </Transition.Child>
+            </div>
+          </Dialog>
+        </Transition.Root>
+        
+        {/* Modal para eliminar producto */}
+        <Transition.Root show={isDeleteProductModalOpen} as={Fragment}>
+          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsDeleteProductModalOpen}>
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              </Transition.Child>
+
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                  <div>
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                      <TrashIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                    </div>
+                    <div className="mt-3 text-center sm:mt-5">
+                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        Eliminar producto
+                      </Dialog.Title>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          ¿Estás seguro de que deseas eliminar este producto?
+                          Esta acción no se puede deshacer.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                <button
+                  type="button"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm"
+                      onClick={() => {
+                        if (!productToDelete) return;
+                        
+                        setIsDeletingProduct(true);
+                        
+                        deleteProduct(productToDelete)
+                          .then(() => {
+                            // Actualizar estado local
+                            if (selectedSection) {
+                              setProducts(prev => {
+                                const updated = {...prev};
+                                if (updated[selectedSection.section_id]) {
+                                  updated[selectedSection.section_id] = updated[selectedSection.section_id].filter(
+                                    product => product.product_id !== productToDelete
+                                  );
+                                }
+                                return updated;
+                              });
+                            }
+                            
+                            // Cerrar modal
+                            setIsDeleteProductModalOpen(false);
+                            setProductToDelete(null);
+                            
+                            toast.success('Producto eliminado correctamente');
+                          })
+                          .catch(error => {
+                            console.error('Error al eliminar el producto:', error);
+                            toast.error('Error al eliminar el producto');
+                          })
+                          .finally(() => {
+                            setIsDeletingProduct(false);
+                          });
+                      }}
+                      disabled={isDeletingProduct}
+                    >
+                      {isDeletingProduct ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Eliminando...
+                        </>
+                      ) : 'Eliminar'}
+                    </button>
+                    <button
+                      type="button"
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                      onClick={() => {
+                        setIsDeleteProductModalOpen(false);
+                        setProductToDelete(null);
+                      }}
+                      disabled={isDeletingProduct}
+                    >
+                      Cancelar
+                </button>
+              </div>
+                </div>
+              </Transition.Child>
+          </div>
+        </Dialog>
+        </Transition.Root>
+        
+        {/* Modal para editar producto */}
+        <Transition.Root show={isEditProductModalOpen} as={Fragment}>
+          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsEditProductModalOpen}>
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              </Transition.Child>
+
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                  <div className="sm:flex sm:items-start">
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        Editar producto
+                      </Dialog.Title>
+                      <div className="mt-2">
+                        <div className="mb-4">
+                          <label htmlFor="productName" className="block text-sm font-medium text-gray-700">
+                            Nombre del producto
+                          </label>
+                          <input
+                            type="text"
+                            name="productName"
+                            id="productName"
+                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                            value={editProductName}
+                            onChange={(e) => setEditProductName(e.target.value)}
+                            placeholder="Nombre del producto"
+                          />
+                        </div>
+                        <div className="mb-4">
+                          <label htmlFor="productPrice" className="block text-sm font-medium text-gray-700">
+                            Precio (€)
+                          </label>
+                          <input
+                            type="text"
+                            name="productPrice"
+                            id="productPrice"
+                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                            value={editProductPrice}
+                            onChange={(e) => setEditProductPrice(e.target.value)}
+                            placeholder="Precio en euros"
+                          />
+                        </div>
+                        <div className="mb-4">
+                          <label htmlFor="productDescription" className="block text-sm font-medium text-gray-700">
+                            Descripción
+                          </label>
+                          <textarea
+                            name="productDescription"
+                            id="productDescription"
+                            rows={3}
+                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                            value={editProductDescription}
+                            onChange={(e) => setEditProductDescription(e.target.value)}
+                            placeholder="Descripción del producto"
+                          />
+                        </div>
+                        <div className="mb-4">
+                          <label htmlFor="productImage" className="block text-sm font-medium text-gray-700">
+                            Imagen del producto
+                          </label>
+                          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                            <div className="space-y-1 text-center">
+                              {editProductImagePreview ? (
+                                <div className="relative mx-auto w-24 h-24 mb-2">
+                                  <Image 
+                                    src={editProductImagePreview} 
+                                    alt="Vista previa" 
+                                    fill
+                                    className="object-cover rounded-full"
+                                  />
+            <button 
+                                    type="button"
+                                    className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
+                                    onClick={() => {
+                                      setEditProductImage(null);
+                                      setEditProductImagePreview(null);
+                                    }}
+                                  >
+                                    <XMarkIcon className="h-4 w-4" aria-hidden="true" />
+            </button>
+                                </div>
+                              ) : (
+                                <svg
+                                  className="mx-auto h-12 w-12 text-gray-400"
+                                  stroke="currentColor"
+                                  fill="none"
+                                  viewBox="0 0 48 48"
+                                  aria-hidden="true"
+                                >
+                                  <path
+                                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                    strokeWidth={2}
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              )}
+                              <div className="flex text-sm text-gray-600">
+                                <label
+                                  htmlFor="edit-product-image-upload"
+                                  className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                                >
+                                  <span>Subir imagen</span>
+                                  <input 
+                                    id="edit-product-image-upload" 
+                                    name="edit-product-image-upload" 
+                                    type="file" 
+                                    className="sr-only" 
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        setEditProductImage(file);
+                                        
+                                        const reader = new FileReader();
+                                        reader.onloadend = () => {
+                                          setEditProductImagePreview(reader.result as string);
+                                        };
+                                        reader.readAsDataURL(file);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                                <p className="pl-1">o arrastra y suelta</p>
+            </div>
+                              <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+          </div>
+        </div>
+    </div>
+                        <div className="flex justify-between">
+                          <button
+                            type="button"
+                            className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
+                            onClick={() => setIsEditProductModalOpen(false)}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm"
+                            onClick={() => {
+                              if (!editingProduct || !client) return;
+                              
+                              setIsUpdatingProductName(true);
+                              
+                              const formData = new FormData();
+                              formData.append('name', editProductName);
+                              formData.append('price', editProductPrice);
+                              formData.append('client_id', client.id.toString());
+                              
+                              if (editProductDescription) {
+                                formData.append('description', editProductDescription);
+                              }
+                              
+                              if (editProductImage) {
+                                formData.append('image', editProductImage);
+                              }
+                              
+                              fetch(`/api/products/${editingProduct.id}`, {
+                                method: 'PUT',
+                                body: formData
+                              })
+                              .then(response => {
+                                if (!response.ok) {
+                                  throw new Error('Error al actualizar el producto');
+                                }
+                                return response.json();
+                              })
+                              .then(updatedProduct => {
+                                // Actualizar estado local
+                                setProducts(prev => {
+                                  const updated = {...prev};
+                                  Object.keys(updated).forEach(sectionId => {
+                                    if (updated[Number(sectionId)]) {
+                                      updated[Number(sectionId)] = updated[Number(sectionId)].map(product => 
+                                        product.product_id === editingProduct.id 
+                                          ? updatedProduct 
+                                          : product
+                                      );
+                                    }
+                                  });
+                                  return updated;
+                                });
+                                
+                                // Limpiar formulario y cerrar modal
+                                setIsEditProductModalOpen(false);
+                                setEditProductName('');
+                                setEditProductPrice('');
+                                setEditProductDescription('');
+                                setEditProductImage(null);
+                                setEditProductImagePreview(null);
+                                setEditingProduct(null);
+                                
+                                toast.success('Producto actualizado correctamente');
+                              })
+                              .catch(error => {
+                                console.error('Error al actualizar el producto:', error);
+                                toast.error('Error al actualizar el producto');
+                              })
+                              .finally(() => {
+                                setIsUpdatingProductName(false);
+                              });
+                            }}
+                          >
+                            Guardar Cambios
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </Transition.Child>
