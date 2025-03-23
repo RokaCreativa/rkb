@@ -83,6 +83,7 @@ interface FloatingPhoneProduct {
 
 interface Client {
   id: number;
+  client_id: number;
   name: string;
   logo: string | null;
   main_logo: string | null;
@@ -304,6 +305,18 @@ export default function DashboardPage() {
   const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
   const [isDeleteProductModalOpen, setIsDeleteProductModalOpen] = useState(false);
   const [isReorderModeActive, setIsReorderModeActive] = useState(false);
+  const [isNewSectionModalOpen, setIsNewSectionModalOpen] = useState(false);
+  const [newSectionName, setNewSectionName] = useState('');
+  const [newSectionImage, setNewSectionImage] = useState<File | null>(null);
+  const [newSectionImagePreview, setNewSectionImagePreview] = useState<string | null>(null);
+  const [isCreatingSection, setIsCreatingSection] = useState(false);
+  const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductPrice, setNewProductPrice] = useState('');
+  const [newProductDescription, setNewProductDescription] = useState('');
+  const [newProductImage, setNewProductImage] = useState<File | null>(null);
+  const [newProductImagePreview, setNewProductImagePreview] = useState<string | null>(null);
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   
   // Referencias para el scroll automático
   const sectionListRef = useRef<HTMLDivElement>(null);
@@ -883,6 +896,157 @@ export default function DashboardPage() {
     setIsReorderModeActive(prev => !prev);
   };
 
+  // Función para crear una nueva sección
+  const handleCreateSection = async () => {
+    if (!selectedCategory || !client) return;
+    
+    setIsCreatingSection(true);
+    
+    try {
+      // Crear FormData para enviar la información
+      const formData = new FormData();
+      formData.append('name', newSectionName);
+      formData.append('category_id', selectedCategory.category_id.toString());
+      formData.append('client_id', client.id.toString());
+      
+      if (newSectionImage) {
+        formData.append('image', newSectionImage);
+      }
+      
+      // Realizar la petición para crear la sección
+      const response = await fetch('/api/sections', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al crear la sección');
+      }
+      
+      const newSection = await response.json();
+      
+      // Actualizar el estado local para incluir la nueva sección
+      setSections(prev => ({
+        ...prev,
+        [selectedCategory.category_id]: [
+          ...(prev[selectedCategory.category_id] || []),
+          newSection
+        ]
+      }));
+      
+      // Si es la primera sección, establecerla como seleccionada
+      if ((sections[selectedCategory.category_id] || []).length === 0) {
+        setSelectedSection(newSection);
+        await fetchProducts(newSection.section_id);
+      }
+      
+      // Cerrar el modal y limpiar el formulario
+      setIsNewSectionModalOpen(false);
+      setNewSectionName('');
+      setNewSectionImage(null);
+      setNewSectionImagePreview(null);
+      
+      // Mostrar mensaje de éxito
+      toast.success('Sección creada con éxito');
+    } catch (error) {
+      console.error('Error al crear la sección:', error);
+      toast.error('Error al crear la sección');
+    } finally {
+      setIsCreatingSection(false);
+    }
+  };
+  
+  // Manejador para el cambio de imagen de una nueva sección
+  const handleNewSectionImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewSectionImage(file);
+      
+      // Crear una URL para previsualizar la imagen
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewSectionImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  // Manejador para la creación de un nuevo producto
+  const handleCreateProduct = async () => {
+    if (!selectedSection || !client) return;
+    
+    setIsCreatingProduct(true);
+    
+    try {
+      // Crear FormData para enviar la información
+      const formData = new FormData();
+      formData.append('name', newProductName);
+      formData.append('price', newProductPrice);
+      formData.append('section_id', selectedSection.section_id.toString());
+      formData.append('client_id', client.id.toString());
+      
+      if (newProductDescription) {
+        formData.append('description', newProductDescription);
+      }
+      
+      if (newProductImage) {
+        formData.append('image', newProductImage);
+      }
+      
+      // Realizar la petición para crear el producto
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al crear el producto');
+      }
+      
+      const newProduct = await response.json();
+      
+      // Actualizar el estado local para incluir el nuevo producto
+      setProducts(prev => ({
+        ...prev,
+        [selectedSection.section_id]: [
+          ...(prev[selectedSection.section_id] || []),
+          newProduct
+        ]
+      }));
+      
+      // Cerrar el modal y limpiar el formulario
+      setIsNewProductModalOpen(false);
+      setNewProductName('');
+      setNewProductPrice('');
+      setNewProductDescription('');
+      setNewProductImage(null);
+      setNewProductImagePreview(null);
+      
+      // Mostrar mensaje de éxito
+      toast.success('Producto creado con éxito');
+    } catch (error) {
+      console.error('Error al crear el producto:', error);
+      toast.error('Error al crear el producto');
+    } finally {
+      setIsCreatingProduct(false);
+    }
+  };
+  
+  // Manejador para el cambio de imagen de un nuevo producto
+  const handleNewProductImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewProductImage(file);
+      
+      // Crear una URL para previsualizar la imagen
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setNewProductImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Mostrar indicador de carga mientras se cargan los datos
   if (isLoading) {
     return (
@@ -930,7 +1094,7 @@ export default function DashboardPage() {
             
             {currentView === 'sections' && selectedCategory && (
             <button
-                onClick={() => console.log('Abrir modal de nueva sección')}
+                onClick={() => setIsNewSectionModalOpen(true)}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
                 <PlusIcon className="h-4 w-4 mr-1" />
@@ -940,7 +1104,7 @@ export default function DashboardPage() {
             
             {currentView === 'products' && selectedSection && (
                             <button
-                onClick={() => console.log('Abrir modal de nuevo producto')}
+                onClick={() => setIsNewProductModalOpen(true)}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <PlusIcon className="h-4 w-4 mr-1" />
@@ -1035,73 +1199,115 @@ export default function DashboardPage() {
         })}
         
         {/* Modal para nueva categoría */}
-        <Transition appear show={isNewCategoryModalOpen} as={Fragment}>
-          <Dialog as="div" className="relative z-10" onClose={() => setIsNewCategoryModalOpen(false)}>
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <div className="fixed inset-0 bg-black bg-opacity-25" />
-          </Transition.Child>
-
-          <div className="fixed inset-0 overflow-y-auto">
-            <div className="flex min-h-full items-center justify-center p-4 text-center">
+        <Transition.Root show={isNewCategoryModalOpen} as={Fragment}>
+          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsNewCategoryModalOpen}>
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
               <Transition.Child
                 as={Fragment}
                 enter="ease-out duration-300"
-                enterFrom="opacity-0 scale-95"
-                enterTo="opacity-100 scale-100"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
                 leave="ease-in duration-200"
-                leaveFrom="opacity-100 scale-100"
-                leaveTo="opacity-0 scale-95"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
               >
-                  <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                    <Dialog.Title
-                      as="h3"
-                      className="text-lg font-medium leading-6 text-gray-900"
-                    >
-                      Nueva Categoría
-                  </Dialog.Title>
-                    <div className="mt-4">
-                      <form>
-                        <div className="mb-4">
-                          <label htmlFor="categoryName" className="block text-sm font-medium text-gray-700">
-                            Nombre
-                          </label>
-                          <input
-                            type="text"
-                            id="categoryName"
-                            value={newCategoryName}
-                            onChange={(e) => setNewCategoryName(e.target.value)}
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                            placeholder="Nombre de la categoría"
-                          />
-                        </div>
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Imagen
-                          </label>
-                          <div className="mt-1 flex items-center space-x-4">
-                            <div className="h-16 w-16 rounded-full overflow-hidden bg-gray-100 border border-gray-300">
-                              {imagePreview ? (
-                                <img src={imagePreview} alt="Vista previa" className="h-full w-full object-cover" />
-                              ) : (
-                                <div className="h-full w-full flex items-center justify-center text-gray-400">
-                                  <ArrowUpTrayIcon className="h-6 w-6" />
-                                </div>
-                              )}
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              </Transition.Child>
+
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                  <div>
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
+                      <PlusIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
+                    </div>
+                    <div className="mt-3 text-center sm:mt-5">
+                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        Nueva categoría
+                      </Dialog.Title>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          Por favor, introduce el nombre e imagen para la nueva categoría.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 sm:mt-6">
+                    <div className="mb-4">
+                      <label htmlFor="categoryName" className="block text-sm font-medium text-gray-700">
+                        Nombre de la categoría
+                      </label>
+                      <input
+                        type="text"
+                        name="categoryName"
+                        id="categoryName"
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700">
+                        Imagen de la categoría
+                      </label>
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div className="space-y-1 text-center">
+                          {imagePreview ? (
+                            <div className="relative mx-auto w-24 h-24 mb-2">
+                              <Image 
+                                src={imagePreview} 
+                                alt="Vista previa" 
+                                fill
+                                className="object-cover rounded-full"
+                              />
+                              <button
+                                type="button"
+                                className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
+                                onClick={() => {
+                                  setSelectedImage(null);
+                                  setImagePreview(null);
+                                }}
+                              >
+                                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
+                              </button>
                             </div>
-                            <div>
-                              <input
-                                type="file"
-                                id="categoryImage"
+                          ) : (
+                            <svg
+                              className="mx-auto h-12 w-12 text-gray-400"
+                              stroke="currentColor"
+                              fill="none"
+                              viewBox="0 0 48 48"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                          <div className="flex text-sm text-gray-600">
+                            <label
+                              htmlFor="category-image-upload"
+                              className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                            >
+                              <span>Subir imagen</span>
+                              <input 
+                                id="category-image-upload" 
+                                name="category-image-upload" 
+                                type="file" 
+                                className="sr-only" 
                                 accept="image/*"
-                                className="hidden"
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
@@ -1114,35 +1320,69 @@ export default function DashboardPage() {
                                   }
                                 }}
                               />
-                              <label
-                                htmlFor="categoryImage"
-                                className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                              >
-                                Seleccionar imagen
-                              </label>
-                            </div>
+                            </label>
+                            <p className="pl-1">o arrastra y suelta</p>
                           </div>
+                          <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
                         </div>
-                      </form>
-              </div>
-              
-                    <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  type="button"
-                        className="inline-flex justify-center rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <button
+                        type="button"
+                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
+                        onClick={() => setIsNewCategoryModalOpen(false)}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className={`inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm ${
+                          isCreatingCategory ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                         onClick={() => {
-                          setIsNewCategoryModalOpen(false);
-                          setNewCategoryName('');
-                          setSelectedImage(null);
-                          setImagePreview(null);
+                          if (!client) return;
+                          
+                          setIsCreatingCategory(true);
+                          
+                          const formData = new FormData();
+                          formData.append('name', newCategoryName);
+                          formData.append('client_id', client.id.toString());
+                          
+                          if (selectedImage) {
+                            formData.append('image', selectedImage);
+                          }
+                          
+                          fetch('/api/categories', {
+                            method: 'POST',
+                            body: formData
+                          })
+                          .then(response => {
+                            if (!response.ok) {
+                              throw new Error('Error al crear la categoría');
+                            }
+                            return response.json();
+                          })
+                          .then(newCategory => {
+                            // Actualizar el estado local con la nueva categoría
+                            setCategories(prev => [...prev, newCategory]);
+                            
+                            // Limpiar el formulario y cerrar el modal
+                            setNewCategoryName('');
+                            setSelectedImage(null);
+                            setImagePreview(null);
+                            setIsNewCategoryModalOpen(false);
+                            
+                            toast.success('Categoría creada correctamente');
+                          })
+                          .catch(error => {
+                            console.error('Error al crear categoría:', error);
+                            toast.error('Error al crear la categoría');
+                          })
+                          .finally(() => {
+                            setIsCreatingCategory(false);
+                          });
                         }}
-                >
-                      Cancelar
-                </button>
-                <button
-                  type="button"
-                        className="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        onClick={() => console.log('Crear categoría')}
                         disabled={isCreatingCategory || !newCategoryName.trim()}
                       >
                         {isCreatingCategory ? (
@@ -1152,26 +1392,671 @@ export default function DashboardPage() {
                               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                             Creando...
-                        </>
-                      ) : (
-                          'Crear Categoría'
-                      )}
-                </button>
-              </div>
-                </Dialog.Panel>
+                          </>
+                        ) : 'Crear Categoría'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </Transition.Child>
             </div>
-          </div>
-        </Dialog>
-      </Transition>
+          </Dialog>
+        </Transition.Root>
+
+        {/* Modal para crear nueva sección */}
+        <Transition.Root show={isNewSectionModalOpen} as={Fragment}>
+          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsNewSectionModalOpen}>
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              </Transition.Child>
+
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                  <div>
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
+                      <PlusIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
+                    </div>
+                    <div className="mt-3 text-center sm:mt-5">
+                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        Nueva sección
+                      </Dialog.Title>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          Por favor, introduce el nombre e imagen para la nueva sección.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 sm:mt-6">
+                    <div className="mb-4">
+                      <label htmlFor="sectionName" className="block text-sm font-medium text-gray-700">
+                        Nombre de la sección
+                      </label>
+                      <input
+                        type="text"
+                        name="sectionName"
+                        id="sectionName"
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        value={newSectionName}
+                        onChange={(e) => setNewSectionName(e.target.value)}
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label htmlFor="sectionImage" className="block text-sm font-medium text-gray-700">
+                        Imagen de la sección
+                      </label>
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div className="space-y-1 text-center">
+                          {newSectionImagePreview ? (
+                            <div className="relative mx-auto w-24 h-24 mb-2">
+                              <Image 
+                                src={newSectionImagePreview} 
+                                alt="Vista previa" 
+                                fill
+                                className="object-cover rounded-full"
+                              />
+                              <button
+                                type="button"
+                                className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
+                                onClick={() => {
+                                  setNewSectionImage(null);
+                                  setNewSectionImagePreview(null);
+                                }}
+                              >
+                                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
+                              </button>
+                            </div>
+                          ) : (
+                            <svg
+                              className="mx-auto h-12 w-12 text-gray-400"
+                              stroke="currentColor"
+                              fill="none"
+                              viewBox="0 0 48 48"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                          <div className="flex text-sm text-gray-600">
+                            <label
+                              htmlFor="section-image-upload"
+                              className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                            >
+                              <span>Subir imagen</span>
+                              <input 
+                                id="section-image-upload" 
+                                name="section-image-upload" 
+                                type="file" 
+                                className="sr-only" 
+                                accept="image/*"
+                                onChange={handleNewSectionImageChange}
+                              />
+                            </label>
+                            <p className="pl-1">o arrastra y suelta</p>
+                          </div>
+                          <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <button
+                        type="button"
+                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
+                        onClick={() => setIsNewSectionModalOpen(false)}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className={`inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm ${
+                          isCreatingSection ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        onClick={handleCreateSection}
+                        disabled={isCreatingSection || !newSectionName.trim()}
+                      >
+                        {isCreatingSection ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Creando...
+                          </>
+                        ) : 'Crear sección'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </Transition.Child>
+            </div>
+          </Dialog>
+        </Transition.Root>
+
+        {/* Modal para crear nuevo producto */}
+        <Transition.Root show={isNewProductModalOpen} as={Fragment}>
+          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsNewProductModalOpen}>
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              </Transition.Child>
+
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                  <div>
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
+                      <PlusIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
+                    </div>
+                    <div className="mt-3 text-center sm:mt-5">
+                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        Nuevo producto
+                      </Dialog.Title>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          Por favor, introduce los detalles para el nuevo producto.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 sm:mt-6">
+                    <div className="mb-4">
+                      <label htmlFor="productName" className="block text-sm font-medium text-gray-700">
+                        Nombre del producto
+                      </label>
+                      <input
+                        type="text"
+                        name="productName"
+                        id="productName"
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        value={newProductName}
+                        onChange={(e) => setNewProductName(e.target.value)}
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label htmlFor="productPrice" className="block text-sm font-medium text-gray-700">
+                        Precio
+                      </label>
+                      <div className="mt-1 relative rounded-md shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-500 sm:text-sm">€</span>
+                        </div>
+                        <input
+                          type="text"
+                          name="productPrice"
+                          id="productPrice"
+                          className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                          placeholder="0.00"
+                          value={newProductPrice}
+                          onChange={(e) => setNewProductPrice(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div className="mb-4">
+                      <label htmlFor="productDescription" className="block text-sm font-medium text-gray-700">
+                        Descripción
+                      </label>
+                      <textarea
+                        id="productDescription"
+                        name="productDescription"
+                        rows={3}
+                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mt-1 block w-full sm:text-sm border border-gray-300 rounded-md"
+                        placeholder="Descripción del producto"
+                        value={newProductDescription}
+                        onChange={(e) => setNewProductDescription(e.target.value)}
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label htmlFor="productImage" className="block text-sm font-medium text-gray-700">
+                        Imagen del producto
+                      </label>
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div className="space-y-1 text-center">
+                          {newProductImagePreview ? (
+                            <div className="relative mx-auto w-24 h-24 mb-2">
+                              <Image 
+                                src={newProductImagePreview} 
+                                alt="Vista previa" 
+                                fill
+                                className="object-cover rounded-md"
+                              />
+                              <button
+                                type="button"
+                                className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
+                                onClick={() => {
+                                  setNewProductImage(null);
+                                  setNewProductImagePreview(null);
+                                }}
+                              >
+                                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
+                              </button>
+                            </div>
+                          ) : (
+                            <svg
+                              className="mx-auto h-12 w-12 text-gray-400"
+                              stroke="currentColor"
+                              fill="none"
+                              viewBox="0 0 48 48"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                          <div className="flex text-sm text-gray-600">
+                            <label
+                              htmlFor="product-image-upload"
+                              className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                            >
+                              <span>Subir imagen</span>
+                              <input 
+                                id="product-image-upload" 
+                                name="product-image-upload" 
+                                type="file" 
+                                className="sr-only" 
+                                accept="image/*"
+                                onChange={handleNewProductImageChange}
+                              />
+                            </label>
+                            <p className="pl-1">o arrastra y suelta</p>
+                          </div>
+                          <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <button
+                        type="button"
+                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
+                        onClick={() => setIsNewProductModalOpen(false)}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className={`inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm ${
+                          isCreatingProduct ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        onClick={handleCreateProduct}
+                        disabled={isCreatingProduct || !newProductName.trim() || !newProductPrice.trim()}
+                      >
+                        {isCreatingProduct ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Creando...
+                          </>
+                        ) : 'Crear producto'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </Transition.Child>
+            </div>
+          </Dialog>
+        </Transition.Root>
 
         {/* Modal para editar categoría */}
-        {/* Transición y diálogo similar al de nueva categoría */}
+        <Transition.Root show={isEditModalOpen} as={Fragment}>
+          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsEditModalOpen}>
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              </Transition.Child>
+
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                  <div>
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
+                      <PencilIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
+                    </div>
+                    <div className="mt-3 text-center sm:mt-5">
+                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        Editar categoría
+                      </Dialog.Title>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          Modifica los detalles de la categoría
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 sm:mt-6">
+                    <div className="mb-4">
+                      <label htmlFor="editCategoryName" className="block text-sm font-medium text-gray-700">
+                        Nombre de la categoría
+                      </label>
+                      <input
+                        type="text"
+                        name="editCategoryName"
+                        id="editCategoryName"
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        value={editCategoryName}
+                        onChange={(e) => setEditCategoryName(e.target.value)}
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700">
+                        Imagen de la categoría
+                      </label>
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div className="space-y-1 text-center">
+                          {editImagePreview ? (
+                            <div className="relative mx-auto w-24 h-24 mb-2">
+                              <Image 
+                                src={editImagePreview} 
+                                alt="Vista previa" 
+                                fill
+                                className="object-cover rounded-full"
+                              />
+                              <button
+                                type="button"
+                                className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
+                                onClick={() => {
+                                  setEditCategoryImage(null);
+                                  setEditImagePreview(null);
+                                }}
+                              >
+                                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
+                              </button>
+                            </div>
+                          ) : (
+                            <svg
+                              className="mx-auto h-12 w-12 text-gray-400"
+                              stroke="currentColor"
+                              fill="none"
+                              viewBox="0 0 48 48"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          )}
+                          <div className="flex text-sm text-gray-600">
+                            <label
+                              htmlFor="edit-category-image-upload"
+                              className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                            >
+                              <span>Subir imagen</span>
+                              <input 
+                                id="edit-category-image-upload" 
+                                name="edit-category-image-upload" 
+                                type="file" 
+                                className="sr-only" 
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setEditCategoryImage(file);
+                                    
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      setEditImagePreview(reader.result as string);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                              />
+                            </label>
+                            <p className="pl-1">o arrastra y suelta</p>
+                          </div>
+                          <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between">
+                      <button
+                        type="button"
+                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
+                        onClick={() => setIsEditModalOpen(false)}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm"
+                        onClick={() => {
+                          if (!editingCategory || !client) return;
+                          
+                          setIsUpdatingName(true);
+                          
+                          const formData = new FormData();
+                          formData.append('name', editCategoryName);
+                          formData.append('client_id', client.id.toString());
+                          
+                          if (editCategoryImage) {
+                            formData.append('image', editCategoryImage);
+                          }
+                          
+                          fetch(`/api/categories/${editingCategory.id}`, {
+                            method: 'PUT',
+                            body: formData
+                          })
+                          .then(response => {
+                            if (!response.ok) {
+                              throw new Error('Error al actualizar la categoría');
+                            }
+                            return response.json();
+                          })
+                          .then(updatedCategory => {
+                            // Actualizar estado local
+                            setCategories(prev => 
+                              prev.map(cat => 
+                                cat.category_id === editingCategory.id 
+                                  ? updatedCategory 
+                                  : cat
+                              )
+                            );
+                            
+                            // Limpiar formulario y cerrar modal
+                            setIsEditModalOpen(false);
+                            setEditCategoryName('');
+                            setEditCategoryImage(null);
+                            setEditImagePreview(null);
+                            setEditingCategory(null);
+                            
+                            toast.success('Categoría actualizada correctamente');
+                          })
+                          .catch(error => {
+                            console.error('Error al actualizar la categoría:', error);
+                            toast.error('Error al actualizar la categoría');
+                          })
+                          .finally(() => {
+                            setIsUpdatingName(false);
+                          });
+                        }}
+                      >
+                        Guardar Cambios
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </Transition.Child>
+            </div>
+          </Dialog>
+        </Transition.Root>
         
         {/* Modal para eliminar categoría */}
-        {/* Transición y diálogo para confirmar eliminación */}
-            </div>
+        <Transition.Root show={isDeleteModalOpen} as={Fragment}>
+          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsDeleteModalOpen}>
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              </Transition.Child>
 
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                  <div>
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                      <TrashIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                    </div>
+                    <div className="mt-3 text-center sm:mt-5">
+                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        Eliminar categoría
+                      </Dialog.Title>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          ¿Estás seguro de que deseas eliminar esta categoría?
+                          Esta acción no se puede deshacer.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                    <button
+                      type="button"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm"
+                      onClick={() => {
+                        if (!categoryToDelete) return;
+                        
+                        setIsDeletingCategory(true);
+                        
+                        fetch(`/api/categories/${categoryToDelete}`, {
+                          method: 'DELETE'
+                        })
+                        .then(response => {
+                          if (!response.ok) {
+                            throw new Error('Error al eliminar la categoría');
+                          }
+                          return response.json();
+                        })
+                        .then(() => {
+                          // Actualizar estado local
+                          setCategories(prev => 
+                            prev.filter(cat => cat.category_id !== categoryToDelete)
+                          );
+                          
+                          // Cerrar modal
+                          setIsDeleteModalOpen(false);
+                          setCategoryToDelete(null);
+                          
+                          toast.success('Categoría eliminada correctamente');
+                        })
+                        .catch(error => {
+                          console.error('Error al eliminar la categoría:', error);
+                          toast.error('Error al eliminar la categoría');
+                        })
+                        .finally(() => {
+                          setIsDeletingCategory(false);
+                        });
+                      }}
+                      disabled={isDeletingCategory}
+                    >
+                      {isDeletingCategory ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Eliminando...
+                        </>
+                      ) : 'Eliminar'}
+                    </button>
+                    <button
+                      type="button"
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                      onClick={() => {
+                        setIsDeleteModalOpen(false);
+                        setCategoryToDelete(null);
+                      }}
+                      disabled={isDeletingCategory}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              </Transition.Child>
+            </div>
+          </Dialog>
+        </Transition.Root>
+      </div>
+      
       {/* Componente de vista previa móvil flotante */}
       <FloatingPhonePreview 
         clientName={client?.name} 
