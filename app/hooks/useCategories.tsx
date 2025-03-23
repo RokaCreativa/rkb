@@ -73,7 +73,26 @@ export default function useCategories(clientId: number | null) {
         formData.append('image', categoryData.image);
       }
       
-      const response = await axios.post(`/api/clients/${clientId}/categories`, formData);
+      // Agregar status si existe
+      if (categoryData.status !== undefined) {
+        formData.append('status', categoryData.status ? '1' : '0');
+      }
+      
+      console.log('Enviando datos a API:', {
+        endpoint: '/api/categories',
+        clientId,
+        name: categoryData.name,
+        hasImage: !!categoryData.image,
+        imageType: categoryData.image ? typeof categoryData.image : null
+      });
+      
+      // Registrar el contenido del FormData para depuración
+      console.log('FormData enviado a la API:');
+      for (const pair of formData.entries()) {
+        console.log(`- ${pair[0]}: ${typeof pair[1] === 'object' ? 'File object' : pair[1]}`);
+      }
+      
+      const response = await axios.post(`/api/categories`, formData);
       
       // Actualizar estado local
       const newCategory = response.data;
@@ -81,9 +100,26 @@ export default function useCategories(clientId: number | null) {
       
       toast.success('Categoría creada correctamente');
       return newCategory;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al crear la categoría:', error);
-      toast.error('No se pudo crear la categoría');
+      
+      // Intentar extraer más detalles del error
+      const errorMessage = error.response?.data?.error || 
+                          error.message || 
+                          'No se pudo crear la categoría';
+      
+      // Registrar detalles técnicos para depuración
+      if (error.response) {
+        console.error('Detalles del error de respuesta:', {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      } else if (error.request) {
+        console.error('Error de solicitud (no se recibió respuesta):', error.request);
+      }
+      
+      toast.error(errorMessage);
       return null;
     }
   }, [clientId]);
@@ -105,7 +141,30 @@ export default function useCategories(clientId: number | null) {
         formData.append('image', categoryData.image);
       }
       
-      await axios.patch(`/api/clients/${clientId}/categories/${categoryId}`, formData);
+      // Agregar status si se proporciona
+      if (categoryData.status !== undefined) {
+        formData.append('status', categoryData.status ? '1' : '0');
+      }
+      
+      console.log('Actualizando categoría:', {
+        endpoint: `/api/categories/${categoryId}`,
+        categoryId,
+        clientId,
+        data: {
+          name: categoryData.name,
+          hasImage: !!categoryData.image,
+          imageType: categoryData.image ? typeof categoryData.image : null,
+          status: categoryData.status
+        }
+      });
+      
+      // Registrar el contenido del FormData para depuración
+      console.log('FormData enviado a la API para actualización:');
+      for (const pair of formData.entries()) {
+        console.log(`- ${pair[0]}: ${typeof pair[1] === 'object' ? 'File object' : pair[1]}`);
+      }
+      
+      await axios.patch(`/api/categories/${categoryId}`, formData);
       
       // Actualizar estado local
       setCategories(prev => prev.map(cat => 
@@ -116,9 +175,26 @@ export default function useCategories(clientId: number | null) {
       
       toast.success('Categoría actualizada correctamente');
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al actualizar la categoría:', error);
-      toast.error('No se pudo actualizar la categoría');
+      
+      // Intentar extraer más detalles del error
+      const errorMessage = error.response?.data?.error || 
+                           error.message || 
+                           'No se pudo actualizar la categoría';
+      
+      // Registrar detalles técnicos para depuración
+      if (error.response) {
+        console.error('Detalles del error de respuesta:', {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      } else if (error.request) {
+        console.error('Error de solicitud (no se recibió respuesta):', error.request);
+      }
+      
+      toast.error(errorMessage);
       return false;
     }
   }, [clientId]);
@@ -128,16 +204,39 @@ export default function useCategories(clientId: number | null) {
     if (!clientId) return false;
     
     try {
-      await axios.delete(`/api/clients/${clientId}/categories/${categoryId}`);
+      console.log('Eliminando categoría:', {
+        endpoint: `/api/categories/${categoryId}`,
+        categoryId,
+        clientId
+      });
+      
+      await axios.delete(`/api/categories/${categoryId}`);
       
       // Actualizar estado local
       setCategories(prev => prev.filter(cat => cat.category_id !== categoryId));
       
       toast.success('Categoría eliminada correctamente');
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al eliminar la categoría:', error);
-      toast.error('No se pudo eliminar la categoría');
+      
+      // Intentar extraer más detalles del error
+      const errorMessage = error.response?.data?.error || 
+                           error.message || 
+                           'No se pudo eliminar la categoría';
+      
+      // Registrar detalles técnicos para depuración
+      if (error.response) {
+        console.error('Detalles del error de respuesta:', {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      } else if (error.request) {
+        console.error('Error de solicitud (no se recibió respuesta):', error.request);
+      }
+      
+      toast.error(errorMessage);
       return false;
     }
   }, [clientId]);

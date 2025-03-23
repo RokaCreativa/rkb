@@ -19,45 +19,21 @@ import SectionTable from '@/components/SectionTable';
 import ProductTable from '@/components/ProductTable';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import TopNavbar from '@/components/layout/TopNavbar';
+import useSections from '@/app/hooks/useSections';
+import useProducts from '@/app/hooks/useProducts';
+// Importar los componentes de modal que hemos creado
+import DeleteSectionModal from './components/DeleteSectionModal';
+import DeleteProductModal from './components/DeleteProductModal';
+// Importar los tipos desde el archivo centralizado
+import { Category, Section, Product, Client } from '@/app/types/menu';
+import EditProductModal from './components/EditProductModal';
+import NewCategoryModal from './components/NewCategoryModal';
+import EditSectionModal from './components/EditSectionModal';
+import NewSectionModal from './components/NewSectionModal';
+import NewProductModal from './components/NewProductModal';
+import { PrismaClient } from '@prisma/client';
 
-// Interfaces ajustadas a la estructura actualizada
-interface Category {
-  category_id: number;
-  name: string;
-  image: string | null;
-  status: number; // 1 (activo) o 0 (inactivo)
-  display_order: number;
-  client_id: number;
-}
-
-interface Section {
-  section_id: number;
-  name: string;
-  image: string | null;
-  status: number; // 1 (activo) o 0 (inactivo)
-  display_order: number;
-  client_id: number;
-  category_id: number;
-  products_count: number;
-}
-
-interface Product {
-  product_id: number;
-  name: string;
-  image: string | null;
-  status: number; // 1 (activo) o 0 (inactivo)
-  display_order: number;
-  client_id: number;
-  price: string;
-  description: string | null;
-  section_id: number;
-  sections: {
-    section_id: number;
-    name: string;
-  }[];
-}
-
-// Interfaz para FloatingPhonePreview
+// Interfaces para FloatingPhonePreview
 interface FloatingPhoneCategory {
   id: number;
   category_id?: number;
@@ -81,43 +57,76 @@ interface FloatingPhoneProduct {
   image?: string;
 }
 
-interface Client {
+// Extender la interfaz Client para incluir la propiedad id
+interface DashboardClient extends Client {
   id: number;
-  client_id: number;
+  logo?: string | null;
   name: string;
-  logo: string | null;
   main_logo: string | null;
 }
 
-// Obtener datos del cliente autenticado
+// ----- FUNCIONES DE API -----
+
+/**
+ * Obtiene datos del cliente autenticado
+ * 
+ * @returns Promise con los datos del cliente
+ * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ */
 async function fetchClientData() {
   const response = await fetch('/api/client');
   if (!response.ok) throw new Error('Error al cargar datos del cliente');
   return await response.json();
 }
 
-// Obtener categorías del cliente autenticado
+/**
+ * Obtiene las categorías del cliente autenticado
+ * 
+ * @returns Promise con las categorías
+ * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ */
 async function fetchCategories() {
   const response = await fetch('/api/categories');
   if (!response.ok) throw new Error('Error al cargar categorías');
   return await response.json();
 }
 
-// Obtener secciones para una categoría específica
+/**
+ * Obtiene las secciones para una categoría específica
+ * 
+ * @param categoryId - ID de la categoría
+ * @returns Promise con las secciones
+ * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ */
 async function fetchSections(categoryId: number) {
   const response = await fetch(`/api/sections?category_id=${categoryId}`);
   if (!response.ok) throw new Error('Error al cargar secciones');
   return await response.json();
 }
 
-// Obtener productos para una sección específica
+/**
+ * Obtiene los productos para una sección específica
+ * 
+ * @param sectionId - ID de la sección
+ * @returns Promise con los productos
+ * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ */
 async function fetchProducts(sectionId: number) {
   const response = await fetch(`/api/products?section_id=${sectionId}`);
   if (!response.ok) throw new Error('Error al cargar productos');
   return await response.json();
 }
 
-// Actualizar el orden de una categoría
+// ----- FUNCIONES DE API PARA CATEGORÍAS -----
+
+/**
+ * Actualiza el orden de una categoría
+ * 
+ * @param categoryId - ID de la categoría
+ * @param newDisplayOrder - Nuevo orden de visualización
+ * @returns Promise con la categoría actualizada
+ * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ */
 async function updateCategoryOrder(categoryId: number, newDisplayOrder: number) {
   try {
     const response = await fetch(`/api/categories/${categoryId}`, {
@@ -139,7 +148,14 @@ async function updateCategoryOrder(categoryId: number, newDisplayOrder: number) 
   }
 }
 
-// Actualizar la visibilidad de una categoría
+/**
+ * Actualiza la visibilidad de una categoría
+ * 
+ * @param categoryId - ID de la categoría
+ * @param newStatus - Nuevo estado de visibilidad (0 o 1)
+ * @returns Promise con la categoría actualizada
+ * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ */
 async function updateCategoryVisibility(categoryId: number, newStatus: number) {
   try {
     console.log(`DEBUG: Actualizando visibilidad de categoría ${categoryId} a ${newStatus}`);
@@ -173,7 +189,13 @@ async function updateCategoryVisibility(categoryId: number, newStatus: number) {
   }
 }
 
-// Eliminar una categoría
+/**
+ * Elimina una categoría
+ * 
+ * @param categoryId - ID de la categoría a eliminar
+ * @returns Promise con la respuesta de la API
+ * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ */
 async function deleteCategory(categoryId: number) {
   try {
     const response = await fetch(`/api/categories/${categoryId}`, {
@@ -191,7 +213,15 @@ async function deleteCategory(categoryId: number) {
   }
 }
 
-// Función para crear un nuevo cliente
+// ----- OTRAS FUNCIONES DE API -----
+
+/**
+ * Crea un nuevo cliente
+ * 
+ * @param clientData - Datos del cliente en formato FormData
+ * @returns Promise con el cliente creado
+ * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ */
 async function createClient(clientData: FormData) {
   const response = await fetch('/api/client', {
     method: 'POST',
@@ -201,7 +231,16 @@ async function createClient(clientData: FormData) {
   return await response.json();
 }
 
-// Actualizar la visibilidad de una sección
+// ----- FUNCIONES DE API PARA SECCIONES -----
+
+/**
+ * Actualiza la visibilidad de una sección
+ * 
+ * @param sectionId - ID de la sección
+ * @param newStatus - Nuevo estado de visibilidad (0 o 1)
+ * @returns Promise con la sección actualizada
+ * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ */
 async function updateSectionVisibility(sectionId: number, newStatus: number) {
   try {
     console.log(`DEBUG: Actualizando visibilidad de sección ${sectionId} a ${newStatus}`);
@@ -234,7 +273,16 @@ async function updateSectionVisibility(sectionId: number, newStatus: number) {
   }
 }
 
-// Actualizar la visibilidad de un producto
+// ----- FUNCIONES DE API PARA PRODUCTOS -----
+
+/**
+ * Actualiza la visibilidad de un producto
+ * 
+ * @param productId - ID del producto
+ * @param newStatus - Nuevo estado de visibilidad (0 o 1)
+ * @returns Promise con el producto actualizado
+ * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ */
 async function updateProductVisibility(productId: number, newStatus: number) {
   try {
     console.log(`DEBUG: Actualizando visibilidad de producto ${productId} a ${newStatus}`);
@@ -267,49 +315,23 @@ async function updateProductVisibility(productId: number, newStatus: number) {
   }
 }
 
-// Eliminar una sección
-async function deleteSection(sectionId: number) {
-  try {
-    const response = await fetch(`/api/sections/${sectionId}`, {
-      method: 'DELETE',
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error al eliminar la sección');
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error al eliminar la sección:', error);
-    throw error;
-  }
-}
+// ... [resto de funciones API existentes]
 
-// Eliminar un producto
-async function deleteProduct(productId: number) {
-  try {
-    const response = await fetch(`/api/products/${productId}`, {
-      method: 'DELETE',
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error al eliminar el producto');
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('Error al eliminar el producto:', error);
-    throw error;
-  }
-}
+// ----- COMPONENTE PRINCIPAL -----
 
+/**
+ * Página principal del dashboard
+ * Gestiona la visualización y edición de categorías, secciones y productos
+ * 
+ * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ */
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(true);
-  const [client, setClient] = useState<Client | null>(null);
+  const [client, setClient] = useState<DashboardClient | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [sections, setSections] = useState<Record<number, Section[]>>({});
-  const [products, setProducts] = useState<Record<number, Product[]>>({});
+  const [sections, setSections] = useState<Record<string, Section[]>>({});
+  const [products, setProducts] = useState<Record<string, Product[]>>({});
   const [expandedCategories, setExpandedCategories] = useState<Record<number, boolean>>({});
   const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
   const [loadingSections, setLoadingSections] = useState<Record<number, boolean>>({});
@@ -323,10 +345,6 @@ export default function DashboardPage() {
   const [isDeletingCategory, setIsDeletingCategory] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
   const [isUpdatingName, setIsUpdatingName] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -340,18 +358,9 @@ export default function DashboardPage() {
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
   const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
   const [isDeleteProductModalOpen, setIsDeleteProductModalOpen] = useState(false);
+  const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
   const [isReorderModeActive, setIsReorderModeActive] = useState(false);
   const [isNewSectionModalOpen, setIsNewSectionModalOpen] = useState(false);
-  const [newSectionName, setNewSectionName] = useState('');
-  const [newSectionImage, setNewSectionImage] = useState<File | null>(null);
-  const [newSectionImagePreview, setNewSectionImagePreview] = useState<string | null>(null);
-  const [isCreatingSection, setIsCreatingSection] = useState(false);
-  const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
-  const [newProductName, setNewProductName] = useState('');
-  const [newProductPrice, setNewProductPrice] = useState('');
-  const [newProductDescription, setNewProductDescription] = useState('');
-  const [newProductImage, setNewProductImage] = useState<File | null>(null);
-  const [newProductImagePreview, setNewProductImagePreview] = useState<string | null>(null);
   const [isCreatingProduct, setIsCreatingProduct] = useState(false);
   const [isDeleteSectionModalOpen, setIsDeleteSectionModalOpen] = useState(false);
   const [sectionToDelete, setSectionToDelete] = useState<number | null>(null);
@@ -362,24 +371,16 @@ export default function DashboardPage() {
   // Estados para edición de sección
   const [isEditSectionModalOpen, setIsEditSectionModalOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<{ id: number; name: string } | null>(null);
-  const [editSectionName, setEditSectionName] = useState('');
-  const [editSectionImage, setEditSectionImage] = useState<File | null>(null);
-  const [editSectionImagePreview, setEditSectionImagePreview] = useState<string | null>(null);
-  const [isUpdatingSectionName, setIsUpdatingSectionName] = useState(false);
   
   // Estados para edición de producto
   const [editingProduct, setEditingProduct] = useState<{ id: number; name: string } | null>(null);
-  const [editProductName, setEditProductName] = useState('');
-  const [editProductPrice, setEditProductPrice] = useState('');
-  const [editProductDescription, setEditProductDescription] = useState('');
-  const [editProductImage, setEditProductImage] = useState<File | null>(null);
-  const [editProductImagePreview, setEditProductImagePreview] = useState<string | null>(null);
-  const [isUpdatingProductName, setIsUpdatingProductName] = useState(false);
   
   // Referencias para el scroll automático
   const sectionListRef = useRef<HTMLDivElement>(null);
   const productListRef = useRef<HTMLDivElement>(null);
 
+  // ----- MANEJADORES DE EVENTOS -----
+  
   // Función para reordenar categorías (drag and drop)
   const handleReorderCategory = async (sourceIndex: number, destinationIndex: number) => {
     if (sourceIndex === destinationIndex) return;
@@ -591,6 +592,8 @@ export default function DashboardPage() {
     }
   };
 
+  // ----- EFECTOS -----
+  
   // Precargar datos cuando se carga el dashboard
   useEffect(() => {
     if (categories.length > 0 && !isLoading) {
@@ -893,6 +896,27 @@ export default function DashboardPage() {
     }
   };
 
+  // ----- RENDERIZADO -----
+  
+  // Mostrar indicador de carga mientras se cargan los datos
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-full py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+        </div>
+    )
+  }
+
+  // Mostrar mensaje de error si hay alguno
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+        <strong className="font-bold">Error:</strong>
+        <span className="block sm:inline"> {error}</span>
+      </div>
+    )
+  }
+
   // Función para editar una categoría
   const handleEditCategory = (category: Category) => {
     setEditingCategory({
@@ -955,190 +979,47 @@ export default function DashboardPage() {
   };
 
   // Función para crear una nueva sección
-  const handleCreateSection = async () => {
-    if (!selectedCategory || !client) return;
+  const handleCreateSection = async (newSection: any) => {
+    // Actualizar el estado local para incluir la nueva sección
+    setSections(prev => ({
+      ...prev,
+      [selectedCategory!.category_id]: [
+        ...(prev[selectedCategory!.category_id] || []),
+        newSection
+      ]
+    }));
     
-    setIsCreatingSection(true);
-    
-    try {
-      console.log("Creando sección para categoría:", selectedCategory);
-      
-      // Crear FormData para enviar la información
-      const formData = new FormData();
-      formData.append('name', newSectionName);
-      formData.append('category_id', selectedCategory.category_id.toString());
-      formData.append('client_id', client.id.toString());
-      formData.append('status', '1'); // Estado activo por defecto
-      
-      if (newSectionImage) {
-        formData.append('image', newSectionImage);
-      }
-      
-      // Realizar la petición para crear la sección
-      const response = await fetch('/api/sections', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const responseData = await response.json();
-      
-      if (!response.ok) {
-        console.error("Error al crear sección:", responseData);
-        throw new Error(responseData.error || 'Error al crear la sección');
-      }
-      
-      console.log("Sección creada:", responseData);
-      const newSection = responseData;
-      
-      // Actualizar el estado local para incluir la nueva sección
-      setSections(prev => ({
-        ...prev,
-        [selectedCategory.category_id]: [
-          ...(prev[selectedCategory.category_id] || []),
-          newSection
-        ]
-      }));
-      
-      // Si es la primera sección, establecerla como seleccionada
-      if ((sections[selectedCategory.category_id] || []).length === 0) {
-        setSelectedSection(newSection);
-        await fetchProducts(newSection.section_id);
-      }
-      
-      // Cerrar el modal y limpiar el formulario
-      setIsNewSectionModalOpen(false);
-      setNewSectionName('');
-      setNewSectionImage(null);
-      setNewSectionImagePreview(null);
-      
-      // Mostrar mensaje de éxito
-      toast.success('Sección creada con éxito');
-    } catch (error) {
-      console.error('Error al crear la sección:', error);
-      toast.error('Error al crear la sección');
-    } finally {
-      setIsCreatingSection(false);
+    // Si es la primera sección, establecerla como seleccionada
+    if ((sections[selectedCategory!.category_id] || []).length === 0) {
+      setSelectedSection(newSection);
+      await fetchProducts(newSection.section_id);
     }
+
+    // Mostrar mensaje de éxito
+    toast.success('Sección creada con éxito');
   };
   
-  // Manejador para el cambio de imagen de una nueva sección
-  const handleNewSectionImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setNewSectionImage(file);
-      
-      // Crear una URL para previsualizar la imagen
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewSectionImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Manejador para la creación de un nuevo producto
-  const handleCreateProduct = async () => {
-    if (!selectedSection || !client) return;
+  // Función para crear un nuevo producto
+  const handleCreateProduct = async (newProduct: any) => {
+    // Actualizar el estado local para incluir el nuevo producto
+    setProducts(prev => ({
+      ...prev,
+      [selectedSection!.section_id]: [
+        ...(prev[selectedSection!.section_id] || []),
+        newProduct
+      ]
+    }));
     
-    setIsCreatingProduct(true);
-    
-    try {
-      // Crear FormData para enviar la información
-      const formData = new FormData();
-      formData.append('name', newProductName);
-      formData.append('price', newProductPrice);
-      formData.append('section_id', selectedSection.section_id.toString());
-      formData.append('client_id', client.id.toString());
-      
-      if (newProductDescription) {
-        formData.append('description', newProductDescription);
-      }
-      
-      if (newProductImage) {
-        formData.append('image', newProductImage);
-      }
-      
-      // Realizar la petición para crear el producto
-      const response = await fetch('/api/products', {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error al crear el producto');
-      }
-      
-      const newProduct = await response.json();
-      
-      // Actualizar el estado local para incluir el nuevo producto
-      setProducts(prev => ({
-        ...prev,
-        [selectedSection.section_id]: [
-          ...(prev[selectedSection.section_id] || []),
-          newProduct
-        ]
-      }));
-      
-      // Cerrar el modal y limpiar el formulario
-      setIsNewProductModalOpen(false);
-      setNewProductName('');
-      setNewProductPrice('');
-      setNewProductDescription('');
-      setNewProductImage(null);
-      setNewProductImagePreview(null);
-      
-      // Mostrar mensaje de éxito
-      toast.success('Producto creado con éxito');
-    } catch (error) {
-      console.error('Error al crear el producto:', error);
-      toast.error('Error al crear el producto');
-      } finally {
-      setIsCreatingProduct(false);
-    }
+    // Mostrar mensaje de éxito
+    toast.success('Producto creado con éxito');
   };
   
-  // Manejador para el cambio de imagen de un nuevo producto
-  const handleNewProductImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setNewProductImage(file);
-      
-      // Crear una URL para previsualizar la imagen
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setNewProductImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Mostrar indicador de carga mientras se cargan los datos
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-full py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-        </div>
-    )
-  }
-
-  // Mostrar mensaje de error si hay alguno
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
-        <strong className="font-bold">Error:</strong>
-        <span className="block sm:inline"> {error}</span>
-      </div>
-    )
-  }
-
   // Función para editar una sección
   const handleEditSection = (section: Section) => {
     setEditingSection({
       id: section.section_id,
       name: section.name
     });
-    setEditSectionName(section.name);
-    setEditSectionImagePreview(section.image ? getImagePath(section.image, 'sections') : null);
     setIsEditSectionModalOpen(true);
   };
 
@@ -1154,10 +1035,6 @@ export default function DashboardPage() {
       id: product.product_id,
       name: product.name
     });
-    setEditProductName(product.name);
-    setEditProductPrice(product.price);
-    setEditProductDescription(product.description || '');
-    setEditProductImagePreview(product.image ? getImagePath(product.image, 'products') : null);
     setIsEditProductModalOpen(true);
   };
 
@@ -1165,6 +1042,49 @@ export default function DashboardPage() {
   const handleDeleteProduct = (productId: number) => {
     setProductToDelete(productId);
     setIsDeleteProductModalOpen(true);
+  };
+
+  // Implementación local de deleteSection
+  const deleteSection = async (sectionId: number): Promise<boolean> => {
+    if (!client?.id) return false;
+    
+    try {
+      // Usar el hook useSections para eliminar la sección
+      const { deleteSection } = useSections(client.id);
+      
+      // Buscar la categoría a la que pertenece esta sección
+      let categoryId: number | null = null;
+      for (const [catId, sectionList] of Object.entries(sections)) {
+        if (sectionList.some(s => s.section_id === sectionId)) {
+          categoryId = parseInt(catId);
+          break;
+        }
+      }
+      
+      if (!categoryId) {
+        console.error('No se encontró categoría para la sección', sectionId);
+        return false;
+      }
+      
+      const result = await deleteSection(categoryId, sectionId);
+      return result;
+    } catch (error) {
+      console.error('Error en deleteSection:', error);
+      return false;
+    }
+  };
+
+  // Implementación local de deleteProduct
+  const deleteProduct = async (productId: number): Promise<boolean> => {
+    try {
+      // Usar el hook useProducts para eliminar el producto
+      const { deleteProduct } = useProducts();
+      await deleteProduct(productId);
+      return true;
+    } catch (error) {
+      console.error('Error en deleteProduct:', error);
+      return false;
+    }
   };
 
   return (
@@ -1267,12 +1187,7 @@ export default function DashboardPage() {
                     onBackClick={navigateBack}
                     categoryName={selectedCategory.name}
                     onEditSection={(sectionToEdit) => {
-                      // Asegurar compatibilidad de tipos
-                      const section: Section = {
-                        ...sectionToEdit,
-                        products_count: sectionToEdit.products_count || 0
-                      };
-                      handleEditSection(section);
+                      handleEditSection(sectionToEdit as unknown as Section);
                     }}
                     onDeleteSection={handleDeleteSection}
                     onToggleVisibility={toggleSectionVisibility}
@@ -1292,18 +1207,27 @@ export default function DashboardPage() {
                 <FloatingPhonePreview 
                   clientName={client?.name || "Mi Restaurante"}
                   clientMainLogo={client?.main_logo || undefined}
-                  categories={[{
+                  categories={categories.filter(cat => cat.status === 1).map(cat => ({
+                    id: cat.category_id,
+                    category_id: cat.category_id,
+                    name: cat.name,
+                    image: cat.image ? getImagePath(cat.image, 'categories') : undefined,
+                    sections: sections[cat.category_id]?.filter(sec => sec.status === 1).map(sec => ({
+                      id: sec.section_id,
+                      name: sec.name,
+                      image: sec.image || undefined
+                    })) || []
+                  })) as FloatingPhoneCategory[]}
+                  selectedCategory={selectedCategory ? {
                     id: selectedCategory.category_id,
                     name: selectedCategory.name,
-                    image: selectedCategory.image || undefined,
-                    sections: sections[selectedCategory.category_id]
-                      ?.filter(sec => sec.status === 1)
-                      .map(sec => ({
-                        id: sec.section_id,
-                        name: sec.name,
-                        image: sec.image || undefined
-                      }))
-                  }]}
+                    image: selectedCategory.image ? getImagePath(selectedCategory.image, 'categories') : undefined
+                  } : null}
+                  selectedSection={selectedSection ? {
+                    id: selectedSection.section_id,
+                    name: selectedSection.name,
+                    image: selectedSection.image ? getImagePath(selectedSection.image, 'sections') : undefined
+                  } : null}
                 />
               </div>
             </div>
@@ -1327,14 +1251,7 @@ export default function DashboardPage() {
                     onBackClick={navigateBack}
                     sectionName={selectedSection.name}
                     onEditProduct={(productToEdit) => {
-                      // Asegurar compatibilidad de tipos agregando propiedades faltantes
-                      const product: Product = {
-                        ...productToEdit,
-                        // Acceder a description de manera segura, verificando que exista en productToEdit
-                        description: 'description' in productToEdit ? productToEdit.description as string | null : null,
-                        sections: [] // Asumiendo que esta propiedad es necesaria según la definición de Product
-                      };
-                      handleEditProduct(product);
+                      handleEditProduct(productToEdit as unknown as Product);
                     }}
                     onDeleteProduct={handleDeleteProduct}
                     onToggleVisibility={toggleProductVisibility}
@@ -1354,25 +1271,23 @@ export default function DashboardPage() {
                 <FloatingPhonePreview 
                   clientName={client?.name || "Mi Restaurante"}
                   clientMainLogo={client?.main_logo || undefined}
-                  categories={[{
-                    id: selectedCategory.category_id,
-                    name: selectedCategory.name,
-                    image: selectedCategory.image || undefined,
-                    sections: [{
-                      id: selectedSection.section_id,
-                      name: selectedSection.name,
-                      image: selectedSection.image || undefined,
-                      products: products[selectedSection.section_id]
-                        ?.filter(prod => prod.status === 1)
-                        .map(prod => ({
-                          id: prod.product_id,
-                          name: prod.name,
-                          image: prod.image || undefined,
-                          price: prod.price,
-                          description: prod.description || undefined
-                        }))
-                    }]
-                  }]}
+                  categories={categories.filter(cat => cat.status === 1).map(cat => ({
+                    id: cat.category_id,
+                    name: cat.name,
+                    image: cat.image ? getImagePath(cat.image, 'categories') : undefined,
+                    sections: sections[cat.category_id]?.filter(sec => sec.status === 1).map(sec => ({
+                      id: sec.section_id,
+                      name: sec.name,
+                      image: sec.image ? getImagePath(sec.image, 'sections') : undefined,
+                      products: products[sec.section_id]?.filter(prod => prod.status === 1).map(prod => ({
+                        id: prod.product_id,
+                        name: prod.name,
+                        image: prod.image ? getImagePath(prod.image, 'products') : undefined,
+                        price: prod.price,
+                        description: prod.description ?? undefined
+                      })) || []
+                    })) || []
+                  })) as FloatingPhoneCategory[]}
                 />
               </div>
             </div>
@@ -1439,7 +1354,9 @@ export default function DashboardPage() {
                       sectionName={section.name}
                       onToggleVisibility={toggleProductVisibility}
                       isUpdatingVisibility={isUpdatingVisibility}
-                      onEditProduct={(product) => handleEditProduct(product as unknown as Product)}
+                      onEditProduct={(productToEdit) => {
+                        handleEditProduct(productToEdit as unknown as Product);
+                      }}
                       onDeleteProduct={handleDeleteProduct}
                     />
                   </div>
@@ -1449,1549 +1366,79 @@ export default function DashboardPage() {
           );
         })}
         
-        {/* Modal para nueva categoría */}
-        <Transition.Root show={isNewCategoryModalOpen} as={Fragment}>
-          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsNewCategoryModalOpen}>
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-              </Transition.Child>
-
-              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                  <div>
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-                      <PlusIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                    </div>
-                    <div className="mt-3 text-center sm:mt-5">
-                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                        Nueva categoría
-                      </Dialog.Title>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-500">
-                          Por favor, introduce el nombre e imagen para la nueva categoría.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-5 sm:mt-6">
-                    <div className="mb-4">
-                      <label htmlFor="categoryName" className="block text-sm font-medium text-gray-700">
-                        Nombre de la categoría
-            </label>
-            <input
-              type="text"
-                        name="categoryName"
-                        id="categoryName"
-                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-            />
-                </div>
-                    <div className="mb-4">
-                      <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700">
-                        Imagen de la categoría
-            </label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
-                        <div className="space-y-1 text-center">
-                {imagePreview ? (
-                            <div className="relative mx-auto w-24 h-24 mb-2">
-                  <Image
-                    src={imagePreview}
-                    alt="Vista previa"
-                    fill
-                                className="object-cover rounded-full"
-                              />
-                              <button
-                                type="button"
-                                className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
-                                onClick={() => {
-                                  setSelectedImage(null);
-                                  setImagePreview(null);
-                                }}
-                              >
-                                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
-                              </button>
-                            </div>
-                          ) : (
-                            <svg
-                              className="mx-auto h-12 w-12 text-gray-400"
-                              stroke="currentColor"
-                              fill="none"
-                              viewBox="0 0 48 48"
-                              aria-hidden="true"
-                            >
-                              <path
-                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                                strokeWidth={2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                  </svg>
-                )}
-                          <div className="flex text-sm text-gray-600">
-                            <label
-                              htmlFor="category-image-upload"
-                              className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                            >
-                              <span>Subir imagen</span>
-                <input
-                                id="category-image-upload" 
-                                name="category-image-upload" 
-                  type="file"
-                                className="sr-only" 
-                  accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    setSelectedImage(file);
-                                    const reader = new FileReader();
-                                    reader.onload = (e) => {
-                                      setImagePreview(e.target?.result as string);
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }
-                                }}
-                              />
-                            </label>
-                            <p className="pl-1">o arrastra y suelta</p>
-            </div>
-                          <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
-                </div>
-                </div>
-                    </div>
-                    <div className="flex justify-between">
-            <button
-                        type="button"
-                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
-              onClick={() => setIsNewCategoryModalOpen(false)}
-            >
-              Cancelar
-            </button>
-            <button
-                        type="button"
-                        className={`inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm ${
-                          isCreatingCategory ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        onClick={() => {
-                          if (!client) return;
-                          
-                          setIsCreatingCategory(true);
-                          
-                          const formData = new FormData();
-                          formData.append('name', newCategoryName);
-                          formData.append('client_id', client.id.toString());
-                          formData.append('status', '1'); // Añadimos status explícitamente
-                          
-                          if (selectedImage) {
-                            // Verificar tamaño de imagen
-                            if (selectedImage.size > 2 * 1024 * 1024) { // 2MB
-                              toast.error('La imagen no puede superar los 2MB');
-                              setIsCreatingCategory(false);
-                              return;
-                            }
-                            formData.append('image', selectedImage);
-                          }
-                          
-                          console.log('Creando categoría:', {
-                            name: newCategoryName,
-                            hasImage: !!selectedImage,
-                            clientId: client.id
-                          });
-                          
-                          fetch('/api/categories', {
-                            method: 'POST',
-                            body: formData,
-                            headers: {
-                              // No incluir Content-Type para que el navegador lo configure automáticamente con el boundary correcto
-                            }
-                          })
-                          .then(async response => {
-                            const responseData = await response.json();
-                            
-                            if (!response.ok) {
-                              console.error('Error API:', responseData);
-                              throw new Error(responseData.error || 'Error al crear la categoría');
-                            }
-                            
-                            return responseData;
-                          })
-                          .then(newCategory => {
-                            console.log('Categoría creada con éxito:', newCategory);
-                            
-                            // Actualizar el estado local con la nueva categoría
-                            setCategories(prev => [...prev, newCategory]);
-                            
-                            // Limpiar el formulario y cerrar el modal
-                            setNewCategoryName('');
-                            setSelectedImage(null);
-                            setImagePreview(null);
-                            setIsNewCategoryModalOpen(false);
-                            
-                            toast.success('Categoría creada correctamente');
-                          })
-                          .catch(error => {
-                            console.error('Error al crear categoría:', error);
-                            
-                            // Mostrar mensaje de error más detallado si está disponible
-                            const errorMessage = error.message || 'Error al crear la categoría';
-                            toast.error(errorMessage);
-                          })
-                          .finally(() => {
-                            setIsCreatingCategory(false);
-                          });
-                        }}
-              disabled={isCreatingCategory || !newCategoryName.trim()}
-            >
-              {isCreatingCategory ? (
-                          <>
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creando...
-                          </>
-              ) : 'Crear Categoría'}
-            </button>
-            </div>
-                </div>
-                </div>
-              </Transition.Child>
-            </div>
-          </Dialog>
-        </Transition.Root>
-
-        {/* Modal para crear nueva sección */}
-        <Transition.Root show={isNewSectionModalOpen} as={Fragment}>
-          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsNewSectionModalOpen}>
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-              </Transition.Child>
-
-              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                  <div>
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-                      <PlusIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-          </div>
-                    <div className="mt-3 text-center sm:mt-5">
-                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                        Nueva sección
-                      </Dialog.Title>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-500">
-                          Por favor, introduce el nombre e imagen para la nueva sección.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-5 sm:mt-6">
-                    <div className="mb-4">
-                      <label htmlFor="sectionName" className="block text-sm font-medium text-gray-700">
-                        Nombre de la sección
-            </label>
-            <input
-              type="text"
-                        name="sectionName"
-                        id="sectionName"
-                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
-                        value={newSectionName}
-                        onChange={(e) => setNewSectionName(e.target.value)}
-            />
-            </div>
-                    <div className="mb-4">
-                      <label htmlFor="sectionImage" className="block text-sm font-medium text-gray-700">
-                        Imagen de la sección
-            </label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
-                        <div className="space-y-1 text-center">
-                          {newSectionImagePreview ? (
-                            <div className="relative mx-auto w-24 h-24 mb-2">
-                  <Image
-                                src={newSectionImagePreview} 
-                    alt="Vista previa"
-                    fill
-                                className="object-cover rounded-full"
-                              />
-                              <button
-                                type="button"
-                                className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
-                                onClick={() => {
-                                  setNewSectionImage(null);
-                                  setNewSectionImagePreview(null);
-                                }}
-                              >
-                                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
-                              </button>
-                            </div>
-                          ) : (
-                            <svg
-                              className="mx-auto h-12 w-12 text-gray-400"
-                              stroke="currentColor"
-                              fill="none"
-                              viewBox="0 0 48 48"
-                              aria-hidden="true"
-                            >
-                              <path
-                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                                strokeWidth={2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                  </svg>
-                )}
-                          <div className="flex text-sm text-gray-600">
-                            <label
-                              htmlFor="section-image-upload"
-                              className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                            >
-                              <span>Subir imagen</span>
-                <input
-                                id="section-image-upload" 
-                                name="section-image-upload" 
-                  type="file"
-                                className="sr-only" 
-                  accept="image/*"
-                                onChange={handleNewSectionImageChange}
-                              />
-                            </label>
-                            <p className="pl-1">o arrastra y suelta</p>
-                          </div>
-                          <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between">
-                            <button
-                  type="button"
-                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
-                        onClick={() => setIsNewSectionModalOpen(false)}
-                            >
-                        Cancelar
-                            </button>
-                            <button
-                    type="button"
-                        className={`inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm ${
-                          isCreatingSection ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        onClick={handleCreateSection}
-                        disabled={isCreatingSection || !newSectionName.trim()}
-                      >
-                        {isCreatingSection ? (
-                          <>
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Creando...
-                          </>
-                        ) : 'Crear sección'}
-                            </button>
-                          </div>
-                        </div>
-                          </div>
-              </Transition.Child>
-            </div>
-          </Dialog>
-        </Transition.Root>
-
-        {/* Modal para crear nuevo producto */}
-        <Transition.Root show={isNewProductModalOpen} as={Fragment}>
-          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsNewProductModalOpen}>
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-              </Transition.Child>
-
-              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                  <div>
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-                      <PlusIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                    </div>
-                    <div className="mt-3 text-center sm:mt-5">
-                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                        Nuevo producto
-                      </Dialog.Title>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-500">
-                          Por favor, introduce los detalles para el nuevo producto.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-5 sm:mt-6">
-                    <div className="mb-4">
-                      <label htmlFor="productName" className="block text-sm font-medium text-gray-700">
-                        Nombre del producto
-                      </label>
-                      <input
-                        type="text"
-                        name="productName"
-                        id="productName"
-                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
-                        value={newProductName}
-                        onChange={(e) => setNewProductName(e.target.value)}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label htmlFor="productPrice" className="block text-sm font-medium text-gray-700">
-                        Precio
-                      </label>
-                      <div className="mt-1 relative rounded-md shadow-sm">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <span className="text-gray-500 sm:text-sm">€</span>
-                        </div>
-                        <input
-                          type="text"
-                          name="productPrice"
-                          id="productPrice"
-                          className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-400 rounded-md"
-                          placeholder="0.00"
-                          value={newProductPrice}
-                          onChange={(e) => setNewProductPrice(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="mb-4">
-                      <label htmlFor="productDescription" className="block text-sm font-medium text-gray-700">
-                        Descripción
-                      </label>
-                      <textarea
-                        id="productDescription"
-                        name="productDescription"
-                        rows={3}
-                        className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mt-1 block w-full sm:text-sm border border-gray-300 rounded-md"
-                        placeholder="Descripción del producto"
-                        value={newProductDescription}
-                        onChange={(e) => setNewProductDescription(e.target.value)}
-                      />
-                    </div>
-                    <div className="mb-4">
-                      <label htmlFor="productImage" className="block text-sm font-medium text-gray-700">
-                        Imagen del producto
-                      </label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
-                        <div className="space-y-1 text-center">
-                          {newProductImagePreview ? (
-                            <div className="relative mx-auto w-24 h-24 mb-2">
-                              <Image 
-                                src={newProductImagePreview} 
-                                alt="Vista previa" 
-                                fill
-                                className="object-cover rounded-md"
-                              />
-                            <button
-                                type="button"
-                                className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
-                                onClick={() => {
-                                  setNewProductImage(null);
-                                  setNewProductImagePreview(null);
-                                }}
-                              >
-                                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
-                              </button>
-                            </div>
-                          ) : (
-                            <svg
-                              className="mx-auto h-12 w-12 text-gray-400"
-                              stroke="currentColor"
-                              fill="none"
-                              viewBox="0 0 48 48"
-                              aria-hidden="true"
-                            >
-                              <path
-                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                                strokeWidth={2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          )}
-                          <div className="flex text-sm text-gray-600">
-                            <label
-                              htmlFor="product-image-upload"
-                              className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                            >
-                              <span>Subir imagen</span>
-                              <input 
-                                id="product-image-upload" 
-                                name="product-image-upload" 
-                                type="file" 
-                                className="sr-only" 
-                                accept="image/*"
-                                onChange={handleNewProductImageChange}
-                              />
-                            </label>
-                            <p className="pl-1">o arrastra y suelta</p>
-                          </div>
-                          <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between">
-                      <button
-                        type="button"
-                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
-                        onClick={() => setIsNewProductModalOpen(false)}
-                            >
-              Cancelar
-                            </button>
-                            <button
-                        type="button"
-                        className={`inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm ${
-                          isCreatingProduct ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        onClick={handleCreateProduct}
-                        disabled={isCreatingProduct || !newProductName.trim() || !newProductPrice.trim()}
-                      >
-                        {isCreatingProduct ? (
-                          <>
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                            Creando...
-                          </>
-                        ) : 'Crear producto'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-              </Transition.Child>
-            </div>
-          </Dialog>
-        </Transition.Root>
-
-        {/* Modal para editar categoría */}
-        <Transition.Root show={isEditModalOpen} as={Fragment}>
-          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsEditModalOpen}>
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-              </Transition.Child>
-
-              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                  <div>
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-                      <PencilIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                                      </div>
-                    <div className="mt-3 text-center sm:mt-5">
-                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                        Editar categoría
-                      </Dialog.Title>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-500">
-                          Modifica los detalles de la categoría
-                        </p>
-                                    </div>
-                    </div>
-                  </div>
-                  <div className="mt-5 sm:mt-6">
-                    <div className="mb-4">
-                      <label htmlFor="editCategoryName" className="block text-sm font-medium text-gray-700">
-                        Nombre de la categoría
-                      </label>
-                      <input
-                        type="text"
-                        name="editCategoryName"
-                        id="editCategoryName"
-                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
-                        value={editCategoryName}
-                        onChange={(e) => setEditCategoryName(e.target.value)}
-                      />
-                                  </div>
-                    <div className="mb-4">
-                      <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700">
-                        Imagen de la categoría
-                      </label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
-                        <div className="space-y-1 text-center">
-                          {editImagePreview ? (
-                            <div className="relative mx-auto w-24 h-24 mb-2">
-                              <Image 
-                                src={editImagePreview} 
-                                alt="Vista previa" 
-                                fill
-                                className="object-cover rounded-full"
-                              />
-                                    <button 
-                                type="button"
-                                className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
-                                onClick={() => {
-                                  setEditCategoryImage(null);
-                                  setEditImagePreview(null);
-                                }}
-                              >
-                                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
-                                    </button>
-                            </div>
-                          ) : (
-                            <svg
-                              className="mx-auto h-12 w-12 text-gray-400"
-                              stroke="currentColor"
-                              fill="none"
-                              viewBox="0 0 48 48"
-                              aria-hidden="true"
-                            >
-                              <path
-                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                                strokeWidth={2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          )}
-                          <div className="flex text-sm text-gray-600">
-                            <label
-                              htmlFor="edit-category-image-upload"
-                              className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                            >
-                              <span>Subir imagen</span>
-                              <input 
-                                id="edit-category-image-upload" 
-                                name="edit-category-image-upload" 
-                                type="file" 
-                                className="sr-only" 
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    setEditCategoryImage(file);
-                                    
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => {
-                                      setEditImagePreview(reader.result as string);
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }
-                                }}
-                              />
-                            </label>
-                            <p className="pl-1">o arrastra y suelta</p>
-                                  </div>
-                          <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
-                          </div>
-                        </div>
-                    </div>
-                    <div className="flex justify-between">
-                                  <button 
-                        type="button"
-                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
-                        onClick={() => setIsEditModalOpen(false)}
-                                  >
-                        Cancelar
-                                  </button>
-                                          <button 
-                        type="button"
-                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm"
-                        onClick={() => {
-                          if (!editingCategory || !client) return;
-                          
-                          setIsUpdatingName(true);
-                          
-                          const formData = new FormData();
-                          formData.append('name', editCategoryName);
-                          formData.append('client_id', client.id.toString());
-                          
-                          if (editCategoryImage) {
-                            formData.append('image', editCategoryImage);
-                          }
-                          
-                          fetch(`/api/categories/${editingCategory.id}`, {
-                            method: 'PUT',
-                            body: formData
-                          })
-                          .then(response => {
-                            if (!response.ok) {
-                              throw new Error('Error al actualizar la categoría');
-                            }
-                            return response.json();
-                          })
-                          .then(updatedCategory => {
-                            // Actualizar estado local
-                            setCategories(prev => 
-                              prev.map(cat => 
-                                cat.category_id === editingCategory.id 
-                                  ? updatedCategory 
-                                  : cat
-                              )
-                            );
-                            
-                            // Limpiar formulario y cerrar modal
-                            setIsEditModalOpen(false);
-                            setEditCategoryName('');
-                            setEditCategoryImage(null);
-                            setEditImagePreview(null);
-                            setEditingCategory(null);
-                            
-                            toast.success('Categoría actualizada correctamente');
-                          })
-                          .catch(error => {
-                            console.error('Error al actualizar la categoría:', error);
-                            toast.error('Error al actualizar la categoría');
-                          })
-                          .finally(() => {
-                            setIsUpdatingName(false);
-                          });
-                        }}
-                      >
-                        Guardar Cambios
-                                          </button>
-                          </div>
-                        </div>
-                                        </div>
-              </Transition.Child>
-                                        </div>
-          </Dialog>
-        </Transition.Root>
-        
-        {/* Modal para eliminar categoría */}
-        <Transition.Root show={isDeleteModalOpen} as={Fragment}>
-          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsDeleteModalOpen}>
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-              </Transition.Child>
-
-              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                  <div>
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-                      <TrashIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                    </div>
-                    <div className="mt-3 text-center sm:mt-5">
-                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                        Eliminar categoría
-                      </Dialog.Title>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-500">
-                          ¿Estás seguro de que deseas eliminar esta categoría?
-                          Esta acción no se puede deshacer.
-                        </p>
-                    </div>
-            </div>
-          </div>
-                  <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                    <button
-                      type="button"
-                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm"
-                      onClick={() => {
-                        if (!categoryToDelete) return;
-                        
-                        setIsDeletingCategory(true);
-                        
-                        fetch(`/api/categories/${categoryToDelete}`, {
-                          method: 'DELETE'
-                        })
-                        .then(response => {
-                          if (!response.ok) {
-                            throw new Error('Error al eliminar la categoría');
-                          }
-                          return response.json();
-                        })
-                        .then(() => {
-                          // Actualizar estado local
-                          setCategories(prev => 
-                            prev.filter(cat => cat.category_id !== categoryToDelete)
-                          );
-                          
-                          // Cerrar modal
-                          setIsDeleteModalOpen(false);
-                          setCategoryToDelete(null);
-                          
-                          toast.success('Categoría eliminada correctamente');
-                        })
-                        .catch(error => {
-                          console.error('Error al eliminar la categoría:', error);
-                          toast.error('Error al eliminar la categoría');
-                        })
-                        .finally(() => {
-                          setIsDeletingCategory(false);
-                        });
-                      }}
-                      disabled={isDeletingCategory}
-                    >
-                      {isDeletingCategory ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Eliminando...
-                        </>
-                      ) : 'Eliminar'}
-                                                  </button>
-                    <button
-                      type="button"
-                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
-                      onClick={() => {
-                        setIsDeleteModalOpen(false);
-                        setCategoryToDelete(null);
-                      }}
-                      disabled={isDeletingCategory}
-                    >
-                      Cancelar
-                                                  </button>
-        </div>
-                        </div>
-              </Transition.Child>
-      </div>
-          </Dialog>
-        </Transition.Root>
-        
-        {/* Modal para editar sección */}
-        <Transition.Root show={isEditSectionModalOpen} as={Fragment}>
-          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsEditSectionModalOpen}>
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-              </Transition.Child>
-
-              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                  <div className="sm:flex sm:items-start">
-                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                        Editar sección
-                      </Dialog.Title>
-                      <div className="mt-2">
-                        <div className="mb-4">
-                          <label htmlFor="sectionName" className="block text-sm font-medium text-gray-700">
-                            Nombre de la sección
-                          </label>
-                          <input
-                            type="text"
-                            name="sectionName"
-                            id="sectionName"
-                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
-                            value={editSectionName}
-                            onChange={(e) => setEditSectionName(e.target.value)}
-                            placeholder="Nombre de la sección"
-                          />
-                        </div>
-                        <div className="mb-4">
-                          <label htmlFor="sectionImage" className="block text-sm font-medium text-gray-700">
-                            Imagen de la sección
-                          </label>
-                          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
-                            <div className="space-y-1 text-center">
-                              {editSectionImagePreview ? (
-                                <div className="relative mx-auto w-24 h-24 mb-2">
-                        <Image
-                                    src={editSectionImagePreview} 
-                                    alt="Vista previa" 
-                                    fill
-                                    className="object-cover rounded-full"
-                                  />
-                                  <button
-                                    type="button"
-                                    className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
-                                    onClick={() => {
-                                      setEditSectionImage(null);
-                                      setEditSectionImagePreview(null);
-                                    }}
-                                  >
-                                    <XMarkIcon className="h-4 w-4" aria-hidden="true" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <svg
-                                  className="mx-auto h-12 w-12 text-gray-400"
-                                  stroke="currentColor"
-                                  fill="none"
-                                  viewBox="0 0 48 48"
-                                  aria-hidden="true"
-                                >
-                                  <path
-                                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                                    strokeWidth={2}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              )}
-                              <div className="flex text-sm text-gray-600">
-                                <label
-                                  htmlFor="edit-section-image-upload"
-                                  className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                                >
-                                  <span>Subir imagen</span>
-                                  <input 
-                                    id="edit-section-image-upload" 
-                                    name="edit-section-image-upload" 
-                                    type="file" 
-                                    className="sr-only" 
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) {
-                                        setEditSectionImage(file);
-                                        
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => {
-                                          setEditSectionImagePreview(reader.result as string);
-                                        };
-                                        reader.readAsDataURL(file);
-                                      }
-                                    }}
-                                  />
-                                </label>
-                                <p className="pl-1">o arrastra y suelta</p>
-      </div>
-                              <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
-                    </div>
-                  </div>
-                </div>
-                        <div className="flex justify-between">
-                <button
-                            type="button"
-                            className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
-                            onClick={() => setIsEditSectionModalOpen(false)}
-                >
-                            Cancelar
-                </button>
-                          <button
-                            type="button"
-                            className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm"
-                            onClick={() => {
-                              if (!editingSection || !client) return;
-                              
-                              setIsUpdatingSectionName(true);
-                              
-                              const formData = new FormData();
-                              formData.append('name', editSectionName);
-                              formData.append('client_id', client.id.toString());
-                              
-                              if (editSectionImage) {
-                                formData.append('image', editSectionImage);
-                              }
-                              
-                              fetch(`/api/sections/${editingSection.id}`, {
-                                method: 'PUT',
-                                body: formData
-                              })
-                              .then(response => {
-                                if (!response.ok) {
-                                  throw new Error('Error al actualizar la sección');
-                                }
-                                return response.json();
-                              })
-                              .then(updatedSection => {
-                                // Actualizar estado local
-                                setSections(prev => {
-                                  const updated = {...prev};
-                                  Object.keys(updated).forEach(categoryId => {
-                                    if (updated[Number(categoryId)]) {
-                                      updated[Number(categoryId)] = updated[Number(categoryId)].map(section => 
-                                        section.section_id === editingSection.id 
-                                          ? updatedSection 
-                                          : section
-                                      );
-                                    }
-                                  });
-                                  return updated;
-                                });
-                                
-                                // Limpiar formulario y cerrar modal
-                                setIsEditSectionModalOpen(false);
-                                setEditSectionName('');
-                                setEditSectionImage(null);
-                                setEditSectionImagePreview(null);
-                                setEditingSection(null);
-                                
-                                toast.success('Sección actualizada correctamente');
-                              })
-                              .catch(error => {
-                                console.error('Error al actualizar la sección:', error);
-                                toast.error('Error al actualizar la sección');
-                              })
-                              .finally(() => {
-                                setIsUpdatingSectionName(false);
-                              });
-                            }}
-                          >
-                            Guardar Cambios
-                          </button>
-              </div>
-                    </div>
-        </div>
-                    </div>
-        </div>
-              </Transition.Child>
-                    </div>
-          </Dialog>
-        </Transition.Root>
+        {/* Modal para crear categoría */}
+        <NewCategoryModal
+          isOpen={isNewCategoryModalOpen}
+          onClose={() => setIsNewCategoryModalOpen(false)}
+          client={client as any}
+          setCategories={setCategories}
+        />
         
         {/* Modal para eliminar sección */}
-        <Transition.Root show={isDeleteSectionModalOpen} as={Fragment}>
-          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsDeleteSectionModalOpen}>
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          <Transition.Child
-            as={Fragment}
-            enter="ease-out duration-300"
-            enterFrom="opacity-0"
-            enterTo="opacity-100"
-            leave="ease-in duration-200"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-          </Transition.Child>
-
-              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                  <div>
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-                      <TrashIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                    </div>
-                    <div className="mt-3 text-center sm:mt-5">
-                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                        Eliminar sección
-                  </Dialog.Title>
-                  <div className="mt-2">
-                        <p className="text-sm text-gray-500">
-                          ¿Estás seguro de que deseas eliminar esta sección?
-                          Esta acción no se puede deshacer.
-                    </p>
-              </div>
-                    </div>
-                  </div>
-                  <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                    <button
-                      type="button"
-                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm"
-                      onClick={() => {
-                        if (!sectionToDelete) return;
-                        
-                        setIsDeletingSection(true);
-                        
-                        deleteSection(sectionToDelete)
-                          .then(() => {
-                            // Actualizar estado local
-                            if (selectedCategory) {
-                              setSections(prev => {
-                                const updated = {...prev};
-                                if (updated[selectedCategory.category_id]) {
-                                  updated[selectedCategory.category_id] = updated[selectedCategory.category_id].filter(
-                                    section => section.section_id !== sectionToDelete
-                                  );
-                                }
-                                return updated;
-                              });
-                            }
-                            
-                            // Cerrar modal
-                            setIsDeleteSectionModalOpen(false);
-                            setSectionToDelete(null);
-                            
-                            toast.success('Sección eliminada correctamente');
-                          })
-                          .catch(error => {
-                            console.error('Error al eliminar la sección:', error);
-                            toast.error('Error al eliminar la sección');
-                          })
-                          .finally(() => {
-                            setIsDeletingSection(false);
-                          });
-                      }}
-                      disabled={isDeletingSection}
-                    >
-                      {isDeletingSection ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Eliminando...
-                        </>
-                      ) : 'Eliminar'}
-                    </button>
-                <button
-                  type="button"
-                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
-                      onClick={() => {
-                        setIsDeleteSectionModalOpen(false);
-                        setSectionToDelete(null);
-                      }}
-                      disabled={isDeletingSection}
-                >
-                      Cancelar
-                </button>
-                  </div>
-                </div>
-              </Transition.Child>
-            </div>
-          </Dialog>
-        </Transition.Root>
+        <DeleteSectionModal 
+          isOpen={isDeleteSectionModalOpen}
+          onClose={() => setIsDeleteSectionModalOpen(false)}
+          sectionToDelete={sectionToDelete}
+          deleteSection={deleteSection}
+          isDeletingSection={isDeletingSection}
+          selectedCategory={selectedCategory}
+          setSections={setSections}
+        />
         
         {/* Modal para eliminar producto */}
-        <Transition.Root show={isDeleteProductModalOpen} as={Fragment}>
-          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsDeleteProductModalOpen}>
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-              </Transition.Child>
-
-              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                  <div>
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-                      <TrashIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                    </div>
-                    <div className="mt-3 text-center sm:mt-5">
-                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                        Eliminar producto
-                      </Dialog.Title>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-500">
-                          ¿Estás seguro de que deseas eliminar este producto?
-                          Esta acción no se puede deshacer.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                <button
-                  type="button"
-                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm"
-                      onClick={() => {
-                        if (!productToDelete) return;
-                        
-                        setIsDeletingProduct(true);
-                        
-                        deleteProduct(productToDelete)
-                          .then(() => {
-                            // Actualizar estado local
-                            if (selectedSection) {
-                              setProducts(prev => {
-                                const updated = {...prev};
-                                if (updated[selectedSection.section_id]) {
-                                  updated[selectedSection.section_id] = updated[selectedSection.section_id].filter(
-                                    product => product.product_id !== productToDelete
-                                  );
-                                }
-                                return updated;
-                              });
-                            }
-                            
-                            // Cerrar modal
-                            setIsDeleteProductModalOpen(false);
-                            setProductToDelete(null);
-                            
-                            toast.success('Producto eliminado correctamente');
-                          })
-                          .catch(error => {
-                            console.error('Error al eliminar el producto:', error);
-                            toast.error('Error al eliminar el producto');
-                          })
-                          .finally(() => {
-                            setIsDeletingProduct(false);
-                          });
-                      }}
-                      disabled={isDeletingProduct}
-                    >
-                      {isDeletingProduct ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Eliminando...
-                        </>
-                      ) : 'Eliminar'}
-                    </button>
-                    <button
-                      type="button"
-                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
-                      onClick={() => {
-                        setIsDeleteProductModalOpen(false);
-                        setProductToDelete(null);
-                      }}
-                      disabled={isDeletingProduct}
-                    >
-                      Cancelar
-                </button>
-              </div>
-                </div>
-              </Transition.Child>
-          </div>
-        </Dialog>
-        </Transition.Root>
+        <DeleteProductModal 
+          isOpen={isDeleteProductModalOpen}
+          onClose={() => setIsDeleteProductModalOpen(false)}
+          productToDelete={productToDelete}
+          deleteProduct={deleteProduct}
+          isDeletingProduct={isDeletingProduct}
+          selectedSection={selectedSection}
+          setProducts={setProducts}
+        />
         
         {/* Modal para editar producto */}
-        <Transition.Root show={isEditProductModalOpen} as={Fragment}>
-          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsEditProductModalOpen}>
-            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0"
-                enterTo="opacity-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100"
-                leaveTo="opacity-0"
-              >
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-              </Transition.Child>
+        <EditProductModal
+          isOpen={isEditProductModalOpen}
+          onClose={() => {
+            setIsEditProductModalOpen(false);
+            setEditingProduct(null);
+          }}
+          productToEdit={editingProduct as any}
+          client={client as any}
+          selectedSection={selectedSection}
+          setProducts={setProducts}
+        />
 
-              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-              
-              <Transition.Child
-                as={Fragment}
-                enter="ease-out duration-300"
-                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                leave="ease-in duration-200"
-                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              >
-                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                  <div className="sm:flex sm:items-start">
-                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                        Editar producto
-                      </Dialog.Title>
-                      <div className="mt-2">
-                        <div className="mb-4">
-                          <label htmlFor="productName" className="block text-sm font-medium text-gray-700">
-                            Nombre del producto
-                          </label>
-                          <input
-                            type="text"
-                            name="productName"
-                            id="productName"
-                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
-                            value={editProductName}
-                            onChange={(e) => setEditProductName(e.target.value)}
-                            placeholder="Nombre del producto"
-                          />
-                        </div>
-                        <div className="mb-4">
-                          <label htmlFor="productPrice" className="block text-sm font-medium text-gray-700">
-                            Precio (€)
-                          </label>
-                          <input
-                            type="text"
-                            name="productPrice"
-                            id="productPrice"
-                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
-                            value={editProductPrice}
-                            onChange={(e) => setEditProductPrice(e.target.value)}
-                            placeholder="Precio en euros"
-                          />
-                        </div>
-                        <div className="mb-4">
-                          <label htmlFor="productDescription" className="block text-sm font-medium text-gray-700">
-                            Descripción
-                          </label>
-                          <textarea
-                            name="productDescription"
-                            id="productDescription"
-                            rows={3}
-                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                            value={editProductDescription}
-                            onChange={(e) => setEditProductDescription(e.target.value)}
-                            placeholder="Descripción del producto"
-                          />
-                        </div>
-                        <div className="mb-4">
-                          <label htmlFor="productImage" className="block text-sm font-medium text-gray-700">
-                            Imagen del producto
-                          </label>
-                          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
-                            <div className="space-y-1 text-center">
-                              {editProductImagePreview ? (
-                                <div className="relative mx-auto w-24 h-24 mb-2">
-                                  <Image 
-                                    src={editProductImagePreview} 
-                                    alt="Vista previa" 
-                                    fill
-                                    className="object-cover rounded-full"
-                                  />
-            <button 
-                                    type="button"
-                                    className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
-                                    onClick={() => {
-                                      setEditProductImage(null);
-                                      setEditProductImagePreview(null);
-                                    }}
-                                  >
-                                    <XMarkIcon className="h-4 w-4" aria-hidden="true" />
-            </button>
-                                </div>
-                              ) : (
-                                <svg
-                                  className="mx-auto h-12 w-12 text-gray-400"
-                                  stroke="currentColor"
-                                  fill="none"
-                                  viewBox="0 0 48 48"
-                                  aria-hidden="true"
-                                >
-                                  <path
-                                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                                    strokeWidth={2}
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              )}
-                              <div className="flex text-sm text-gray-600">
-                                <label
-                                  htmlFor="edit-product-image-upload"
-                                  className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                                >
-                                  <span>Subir imagen</span>
-                                  <input 
-                                    id="edit-product-image-upload" 
-                                    name="edit-product-image-upload" 
-                                    type="file" 
-                                    className="sr-only" 
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) {
-                                        setEditProductImage(file);
-                                        
-                                        const reader = new FileReader();
-                                        reader.onloadend = () => {
-                                          setEditProductImagePreview(reader.result as string);
-                                        };
-                                        reader.readAsDataURL(file);
-                                      }
-                                    }}
-                                  />
-                                </label>
-                                <p className="pl-1">o arrastra y suelta</p>
-            </div>
-                              <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
-          </div>
-        </div>
-    </div>
-                        <div className="flex justify-between">
-                          <button
-                            type="button"
-                            className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
-                            onClick={() => setIsEditProductModalOpen(false)}
-                          >
-                            Cancelar
-                          </button>
-                          <button
-                            type="button"
-                            className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm"
-                            onClick={() => {
-                              if (!editingProduct || !client) return;
-                              
-                              setIsUpdatingProductName(true);
-                              
-                              const formData = new FormData();
-                              formData.append('name', editProductName);
-                              formData.append('price', editProductPrice);
-                              formData.append('client_id', client.id.toString());
-                              
-                              if (editProductDescription) {
-                                formData.append('description', editProductDescription);
-                              }
-                              
-                              if (editProductImage) {
-                                formData.append('image', editProductImage);
-                              }
-                              
-                              fetch(`/api/products/${editingProduct.id}`, {
-                                method: 'PUT',
-                                body: formData
-                              })
-                              .then(response => {
-                                if (!response.ok) {
-                                  throw new Error('Error al actualizar el producto');
-                                }
-                                return response.json();
-                              })
-                              .then(updatedProduct => {
-                                // Actualizar estado local
-                                setProducts(prev => {
-                                  const updated = {...prev};
-                                  Object.keys(updated).forEach(sectionId => {
-                                    if (updated[Number(sectionId)]) {
-                                      updated[Number(sectionId)] = updated[Number(sectionId)].map(product => 
-                                        product.product_id === editingProduct.id 
-                                          ? updatedProduct 
-                                          : product
-                                      );
-                                    }
-                                  });
-                                  return updated;
-                                });
-                                
-                                // Limpiar formulario y cerrar modal
-                                setIsEditProductModalOpen(false);
-                                setEditProductName('');
-                                setEditProductPrice('');
-                                setEditProductDescription('');
-                                setEditProductImage(null);
-                                setEditProductImagePreview(null);
-                                setEditingProduct(null);
-                                
-                                toast.success('Producto actualizado correctamente');
-                              })
-                              .catch(error => {
-                                console.error('Error al actualizar el producto:', error);
-                                toast.error('Error al actualizar el producto');
-                              })
-                              .finally(() => {
-                                setIsUpdatingProductName(false);
-                              });
-                            }}
-                          >
-                            Guardar Cambios
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Transition.Child>
-            </div>
-          </Dialog>
-        </Transition.Root>
+        {/* Modal para editar sección */}
+        <EditSectionModal
+          isOpen={isEditSectionModalOpen}
+          onClose={() => {
+            setIsEditSectionModalOpen(false);
+            setEditingSection(null);
+          }}
+          sectionToEdit={editingSection as any}
+          client={client as any}
+          selectedCategory={selectedCategory}
+          setSections={setSections}
+        />
+
+        {/* Modal de nueva sección */}
+        <NewSectionModal
+          isOpen={isNewSectionModalOpen}
+          onClose={() => setIsNewSectionModalOpen(false)}
+          client={client as any}
+          selectedCategory={selectedCategory}
+          setSections={setSections}
+        />
+
+        {/* Modal de nuevo producto */}
+        <NewProductModal
+          isOpen={isNewProductModalOpen}
+          onClose={() => setIsNewProductModalOpen(false)}
+          client={client as any}
+          selectedSection={selectedSection}
+          setProducts={setProducts}
+        />
       </div>
       
       {/* Componente de vista previa móvil flotante */}
@@ -3009,14 +1456,7 @@ export default function DashboardPage() {
             sections: sections[cat.category_id]?.filter(sec => sec.status === 1).map(sec => ({
               id: sec.section_id,
               name: sec.name,
-              image: sec.image ? getImagePath(sec.image, 'sections') : undefined,
-              products: products[sec.section_id]?.filter(prod => prod.status === 1).map(prod => ({
-                id: prod.product_id,
-                name: prod.name,
-                price: prod.price,
-                description: prod.description ?? undefined,
-                image: prod.image ? getImagePath(prod.image, 'products') : undefined
-              })) || []
+              image: sec.image || undefined
             })) || []
           })) as FloatingPhoneCategory[]}
         selectedCategory={selectedCategory ? {
