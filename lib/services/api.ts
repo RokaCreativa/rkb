@@ -167,15 +167,41 @@ export const ApiService = {
     formData: FormData,
     options: Omit<FetchOptions, 'body' | 'method'> = {}
   ): Promise<T> {
-    return this.fetch<T>(endpoint, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        // No incluir Content-Type para que el navegador establezca el boundary correcto
-        ...options.headers
-      },
-      ...options
-    });
+    try {
+      console.log(`Iniciando upload a ${endpoint}`, {
+        formDataKeys: [...formData.keys()],
+        hasToken: !!this.token,
+      });
+      
+      // Verificar autenticación
+      if (!this.token) {
+        console.error('Error de autenticación: Token no disponible');
+        throw new ApiError('No estás autenticado. Por favor, inicia sesión nuevamente.', 401);
+      }
+      
+      return this.fetch<T>(endpoint, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          // No incluir Content-Type para que el navegador establezca el boundary correcto
+          ...options.headers
+        },
+        ...options
+      });
+    } catch (error) {
+      console.error('Error en uploadForm:', error);
+      
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error('Error de conexión. Verifica tu conexión a internet o que el servidor esté en funcionamiento.');
+        throw new ApiError(
+          'Error de conexión. Verifica tu conexión a internet o que el servidor esté en funcionamiento.',
+          0,
+          error
+        );
+      }
+      
+      throw error;
+    }
   },
   
   /**

@@ -1602,22 +1602,41 @@ export default function DashboardPage() {
                           formData.append('status', '1'); // Añadimos status explícitamente
                           
                           if (selectedImage) {
+                            // Verificar tamaño de imagen
+                            if (selectedImage.size > 2 * 1024 * 1024) { // 2MB
+                              toast.error('La imagen no puede superar los 2MB');
+                              setIsCreatingCategory(false);
+                              return;
+                            }
                             formData.append('image', selectedImage);
                           }
                           
+                          console.log('Creando categoría:', {
+                            name: newCategoryName,
+                            hasImage: !!selectedImage,
+                            clientId: client.id
+                          });
+                          
                           fetch('/api/categories', {
                             method: 'POST',
-                            body: formData
+                            body: formData,
+                            headers: {
+                              // No incluir Content-Type para que el navegador lo configure automáticamente con el boundary correcto
+                            }
                           })
                           .then(async response => {
-                            const data = await response.json();
+                            const responseData = await response.json();
+                            
                             if (!response.ok) {
-                              console.error('Error API:', data);
-                              throw new Error(data.error || 'Error al crear la categoría');
+                              console.error('Error API:', responseData);
+                              throw new Error(responseData.error || 'Error al crear la categoría');
                             }
-                            return data;
+                            
+                            return responseData;
                           })
                           .then(newCategory => {
+                            console.log('Categoría creada con éxito:', newCategory);
+                            
                             // Actualizar el estado local con la nueva categoría
                             setCategories(prev => [...prev, newCategory]);
                             
@@ -1631,7 +1650,10 @@ export default function DashboardPage() {
                           })
                           .catch(error => {
                             console.error('Error al crear categoría:', error);
-                            toast.error('Error al crear la categoría');
+                            
+                            // Mostrar mensaje de error más detallado si está disponible
+                            const errorMessage = error.message || 'Error al crear la categoría';
+                            toast.error(errorMessage);
                           })
                           .finally(() => {
                             setIsCreatingCategory(false);

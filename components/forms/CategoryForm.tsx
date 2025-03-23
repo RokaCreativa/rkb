@@ -82,12 +82,25 @@ export default function CategoryForm({
 
   // Envío del formulario validado
   const handleFormSubmit = (data: CategoryFormData) => {
+    // Verificar tamaño de imagen
+    if (imageFile && imageFile.size > 2 * 1024 * 1024) { // 2MB
+      alert('La imagen no puede superar los 2MB');
+      return;
+    }
+    
     const formData = new FormData();
     formData.append('name', data.name);
     formData.append('status', data.status ? '1' : '0');
     
+    // Añadir image solo si existe
     if (imageFile) {
       formData.append('image', imageFile);
+    }
+    
+    // Si estamos editando y no hay una nueva imagen, pero hay una imagen previa
+    // podemos añadir un campo para indicar que no se debe cambiar la imagen
+    if (!imageFile && initialData?.image) {
+      formData.append('keep_existing_image', 'true');
     }
     
     onSubmit(formData);
