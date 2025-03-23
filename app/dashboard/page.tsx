@@ -1211,39 +1211,26 @@ export default function DashboardPage() {
         {/* Contenido principal según la vista */}
         <div className="space-y-3" ref={sectionListRef}>
           {currentView === 'categories' && (
-            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 px-4">
-              <div className="w-full md:w-2/3">
-                <div className="mb-4">
-                  <button
-                    onClick={() => setIsNewCategoryModalOpen(true)}
-                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    <PlusIcon className="h-5 w-5 mr-2" />
-                    Añadir nueva categoría
-                  </button>
-                </div>
-                <CategoryTable 
-                  categories={categories}
-                  expandedCategories={expandedCategories}
-                  onCategoryClick={handleCategoryClick}
-                  onEditCategory={handleEditCategory}
-                  onDeleteCategory={handleDeleteCategory}
-                  onToggleVisibility={toggleCategoryVisibility}
-                  isUpdatingVisibility={isUpdatingVisibility}
-                  onReorderCategory={handleReorderCategory}
-                />
+            <div className="w-full px-4">
+              <div className="mb-4">
+                <button
+                  onClick={() => setIsNewCategoryModalOpen(true)}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Añadir nueva categoría
+                </button>
               </div>
-              <div className="w-full md:w-1/3">
-                <FloatingPhonePreview 
-                  clientName={client?.name || "Mi Restaurante"}
-                  clientMainLogo={client?.main_logo || undefined}
-                  categories={categories.filter(cat => cat.status === 1).map(cat => ({
-                    id: cat.category_id,
-                    name: cat.name,
-                    image: cat.image || undefined
-                  }))}
-                />
-              </div>
+              <CategoryTable 
+                categories={categories}
+                expandedCategories={expandedCategories}
+                onCategoryClick={handleCategoryClick}
+                onEditCategory={handleEditCategory}
+                onDeleteCategory={handleDeleteCategory}
+                onToggleVisibility={toggleCategoryVisibility}
+                isUpdatingVisibility={isUpdatingVisibility}
+                onReorderCategory={handleReorderCategory}
+              />
             </div>
           )}
           

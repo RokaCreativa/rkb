@@ -1166,88 +1166,71 @@ export default function DashboardPage() {
         isReorderModeActive={isReorderModeActive}
         onToggleReorderMode={toggleReorderMode}
       />
-      <div className="max-w-7xl mx-auto pt-2 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto pt-2">
         {/* Breadcrumbs y botón de acción */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 px-4">
           {/* Breadcrumbs */}
           <div>
             <Breadcrumbs items={getBreadcrumbItems()} />
           </div>
-          
+              
           {/* Botón de acción según la vista */}
           <div>
             {currentView === 'categories' && (
-              <button
+            <button 
                 onClick={() => setIsNewCategoryModalOpen(true)}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
+            >
                 <PlusIcon className="h-4 w-4 mr-1" />
                 Nueva Categoría
-              </button>
+            </button>
             )}
             
             {currentView === 'sections' && selectedCategory && (
-              <button
+            <button
                 onClick={() => setIsNewSectionModalOpen(true)}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
+            >
                 <PlusIcon className="h-4 w-4 mr-1" />
                 Nueva Sección
-              </button>
+            </button>
             )}
             
             {currentView === 'products' && selectedSection && (
-              <button
+                            <button
                 onClick={() => setIsNewProductModalOpen(true)}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <PlusIcon className="h-4 w-4 mr-1" />
                 Nuevo Producto
-              </button>
-            )}
+                            </button>
+                )}
+                        </div>
           </div>
-        </div>
-
-        {/* Contenido principal según la vista */}
-        <div className="space-y-4" ref={sectionListRef}>
-          {currentView === 'categories' && (
-            <div className="w-full">
-              <CategoryTable
-                categories={categories}
-                expandedCategories={expandedCategories}
-                onCategoryClick={handleCategoryClick}
-                onEditCategory={handleEditCategory}
-                onDeleteCategory={handleDeleteCategory}
-                onToggleVisibility={toggleCategoryVisibility}
-                isUpdatingVisibility={isUpdatingVisibility}
-                onReorderCategory={handleReorderCategory}
-              />
-            </div>
-          )}
           
-          {currentView === 'sections' && selectedCategory && (
+        {/* Contenido principal según la vista */}
+        <div className="space-y-3" ref={sectionListRef}>
+          {currentView === 'categories' && (
             <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 px-4">
               <div className="w-full md:w-2/3">
-                <SectionTable
-                  sections={sections[selectedCategory.category_id] || []}
-                  expandedSections={expandedSections}
-                  onSectionClick={handleSectionClick}
-                  onEditSection={(section) => {
-                    setEditingSection({
-                      id: section.section_id,
-                      name: section.name
-                    });
-                    setEditSectionName(section.name);
-                    setEditSectionImagePreview(section.image ? getImagePath(section.image, 'sections') : null);
-                    setIsEditSectionModalOpen(true);
-                  }}
-                  onDeleteSection={(sectionId) => {
-                    setSectionToDelete(sectionId);
-                    setIsDeleteSectionModalOpen(true);
-                  }}
-                  onToggleVisibility={toggleSectionVisibility}
+                <div className="mb-4">
+                  <button
+                    onClick={() => setIsNewCategoryModalOpen(true)}
+                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <PlusIcon className="h-5 w-5 mr-2" />
+                    Añadir nueva categoría
+                  </button>
+                </div>
+                <CategoryTable 
+                  categories={categories}
+                  expandedCategories={expandedCategories}
+                  onCategoryClick={handleCategoryClick}
+                  onEditCategory={handleEditCategory}
+                  onDeleteCategory={handleDeleteCategory}
+                  onToggleVisibility={toggleCategoryVisibility}
                   isUpdatingVisibility={isUpdatingVisibility}
-                  onReorderSection={handleReorderSection}
+                  onReorderCategory={handleReorderCategory}
                 />
               </div>
               <div className="w-full md:w-1/3">
@@ -1259,16 +1242,68 @@ export default function DashboardPage() {
                     name: cat.name,
                     image: cat.image || undefined
                   }))}
-                  selectedCategory={selectedCategory ? {
+                />
+              </div>
+            </div>
+          )}
+          
+          {currentView === 'sections' && selectedCategory && (
+            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 px-4">
+              <div className="w-full md:w-2/3">
+                <div className="mb-4">
+                  <button
+                    onClick={() => setIsNewSectionModalOpen(true)}
+                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <PlusIcon className="h-5 w-5 mr-2" />
+                    Añadir nueva sección a {selectedCategory.name}
+                  </button>
+                </div>
+                {sections[selectedCategory.category_id] ? (
+                  <SectionTable 
+                    sections={sections[selectedCategory.category_id]}
+                    expandedSections={expandedSections}
+                    onSectionClick={handleSectionClick}
+                    onBackClick={navigateBack}
+                    categoryName={selectedCategory.name}
+                    onEditSection={(sectionToEdit) => {
+                      // Asegurar compatibilidad de tipos
+                      const section: Section = {
+                        ...sectionToEdit,
+                        products_count: sectionToEdit.products_count || 0
+                      };
+                      handleEditSection(section);
+                    }}
+                    onDeleteSection={handleDeleteSection}
+                    onToggleVisibility={toggleSectionVisibility}
+                    isUpdatingVisibility={isUpdatingVisibility}
+                    onReorderSection={(sourceIndex, destinationIndex) => {
+                      // Implementar reordenamiento de secciones
+                      console.log('Reordenar secciones', sourceIndex, destinationIndex);
+                    }}
+                  />
+                ) : (
+                  <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                  </div>
+                )}
+              </div>
+              <div className="w-full md:w-1/3">
+                <FloatingPhonePreview 
+                  clientName={client?.name || "Mi Restaurante"}
+                  clientMainLogo={client?.main_logo || undefined}
+                  categories={[{
                     id: selectedCategory.category_id,
                     name: selectedCategory.name,
                     image: selectedCategory.image || undefined,
-                    sections: sections[selectedCategory.category_id]?.filter(s => s.status === 1).map(s => ({
-                      id: s.section_id,
-                      name: s.name,
-                      image: s.image || undefined
-                    })) || []
-                  } : null}
+                    sections: sections[selectedCategory.category_id]
+                      ?.filter(sec => sec.status === 1)
+                      .map(sec => ({
+                        id: sec.section_id,
+                        name: sec.name,
+                        image: sec.image || undefined
+                      }))
+                  }]}
                 />
               </div>
             </div>
@@ -1277,38 +1312,49 @@ export default function DashboardPage() {
           {currentView === 'products' && selectedCategory && selectedSection && (
             <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 px-4">
               <div className="w-full md:w-2/3">
-                <ProductTable
-                  products={products[selectedSection.section_id] || []}
-                  onEditProduct={(product) => {
-                    setEditingProduct({
-                      id: product.product_id,
-                      name: product.name
-                    });
-                    setEditProductName(product.name);
-                    setEditProductPrice(product.price);
-                    setEditProductDescription(product.description || '');
-                    setEditProductImagePreview(product.image ? getImagePath(product.image, 'products') : null);
-                    setIsEditProductModalOpen(true);
-                  }}
-                  onDeleteProduct={(productId) => {
-                    setProductToDelete(productId);
-                    setIsDeleteProductModalOpen(true);
-                  }}
-                  onToggleVisibility={toggleProductVisibility}
-                  isUpdatingVisibility={isUpdatingVisibility}
-                  onReorderProduct={handleReorderProduct}
-                />
+                <div className="mb-4">
+                  <button
+                    onClick={() => setIsNewProductModalOpen(true)}
+                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <PlusIcon className="h-5 w-5 mr-2" />
+                    Añadir nuevo producto a {selectedSection.name}
+                  </button>
+                </div>
+                {products[selectedSection.section_id] ? (
+                  <ProductTable 
+                    products={products[selectedSection.section_id]}
+                    onBackClick={navigateBack}
+                    sectionName={selectedSection.name}
+                    onEditProduct={(productToEdit) => {
+                      // Asegurar compatibilidad de tipos agregando propiedades faltantes
+                      const product: Product = {
+                        ...productToEdit,
+                        // Acceder a description de manera segura, verificando que exista en productToEdit
+                        description: 'description' in productToEdit ? productToEdit.description as string | null : null,
+                        sections: [] // Asumiendo que esta propiedad es necesaria según la definición de Product
+                      };
+                      handleEditProduct(product);
+                    }}
+                    onDeleteProduct={handleDeleteProduct}
+                    onToggleVisibility={toggleProductVisibility}
+                    isUpdatingVisibility={isUpdatingVisibility}
+                    onReorderProduct={(sourceIndex, destinationIndex) => {
+                      // Implementar reordenamiento de productos
+                      console.log('Reordenar productos', sourceIndex, destinationIndex);
+                    }}
+                  />
+                ) : (
+                  <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                  </div>
+                )}
               </div>
               <div className="w-full md:w-1/3">
                 <FloatingPhonePreview 
                   clientName={client?.name || "Mi Restaurante"}
                   clientMainLogo={client?.main_logo || undefined}
-                  categories={categories.filter(cat => cat.status === 1).map(cat => ({
-                    id: cat.category_id,
-                    name: cat.name,
-                    image: cat.image || undefined
-                  }))}
-                  selectedCategory={selectedCategory ? {
+                  categories={[{
                     id: selectedCategory.category_id,
                     name: selectedCategory.name,
                     image: selectedCategory.image || undefined,
@@ -1316,218 +1362,195 @@ export default function DashboardPage() {
                       id: selectedSection.section_id,
                       name: selectedSection.name,
                       image: selectedSection.image || undefined,
-                      products: products[selectedSection.section_id]?.filter(p => p.status === 1).map(p => ({
-                        id: p.product_id,
-                        name: p.name,
-                        price: p.price,
-                        description: p.description || undefined,
-                        image: p.image || undefined
-                      })) || []
+                      products: products[selectedSection.section_id]
+                        ?.filter(prod => prod.status === 1)
+                        .map(prod => ({
+                          id: prod.product_id,
+                          name: prod.name,
+                          image: prod.image || undefined,
+                          price: prod.price,
+                          description: prod.description || undefined
+                        }))
                     }]
-                  } : null}
-                  selectedSection={{
-                    id: selectedSection.section_id,
-                    name: selectedSection.name,
-                    image: selectedSection.image || undefined,
-                    products: products[selectedSection.section_id]?.filter(p => p.status === 1).map(p => ({
-                      id: p.product_id,
-                      name: p.name,
-                      price: p.price,
-                      description: p.description || undefined,
-                      image: p.image || undefined
-                    })) || []
-                  }}
+                  }]}
                 />
               </div>
             </div>
           )}
-        </div>
       </div>
       
-      {/* Solo agregar el componente flotante, separado del contenido principal */}
-      {client && (
-        <FloatingPhonePreview 
-          clientName={client?.name || "Mi Restaurante"}
-          clientMainLogo={client?.main_logo || undefined}
-          categories={categories.filter(cat => cat.status === 1).map(cat => ({
-            id: cat.category_id,
-            name: cat.name,
-            image: cat.image || undefined
-          }))}
-        />
-      )}
-      
-      {/* Secciones expandidas para categorías */}
-      {currentView === 'categories' && categories.map(category => {
-        if (!expandedCategories[category.category_id]) return null;
-        
-        return (
-          <div 
-            key={`category-${category.category_id}`}
-            id={`category-${category.category_id}`}
-            className="mt-4 pl-4 border-l-2 border-indigo-100"
-          >
-            <SectionTable 
-              sections={sections[category.category_id] || []}
-              expandedSections={expandedSections}
-              onSectionClick={handleSectionClick}
-              categoryName={category.name}
-              onToggleVisibility={toggleSectionVisibility}
-              isUpdatingVisibility={isUpdatingVisibility}
-            />
-            
-            {/* Productos expandidos para secciones */}
-            {sections[category.category_id]?.map(section => {
-              if (!expandedSections[section.section_id]) return null;
+        {/* Secciones expandidas para categorías */}
+        {currentView === 'categories' && categories.map(category => {
+          if (!expandedCategories[category.category_id]) return null;
+          
+          return (
+            <div 
+              key={`category-${category.category_id}`}
+              id={`category-${category.category_id}`}
+              className="mt-4 pl-4 border-l-2 border-indigo-100"
+            >
+              <SectionTable 
+                sections={sections[category.category_id] || []}
+                expandedSections={expandedSections}
+                onSectionClick={handleSectionClick}
+                categoryName={category.name}
+                onToggleVisibility={toggleSectionVisibility}
+                isUpdatingVisibility={isUpdatingVisibility}
+              />
               
-              return (
-                <div 
-                  key={`section-${section.section_id}`}
-                  id={`section-${section.section_id}`}
-                  className="mt-4 pl-4 border-l-2 border-indigo-100"
-                >
-                  <ProductTable 
-                    products={products[section.section_id] || []}
-                    sectionName={section.name}
-                    onToggleVisibility={toggleProductVisibility}
-                    isUpdatingVisibility={isUpdatingVisibility}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        );
-      })}
-      
-      {/* Modal para nueva categoría */}
-      <Transition.Root show={isNewCategoryModalOpen} as={Fragment}>
-        <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsNewCategoryModalOpen}>
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0"
-              enterTo="opacity-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100"
-              leaveTo="opacity-0"
-            >
-              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
-            </Transition.Child>
+              {/* Productos expandidos para secciones */}
+              {sections[category.category_id]?.map(section => {
+                if (!expandedSections[section.section_id]) return null;
+                
+                return (
+                  <div 
+                    key={`section-${section.section_id}`}
+                    id={`section-${section.section_id}`}
+                    className="mt-4 pl-4 border-l-2 border-indigo-100"
+                  >
+                    <ProductTable 
+                      products={products[section.section_id] || []}
+                      sectionName={section.name}
+                      onToggleVisibility={toggleProductVisibility}
+                      isUpdatingVisibility={isUpdatingVisibility}
+                    />
+                  </div>
+                );
+              })}
+                    </div>
+          );
+        })}
+        
+        {/* Modal para nueva categoría */}
+        <Transition.Root show={isNewCategoryModalOpen} as={Fragment}>
+          <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={setIsNewCategoryModalOpen}>
+            <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0"
+                enterTo="opacity-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100"
+                leaveTo="opacity-0"
+              >
+                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              </Transition.Child>
 
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-              enterTo="opacity-100 translate-y-0 sm:scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            >
-              <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-                <div>
-                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-                    <PlusIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                  </div>
-                  <div className="mt-3 text-center sm:mt-5">
-                    <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                      Nueva categoría
-                    </Dialog.Title>
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-500">
-                        Por favor, introduce el nombre e imagen para la nueva categoría.
-                      </p>
+              <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+              
+              <Transition.Child
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              >
+                <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                  <div>
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
+                      <PlusIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
+                    </div>
+                    <div className="mt-3 text-center sm:mt-5">
+                      <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                        Nueva categoría
+                      </Dialog.Title>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500">
+                          Por favor, introduce el nombre e imagen para la nueva categoría.
+                        </p>
+                      </div>
                     </div>
                   </div>
+                  <div className="mt-5 sm:mt-6">
+                    <div className="mb-4">
+                      <label htmlFor="categoryName" className="block text-sm font-medium text-gray-700">
+                        Nombre de la categoría
+            </label>
+            <input
+              type="text"
+                        name="categoryName"
+                        id="categoryName"
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+            />
                 </div>
-                <div className="mt-5 sm:mt-6">
-                  <div className="mb-4">
-                    <label htmlFor="categoryName" className="block text-sm font-medium text-gray-700">
-                      Nombre de la categoría
-          </label>
-          <input
-            type="text"
-                      name="categoryName"
-                      id="categoryName"
-                      className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-          />
-                  </div>
-                  <div className="mb-4">
-                    <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700">
-                      Imagen de la categoría
-          </label>
-                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                      <div className="space-y-1 text-center">
-            {imagePreview ? (
-                        <div className="relative mx-auto w-24 h-24 mb-2">
-              <Image
-                src={imagePreview}
-                alt="Vista previa"
-                fill
-                            className="object-cover rounded-full"
-                          />
-                          <button
-                            type="button"
-                            className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
-                            onClick={() => {
-                              setSelectedImage(null);
-                              setImagePreview(null);
-                            }}
-                          >
-                            <XMarkIcon className="h-4 w-4" aria-hidden="true" />
-                          </button>
-                        </div>
-                      ) : (
-                        <svg
-                          className="mx-auto h-12 w-12 text-gray-400"
-                          stroke="currentColor"
-                          fill="none"
-                          viewBox="0 0 48 48"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                            strokeWidth={2}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-              </svg>
-            )}
-                      <div className="flex text-sm text-gray-600">
-                        <label
-                          htmlFor="category-image-upload"
-                          className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                        >
-                          <span>Subir imagen</span>
-              <input
-                              id="category-image-upload" 
-                              name="category-image-upload" 
-                    type="file"
-                              className="sr-only" 
-                    accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  setSelectedImage(file);
-                                  const reader = new FileReader();
-                                  reader.onload = (e) => {
-                                    setImagePreview(e.target?.result as string);
-                                  };
-                                  reader.readAsDataURL(file);
-                                }
-                              }}
-                            />
-                        </label>
-                        <p className="pl-1">o arrastra y suelta</p>
-              </div>
-                      <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+                    <div className="mb-4">
+                      <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700">
+                        Imagen de la categoría
+            </label>
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div className="space-y-1 text-center">
+                {imagePreview ? (
+                            <div className="relative mx-auto w-24 h-24 mb-2">
+                  <Image
+                    src={imagePreview}
+                    alt="Vista previa"
+                    fill
+                                className="object-cover rounded-full"
+                              />
+                              <button
+                                type="button"
+                                className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
+                                onClick={() => {
+                                  setSelectedImage(null);
+                                  setImagePreview(null);
+                                }}
+                              >
+                                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
+                              </button>
+                            </div>
+                          ) : (
+                            <svg
+                              className="mx-auto h-12 w-12 text-gray-400"
+                              stroke="currentColor"
+                              fill="none"
+                              viewBox="0 0 48 48"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                  </svg>
+                )}
+                          <div className="flex text-sm text-gray-600">
+                            <label
+                              htmlFor="category-image-upload"
+                              className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                            >
+                              <span>Subir imagen</span>
+                <input
+                                id="category-image-upload" 
+                                name="category-image-upload" 
+                  type="file"
+                                className="sr-only" 
+                  accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    setSelectedImage(file);
+                                    const reader = new FileReader();
+                                    reader.onload = (e) => {
+                                      setImagePreview(e.target?.result as string);
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                              />
+                            </label>
+                            <p className="pl-1">o arrastra y suelta</p>
+            </div>
+                          <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+                </div>
+                </div>
                     </div>
-                  </div>
-                  <div className="flex justify-between">
+                    <div className="flex justify-between">
             <button
                         type="button"
                         className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
@@ -2919,43 +2942,41 @@ export default function DashboardPage() {
       </div>
       
       {/* Componente de vista previa móvil flotante */}
-      {client && currentView === 'categories' && (
-        <FloatingPhonePreview 
-          clientName={client?.name} 
-          clientLogo={client?.logo ? `/images/clients/${client.logo}` : undefined}
-          clientMainLogo={client?.main_logo ? `/images/main_logo/${client.main_logo}` : undefined}
-          categories={categories
-            .filter(cat => cat.status === 1) // Solo categorías activas
-            .map(cat => ({
-              id: cat.category_id,
-              category_id: cat.category_id,
-              name: cat.name,
-              image: cat.image ? getImagePath(cat.image, 'categories') : undefined,
-              sections: sections[cat.category_id]?.filter(sec => sec.status === 1).map(sec => ({
-                id: sec.section_id,
-                name: sec.name,
-                image: sec.image ? getImagePath(sec.image, 'sections') : undefined,
-                products: products[sec.section_id]?.filter(prod => prod.status === 1).map(prod => ({
-                  id: prod.product_id,
-                  name: prod.name,
-                  price: prod.price,
-                  description: prod.description ?? undefined,
-                  image: prod.image ? getImagePath(prod.image, 'products') : undefined
-                })) || []
+      <FloatingPhonePreview 
+        clientName={client?.name} 
+        clientLogo={client?.logo ? `/images/clients/${client.logo}` : undefined}
+        clientMainLogo={client?.main_logo ? `/images/main_logo/${client.main_logo}` : undefined}
+        categories={categories
+          .filter(cat => cat.status === 1) // Solo categorías activas
+          .map(cat => ({
+            id: cat.category_id,
+            category_id: cat.category_id,
+            name: cat.name,
+            image: cat.image ? getImagePath(cat.image, 'categories') : undefined,
+            sections: sections[cat.category_id]?.filter(sec => sec.status === 1).map(sec => ({
+              id: sec.section_id,
+              name: sec.name,
+              image: sec.image ? getImagePath(sec.image, 'sections') : undefined,
+              products: products[sec.section_id]?.filter(prod => prod.status === 1).map(prod => ({
+                id: prod.product_id,
+                name: prod.name,
+                price: prod.price,
+                description: prod.description ?? undefined,
+                image: prod.image ? getImagePath(prod.image, 'products') : undefined
               })) || []
-            })) as FloatingPhoneCategory[]}
-          selectedCategory={selectedCategory ? {
-            id: selectedCategory.category_id,
-            name: selectedCategory.name,
-            image: selectedCategory.image ? getImagePath(selectedCategory.image, 'categories') : undefined
-          } : null}
-          selectedSection={selectedSection ? {
-            id: selectedSection.section_id,
-            name: selectedSection.name,
-            image: selectedSection.image ? getImagePath(selectedSection.image, 'sections') : undefined
-          } : null}
-        />
-      )}
+            })) || []
+          })) as FloatingPhoneCategory[]}
+        selectedCategory={selectedCategory ? {
+          id: selectedCategory.category_id,
+          name: selectedCategory.name,
+          image: selectedCategory.image ? getImagePath(selectedCategory.image, 'categories') : undefined
+        } : null}
+        selectedSection={selectedSection ? {
+          id: selectedSection.section_id,
+          name: selectedSection.name,
+          image: selectedSection.image ? getImagePath(selectedSection.image, 'sections') : undefined
+        } : null}
+      />
     </>
   );
 }
