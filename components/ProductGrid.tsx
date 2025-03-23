@@ -116,8 +116,8 @@ export default function ProductGrid({
                 
                 {onDeleteProduct && (
                   <button
-                    onClick={() => onDeleteProduct(product)}
-                    className="p-1 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50 transition-colors"
+                    onClick={() => onDeleteProduct && onDeleteProduct(product)}
+                    className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
                     title="Eliminar producto"
                   >
                     <TrashIcon className="h-4 w-4" />

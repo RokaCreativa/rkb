@@ -53,6 +53,21 @@ export default function FloatingPhonePreview({
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const nodeRef = useRef<HTMLDivElement>(null);
   
+  // Efecto para escuchar el evento personalizado para activar la vista previa
+  useEffect(() => {
+    const handleTogglePreview = () => {
+      setIsPreviewOpen(prev => !prev);
+    };
+    
+    // Escuchar el evento personalizado
+    window.addEventListener('toggle-preview', handleTogglePreview);
+    
+    // Limpiar el listener cuando el componente se desmonte
+    return () => {
+      window.removeEventListener('toggle-preview', handleTogglePreview);
+    };
+  }, []);
+  
   // Adaptar categorías al formato esperado por PhonePreview
   const adaptedCategories = categories.map(cat => ({
     id: cat.category_id || cat.id,

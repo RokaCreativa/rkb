@@ -137,8 +137,8 @@ export default function MenuSectionProducts({
                   )}
                   
                   {onDeleteSection && (
-                    <button 
-                      className="p-1.5 text-gray-500 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                    <button
+                      className="p-1.5 text-indigo-600 hover:text-indigo-800 rounded-lg hover:bg-indigo-50 transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         onDeleteSection(section);
@@ -253,11 +253,14 @@ export default function MenuSectionProducts({
                             
                             {onDeleteProduct && (
                               <button 
-                                className="p-1 text-gray-500 hover:text-red-600 transition-colors"
-                                onClick={() => onDeleteProduct(product)}
+                                className="p-1.5 text-indigo-600 hover:text-indigo-800 rounded-lg hover:bg-indigo-50 transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteProduct(product);
+                                }}
                                 title="Eliminar producto"
                               >
-                                <TrashIcon className="h-4 w-4" />
+                                <TrashIcon className="h-5 w-5" />
                               </button>
                             )}
                           </div>

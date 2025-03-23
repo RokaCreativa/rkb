@@ -107,7 +107,7 @@ export default function CategoryForm({
             id="name"
             type="text"
             placeholder="Nombre de la categoría"
-            className={`w-full px-3 py-2 border rounded-md ${errors.name ? 'border-red-500' : 'border-gray-300'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+            className={`w-full px-3 py-2 border rounded-md ${errors.name ? 'border-red-500' : 'border-gray-400'} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
             {...register("name", { 
               required: "El nombre es obligatorio",
               maxLength: {

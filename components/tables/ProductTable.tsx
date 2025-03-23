@@ -175,7 +175,7 @@ export default function ProductTable({
                             </button>
                             <button
                               onClick={() => onDeleteProduct && onDeleteProduct(product.product_id)}
-                              className="p-1 text-pink-600 hover:text-pink-900 rounded-full hover:bg-pink-50"
+                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>
@@ -277,7 +277,7 @@ export default function ProductTable({
                             </button>
                             <button
                               onClick={() => onDeleteProduct && onDeleteProduct(product.product_id)}
-                              className="p-1 text-pink-600 hover:text-pink-900 rounded-full hover:bg-pink-50"
+                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>

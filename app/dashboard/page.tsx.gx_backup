@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, Fragment, useRef } from 'react';
-import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon, TrashIcon, ArrowUpTrayIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon, TrashIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { PhonePreview } from '@/components/PhonePreview';
 import FloatingPhonePreview from '@/components/FloatingPhonePreview';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Dialog, Transition, Disclosure } from '@headlessui/react';
+import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
 import { getImagePath, handleImageError } from '@/lib/imageUtils';
 import MenuSectionProducts from '@/components/MenuSectionProducts';
@@ -961,14 +961,11 @@ export default function DashboardPage() {
     setIsCreatingSection(true);
     
     try {
-      console.log("Creando sección para categoría:", selectedCategory);
-      
       // Crear FormData para enviar la información
       const formData = new FormData();
       formData.append('name', newSectionName);
       formData.append('category_id', selectedCategory.category_id.toString());
       formData.append('client_id', client.id.toString());
-      formData.append('status', '1'); // Estado activo por defecto
       
       if (newSectionImage) {
         formData.append('image', newSectionImage);
@@ -980,15 +977,11 @@ export default function DashboardPage() {
         body: formData,
       });
 
-      const responseData = await response.json();
-      
       if (!response.ok) {
-        console.error("Error al crear sección:", responseData);
-        throw new Error(responseData.error || 'Error al crear la sección');
+        throw new Error('Error al crear la sección');
       }
       
-      console.log("Sección creada:", responseData);
-      const newSection = responseData;
+      const newSection = await response.json();
       
       // Actualizar el estado local para incluir la nueva sección
       setSections(prev => ({
@@ -1184,25 +1177,19 @@ export default function DashboardPage() {
           {/* Botón de acción según la vista */}
           <div>
             {currentView === 'categories' && (
-            <div className="flex items-center">
-              <button
-                onClick={() => {
-                  // Activar la vista previa (esta función activa el FloatingPhonePreview)
-                  const event = new CustomEvent('toggle-preview');
-                  window.dispatchEvent(event);
-                }}
+            <button 
+                onClick={() => setIsNewCategoryModalOpen(true)}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <DevicePhoneMobileIcon className="h-4 w-4 mr-1" />
-                Live Preview
-              </button>
-            </div>
+            >
+                <PlusIcon className="h-4 w-4 mr-1" />
+                Nueva Categoría
+            </button>
             )}
             
             {currentView === 'sections' && selectedCategory && (
             <button
                 onClick={() => setIsNewSectionModalOpen(true)}
-                className="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
                 <PlusIcon className="h-4 w-4 mr-1" />
                 Nueva Sección
@@ -1228,13 +1215,13 @@ export default function DashboardPage() {
               <div className="mb-4">
                 <button
                   onClick={() => setIsNewCategoryModalOpen(true)}
-                  className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
+                  className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   <PlusIcon className="h-5 w-5 mr-2" />
-                  Nueva Categoría
+                  Añadir nueva categoría
                 </button>
               </div>
-              <CategoryTable
+              <CategoryTable 
                 categories={categories}
                 expandedCategories={expandedCategories}
                 onCategoryClick={handleCategoryClick}
@@ -1253,7 +1240,7 @@ export default function DashboardPage() {
                 <div className="mb-4">
                   <button
                     onClick={() => setIsNewSectionModalOpen(true)}
-                    className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
+                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     <PlusIcon className="h-5 w-5 mr-2" />
                     Añadir nueva sección a {selectedCategory.name}
@@ -1315,7 +1302,7 @@ export default function DashboardPage() {
                 <div className="mb-4">
                   <button
                     onClick={() => setIsNewProductModalOpen(true)}
-                    className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
+                    className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     <PlusIcon className="h-5 w-5 mr-2" />
                     Añadir nuevo producto a {selectedSection.name}
@@ -1389,18 +1376,6 @@ export default function DashboardPage() {
               id={`category-${category.category_id}`}
               className="mt-4 pl-4 border-l-2 border-indigo-100"
             >
-              <div className="mb-4">
-                <button
-                  onClick={() => {
-                    setSelectedCategory(category);
-                    setIsNewSectionModalOpen(true);
-                  }}
-                  className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
-                >
-                  <PlusIcon className="h-5 w-5 mr-2" />
-                  Nueva Sección
-                </button>
-              </div>
               <SectionTable 
                 sections={sections[category.category_id] || []}
                 expandedSections={expandedSections}
@@ -1408,8 +1383,6 @@ export default function DashboardPage() {
                 categoryName={category.name}
                 onToggleVisibility={toggleSectionVisibility}
                 isUpdatingVisibility={isUpdatingVisibility}
-                onEditSection={(section) => handleEditSection(section as unknown as Section)}
-                onDeleteSection={handleDeleteSection}
               />
               
               {/* Productos expandidos para secciones */}
@@ -1422,25 +1395,11 @@ export default function DashboardPage() {
                     id={`section-${section.section_id}`}
                     className="mt-4 pl-4 border-l-2 border-indigo-100"
                   >
-                    <div className="mb-4">
-                      <button
-                        onClick={() => {
-                          setSelectedSection(section);
-                          setIsNewProductModalOpen(true);
-                        }}
-                        className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
-                      >
-                        <PlusIcon className="h-5 w-5 mr-2" />
-                        Nuevo Producto
-                      </button>
-                    </div>
                     <ProductTable 
                       products={products[section.section_id] || []}
                       sectionName={section.name}
                       onToggleVisibility={toggleProductVisibility}
                       isUpdatingVisibility={isUpdatingVisibility}
-                      onEditProduct={(product) => handleEditProduct(product as unknown as Product)}
-                      onDeleteProduct={handleDeleteProduct}
                     />
                   </div>
                 );
@@ -1501,7 +1460,7 @@ export default function DashboardPage() {
               type="text"
                         name="categoryName"
                         id="categoryName"
-                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
             />
@@ -1510,7 +1469,7 @@ export default function DashboardPage() {
                       <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700">
                         Imagen de la categoría
             </label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                         <div className="space-y-1 text-center">
                 {imagePreview ? (
                             <div className="relative mx-auto w-24 h-24 mb-2">
@@ -1599,7 +1558,6 @@ export default function DashboardPage() {
                           const formData = new FormData();
                           formData.append('name', newCategoryName);
                           formData.append('client_id', client.id.toString());
-                          formData.append('status', '1'); // Añadimos status explícitamente
                           
                           if (selectedImage) {
                             formData.append('image', selectedImage);
@@ -1609,13 +1567,11 @@ export default function DashboardPage() {
                             method: 'POST',
                             body: formData
                           })
-                          .then(async response => {
-                            const data = await response.json();
+                          .then(response => {
                             if (!response.ok) {
-                              console.error('Error API:', data);
-                              throw new Error(data.error || 'Error al crear la categoría');
+                              throw new Error('Error al crear la categoría');
                             }
-                            return data;
+                            return response.json();
                           })
                           .then(newCategory => {
                             // Actualizar el estado local con la nueva categoría
@@ -1709,7 +1665,7 @@ export default function DashboardPage() {
               type="text"
                         name="sectionName"
                         id="sectionName"
-                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                         value={newSectionName}
                         onChange={(e) => setNewSectionName(e.target.value)}
             />
@@ -1718,7 +1674,7 @@ export default function DashboardPage() {
                       <label htmlFor="sectionImage" className="block text-sm font-medium text-gray-700">
                         Imagen de la sección
             </label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                         <div className="space-y-1 text-center">
                           {newSectionImagePreview ? (
                             <div className="relative mx-auto w-24 h-24 mb-2">
@@ -1862,7 +1818,7 @@ export default function DashboardPage() {
                         type="text"
                         name="productName"
                         id="productName"
-                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                         value={newProductName}
                         onChange={(e) => setNewProductName(e.target.value)}
                       />
@@ -1879,7 +1835,7 @@ export default function DashboardPage() {
                           type="text"
                           name="productPrice"
                           id="productPrice"
-                          className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-400 rounded-md"
+                          className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
                           placeholder="0.00"
                           value={newProductPrice}
                           onChange={(e) => setNewProductPrice(e.target.value)}
@@ -1904,7 +1860,7 @@ export default function DashboardPage() {
                       <label htmlFor="productImage" className="block text-sm font-medium text-gray-700">
                         Imagen del producto
                       </label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                         <div className="space-y-1 text-center">
                           {newProductImagePreview ? (
                             <div className="relative mx-auto w-24 h-24 mb-2">
@@ -2048,7 +2004,7 @@ export default function DashboardPage() {
                         type="text"
                         name="editCategoryName"
                         id="editCategoryName"
-                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                         value={editCategoryName}
                         onChange={(e) => setEditCategoryName(e.target.value)}
                       />
@@ -2057,7 +2013,7 @@ export default function DashboardPage() {
                       <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700">
                         Imagen de la categoría
                       </label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                         <div className="space-y-1 text-center">
                           {editImagePreview ? (
                             <div className="relative mx-auto w-24 h-24 mb-2">
@@ -2227,9 +2183,9 @@ export default function DashboardPage() {
               >
                 <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
                   <div>
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-                      <TrashIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
-                    </div>
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                      <TrashIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                                              </div>
                     <div className="mt-3 text-center sm:mt-5">
                       <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
                         Eliminar categoría
@@ -2352,7 +2308,7 @@ export default function DashboardPage() {
                             type="text"
                             name="sectionName"
                             id="sectionName"
-                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
+                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                             value={editSectionName}
                             onChange={(e) => setEditSectionName(e.target.value)}
                             placeholder="Nombre de la sección"
@@ -2362,7 +2318,7 @@ export default function DashboardPage() {
                           <label htmlFor="sectionImage" className="block text-sm font-medium text-gray-700">
                             Imagen de la sección
                           </label>
-                          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
+                          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                             <div className="space-y-1 text-center">
                               {editSectionImagePreview ? (
                                 <div className="relative mx-auto w-24 h-24 mb-2">
@@ -2540,8 +2496,8 @@ export default function DashboardPage() {
               >
                 <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
                   <div>
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-                      <TrashIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                      <TrashIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
                     </div>
                     <div className="mt-3 text-center sm:mt-5">
                       <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
@@ -2652,8 +2608,8 @@ export default function DashboardPage() {
               >
                 <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
                   <div>
-                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100">
-                      <TrashIcon className="h-6 w-6 text-indigo-600" aria-hidden="true" />
+                    <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                      <TrashIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
                     </div>
                     <div className="mt-3 text-center sm:mt-5">
                       <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
@@ -2777,7 +2733,7 @@ export default function DashboardPage() {
                             type="text"
                             name="productName"
                             id="productName"
-                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
+                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                             value={editProductName}
                             onChange={(e) => setEditProductName(e.target.value)}
                             placeholder="Nombre del producto"
@@ -2791,7 +2747,7 @@ export default function DashboardPage() {
                             type="text"
                             name="productPrice"
                             id="productPrice"
-                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-400 rounded-md"
+                            className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
                             value={editProductPrice}
                             onChange={(e) => setEditProductPrice(e.target.value)}
                             placeholder="Precio en euros"
@@ -2815,7 +2771,7 @@ export default function DashboardPage() {
                           <label htmlFor="productImage" className="block text-sm font-medium text-gray-700">
                             Imagen del producto
                           </label>
-                          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-400 border-dashed rounded-md">
+                          <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                             <div className="space-y-1 text-center">
                               {editProductImagePreview ? (
                                 <div className="relative mx-auto w-24 h-24 mb-2">
