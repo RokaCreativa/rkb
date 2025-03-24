@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Section } from '@/app/types/menu';
+import { Section, SectionWithFileUpload } from '@/app/types/menu';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
 
@@ -97,38 +97,90 @@ export default function useSections(clientId: number | null) {
   }, [clientId]);
 
   // Actualizar una sección existente
-  const updateSection = useCallback(async (categoryId: number, sectionId: number, sectionData: Partial<Section>) => {
+  const updateSection = useCallback(async (categoryId: number, sectionId: number, sectionData: Partial<SectionWithFileUpload>) => {
     if (!clientId) return false;
     
     try {
-      const formData = new FormData();
+      console.log("[useSections] Iniciando actualización de sección:", {
+        categoryId,
+        sectionId,
+        data: sectionData
+      });
       
-      // Agregar datos básicos si se proporcionan
-      if (sectionData.name !== undefined) {
-        formData.append('name', sectionData.name);
+      // Verificar si hay una imagen para subir (es un archivo)
+      const hasImageFile = sectionData.image && typeof sectionData.image !== 'string';
+      let updatedImageUrl = null;
+      
+      // Si hay un archivo de imagen, usamos FormData
+      if (hasImageFile) {
+        console.log("[useSections] Actualizando sección con nueva imagen");
+        const formData = new FormData();
+        formData.append('section_id', sectionId.toString());
+        
+        if (sectionData.name !== undefined) {
+          formData.append('name', sectionData.name);
+        }
+        
+        // Agregar la imagen al FormData
+        formData.append('image', sectionData.image as File);
+        
+        // Enviar todo en una sola solicitud con el tipo de contenido correcto
+        const response = await axios.put(`/api/sections`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+        
+        console.log("[useSections] Respuesta de la API (con imagen):", response.data);
+        
+        // Obtener la URL de la imagen actualizada desde la respuesta
+        updatedImageUrl = response.data.image;
+      } else {
+        // Si no hay imagen nueva, enviar como JSON normal
+        console.log("[useSections] Actualizando sólo datos básicos de la sección");
+        const requestData = {
+          section_id: sectionId,
+          name: sectionData.name,
+        };
+        
+        const response = await axios.put(`/api/sections`, requestData);
+        console.log("[useSections] Respuesta de la API (sin imagen):", response.data);
+        
+        // Mantener la URL de imagen existente
+        updatedImageUrl = response.data.image;
       }
       
-      // Agregar imagen si existe y es un archivo (no una URL string)
-      if (sectionData.image && typeof sectionData.image !== 'string') {
-        formData.append('image', sectionData.image);
-      }
-      
-      await axios.patch(`/api/clients/${clientId}/sections/${sectionId}`, formData);
-      
-      // Actualizar estado local
-      setSections(prev => ({
-        ...prev,
-        [categoryId]: prev[categoryId].map(sec => 
-          sec.section_id === sectionId 
-            ? { ...sec, ...sectionData, image: sectionData.image || sec.image }
-            : sec
-        )
-      }));
+      // Actualizar estado local con datos precisos de la respuesta
+      setSections(prev => {
+        const updated = { ...prev };
+        
+        // Verificar que la categoría existe en el estado antes de intentar actualizar
+        if (updated[categoryId] && Array.isArray(updated[categoryId])) {
+          updated[categoryId] = updated[categoryId].map(sec => {
+            if (sec.section_id === sectionId) {
+              // Crear una sección actualizada con el tipo correcto y la nueva URL de imagen
+              const updatedSection: Section = {
+                ...sec,
+                name: sectionData.name !== undefined ? sectionData.name : sec.name,
+                image: updatedImageUrl // Usar la URL recibida de la API
+              };
+              
+              console.log("[useSections] Sección actualizada en estado local:", updatedSection);
+              return updatedSection;
+            }
+            return sec;
+          });
+        } else {
+          console.log(`[useSections] La categoría ${categoryId} no existe en el estado o no es un array`);
+        }
+        
+        return updated;
+      });
       
       toast.success('Sección actualizada correctamente');
       return true;
     } catch (error) {
-      console.error('Error al actualizar la sección:', error);
+      console.error('[useSections] Error al actualizar la sección:', error);
       toast.error('No se pudo actualizar la sección');
       return false;
     }
@@ -139,13 +191,21 @@ export default function useSections(clientId: number | null) {
     if (!clientId) return false;
     
     try {
-      await axios.delete(`/api/clients/${clientId}/sections/${sectionId}`);
+      await axios.delete(`/api/sections?section_id=${sectionId}`);
       
       // Actualizar estado local
-      setSections(prev => ({
-        ...prev,
-        [categoryId]: prev[categoryId].filter(sec => sec.section_id !== sectionId)
-      }));
+      setSections(prev => {
+        const updated = { ...prev };
+        
+        // Verificar que la categoría existe en el estado antes de intentar filtrar
+        if (updated[categoryId] && Array.isArray(updated[categoryId])) {
+          updated[categoryId] = updated[categoryId].filter(sec => sec.section_id !== sectionId);
+        } else {
+          console.log(`La categoría ${categoryId} no existe en el estado o no es un array`);
+        }
+        
+        return updated;
+      });
       
       toast.success('Sección eliminada correctamente');
       return true;
@@ -199,35 +259,18 @@ export default function useSections(clientId: number | null) {
     }
   }, [clientId, sections]);
 
-  // Alternar expansión de secciones
-  const toggleSectionExpansion = useCallback((sectionId: number) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [sectionId]: !prev[sectionId]
-    }));
-  }, []);
-
-  // Limpiar secciones cargadas para una categoría específica
-  const clearSections = useCallback((categoryId: number) => {
-    setSections(prev => {
-      const updated = { ...prev };
-      delete updated[categoryId];
-      return updated;
-    });
-  }, []);
-
+  // Retornar las funciones y estados
   return {
     sections,
     isLoadingSections,
     expandedSections,
+    setExpandedSections,
     isUpdatingVisibility,
     fetchSections,
     toggleSectionVisibility,
     createSection,
     updateSection,
     deleteSection,
-    reorderSection,
-    toggleSectionExpansion,
-    clearSections
+    reorderSection
   };
 } 

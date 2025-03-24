@@ -61,17 +61,8 @@ const DeleteSectionModal: React.FC<DeleteSectionModalProps> = ({
       const success = await deleteSection(sectionToDelete);
       
       if (success) {
-        // Actualizar el estado local para eliminar la sección
-        setSections(prev => {
-          const updated = {...prev};
-          if (updated[selectedCategory.category_id]) {
-            updated[selectedCategory.category_id] = updated[selectedCategory.category_id].filter(
-              section => section.section_id !== sectionToDelete
-            );
-          }
-          return updated;
-        });
-        
+        // No es necesario actualizar el estado local aquí,
+        // ya que la función deleteSection ya lo hace
         toast.success('Sección eliminada correctamente');
         onClose();
       } else {
@@ -79,7 +70,7 @@ const DeleteSectionModal: React.FC<DeleteSectionModalProps> = ({
       }
     } catch (error) {
       console.error('Error al eliminar la sección:', error);
-      toast.error('Error al eliminar la sección');
+      // No mostrar toast aquí, ya se muestra en la función deleteSection
     } finally {
       setIsDeleting(false);
     }

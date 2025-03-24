@@ -18,11 +18,18 @@ export interface Section {
   section_id: number;
   name: string;
   image: string | null;
-  status: number;
-  display_order: number;
   category_id: number;
   client_id: number;
+  display_order: number;
+  status: number;
+  created_at?: string;
+  updated_at?: string;
   products_count?: number;
+}
+
+// Extensión de la interfaz para las operaciones que involucran archivos
+export interface SectionWithFileUpload extends Omit<Section, 'image'> {
+  image?: File | string | null;
 }
 
 // Producto
@@ -41,7 +48,8 @@ export interface Product {
 
 // Cliente
 export interface Client {
-  client_id: number;
+  id: number;
+  client_id?: number;
   name: string;
   main_logo: string | null;
   secondary_logo?: string | null;

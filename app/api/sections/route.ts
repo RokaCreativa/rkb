@@ -237,11 +237,39 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
-    // 3. Obtener y validar los datos de actualización
-    const data = await request.json();
-    console.log('PUT /api/sections - Datos recibidos:', data);
+    // 3. Determinar si la solicitud viene como formData o como JSON
+    let data;
+    let sectionId;
+    let file = null;
 
-    if (!data.section_id) {
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      // Procesar FormData
+      const formData = await request.formData();
+      sectionId = formData.get('section_id') as string;
+      
+      // Extraer archivo si existe
+      file = formData.get('image') as File | null;
+      
+      // Extraer otros campos
+      data = {
+        section_id: parseInt(sectionId),
+        name: formData.get('name') as string,
+      };
+      
+      console.log('PUT /api/sections - FormData recibido:', {
+        section_id: data.section_id,
+        name: data.name,
+        hasFile: !!file
+      });
+    } else {
+      // Procesar JSON
+      data = await request.json();
+      sectionId = data.section_id;
+      console.log('PUT /api/sections - JSON recibido:', data);
+    }
+
+    if (!sectionId) {
       return NextResponse.json({ error: 'ID de sección requerido' }, { status: 400 });
     }
 
@@ -250,25 +278,42 @@ export async function PUT(request: Request) {
     
     if (data.name !== undefined) updateData.name = data.name;
     if (data.display_order !== undefined) updateData.display_order = data.display_order;
-    if (data.image !== undefined) updateData.image = data.image;
     if (data.status !== undefined) updateData.status = data.status === 1; // Convertir numérico a booleano
     if (data.category_id !== undefined) updateData.category_id = data.category_id;
     
+    // 5. Procesar la imagen si se envió como parte de la solicitud
+    if (file) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      // Crear un nombre de archivo único con timestamp
+      const timestamp = Date.now();
+      const fileName = file.name;
+      const uniqueFileName = `${timestamp}_${fileName}`;
+      
+      // Guardar la imagen en el sistema de archivos
+      const path = join(process.cwd(), 'public', 'images', 'sections', uniqueFileName);
+      await writeFile(path, buffer);
+      
+      // Añadir el nombre de archivo a los datos de actualización
+      updateData.image = uniqueFileName;
+    }
+    
     console.log('PUT /api/sections - Datos a actualizar:', updateData);
 
-    // 5. Actualizar la sección
+    // 6. Actualizar la sección
     await prisma.sections.updateMany({
       where: {
-        section_id: data.section_id,
+        section_id: parseInt(sectionId.toString()),
         client_id: user.client_id,
       },
       data: updateData,
     });
 
-    // 6. Obtener la sección actualizada
+    // 7. Obtener la sección actualizada
     const updatedSection = await prisma.sections.findFirst({
       where: {
-        section_id: data.section_id,
+        section_id: parseInt(sectionId),
         client_id: user.client_id,
       },
     });
@@ -277,14 +322,14 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'No se pudo actualizar la sección' }, { status: 404 });
     }
 
-    // 7. Contar productos de la sección
+    // 8. Contar productos de la sección
     const productsCount = await prisma.products_sections.count({
       where: {
-        section_id: data.section_id,
+        section_id: parseInt(sectionId),
       },
     });
 
-    // 8. Preparar la respuesta
+    // 9. Preparar la respuesta
     const processedSection: ProcessedSection = {
       section_id: updatedSection.section_id,
       name: updatedSection.name || '',
@@ -298,7 +343,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json(processedSection);
   } catch (error) {
-    // 9. Manejo centralizado de errores
+    // 10. Manejo centralizado de errores
     console.error('Error al actualizar la sección:', error);
     return NextResponse.json({ error: 'Error al actualizar la sección' }, { status: 500 });
   }

@@ -381,8 +381,31 @@ export default function DashboardPage() {
   const sectionListRef = useRef<HTMLDivElement>(null);
   const productListRef = useRef<HTMLDivElement>(null);
 
+  // Obtener las funciones de useSections y useProducts a nivel del componente
+  const { 
+    sections: hookSections, 
+    fetchSections: fetchSectionsHook, 
+    deleteSection: deleteSectionHook,
+    updateSection
+  } = useSections(client?.id || null);
+
+  const { 
+    products: productsFromHook, 
+    fetchProducts: fetchProductsHook, 
+    deleteProduct, 
+    updateProduct,
+    toggleProductVisibility 
+  } = useProducts({
+    onSuccess: () => {
+      // Refrescar datos si es necesario
+      if (selectedSection) {
+        fetchProductsHook(selectedSection.section_id);
+      }
+    }
+  });
+
   // ----- MANEJADORES DE EVENTOS -----
-  
+
   // Función para reordenar categorías (drag and drop)
   const handleReorderCategory = async (sourceIndex: number, destinationIndex: number) => {
     if (sourceIndex === destinationIndex) return;
@@ -596,7 +619,7 @@ export default function DashboardPage() {
 
   // ----- EFECTOS -----
   
-  // Precargar datos cuando se carga el dashboard
+  // Efecto para precargar datos cuando se cargan las categorías
   useEffect(() => {
     if (categories.length > 0 && !isLoading) {
       console.log("Iniciando precarga de datos para todas las categorías...");
@@ -609,8 +632,10 @@ export default function DashboardPage() {
           if (!sections[category.category_id]) {
             try {
               console.log(`Precargando secciones para categoría ${category.name}`);
+              // Usar la función local fetchSections que retorna un array
               const sectionsData = await fetchSections(category.category_id);
               
+              if (sectionsData) {
               setSections(prev => ({
                 ...prev,
                 [category.category_id]: sectionsData
@@ -629,6 +654,7 @@ export default function DashboardPage() {
                     }));
                   } catch (error) {
                     console.error(`Error al precargar productos para sección ${section.name}:`, error);
+                    }
                   }
                 }
               }
@@ -718,52 +744,51 @@ export default function DashboardPage() {
     }, 100);
   };
 
-  // Función para manejar el click en una sección
+  /**
+   * Maneja la acción de hacer clic en una sección
+   * Cargará los productos asociados a esa sección
+   * 
+   * @param sectionId - ID de la sección seleccionada
+   */
   const handleSectionClick = async (sectionId: number) => {
-    const isExpanded = expandedSections[sectionId];
-    
-    // Actualizar el estado de expansión
+    // Alternar el estado de expansión
+    if (expandedSections[sectionId]) {
+      setExpandedSections(prev => ({
+        ...prev,
+        [sectionId]: false
+      }));
+      return;
+    }
+
+    // Buscar la sección actual en las secciones cargadas
+    const currentSection = sections[selectedCategory?.category_id || 0]?.find(
+      (s) => s.section_id === sectionId
+    );
+
+    if (!currentSection) return;
+
     setExpandedSections(prev => ({
       ...prev,
-      [sectionId]: !isExpanded
+      [sectionId]: true
     }));
-    
-    // Si estamos expandiendo y no tenemos los productos cargados, cargarlos
-    if (!isExpanded && !products[sectionId]) {
-      // Marcar como cargando
+    setSelectedSection(currentSection);
+    setLoadingProducts(prev => ({
+      ...prev,
+      [sectionId]: true
+    }));
+
+    try {
+      // Usar el hook para cargar productos
+      await fetchProductsHook(sectionId);
+    } catch (error) {
+      console.error('Error al cargar productos:', error);
+      toast.error('Error al cargar los productos.');
+    } finally {
       setLoadingProducts(prev => ({
         ...prev,
-        [sectionId]: true
+        [sectionId]: false
       }));
-      
-      try {
-        const productsData = await fetchProducts(sectionId);
-        
-        // Actualizar los productos
-        setProducts(prev => ({
-          ...prev,
-          [sectionId]: productsData
-        }));
-    } catch (error) {
-        console.error('Error al cargar productos:', error);
-        toast.error('Error al cargar los productos');
-    } finally {
-        setLoadingProducts(prev => ({
-          ...prev,
-          [sectionId]: false
-        }));
-      }
     }
-    
-    // Hacer scroll automático a la sección expandida después de un breve retraso
-    setTimeout(() => {
-      if (!isExpanded) {
-        const element = document.getElementById(`section-${sectionId}`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }
-    }, 100);
   };
 
   // Funciones para la navegación entre vistas
@@ -865,36 +890,13 @@ export default function DashboardPage() {
   };
 
   // Función para actualizar la visibilidad de un producto
-  const toggleProductVisibility = async (productId: number, currentStatus: number) => {
-    setIsUpdatingVisibility(productId);
+  const handleToggleProductVisibility = async (productId: number, currentStatus: number) => {
+    if (!selectedSection) return;
+    
     try {
-      // Llamar a la API para actualizar el estado
-      await updateProductVisibility(productId, currentStatus === 1 ? 0 : 1);
-      
-      // Actualizar estado local
-      setProducts(prev => {
-        const updated = {...prev};
-        
-        // Actualizar todos los productos que coincidan con productId
-        Object.keys(updated).forEach(sectionId => {
-          if (updated[Number(sectionId)]) {
-            updated[Number(sectionId)] = updated[Number(sectionId)].map(product => 
-              product.product_id === productId 
-                ? { ...product, status: currentStatus === 1 ? 0 : 1 } 
-                : product
-            );
-          }
-        });
-        
-        return updated;
-      });
-      
-      toast.success('Estado actualizado correctamente');
+      await toggleProductVisibility(productId, currentStatus, selectedSection.section_id);
     } catch (error) {
-      console.error('Error al actualizar visibilidad:', error);
-      toast.error('Error al actualizar el estado');
-    } finally {
-      setIsUpdatingVisibility(null);
+      console.error('Error al cambiar visibilidad del producto:', error);
     }
   };
 
@@ -982,40 +984,40 @@ export default function DashboardPage() {
 
   // Función para crear una nueva sección
   const handleCreateSection = async (newSection: any) => {
-    // Actualizar el estado local para incluir la nueva sección
-    setSections(prev => ({
-      ...prev,
+      // Actualizar el estado local para incluir la nueva sección
+      setSections(prev => ({
+        ...prev,
       [selectedCategory!.category_id]: [
         ...(prev[selectedCategory!.category_id] || []),
-        newSection
-      ]
-    }));
-    
-    // Si es la primera sección, establecerla como seleccionada
+          newSection
+        ]
+      }));
+      
+      // Si es la primera sección, establecerla como seleccionada
     if ((sections[selectedCategory!.category_id] || []).length === 0) {
-      setSelectedSection(newSection);
-      await fetchProducts(newSection.section_id);
-    }
-
-    // Mostrar mensaje de éxito
-    toast.success('Sección creada con éxito');
+        setSelectedSection(newSection);
+        await fetchProductsHook(newSection.section_id);
+      }
+      
+      // Mostrar mensaje de éxito
+      toast.success('Sección creada con éxito');
   };
   
   // Función para crear un nuevo producto
   const handleCreateProduct = async (newProduct: any) => {
-    // Actualizar el estado local para incluir el nuevo producto
-    setProducts(prev => ({
-      ...prev,
+      // Actualizar el estado local para incluir el nuevo producto
+      setProducts(prev => ({
+        ...prev,
       [selectedSection!.section_id]: [
         ...(prev[selectedSection!.section_id] || []),
-        newProduct
-      ]
-    }));
-    
-    // Mostrar mensaje de éxito
-    toast.success('Producto creado con éxito');
+          newProduct
+        ]
+      }));
+      
+      // Mostrar mensaje de éxito
+      toast.success('Producto creado con éxito');
   };
-  
+
   // Función para editar una sección
   const handleEditSection = (section: Section) => {
     setEditingSection({
@@ -1040,10 +1042,26 @@ export default function DashboardPage() {
     setIsEditProductModalOpen(true);
   };
 
-  // Función para eliminar un producto
+  // Función para eliminar un producto (abre el modal de confirmación)
   const handleDeleteProduct = (productId: number) => {
     setProductToDelete(productId);
     setIsDeleteProductModalOpen(true);
+  };
+
+  // Crear un adaptador para la función deleteProduct que coincida con la interfaz esperada
+  const deleteProductAdapter = async (productId: number): Promise<boolean> => {
+    try {
+      if (!selectedSection) return false;
+      
+      // Llamar a la función deleteProduct del hook con el ID de sección
+      await deleteProduct(productId, selectedSection.section_id);
+      
+      // Si llegamos aquí, consideramos que fue exitoso
+      return true;
+    } catch (error) {
+      console.error('Error en deleteProductAdapter:', error);
+      return false;
+    }
   };
 
   // Implementación local de deleteSection
@@ -1051,9 +1069,6 @@ export default function DashboardPage() {
     if (!client?.id) return false;
     
     try {
-      // Usar el hook useSections para eliminar la sección
-      const { deleteSection } = useSections(client.id);
-      
       // Buscar la categoría a la que pertenece esta sección
       let categoryId: number | null = null;
       for (const [catId, sectionList] of Object.entries(sections)) {
@@ -1068,23 +1083,23 @@ export default function DashboardPage() {
         return false;
       }
       
-      const result = await deleteSection(categoryId, sectionId);
+      // Usar directamente la función del hook, que ya tiene el clientId
+      const result = await deleteSectionHook(categoryId, sectionId);
+      
+      // Si fue exitoso, eliminar también del estado local para asegurar la consistencia
+      if (result) {
+        setSections(prev => {
+          const updated = {...prev};
+          updated[categoryId] = updated[categoryId].filter(
+            section => section.section_id !== sectionId
+          );
+          return updated;
+        });
+      }
+      
       return result;
     } catch (error) {
       console.error('Error en deleteSection:', error);
-      return false;
-    }
-  };
-
-  // Implementación local de deleteProduct
-  const deleteProduct = async (productId: number): Promise<boolean> => {
-    try {
-      // Usar el hook useProducts para eliminar el producto
-      const { deleteProduct } = useProducts();
-      await deleteProduct(productId);
-      return true;
-    } catch (error) {
-      console.error('Error en deleteProduct:', error);
       return false;
     }
   };
@@ -1183,14 +1198,15 @@ export default function DashboardPage() {
                 </div>
                 {sections[selectedCategory.category_id] ? (
                   <SectionTable 
-                    sections={sections[selectedCategory.category_id]}
+                    sections={sections[selectedCategory.category_id]?.map(s => ({
+                      ...s,
+                      image: s.image || null,
+                      display_order: s.display_order || 0
+                    })) || []}
                     expandedSections={expandedSections}
                     onSectionClick={handleSectionClick}
-                    onBackClick={navigateBack}
                     categoryName={selectedCategory.name}
-                    onEditSection={(sectionToEdit) => {
-                      handleEditSection(sectionToEdit as unknown as Section);
-                    }}
+                    onEditSection={(section) => handleEditSection(section as unknown as Section)}
                     onDeleteSection={handleDeleteSection}
                     onToggleVisibility={toggleSectionVisibility}
                     isUpdatingVisibility={isUpdatingVisibility}
@@ -1215,9 +1231,9 @@ export default function DashboardPage() {
                     name: cat.name,
                     image: cat.image ? getImagePath(cat.image, 'categories') : undefined,
                     sections: sections[cat.category_id]?.filter(sec => sec.status === 1).map(sec => ({
-                      id: sec.section_id,
-                      name: sec.name,
-                      image: sec.image || undefined
+                        id: sec.section_id,
+                        name: sec.name,
+                        image: sec.image || undefined
                     })) || []
                   })) as FloatingPhoneCategory[]}
                   selectedCategory={selectedCategory ? {
@@ -1247,16 +1263,16 @@ export default function DashboardPage() {
                     Añadir nuevo producto a {selectedSection.name}
                   </button>
                 </div>
-                {products[selectedSection.section_id] ? (
+                {productsFromHook[selectedSection.section_id] ? (
                   <ProductTable 
-                    products={products[selectedSection.section_id]}
+                    products={productsFromHook[selectedSection.section_id]}
                     onBackClick={navigateBack}
                     sectionName={selectedSection.name}
                     onEditProduct={(productToEdit) => {
                       handleEditProduct(productToEdit as unknown as Product);
                     }}
-                    onDeleteProduct={handleDeleteProduct}
-                    onToggleVisibility={toggleProductVisibility}
+                    onDeleteProduct={deleteProductAdapter}
+                    onToggleVisibility={handleToggleProductVisibility}
                     isUpdatingVisibility={isUpdatingVisibility}
                     onReorderProduct={(sourceIndex, destinationIndex) => {
                       // Implementar reordenamiento de productos
@@ -1281,11 +1297,11 @@ export default function DashboardPage() {
                       id: sec.section_id,
                       name: sec.name,
                       image: sec.image ? getImagePath(sec.image, 'sections') : undefined,
-                      products: products[sec.section_id]?.filter(prod => prod.status === 1).map(prod => ({
-                        id: prod.product_id,
-                        name: prod.name,
+                      products: productsFromHook[sec.section_id]?.filter(prod => prod.status === 1).map(prod => ({
+                          id: prod.product_id,
+                          name: prod.name,
                         image: prod.image ? getImagePath(prod.image, 'products') : undefined,
-                        price: prod.price,
+                          price: prod.price,
                         description: prod.description ?? undefined
                       })) || []
                     })) || []
@@ -1319,7 +1335,11 @@ export default function DashboardPage() {
                 </button>
               </div>
               <SectionTable 
-                sections={sections[category.category_id] || []}
+                sections={sections[category.category_id]?.map(s => ({
+                  ...s,
+                  image: s.image || null,
+                  display_order: s.display_order || 0
+                })) || []}
                 expandedSections={expandedSections}
                 onSectionClick={handleSectionClick}
                 categoryName={category.name}
@@ -1352,14 +1372,14 @@ export default function DashboardPage() {
                       </button>
                     </div>
                     <ProductTable 
-                      products={products[section.section_id] || []}
+                      products={productsFromHook[section.section_id] || []}
                       sectionName={section.name}
-                      onToggleVisibility={toggleProductVisibility}
+                      onToggleVisibility={handleToggleProductVisibility}
                       isUpdatingVisibility={isUpdatingVisibility}
                       onEditProduct={(productToEdit) => {
                         handleEditProduct(productToEdit as unknown as Product);
                       }}
-                      onDeleteProduct={handleDeleteProduct}
+                      onDeleteProduct={deleteProductAdapter}
                     />
                   </div>
                 );
@@ -1397,6 +1417,22 @@ export default function DashboardPage() {
           categoryToEdit={editingCategory ? categories.find(c => c.category_id === editingCategory.id) || null : null}
           client={client as any}
           setCategories={setCategories}
+          onSuccess={() => {
+            // Recargar las categorías después de editar
+            console.log("Recargando categorías después de editar...");
+            fetch('/api/categories')
+              .then(response => {
+                if (!response.ok) throw new Error('Error al cargar categorías');
+                return response.json();
+              })
+              .then(data => {
+                console.log("Datos de categorías actualizados:", data);
+                setCategories(data);
+              })
+              .catch(err => {
+                console.error("Error al recargar categorías:", err);
+              });
+          }}
         />
 
         {/* Modal para eliminar sección */}
@@ -1415,7 +1451,7 @@ export default function DashboardPage() {
           isOpen={isDeleteProductModalOpen}
           onClose={() => setIsDeleteProductModalOpen(false)}
           productToDelete={productToDelete}
-          deleteProduct={deleteProduct}
+          deleteProduct={deleteProductAdapter}
           isDeletingProduct={isDeletingProduct}
           selectedSection={selectedSection}
           setProducts={setProducts}
@@ -1435,17 +1471,59 @@ export default function DashboardPage() {
         />
 
         {/* Modal para editar sección */}
-        <EditSectionModal
-          isOpen={isEditSectionModalOpen}
-          onClose={() => {
-            setIsEditSectionModalOpen(false);
-            setEditingSection(null);
-          }}
-          sectionToEdit={editingSection as any}
-          client={client as any}
-          selectedCategory={selectedCategory}
-          setSections={setSections}
-        />
+        {isEditSectionModalOpen && (
+          <EditSectionModal
+            isOpen={isEditSectionModalOpen}
+            onClose={() => setIsEditSectionModalOpen(false)}
+            sectionToEdit={editingSection ? sections[selectedCategory?.category_id || 0]?.find(s => s.section_id === editingSection.id) || null : null}
+            clientId={client?.id || null}
+            selectedCategory={selectedCategory}
+            onSuccess={() => {
+              // Recargar las secciones de la categoría actual utilizando fetch directamente en lugar
+              // de la función fetchSections para garantizar datos frescos
+              if (selectedCategory) {
+                console.log("Recargando secciones después de editar...");
+                // Usar fetch directamente para obtener los datos más recientes
+                fetch(`/api/sections?category_id=${selectedCategory.category_id}`)
+                  .then(response => {
+                    if (!response.ok) throw new Error('Error al cargar secciones');
+                    return response.json();
+                  })
+                  .then(data => {
+                    console.log("Datos de secciones actualizados:", data);
+                    // Actualizar el estado con los datos frescos
+                    setSections(prev => ({
+                      ...prev,
+                      [selectedCategory.category_id]: data
+                    }));
+                    
+                    // Si también hay una sección seleccionada, recargar sus productos
+                    if (selectedSection) {
+                      console.log("Recargando productos después de editar...");
+                      fetch(`/api/products?section_id=${selectedSection.section_id}`)
+                        .then(response => {
+                          if (!response.ok) throw new Error('Error al cargar productos');
+                          return response.json();
+                        })
+                        .then(productData => {
+                          console.log("Datos de productos actualizados:", productData);
+                          setProducts(prev => ({
+                            ...prev,
+                            [selectedSection.section_id]: productData
+                          }));
+                        })
+                        .catch(err => {
+                          console.error("Error al recargar productos:", err);
+                        });
+                    }
+                  })
+                  .catch(err => {
+                    console.error("Error al recargar secciones:", err);
+                  });
+              }
+            }}
+          />
+        )}
 
         {/* Modal de nueva sección */}
         <NewSectionModal

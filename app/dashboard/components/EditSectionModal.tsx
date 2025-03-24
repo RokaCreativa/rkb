@@ -3,25 +3,25 @@ import Image from 'next/image';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
-import { Section, Category } from '@/app/types/menu';
-import { PrismaClient } from '@prisma/client';
+import { Section, Category, SectionWithFileUpload } from '@/app/types/menu';
+import useSections from '@/app/hooks/useSections';
 
 /**
  * Props para el componente EditSectionModal
  * @property {boolean} isOpen - Controla si el modal está abierto o cerrado
  * @property {Function} onClose - Función para cerrar el modal
  * @property {Section | null} sectionToEdit - Sección que se va a editar
- * @property {PrismaClient} client - Cliente de Prisma para realizar operaciones en la base de datos
+ * @property {number | null} clientId - ID del cliente actual
  * @property {Category | null} selectedCategory - La categoría a la que pertenece la sección
- * @property {Function} setSections - Función para actualizar el estado de secciones
+ * @property {Function} [onSuccess] - Función opcional para ejecutar después de una edición exitosa
  */
 interface EditSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   sectionToEdit: Section | null;
-  client: PrismaClient;
+  clientId: number | null;
   selectedCategory: Category | null;
-  setSections: React.Dispatch<React.SetStateAction<Record<string, Section[]>>>;
+  onSuccess?: () => void;
 }
 
 /**
@@ -37,15 +37,18 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
   isOpen,
   onClose,
   sectionToEdit,
-  client,
+  clientId,
   selectedCategory,
-  setSections
+  onSuccess
 }) => {
   // Estados locales para el formulario
   const [editSectionName, setEditSectionName] = useState('');
   const [editSectionImage, setEditSectionImage] = useState<File | null>(null);
   const [editSectionImagePreview, setEditSectionImagePreview] = useState<string | null>(null);
   const [isUpdatingSectionName, setIsUpdatingSectionName] = useState(false);
+  
+  // Usar el hook useSections para operaciones de secciones
+  const { updateSection } = useSections(clientId);
 
   /**
    * Efecto para reiniciar el formulario cuando cambia la sección seleccionada
@@ -55,10 +58,13 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
       setEditSectionName(sectionToEdit.name || '');
       
       if (sectionToEdit.image) {
-        const imageUrl = `/api/uploads/sections/${sectionToEdit.image}`;
-        setEditSectionImagePreview(imageUrl);
+        // Asegurarse de que la URL de la imagen es completa
+        setEditSectionImagePreview(sectionToEdit.image);
+        // Log para depuración
+        console.log('Imagen de sección cargada:', sectionToEdit.image);
       } else {
         setEditSectionImagePreview(null);
+        console.log('La sección no tiene imagen');
       }
     }
   }, [sectionToEdit]);
@@ -67,55 +73,62 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
    * Función para manejar el envío del formulario
    * Actualiza la sección en la API y notifica al componente padre
    */
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!sectionToEdit || !selectedCategory) return;
+    
+    // Prevenir múltiples envíos
+    if (isUpdatingSectionName) return;
     
     setIsUpdatingSectionName(true);
     
-    // Crear un FormData para enviar los datos
-    const formData = new FormData();
-    formData.append('name', editSectionName);
-    formData.append('client_id', selectedCategory.client_id.toString());
-    formData.append('category_id', selectedCategory.category_id.toString());
-    
-    if (editSectionImage) {
-      formData.append('image', editSectionImage);
-    }
-    
-    // Hacer la petición a la API
-    fetch(`/api/sections/${sectionToEdit.section_id}`, {
-      method: 'PUT',
-      body: formData
-    })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Error al actualizar la sección');
-      }
-      return response.json();
-    })
-    .then(updatedSection => {
-      // Actualizar el estado local con la sección actualizada
-      setSections(prevSections => {
-        const updated = { ...prevSections };
-        if (updated[selectedCategory!.category_id]) {
-          updated[selectedCategory!.category_id] = updated[selectedCategory!.category_id].map(section =>
-            section.section_id === updatedSection.section_id ? updatedSection : section
-          );
-        }
-        return updated;
+    try {
+      console.log('Enviando actualización de sección:', {
+        name: editSectionName,
+        hasNewImage: !!editSectionImage
       });
       
-      // Limpiar formulario y cerrar modal
-      handleCloseModal();
-      toast.success('Sección actualizada correctamente');
-    })
-    .catch(error => {
+      // Crear objeto de actualización con los datos modificados
+      const updateData: Partial<SectionWithFileUpload> = {
+        name: editSectionName
+      };
+      
+      // Solo incluir la imagen si se ha seleccionado una nueva
+      if (editSectionImage) {
+        // TypeScript infiere este tipo como File, que es compatible con SectionWithFileUpload
+        updateData.image = editSectionImage;
+      }
+      
+      // Usar la función updateSection del hook useSections
+      const success = await updateSection(
+        selectedCategory.category_id,
+        sectionToEdit.section_id,
+        updateData
+      );
+      
+      if (success) {
+        // NO añadir aquí toast.success - ya se muestra desde el hook
+        console.log("Actualización exitosa, llamando a onSuccess si existe");
+        
+        // Llamar a la función onSuccess si existe para forzar actualización en el componente padre
+        if (onSuccess) {
+          console.log("onSuccess existe, ejecutando...");
+          onSuccess(); // Llamar inmediatamente al callback
+        }
+        
+        // Limpiar formulario y cerrar modal después de asegurar que se ejecutó onSuccess
+        setTimeout(() => {
+          handleCloseModal();
+        }, 200);
+      } else {
+        // toast.error se muestra desde el hook, evitar duplicación aquí
+        console.error('No se pudo actualizar la sección');
+      }
+    } catch (error) {
       console.error('Error al actualizar la sección:', error);
-      toast.error('Error al actualizar la sección');
-    })
-    .finally(() => {
+      // Solo mostrar error aquí si es un error no esperado que no se captura en el hook
+    } finally {
       setIsUpdatingSectionName(false);
-    });
+    }
   };
 
   /**
@@ -267,21 +280,34 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
                     </div>
                     
                     {/* Botones de acción */}
-                    <div className="flex justify-between">
+                    <div className="sm:flex sm:flex-row-reverse">
                       <button
                         type="button"
-                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-gray-200 text-base font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 sm:text-sm sm:mr-2"
-                        onClick={handleCloseModal}
+                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm ${
+                          isUpdatingSectionName ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        onClick={handleSubmit}
+                        disabled={isUpdatingSectionName || !editSectionName.trim()}
                       >
-                        Cancelar
+                        {isUpdatingSectionName ? (
+                          <span className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Guardando...
+                          </span>
+                        ) : (
+                          'Guardar Cambios'
+                        )}
                       </button>
                       <button
                         type="button"
-                        className="inline-flex justify-center w-full sm:w-auto rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm"
-                        onClick={handleSubmit}
+                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                        onClick={handleCloseModal}
                         disabled={isUpdatingSectionName}
                       >
-                        {isUpdatingSectionName ? 'Guardando...' : 'Guardar Cambios'}
+                        Cancelar
                       </button>
                     </div>
                   </div>
