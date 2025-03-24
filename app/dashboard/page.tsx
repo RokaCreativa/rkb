@@ -22,6 +22,7 @@ import TopNavbar from '@/components/layout/TopNavbar';
 import useSections from '@/app/hooks/useSections';
 import useProducts from '@/app/hooks/useProducts';
 // Importar los componentes de modal que hemos creado
+import DeleteCategoryModal from './components/DeleteCategoryModal';
 import DeleteSectionModal from './components/DeleteSectionModal';
 import DeleteProductModal from './components/DeleteProductModal';
 // Importar los tipos desde el archivo centralizado
@@ -32,6 +33,7 @@ import EditSectionModal from './components/EditSectionModal';
 import NewSectionModal from './components/NewSectionModal';
 import NewProductModal from './components/NewProductModal';
 import { PrismaClient } from '@prisma/client';
+import EditCategoryModal from './components/EditCategoryModal';
 
 // Interfaces para FloatingPhonePreview
 interface FloatingPhoneCategory {
@@ -1373,7 +1375,30 @@ export default function DashboardPage() {
           client={client as any}
           setCategories={setCategories}
         />
-        
+
+        <DeleteCategoryModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setCategoryToDelete(null);
+          }}
+          categoryToDelete={categoryToDelete}
+          deleteCategory={deleteCategory}
+          isDeletingCategory={isDeletingCategory}
+          setCategories={setCategories}
+        />
+
+        <EditCategoryModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingCategory(null);
+          }}
+          categoryToEdit={editingCategory ? categories.find(c => c.category_id === editingCategory.id) || null : null}
+          client={client as any}
+          setCategories={setCategories}
+        />
+
         {/* Modal para eliminar sección */}
         <DeleteSectionModal 
           isOpen={isDeleteSectionModalOpen}
