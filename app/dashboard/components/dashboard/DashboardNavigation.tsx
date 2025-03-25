@@ -1,3 +1,12 @@
+"use client";
+
+/**
+ * @fileoverview Componente para gestionar la navegación en el dashboard
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ */
+
 import React from 'react';
 import { PlusIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline';
 import Breadcrumbs from '@/components/Breadcrumbs';

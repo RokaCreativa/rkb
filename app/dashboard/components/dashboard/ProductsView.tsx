@@ -1,3 +1,12 @@
+"use client";
+
+/**
+ * @fileoverview Componente para la visualización y gestión de productos dentro de una sección
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ */
+
 import React from 'react';
 import { Category, Section, Product, Client } from '@/app/types/menu';
 import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/outline';
@@ -86,6 +95,17 @@ interface ProductsViewProps {
 /**
  * Componente que muestra la lista de productos de una sección
  * Permite la creación, edición, eliminación y reordenación de productos
+ * 
+ * Este componente muestra todos los productos disponibles para una sección específica,
+ * permitiendo al usuario gestionarlos (crear, editar, eliminar) y cambiar su visibilidad.
+ * También incluye funcionalidad para reordenar los productos mediante arrastrar y soltar
+ * (drag and drop).
+ * 
+ * Incluye visualización de:
+ * - Imágenes de productos
+ * - Precios formateados
+ * - Descripciones (truncadas para mejor visualización)
+ * - Estado de visibilidad
  */
 const ProductsView: React.FC<ProductsViewProps> = ({
   selectedCategory,
@@ -103,7 +123,44 @@ const ProductsView: React.FC<ProductsViewProps> = ({
   allProducts,
   client
 }) => {
-  // Formatea el precio para mostrar 2 decimales
+  /**
+   * Configuración de eventos para drag and drop (arrastrar y soltar)
+   * 
+   * @param index - Índice del elemento en la lista
+   * @returns - Objeto con handlers para los eventos de drag and drop
+   */
+  const getDragHandlers = (index: number) => {
+    return {
+      draggable: true,
+      onDragStart: (e: React.DragEvent<HTMLLIElement>) => {
+        e.dataTransfer.setData('text/plain', index.toString());
+        e.currentTarget.classList.add('bg-gray-100');
+      },
+      onDragEnd: (e: React.DragEvent<HTMLLIElement>) => {
+        e.currentTarget.classList.remove('bg-gray-100');
+      },
+      onDragOver: (e: React.DragEvent<HTMLLIElement>) => {
+        e.preventDefault();
+        e.currentTarget.classList.add('bg-blue-50');
+      },
+      onDragLeave: (e: React.DragEvent<HTMLLIElement>) => {
+        e.currentTarget.classList.remove('bg-blue-50');
+      },
+      onDrop: (e: React.DragEvent<HTMLLIElement>) => {
+        e.preventDefault();
+        e.currentTarget.classList.remove('bg-blue-50');
+        const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+        onReorderProduct(sourceIndex, index);
+      }
+    };
+  };
+
+  /**
+   * Formatea el precio para mostrar 2 decimales
+   * 
+   * @param price - Precio a formatear
+   * @returns - Precio formateado con símbolo de euro
+   */
   const formatPrice = (price: number): string => {
     return price.toFixed(2).replace('.', ',') + ' €';
   };
@@ -143,27 +200,7 @@ const ProductsView: React.FC<ProductsViewProps> = ({
             <li 
               key={product.product_id} 
               className="px-4 py-3 flex flex-col sm:flex-row sm:items-center hover:bg-gray-50"
-              draggable={true}
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', index.toString());
-                e.currentTarget.classList.add('bg-gray-100');
-              }}
-              onDragEnd={(e) => {
-                e.currentTarget.classList.remove('bg-gray-100');
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.add('bg-blue-50');
-              }}
-              onDragLeave={(e) => {
-                e.currentTarget.classList.remove('bg-blue-50');
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.remove('bg-blue-50');
-                const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                onReorderProduct(sourceIndex, index);
-              }}
+              {...getDragHandlers(index)}
             >
               <div className="flex-1 flex items-center mb-2 sm:mb-0">
                 {product.image ? (

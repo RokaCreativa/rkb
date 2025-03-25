@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useCallback, useEffect } from 'react';
 import { Category } from '@/app/types/menu';
 import { toast } from 'react-hot-toast';

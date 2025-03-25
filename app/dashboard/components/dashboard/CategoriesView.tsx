@@ -1,3 +1,12 @@
+"use client";
+
+/**
+ * @fileoverview Componente para la visualización y gestión de categorías en el dashboard de RokaMenu
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ */
+
 import React from 'react';
 import { Category } from '@/app/types/menu';
 import { ChevronDownIcon, ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline';
@@ -62,6 +71,33 @@ interface CategoriesViewProps {
 /**
  * Componente que muestra la lista de categorías
  * Permite la navegación, expansión, creación, edición y eliminación de categorías
+ * 
+ * Este componente presenta todas las categorías disponibles en formato de lista,
+ * con capacidades de expansión/contracción para mostrar detalles adicionales.
+ * También proporciona controles para gestionar categorías: crear nuevas, editar
+ * existentes, cambiar su visibilidad y eliminarlas.
+ * 
+ * Incluye funcionalidad de arrastrar y soltar (drag and drop) para reordenar
+ * las categorías según las necesidades del usuario.
+ * 
+ * @example
+ * // Uso básico:
+ * <CategoriesView
+ *   categories={[
+ *     { category_id: 1, name: 'Comidas', status: 1, image: '/images/comidas.jpg' }
+ *   ]}
+ *   expandedCategories={{}}
+ *   onCategoryClick={(id) => console.log(`Categoría ${id} seleccionada`)}
+ *   onNewCategory={() => console.log('Nueva categoría')}
+ *   onEditCategory={(cat) => console.log(`Editar categoría ${cat.name}`)}
+ *   onDeleteCategory={(id) => console.log(`Eliminar categoría ${id}`)}
+ *   onToggleVisibility={async (id) => console.log(`Cambiar visibilidad de ${id}`)}
+ *   isUpdatingVisibility={null}
+ *   onReorderCategory={(src, dst) => console.log(`Mover de ${src} a ${dst}`)}
+ * />
+ * 
+ * @see {@link DashboardLayout} Contenedor principal donde se utiliza este componente
+ * @see {@link SectionsView} Componente relacionado para gestionar secciones dentro de categorías
  */
 const CategoriesView: React.FC<CategoriesViewProps> = ({
   categories,

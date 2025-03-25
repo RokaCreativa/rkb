@@ -369,9 +369,23 @@ export default function DashboardPage() {
    */
   const deleteProduct = async (productId: number): Promise<boolean> => {
     try {
+      // Verificar que exista una sección seleccionada
+      if (!selectedSection) {
+        console.error('No hay sección seleccionada');
+        return false;
+      }
+      
       // Usar el hook useProducts para eliminar el producto
-      const { deleteProduct } = useProducts();
-      await deleteProduct(productId);
+      const { deleteProduct } = useProducts({
+        onSuccess: () => {
+          toast.success('Producto eliminado correctamente');
+        },
+        onError: (error) => {
+          toast.error('Error al eliminar el producto: ' + error.message);
+        }
+      });
+      
+      await deleteProduct(productId, selectedSection.section_id);
       return true;
     } catch (error) {
       console.error('Error en deleteProduct:', error);
@@ -506,6 +520,30 @@ export default function DashboardPage() {
             setIsUpdatingVisibility(sectionId);
             try {
               // Implementar cambio de visibilidad
+              const sectionList = sections[selectedCategory.category_id] || [];
+              const section = sectionList.find(s => s.section_id === sectionId);
+              if (!section) return;
+              
+              const newStatus = section.status === 1 ? 0 : 1;
+              await fetch(`/api/sections/${sectionId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+              });
+              
+              // Actualizar localmente
+              setSections(prev => ({
+                ...prev,
+                [selectedCategory.category_id]: prev[selectedCategory.category_id].map(s => 
+                  s.section_id === sectionId 
+                  ? { ...s, status: newStatus } 
+                  : s
+                )
+              }));
+              
+              setMessage(`Sección ${newStatus === 1 ? 'visible' : 'oculta'} correctamente`);
+            } catch (error) {
+              setError('Error al cambiar la visibilidad de la sección');
             } finally {
               setIsUpdatingVisibility(null);
             }
@@ -513,6 +551,41 @@ export default function DashboardPage() {
           isUpdatingVisibility={isUpdatingVisibility}
           onReorderSection={(sourceIndex, destinationIndex) => {
             // Lógica para reordenar secciones
+            if (sourceIndex === destinationIndex || !selectedCategory) return;
+            
+            const categoryId = selectedCategory.category_id;
+            const sectionList = [...(sections[categoryId] || [])];
+            
+            // Obtener la sección que se está moviendo
+            const [movedSection] = sectionList.splice(sourceIndex, 1);
+            
+            // Insertar la sección en la nueva posición
+            sectionList.splice(destinationIndex, 0, movedSection);
+            
+            // Actualizar los display_order de todas las secciones reordenadas
+            const reorderedSections = sectionList.map((section, index) => ({
+              ...section,
+              display_order: index + 1,
+            }));
+            
+            // Actualizar el estado local
+            setSections(prev => ({
+              ...prev,
+              [categoryId]: reorderedSections
+            }));
+            
+            // Enviar cambios al servidor (uno por uno para evitar problemas)
+            reorderedSections.forEach(async (section) => {
+              try {
+                await fetch(`/api/sections/${section.section_id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ display_order: section.display_order })
+                });
+              } catch (error) {
+                console.error('Error al actualizar orden de sección:', error);
+              }
+            });
           }}
           onBackClick={navigateBack}
           allCategories={categories}
@@ -541,6 +614,30 @@ export default function DashboardPage() {
             setIsUpdatingVisibility(productId);
             try {
               // Implementar cambio de visibilidad
+              const productList = products[selectedSection.section_id] || [];
+              const product = productList.find(p => p.product_id === productId);
+              if (!product) return;
+              
+              const newStatus = product.status === 1 ? 0 : 1;
+              await fetch(`/api/products/${productId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+              });
+              
+              // Actualizar localmente
+              setProducts(prev => ({
+                ...prev,
+                [selectedSection.section_id]: prev[selectedSection.section_id].map(p => 
+                  p.product_id === productId 
+                  ? { ...p, status: newStatus } 
+                  : p
+                )
+              }));
+              
+              setMessage(`Producto ${newStatus === 1 ? 'visible' : 'oculto'} correctamente`);
+            } catch (error) {
+              setError('Error al cambiar la visibilidad del producto');
             } finally {
               setIsUpdatingVisibility(null);
             }
@@ -548,6 +645,41 @@ export default function DashboardPage() {
           isUpdatingVisibility={isUpdatingVisibility}
           onReorderProduct={(sourceIndex, destinationIndex) => {
             // Lógica para reordenar productos
+            if (sourceIndex === destinationIndex || !selectedSection) return;
+            
+            const sectionId = selectedSection.section_id;
+            const productList = [...(products[sectionId] || [])];
+            
+            // Obtener el producto que se está moviendo
+            const [movedProduct] = productList.splice(sourceIndex, 1);
+            
+            // Insertar el producto en la nueva posición
+            productList.splice(destinationIndex, 0, movedProduct);
+            
+            // Actualizar los display_order de todos los productos reordenados
+            const reorderedProducts = productList.map((product, index) => ({
+              ...product,
+              display_order: index + 1,
+            }));
+            
+            // Actualizar el estado local
+            setProducts(prev => ({
+              ...prev,
+              [sectionId]: reorderedProducts
+            }));
+            
+            // Enviar cambios al servidor (uno por uno para evitar problemas)
+            reorderedProducts.forEach(async (product) => {
+              try {
+                await fetch(`/api/products/${product.product_id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ display_order: product.display_order })
+                });
+              } catch (error) {
+                console.error('Error al actualizar orden de producto:', error);
+              }
+            });
           }}
           onBackClick={navigateBack}
           allCategories={categories}
@@ -585,7 +717,27 @@ export default function DashboardPage() {
         categoryToDelete={categoryToDelete}
         deleteCategory={async (categoryId) => {
           // Implementar eliminación de categoría
-          return true;
+          setIsDeletingCategory(true);
+          try {
+            const response = await fetch(`/api/categories/${categoryId}`, {
+              method: 'DELETE',
+            });
+            
+            if (!response.ok) {
+              throw new Error('Error al eliminar la categoría');
+            }
+            
+            // Actualizar el estado local
+            setCategories(prev => prev.filter(c => c.category_id !== categoryId));
+            setMessage('Categoría eliminada correctamente');
+            return true;
+          } catch (error) {
+            console.error('Error al eliminar categoría:', error);
+            setError('Error al eliminar la categoría');
+            return false;
+          } finally {
+            setIsDeletingCategory(false);
+          }
         }}
         isDeletingCategory={isDeletingCategory}
         setCategories={setCategories}
@@ -607,9 +759,23 @@ export default function DashboardPage() {
           setSectionToEdit(null);
         }}
         sectionToEdit={sectionToEdit}
-        client={client as any}
+        clientId={client?.id || null}
         selectedCategory={selectedCategory}
-        setSections={setSections}
+        onSuccess={() => {
+          // Actualizar las secciones después de editar
+          if (selectedCategory) {
+            const categoryId = selectedCategory.category_id;
+            fetch(`/api/sections?category_id=${categoryId}`)
+              .then(res => res.json())
+              .then(data => {
+                setSections(prev => ({
+                  ...prev,
+                  [categoryId]: data
+                }));
+              })
+              .catch(err => console.error('Error al actualizar secciones:', err));
+          }
+        }}
       />
       
       <DeleteSectionModal
@@ -637,10 +803,25 @@ export default function DashboardPage() {
           setIsEditProductModalOpen(false);
           setProductToEdit(null);
         }}
-        productToEdit={productToEdit}
-        client={client as any}
+        productToEdit={productToEdit ? { id: productToEdit.product_id, name: productToEdit.name } : null}
+        client={client}
         selectedSection={selectedSection}
         setProducts={setProducts}
+        onSuccess={() => {
+          // Actualizar productos después de editar
+          if (selectedSection) {
+            const sectionId = selectedSection.section_id;
+            fetch(`/api/products?section_id=${sectionId}`)
+              .then(res => res.json())
+              .then(data => {
+                setProducts(prev => ({
+                  ...prev,
+                  [sectionId]: data
+                }));
+              })
+              .catch(err => console.error('Error al actualizar productos:', err));
+          }
+        }}
       />
       
       <DeleteProductModal

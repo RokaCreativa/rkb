@@ -1,3 +1,12 @@
+"use client";
+
+/**
+ * @fileoverview Componente de layout principal para el dashboard de RokaMenu
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ */
+
 import React from 'react';
 import { Category, Section } from '@/app/types/menu';
 import { ArrowLeftIcon, ArrowsUpDownIcon, XMarkIcon, PlusIcon, PhoneIcon } from '@heroicons/react/24/outline';
@@ -115,6 +124,36 @@ interface DashboardLayoutProps {
 /**
  * Componente que proporciona la estructura principal del dashboard
  * Incluye navegación, controles y manejo de mensajes/errores
+ * 
+ * Este componente sirve como contenedor principal para todas las vistas del dashboard,
+ * proporcionando una interfaz de usuario consistente con navegación por migas de pan,
+ * botones de acción contextual y manejo de estados de carga y errores.
+ * 
+ * @example
+ * // Uso básico:
+ * <DashboardLayout
+ *   breadcrumbItems={[{ id: 'home', name: 'Dashboard', current: true }]}
+ *   currentView="categories"
+ *   selectedCategory={null}
+ *   selectedSection={null}
+ *   isReorderModeActive={false}
+ *   onToggleReorderMode={() => {}}
+ *   onNewCategory={() => {}}
+ *   onNewSection={() => {}}
+ *   onNewProduct={() => {}}
+ *   onTogglePreview={() => {}}
+ *   isLoading={false}
+ *   error={null}
+ *   message={null}
+ *   onDismissError={() => {}}
+ *   onDismissMessage={() => {}}
+ * >
+ *   <div>Contenido del dashboard</div>
+ * </DashboardLayout>
+ * 
+ * @see {@link CategoriesView} Para ver la implementación de la vista de categorías
+ * @see {@link SectionsView} Para ver la implementación de la vista de secciones
+ * @see {@link ProductsView} Para ver la implementación de la vista de productos
  */
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   breadcrumbItems,
@@ -136,6 +175,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 }) => {
   /**
    * Renderiza el botón de acción principal según la vista actual
+   * 
+   * Esta función determina qué botón de acción mostrar basándose en la vista activa
+   * y el contexto actual (categoría/sección seleccionada). Esto permite tener un botón
+   * de acción contextual que siempre realiza la operación más relevante en cada vista.
+   * 
+   * @returns {JSX.Element | null} El botón de acción correspondiente o null si no aplica
    */
   const renderActionButton = () => {
     if (currentView === 'categories') {

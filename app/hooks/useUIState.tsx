@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useCallback } from 'react';
 import { Category, Section, Product } from '@/app/types/menu';
 

@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, useCallback, useEffect } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 import { Section, SectionWithFileUpload } from '@/app/types/menu';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
@@ -11,7 +9,7 @@ export default function useSections(clientId: number | null) {
   const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState<number | null>(null);
 
-  // Cargar secciones para una categoría específica
+  // Cargar secciones para una categorÃ­a especÃ­fica
   const fetchSections = useCallback(async (categoryId: number) => {
     if (!clientId) return;
     
@@ -28,7 +26,7 @@ export default function useSections(clientId: number | null) {
     }
   }, [clientId]);
 
-  // Alternar visibilidad de una sección
+  // Alternar visibilidad de una secciÃ³n
   const toggleSectionVisibility = useCallback(async (sectionId: number, currentStatus: number) => {
     if (!clientId) return;
     
@@ -44,7 +42,7 @@ export default function useSections(clientId: number | null) {
       setSections(prev => {
         const updatedSections = { ...prev };
         
-        // Buscar la sección en todas las categorías y actualizarla
+        // Buscar la secciÃ³n en todas las categorÃ­as y actualizarla
         Object.keys(updatedSections).forEach(categoryId => {
           updatedSections[Number(categoryId)] = updatedSections[Number(categoryId)].map(sec => 
             sec.section_id === sectionId ? { ...sec, status: newStatus } : sec
@@ -54,7 +52,7 @@ export default function useSections(clientId: number | null) {
         return updatedSections;
       });
       
-      toast.success(newStatus === 1 ? 'Sección visible' : 'Sección oculta');
+      toast.success(newStatus === 1 ? 'SecciÃ³n visible' : 'SecciÃ³n oculta');
     } catch (error) {
       console.error('Error al cambiar la visibilidad:', error);
       toast.error('No se pudo cambiar la visibilidad');
@@ -63,14 +61,14 @@ export default function useSections(clientId: number | null) {
     }
   }, [clientId]);
 
-  // Crear una nueva sección
+  // Crear una nueva secciÃ³n
   const createSection = useCallback(async (categoryId: number, sectionData: Partial<Section>) => {
     if (!clientId) return null;
     
     try {
       const formData = new FormData();
       
-      // Agregar datos básicos
+      // Agregar datos bÃ¡sicos
       formData.append('name', sectionData.name || '');
       formData.append('category_id', categoryId.toString());
       formData.append('client_id', clientId.toString());
@@ -89,21 +87,21 @@ export default function useSections(clientId: number | null) {
         [categoryId]: [...(prev[categoryId] || []), newSection]
       }));
       
-      toast.success('Sección creada correctamente');
+      toast.success('SecciÃ³n creada correctamente');
       return newSection;
     } catch (error) {
-      console.error('Error al crear la sección:', error);
-      toast.error('No se pudo crear la sección');
+      console.error('Error al crear la secciÃ³n:', error);
+      toast.error('No se pudo crear la secciÃ³n');
       return null;
     }
   }, [clientId]);
 
-  // Actualizar una sección existente
+  // Actualizar una secciÃ³n existente
   const updateSection = useCallback(async (categoryId: number, sectionId: number, sectionData: Partial<SectionWithFileUpload>) => {
     if (!clientId) return false;
     
     try {
-      console.log("[useSections] Iniciando actualización de sección:", {
+      console.log("[useSections] Iniciando actualizaciÃ³n de secciÃ³n:", {
         categoryId,
         sectionId,
         data: sectionData
@@ -115,7 +113,7 @@ export default function useSections(clientId: number | null) {
       
       // Si hay un archivo de imagen, usamos FormData
       if (hasImageFile) {
-        console.log("[useSections] Actualizando sección con nueva imagen");
+        console.log("[useSections] Actualizando secciÃ³n con nueva imagen");
         const formData = new FormData();
         formData.append('section_id', sectionId.toString());
         
@@ -139,7 +137,7 @@ export default function useSections(clientId: number | null) {
         updatedImageUrl = response.data.image;
       } else {
         // Si no hay imagen nueva, enviar como JSON normal
-        console.log("[useSections] Actualizando sólo datos básicos de la sección");
+        console.log("[useSections] Actualizando sÃ³lo datos bÃ¡sicos de la secciÃ³n");
         const requestData = {
           section_id: sectionId,
           name: sectionData.name,
@@ -156,39 +154,39 @@ export default function useSections(clientId: number | null) {
       setSections(prev => {
         const updated = { ...prev };
         
-        // Verificar que la categoría existe en el estado antes de intentar actualizar
+        // Verificar que la categorÃ­a existe en el estado antes de intentar actualizar
         if (updated[categoryId] && Array.isArray(updated[categoryId])) {
           updated[categoryId] = updated[categoryId].map(sec => {
             if (sec.section_id === sectionId) {
-              // Crear una sección actualizada con el tipo correcto y la nueva URL de imagen
+              // Crear una secciÃ³n actualizada con el tipo correcto y la nueva URL de imagen
               const updatedSection: Section = {
                 ...sec,
                 name: sectionData.name !== undefined ? sectionData.name : sec.name,
                 image: updatedImageUrl // Usar la URL recibida de la API
               };
               
-              console.log("[useSections] Sección actualizada en estado local:", updatedSection);
+              console.log("[useSections] SecciÃ³n actualizada en estado local:", updatedSection);
               return updatedSection;
             }
             return sec;
           });
         } else {
-          console.log(`[useSections] La categoría ${categoryId} no existe en el estado o no es un array`);
+          console.log(`[useSections] La categorÃ­a ${categoryId} no existe en el estado o no es un array`);
         }
         
         return updated;
       });
       
-      toast.success('Sección actualizada correctamente');
+      toast.success('SecciÃ³n actualizada correctamente');
       return true;
     } catch (error) {
-      console.error('[useSections] Error al actualizar la sección:', error);
-      toast.error('No se pudo actualizar la sección');
+      console.error('[useSections] Error al actualizar la secciÃ³n:', error);
+      toast.error('No se pudo actualizar la secciÃ³n');
       return false;
     }
   }, [clientId]);
 
-  // Eliminar una sección
+  // Eliminar una secciÃ³n
   const deleteSection = useCallback(async (categoryId: number, sectionId: number) => {
     if (!clientId) return false;
     
@@ -199,26 +197,26 @@ export default function useSections(clientId: number | null) {
       setSections(prev => {
         const updated = { ...prev };
         
-        // Verificar que la categoría existe en el estado antes de intentar filtrar
+        // Verificar que la categorÃ­a existe en el estado antes de intentar filtrar
         if (updated[categoryId] && Array.isArray(updated[categoryId])) {
           updated[categoryId] = updated[categoryId].filter(sec => sec.section_id !== sectionId);
         } else {
-          console.log(`La categoría ${categoryId} no existe en el estado o no es un array`);
+          console.log(`La categorÃ­a ${categoryId} no existe en el estado o no es un array`);
         }
         
         return updated;
       });
       
-      toast.success('Sección eliminada correctamente');
+      toast.success('SecciÃ³n eliminada correctamente');
       return true;
     } catch (error) {
-      console.error('Error al eliminar la sección:', error);
-      toast.error('No se pudo eliminar la sección');
+      console.error('Error al eliminar la secciÃ³n:', error);
+      toast.error('No se pudo eliminar la secciÃ³n');
       return false;
     }
   }, [clientId]);
 
-  // Reordenar secciones dentro de una categoría
+  // Reordenar secciones dentro de una categorÃ­a
   const reorderSection = useCallback(async (categoryId: number, sourceIndex: number, destinationIndex: number) => {
     if (!clientId || !sections[categoryId] || sections[categoryId].length === 0) return;
     
@@ -227,7 +225,7 @@ export default function useSections(clientId: number | null) {
     const [movedItem] = reorderedSections.splice(sourceIndex, 1);
     reorderedSections.splice(destinationIndex, 0, movedItem);
     
-    // Actualizar el orden de visualización en la copia
+    // Actualizar el orden de visualizaciÃ³n en la copia
     const updatedSections = reorderedSections.map((sec, index) => ({
       ...sec,
       display_order: index + 1
@@ -276,4 +274,3 @@ export default function useSections(clientId: number | null) {
     reorderSection
   };
 } 
-

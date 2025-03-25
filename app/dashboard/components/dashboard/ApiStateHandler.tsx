@@ -1,3 +1,12 @@
+"use client";
+
+/**
+ * @fileoverview Componente para gestionar y mostrar estados de API (carga, errores, mensajes)
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ */
+
 import React from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 

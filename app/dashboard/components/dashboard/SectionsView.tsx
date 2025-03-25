@@ -1,3 +1,12 @@
+"use client";
+
+/**
+ * @fileoverview Componente para la visualización y gestión de secciones dentro de una categoría
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ */
+
 import React from 'react';
 import { Category, Section, Client } from '@/app/types/menu';
 import { ChevronDownIcon, ChevronRightIcon, ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/outline';
@@ -87,6 +96,11 @@ interface SectionsViewProps {
 /**
  * Componente que muestra la lista de secciones de una categoría
  * Permite la navegación, expansión, creación, edición y eliminación de secciones
+ * 
+ * Este componente muestra todas las secciones disponibles para una categoría específica,
+ * permitiendo al usuario gestionarlas (crear, editar, eliminar) y navegar a la vista de
+ * productos de cada sección. También incluye funcionalidad para reordenar las secciones
+ * mediante arrastrar y soltar (drag and drop).
  */
 const SectionsView: React.FC<SectionsViewProps> = ({
   selectedCategory,
@@ -104,6 +118,38 @@ const SectionsView: React.FC<SectionsViewProps> = ({
   allSections,
   client
 }) => {
+  /**
+   * Configuración de eventos para drag and drop (arrastrar y soltar)
+   * 
+   * @param index - Índice del elemento en la lista
+   * @returns - Objeto con handlers para los eventos de drag and drop
+   */
+  const getDragHandlers = (index: number) => {
+    return {
+      draggable: true,
+      onDragStart: (e: React.DragEvent<HTMLLIElement>) => {
+        e.dataTransfer.setData('text/plain', index.toString());
+        e.currentTarget.classList.add('bg-gray-100');
+      },
+      onDragEnd: (e: React.DragEvent<HTMLLIElement>) => {
+        e.currentTarget.classList.remove('bg-gray-100');
+      },
+      onDragOver: (e: React.DragEvent<HTMLLIElement>) => {
+        e.preventDefault();
+        e.currentTarget.classList.add('bg-blue-50');
+      },
+      onDragLeave: (e: React.DragEvent<HTMLLIElement>) => {
+        e.currentTarget.classList.remove('bg-blue-50');
+      },
+      onDrop: (e: React.DragEvent<HTMLLIElement>) => {
+        e.preventDefault();
+        e.currentTarget.classList.remove('bg-blue-50');
+        const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
+        onReorderSection(sourceIndex, index);
+      }
+    };
+  };
+
   return (
     <div className="bg-white shadow rounded-lg">
       <div className="p-4 border-b border-gray-200 flex justify-between items-center">
@@ -139,27 +185,7 @@ const SectionsView: React.FC<SectionsViewProps> = ({
             <li 
               key={section.section_id} 
               className="px-4 py-3 flex items-center hover:bg-gray-50"
-              draggable={true}
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', index.toString());
-                e.currentTarget.classList.add('bg-gray-100');
-              }}
-              onDragEnd={(e) => {
-                e.currentTarget.classList.remove('bg-gray-100');
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.add('bg-blue-50');
-              }}
-              onDragLeave={(e) => {
-                e.currentTarget.classList.remove('bg-blue-50');
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.remove('bg-blue-50');
-                const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                onReorderSection(sourceIndex, index);
-              }}
+              {...getDragHandlers(index)}
             >
               <div className="flex-1 flex items-center">
                 <button
