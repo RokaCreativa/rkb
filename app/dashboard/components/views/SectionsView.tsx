@@ -11,6 +11,7 @@ import React from 'react';
 import { Category, Section, Client } from '@/app/types/menu';
 import { ChevronDownIcon, ChevronRightIcon, ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
+import { useDragAndDrop } from '@/lib/hooks/ui';
 
 /**
  * Props para el componente SectionsView
@@ -118,37 +119,8 @@ const SectionsView: React.FC<SectionsViewProps> = ({
   allSections,
   client
 }) => {
-  /**
-   * Configuración de eventos para drag and drop (arrastrar y soltar)
-   * 
-   * @param index - Índice del elemento en la lista
-   * @returns - Objeto con handlers para los eventos de drag and drop
-   */
-  const getDragHandlers = (index: number) => {
-    return {
-      draggable: true,
-      onDragStart: (e: React.DragEvent<HTMLLIElement>) => {
-        e.dataTransfer.setData('text/plain', index.toString());
-        e.currentTarget.classList.add('bg-gray-100');
-      },
-      onDragEnd: (e: React.DragEvent<HTMLLIElement>) => {
-        e.currentTarget.classList.remove('bg-gray-100');
-      },
-      onDragOver: (e: React.DragEvent<HTMLLIElement>) => {
-        e.preventDefault();
-        e.currentTarget.classList.add('bg-blue-50');
-      },
-      onDragLeave: (e: React.DragEvent<HTMLLIElement>) => {
-        e.currentTarget.classList.remove('bg-blue-50');
-      },
-      onDrop: (e: React.DragEvent<HTMLLIElement>) => {
-        e.preventDefault();
-        e.currentTarget.classList.remove('bg-blue-50');
-        const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
-        onReorderSection(sourceIndex, index);
-      }
-    };
-  };
+  // Utilizar el hook para manejar eventos de drag and drop
+  const { getDragHandlers } = useDragAndDrop<Section>(onReorderSection);
 
   return (
     <div className="bg-white shadow rounded-lg">
