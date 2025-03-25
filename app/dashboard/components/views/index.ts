@@ -12,3 +12,4 @@ export { default as SectionsView } from './SectionsView';
 export { default as ProductsView } from './ProductsView';
 // CategoriesView necesita ser recuperado de su ubicación original
 // export { default as CategoriesView } from './CategoriesView'; 
+ 

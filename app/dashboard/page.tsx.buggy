@@ -1,0 +1,343 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import Header from "@/app/dashboard/components/Header";
+import { 
+  CategoriesView, 
+  SectionsView, 
+  ProductsView 
+} from "./components/views";
+import { useDashboardNavigation } from "./providers";
+import { 
+  useDashboardCategories, 
+  useDashboardSections, 
+  useDashboardProducts 
+} from "@/lib/hooks/dashboard";
+import { Category, Section, Product } from "@/app/types/menu";
+import toast from "react-hot-toast";
+
+/**
+ * @fileoverview Página principal del dashboard
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-27
+ */
+export default function DashboardPage() {
+  const { data: session } = useSession();
+  const { 
+    currentView, 
+    selectedCategory, 
+    selectedSection, 
+    navigateToCategories, 
+    navigateToSections, 
+    navigateToProducts 
+  } = useDashboardNavigation();
+
+  // Estados para manejo de categorías y secciones expandidas
+  const [expandedCategories, setExpandedCategories] = useState<Record<number, boolean>>({});
+  const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState<number | null>(null);
+  
+  // Estado para modo de reordenamiento
+  const [isReorderModeActive, setIsReorderModeActive] = useState(false);
+  
+  // Hooks para obtener datos
+  const { 
+    categories, 
+    fetchCategories, 
+    isLoading: categoriesLoading,
+    toggleCategoryVisibility 
+  } = useDashboardCategories({
+    clientId: session?.user?.client_id 
+  });
+  
+  const { 
+    sections, 
+    fetchSections, 
+    isLoading: sectionsLoading,
+    toggleSectionVisibility 
+  } = useDashboardSections();
+  
+  const { 
+    products, 
+    fetchProducts, 
+    isLoading: productsLoading,
+    toggleProductVisibility 
+  } = useDashboardProducts();
+
+  // Cargar categorías al montar el componente
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        await fetchCategories();
+      } catch (error) {
+        console.error("Error cargando categorías:", error);
+        toast.error("No se pudieron cargar las categorías");
+      }
+    };
+
+    if (session?.user?.client_id) {
+      loadInitialData();
+    }
+  }, [fetchCategories, session?.user?.client_id]);
+
+  // Cargar secciones cuando se selecciona una categoría
+  useEffect(() => {
+    if (selectedCategory && selectedCategory.category_id) {
+      const loadSections = async () => {
+        try {
+          await fetchSections(
+            selectedCategory.category_id, 
+            Number(session?.user?.client_id || 0)
+          );
+        } catch (error) {
+          console.error("Error cargando secciones:", error);
+          toast.error("No se pudieron cargar las secciones");
+        }
+      };
+
+      loadSections();
+    }
+  }, [selectedCategory, fetchSections, session?.user?.client_id]);
+
+  // Cargar productos cuando se selecciona una sección
+  useEffect(() => {
+    if (selectedSection && selectedSection.section_id) {
+      const loadProducts = async () => {
+        try {
+          await fetchProducts(selectedSection.section_id);
+        } catch (error) {
+          console.error("Error cargando productos:", error);
+          toast.error("No se pudieron cargar los productos");
+        }
+      };
+
+      loadProducts();
+    }
+  }, [selectedSection, fetchProducts]);
+
+  // Manejadores de categorías
+  const handleCategoryClick = (categoryId: number) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
+
+  const handleCreateCategory = () => {
+    // Implementar lógica para crear categoría
+    console.log("Crear nueva categoría");
+  };
+
+  const handleEditCategory = (category: Category) => {
+    // Implementar lógica para editar categoría
+    console.log("Editar categoría", category);
+  };
+
+  const handleDeleteCategory = (categoryId: number) => {
+    // Implementar lógica para eliminar categoría
+    console.log("Eliminar categoría", categoryId);
+  };
+
+  // Adaptador para toggleCategoryVisibility para que coincida con la firma esperada
+  const handleToggleCategoryVisibility = async (categoryId: number): Promise<void> => {
+    if (!categories) return;
+    
+    const category = categories.find(c => c.category_id === categoryId);
+    if (!category) return;
+    
+    setIsUpdatingVisibility(categoryId);
+    try {
+      await toggleCategoryVisibility(categoryId, category.status);
+      toast.success(`Categoría ${category.status === 1 ? 'ocultada' : 'mostrada'} exitosamente`);
+    } catch (error) {
+      console.error("Error al cambiar visibilidad:", error);
+      toast.error("No se pudo cambiar la visibilidad");
+    } finally {
+      setIsUpdatingVisibility(null);
+    }
+  };
+
+  const handleReorderCategory = (sourceIndex: number, destinationIndex: number) => {
+    // Implementar lógica para reordenar categorías
+    console.log("Reordenar categorías", sourceIndex, destinationIndex);
+  };
+
+  // Manejadores de secciones
+  const handleSectionClick = (sectionId: number) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }));
+  };
+
+  const handleCreateSection = () => {
+    // Implementar lógica para crear sección
+    console.log("Crear nueva sección");
+  };
+
+  const handleEditSection = (section: Section) => {
+    // Implementar lógica para editar sección
+    console.log("Editar sección", section);
+  };
+
+  const handleDeleteSection = (sectionId: number) => {
+    // Implementar lógica para eliminar sección
+    console.log("Eliminar sección", sectionId);
+  };
+
+  // Adaptador para toggleSectionVisibility para que coincida con la firma esperada
+  const handleToggleSectionVisibility = async (sectionId: number): Promise<void> => {
+    if (!selectedCategory || !sections) return;
+    
+    const categoryId = selectedCategory.category_id;
+    const sectionsList = sections[categoryId] || [];
+    const section = sectionsList.find(s => s.section_id === sectionId);
+    if (!section) return;
+    
+    setIsUpdatingVisibility(sectionId);
+    try {
+      await toggleSectionVisibility(sectionId, Number(session?.user?.client_id || 0), section.status);
+      toast.success(`Sección ${section.status === 1 ? 'ocultada' : 'mostrada'} exitosamente`);
+    } catch (error) {
+      console.error("Error al cambiar visibilidad:", error);
+      toast.error("No se pudo cambiar la visibilidad");
+    } finally {
+      setIsUpdatingVisibility(null);
+    }
+  };
+
+  const handleReorderSection = (sourceIndex: number, destinationIndex: number) => {
+    // Implementar lógica para reordenar secciones
+    console.log("Reordenar secciones", sourceIndex, destinationIndex);
+  };
+
+  // Manejadores de productos
+  const handleCreateProduct = () => {
+    // Implementar lógica para crear producto
+    console.log("Crear nuevo producto");
+  };
+
+  const handleEditProduct = (product: Product) => {
+    // Implementar lógica para editar producto
+    console.log("Editar producto", product);
+  };
+
+  const handleDeleteProduct = (productId: number) => {
+    // Implementar lógica para eliminar producto
+    console.log("Eliminar producto", productId);
+  };
+
+  // Adaptador para toggleProductVisibility para que coincida con la firma esperada
+  const handleToggleProductVisibility = async (productId: number): Promise<void> => {
+    if (!selectedSection || !products) return;
+    
+    const sectionId = selectedSection.section_id;
+    const productsList = products[sectionId] || [];
+    const product = productsList.find(p => p.product_id === productId);
+    if (!product) return;
+    
+    setIsUpdatingVisibility(productId);
+    try {
+      await toggleProductVisibility(productId, Number(session?.user?.client_id || 0), product.status);
+      toast.success(`Producto ${product.status === 1 ? 'ocultado' : 'mostrado'} exitosamente`);
+    } catch (error) {
+      console.error("Error al cambiar visibilidad:", error);
+      toast.error("No se pudo cambiar la visibilidad");
+    } finally {
+      setIsUpdatingVisibility(null);
+    }
+  };
+
+  const handleReorderProduct = (sourceIndex: number, destinationIndex: number) => {
+    // Implementar lógica para reordenar productos
+    console.log("Reordenar productos", sourceIndex, destinationIndex);
+  };
+
+  // Alternar modo de reordenamiento
+  const toggleReorderMode = () => {
+    setIsReorderModeActive(!isReorderModeActive);
+  };
+
+  // Renderizar la vista correspondiente
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case "categories":
+        return (
+          <CategoriesView 
+            categories={categories || []} 
+            expandedCategories={expandedCategories}
+            onCategoryClick={handleCategoryClick}
+            onNewCategory={handleCreateCategory}
+            onEditCategory={handleEditCategory}
+            onDeleteCategory={handleDeleteCategory}
+            onToggleVisibility={handleToggleCategoryVisibility}
+            isUpdatingVisibility={isUpdatingVisibility}
+            onReorderCategory={handleReorderCategory}
+          />
+        );
+      case "sections":
+        if (!selectedCategory) return null;
+        
+        const sectionsList = sections && sections[selectedCategory.category_id] 
+          ? sections[selectedCategory.category_id] 
+          : [];
+          
+        return (
+          <SectionsView 
+            sections={sectionsList}
+            selectedCategory={selectedCategory}
+            expandedSections={expandedSections}
+            onSectionClick={handleSectionClick}
+            onBackClick={navigateToCategories}
+            onNewSection={handleCreateSection}
+            onEditSection={handleEditSection}
+            onDeleteSection={handleDeleteSection}
+            onToggleVisibility={handleToggleSectionVisibility}
+            isUpdatingVisibility={isUpdatingVisibility}
+            onReorderSection={handleReorderSection}
+            allCategories={categories || []}
+            allSections={sections}
+            client={null}
+          />
+        );
+      case "products":
+        if (!selectedSection || !selectedCategory) return null;
+        
+        const productsList = products && products[selectedSection.section_id] 
+          ? products[selectedSection.section_id] 
+          : [];
+          
+        return (
+          <ProductsView 
+            products={productsList}
+            selectedSection={selectedSection}
+            selectedCategory={selectedCategory}
+            onBackClick={() => navigateToSections(selectedCategory)}
+            onNewProduct={handleCreateProduct}
+            onEditProduct={handleEditProduct}
+            onDeleteProduct={handleDeleteProduct}
+            onToggleVisibility={handleToggleProductVisibility}
+            isUpdatingVisibility={isUpdatingVisibility}
+            onReorderProduct={handleReorderProduct}
+            allCategories={categories || []}
+            allSections={sections}
+            allProducts={products}
+            client={null}
+          />
+        );
+      default:
+        return <div>Vista no disponible</div>;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header />
+      <main className="container mx-auto px-4 py-6">
+        {renderCurrentView()}
+      </main>
+    </div>
+  );
+}
