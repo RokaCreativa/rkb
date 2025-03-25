@@ -1,55 +1,57 @@
-import { useState, useRef, ChangeEvent, useEffect } from 'react'
-import Image from 'next/image'
-import { X, UploadCloud } from 'lucide-react'
+"use client"
 
 /**
- * Propiedades del componente ImageUploader
- * @property {string | null} initialImage - URL de la imagen inicial (si existe)
- * @property {(file: File | null) => void} onChange - Función llamada cuando cambia la imagen seleccionada
- * @property {boolean} disabled - Indica si el componente está deshabilitado
- * @property {string} label - Etiqueta del campo
- * @property {boolean} required - Indica si el campo es obligatorio
- * @property {string} accept - Tipos de archivo aceptados (ej: "image/*")
- * @property {string} helpText - Texto de ayuda para mostrar debajo del uploader
+ * @fileoverview Componente para la carga y vista previa de imágenes
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ */
+
+import { useState, useRef, ChangeEvent, useEffect } from 'react'
+import Image from 'next/image'
+import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
+
+/**
+ * Props para el componente ImageUploader
+ * 
+ * @property {string | null} [initialImage] - URL de la imagen inicial (para modo edición)
+ * @property {function} onChange - Función que recibe el archivo de imagen seleccionado o null
+ * @property {boolean} [disabled] - Indica si el control está deshabilitado
+ * @property {string} [label] - Etiqueta para el campo de carga
+ * @property {string} [helpText] - Texto de ayuda para el usuario
+ * @property {string} [className] - Clases CSS adicionales
  */
 interface ImageUploaderProps {
   initialImage?: string | null;
   onChange: (file: File | null) => void;
   disabled?: boolean;
   label?: string;
-  required?: boolean;
-  accept?: string;
   helpText?: string;
+  className?: string;
 }
 
 /**
- * Componente para cargar y previsualizar imágenes
+ * Componente para la carga y previsualización de imágenes
  * 
- * Este componente permite a los usuarios seleccionar una imagen, previsualizar la imagen
- * seleccionada y eliminarla si es necesario. La función onChange devuelve el archivo seleccionado
- * o null si se eliminó la selección.
+ * Este componente proporciona una interfaz para subir imágenes con:
+ * - Previsualización de la imagen seleccionada
+ * - Botón para eliminar la imagen actual
+ * - Drag & drop para facilitar la carga
+ * - Validación visual del estado (seleccionada/no seleccionada)
  * 
- * Uso:
- * ```tsx
- * <ImageUploader
- *   initialImage={product.image}
- *   onChange={(file) => setImageFile(file)}
- *   label="Imagen del producto"
- *   helpText="PNG, JPG, GIF hasta 2MB"
- * />
- * ```
+ * Se utiliza en diversos formularios de la aplicación para la gestión de
+ * imágenes de categorías, secciones, productos, etc.
  * 
- * @author Rodolfo - RokaMenu
- * @date 23-03-2025 (UTC+0 - Londres)
+ * @param {ImageUploaderProps} props - Propiedades del componente
+ * @returns {JSX.Element} Componente de carga de imágenes
  */
 export default function ImageUploader({
   initialImage = null,
   onChange,
   disabled = false,
   label = "Imagen",
-  required = false,
-  accept = "image/*",
-  helpText = "PNG, JPG, GIF hasta 2MB"
+  helpText = "PNG, JPG, GIF hasta 2MB",
+  className
 }: ImageUploaderProps) {
   // Estado para la previsualización de la imagen
   const [imagePreview, setImagePreview] = useState<string | null>(initialImage);
@@ -88,9 +90,9 @@ export default function ImageUploader({
   };
 
   return (
-    <div className="mb-6">
+    <div className={`mb-6 ${className || ''}`}>
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label} {required && <span className="text-red-500">*</span>}
+        {label}
       </label>
       
       <div className="mt-1 flex items-center justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
@@ -111,13 +113,13 @@ export default function ImageUploader({
               className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 focus:outline-none"
               disabled={disabled}
             >
-              <X className="w-4 h-4" />
+              <XMarkIcon className="w-4 h-4" />
             </button>
           </div>
         ) : (
           <div className="space-y-1 text-center">
             <div className="mx-auto h-12 w-12 text-gray-400 flex items-center justify-center">
-              <UploadCloud className="h-10 w-10" />
+              <PhotoIcon className="h-10 w-10" />
             </div>
             <div className="flex text-sm text-gray-600">
               <label
@@ -130,7 +132,7 @@ export default function ImageUploader({
                   name="image-upload"
                   type="file"
                   className="sr-only"
-                  accept={accept}
+                  accept="image/*"
                   onChange={handleFileChange}
                   ref={fileInputRef}
                   disabled={disabled}

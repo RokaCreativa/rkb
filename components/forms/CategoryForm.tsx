@@ -1,5 +1,12 @@
 "use client"
 
+/**
+ * @fileoverview Componente de formulario para la creación y edición de categorías
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ */
+
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import ImageUploader from './ImageUploader'
@@ -33,9 +40,24 @@ interface CategoryFormProps {
 }
 
 /**
- * Componente de formulario para crear o editar categorías
+ * Componente de formulario para categorías
  * 
- * Maneja la carga de imágenes, validación y envío del formulario
+ * Este componente proporciona un formulario completo para la gestión de categorías, permitiendo:
+ * - Crear nuevas categorías con nombre, imagen y estado
+ * - Editar categorías existentes manteniendo o cambiando sus atributos
+ * - Validar los datos ingresados antes de enviarlos
+ * - Gestionar la carga de imágenes con previsualización
+ * 
+ * Incluye validaciones para:
+ * - Nombre obligatorio
+ * - Longitud máxima del nombre
+ * - Tamaño máximo de imagen (2MB)
+ * 
+ * El componente maneja automáticamente el estado de edición versus creación
+ * según los datos iniciales proporcionados.
+ * 
+ * @param {CategoryFormProps} props - Propiedades del componente 
+ * @returns {JSX.Element} Formulario para la gestión de categorías
  */
 export default function CategoryForm({
   onSubmit,
