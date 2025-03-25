@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * @fileoverview Componente modal para la creación de nuevos productos en el menú
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ * 
+ * Este componente proporciona una interfaz de usuario para crear nuevos productos
+ * dentro de una sección seleccionada en el sistema de gestión de menús.
+ * Permite configurar nombre, precio, descripción e imagen del producto.
+ */
+
 import React, { Fragment, useState, useRef } from 'react';
 import Image from 'next/image';
 import { Dialog, Transition } from '@headlessui/react';
@@ -10,11 +21,12 @@ import { PrismaClient } from '@prisma/client';
 
 /**
  * Props para el componente NewProductModal
+ * 
  * @property {boolean} isOpen - Controla si el modal está abierto o cerrado
- * @property {Function} onClose - Función para cerrar el modal
+ * @property {Function} onClose - Función para cerrar el modal y restablecer el estado del formulario
  * @property {PrismaClient} client - Cliente de Prisma para realizar operaciones en la base de datos
- * @property {Section | null} selectedSection - Sección seleccionada donde se añadirá el producto
- * @property {Function} setProducts - Función para actualizar el estado de productos
+ * @property {Section | null} selectedSection - Sección seleccionada donde se añadirá el nuevo producto
+ * @property {Function} setProducts - Función para actualizar el estado global de productos después de la creación
  */
 interface NewProductModalProps {
   isOpen: boolean;
@@ -25,13 +37,23 @@ interface NewProductModalProps {
 }
 
 /**
- * Componente modal para crear un nuevo producto en una sección
+ * Componente modal para crear un nuevo producto en el menú
  * 
- * Este componente permite al usuario crear un nuevo producto dentro de una sección seleccionada,
- * proporcionando nombre, precio, descripción y una imagen opcional para el producto.
+ * Este componente proporciona un formulario completo para la creación de productos
+ * con las siguientes características:
  * 
- * @param {NewProductModalProps} props - Las propiedades del componente
- * @returns {JSX.Element} El componente renderizado del modal de creación de producto
+ * - Formulario con validación de campos obligatorios
+ * - Carga y previsualización de imágenes para el producto
+ * - Integración con la API para crear el producto en la base de datos
+ * - Actualización automática del estado global para reflejar el nuevo producto
+ * - Gestión de estados de carga durante el proceso de creación
+ * - Notificaciones de éxito/error para informar al usuario sobre el resultado
+ * 
+ * El componente requiere una sección seleccionada para poder crear el producto,
+ * ya que cada producto debe pertenecer a una sección específica.
+ * 
+ * @param {NewProductModalProps} props - Propiedades del componente
+ * @returns {JSX.Element} Modal interactivo para crear nuevos productos
  */
 const NewProductModal: React.FC<NewProductModalProps> = ({
   isOpen,
@@ -40,7 +62,16 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
   selectedSection,
   setProducts
 }) => {
-  // Estados para el formulario
+  /**
+   * Estados del formulario para la creación de productos
+   * 
+   * @property {string} productName - Nombre del producto
+   * @property {string} productPrice - Precio del producto (se almacena como string para facilitar la entrada)
+   * @property {string} productDescription - Descripción detallada del producto
+   * @property {File | null} productImage - Archivo de imagen seleccionado para el producto
+   * @property {string | null} imagePreview - URL de previsualización de la imagen como data URL
+   * @property {boolean} isCreating - Controla el estado de carga durante la creación
+   */
   const [productName, setProductName] = useState('');
   const [productPrice, setProductPrice] = useState('');
   const [productDescription, setProductDescription] = useState('');
@@ -48,11 +79,24 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  // Referencia para el input de archivos
+  /** 
+   * Referencia al input de tipo file para la carga de imágenes
+   * Se utiliza para activarlo programáticamente desde otros elementos de la UI
+   */
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
-   * Maneja el cambio de la imagen del producto
+   * Maneja la selección de una imagen para el producto
+   * 
+   * Este método:
+   * 1. Captura el archivo seleccionado por el usuario
+   * 2. Actualiza el estado con el archivo seleccionado
+   * 3. Crea una previsualización de la imagen utilizando FileReader
+   * 4. Muestra la previsualización en la interfaz
+   * 
+   * La previsualización permite al usuario confirmar que ha seleccionado
+   * la imagen correcta antes de enviar el formulario.
+   * 
    * @param {React.ChangeEvent<HTMLInputElement>} e - Evento de cambio del input de archivo
    */
   const handleProductImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,15 +116,32 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
   };
 
   /**
-   * Método para abrir el selector de archivos
+   * Activa el selector de archivos nativo del navegador
+   * 
+   * Este método simula un clic en el input de tipo file oculto,
+   * lo que abre el selector de archivos del sistema operativo.
+   * Se utiliza para mejorar la experiencia de usuario al ofrecer un botón
+   * estilizado personalizado en lugar del input nativo.
    */
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
 
   /**
-   * Maneja el envío del formulario para crear un nuevo producto
-   * @param {React.FormEvent} e - Evento de formulario
+   * Procesa el envío del formulario para crear un nuevo producto
+   * 
+   * Este método:
+   * 1. Previene el comportamiento predeterminado del formulario
+   * 2. Valida todos los campos requeridos (nombre, precio, sección)
+   * 3. Prepara los datos del formulario, incluyendo la imagen si existe
+   * 4. Envía los datos al servidor mediante una petición POST
+   * 5. Actualiza el estado global con el nuevo producto
+   * 6. Muestra una notificación de éxito y reinicia el formulario
+   * 
+   * Si ocurre algún error durante el proceso, se muestra una notificación
+   * y se registra el error en la consola para diagnóstico.
+   * 
+   * @param {React.FormEvent} e - Evento de envío del formulario
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,6 +215,15 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
 
   /**
    * Reinicia el formulario y cierra el modal
+   * 
+   * Este método:
+   * 1. Limpia todos los campos del formulario (nombre, precio, descripción)
+   * 2. Elimina la imagen seleccionada y su previsualización
+   * 3. Cierra el modal de creación de producto
+   * 
+   * Se utiliza cuando el usuario cancela la creación o después de
+   * crear un producto exitosamente para preparar el formulario para
+   * una nueva entrada.
    */
   const handleCancel = () => {
     setProductName('');

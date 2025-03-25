@@ -1,0 +1,13 @@
+/**
+ * Archivo de barril (barrel file) para los componentes de acciones del dashboard
+ * 
+ * Este archivo simplifica la importación de componentes desde un único punto,
+ * permitiendo usar:
+ * 
+ * import { CategoryActions, SectionActions, ProductActions } from '@/app/dashboard/components/actions';
+ */
+
+// Estos componentes serán implementados según el plan de refactorización
+// export { default as CategoryActions } from './CategoryActions';
+// export { default as SectionActions } from './SectionActions';
+// export { default as ProductActions } from './ProductActions'; 

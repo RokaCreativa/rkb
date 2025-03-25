@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * @fileoverview Componente modal para la eliminación de productos en el menú
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ * 
+ * Este componente proporciona una interfaz de usuario para confirmar y procesar
+ * la eliminación de productos individuales en el sistema de gestión de menús.
+ * Implementa un patrón de confirmación para prevenir eliminaciones accidentales.
+ */
+
 import React, { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
@@ -8,13 +19,14 @@ import { Section, Product } from '@/app/types/menu';
 
 /**
  * Props para el componente DeleteProductModal
+ * 
  * @property {boolean} isOpen - Controla si el modal está abierto o cerrado
- * @property {Function} onClose - Función para cerrar el modal
- * @property {number | null} productToDelete - ID del producto a eliminar
- * @property {Function} deleteProduct - Función que realiza la eliminación del producto
- * @property {boolean} isDeletingProduct - Indica si hay una operación de eliminación en curso
- * @property {Section | null} selectedSection - La sección a la que pertenece el producto
- * @property {Function} setProducts - Función para actualizar el estado de productos después de la eliminación
+ * @property {Function} onClose - Función para cerrar el modal y restablecer el estado
+ * @property {number | null} productToDelete - ID del producto que se va a eliminar
+ * @property {Function} deleteProduct - Función que realiza la petición de eliminación a la API
+ * @property {boolean} isDeletingProduct - Indica si hay una operación de eliminación en proceso
+ * @property {Section | null} selectedSection - Sección a la que pertenece el producto a eliminar
+ * @property {Function} setProducts - Función para actualizar el estado global de productos
  */
 interface DeleteProductModalProps {
   isOpen: boolean;
@@ -27,13 +39,22 @@ interface DeleteProductModalProps {
 }
 
 /**
- * Componente modal para confirmar y procesar la eliminación de un producto
+ * Componente modal para confirmar y procesar la eliminación de productos
  * 
- * Este componente muestra un modal de confirmación cuando el usuario intenta
- * eliminar un producto, y maneja el proceso de eliminación y actualización del estado.
+ * Este componente proporciona una interfaz de confirmación para eliminar
+ * productos del sistema de menú, con las siguientes características:
  * 
- * @param {DeleteProductModalProps} props - Las propiedades del componente
- * @returns {JSX.Element} El componente renderizado del modal de eliminación
+ * - Modal de confirmación con mensaje claro sobre las consecuencias
+ * - Gestión del estado de carga durante el proceso de eliminación
+ * - Actualización inmediata del estado global tras una eliminación exitosa
+ * - Notificaciones de éxito/error al usuario mediante toast
+ * - Prevención de eliminaciones accidentales mediante confirmación explícita
+ * 
+ * El componente se encarga tanto de la comunicación con la API como de
+ * mantener la interfaz actualizada eliminando el producto del estado.
+ * 
+ * @param {DeleteProductModalProps} props - Propiedades del componente
+ * @returns {JSX.Element} Modal de confirmación para eliminar productos
  */
 const DeleteProductModal: React.FC<DeleteProductModalProps> = ({
   isOpen,
@@ -44,12 +65,27 @@ const DeleteProductModal: React.FC<DeleteProductModalProps> = ({
   selectedSection,
   setProducts
 }) => {
-  // Estado local para controlar el proceso de eliminación
+  /**
+   * Estado local para controlar el proceso de eliminación
+   * Este estado es independiente del isDeletingProduct que viene por props
+   * para permitir un control más granular dentro del componente.
+   */
   const [isDeleting, setIsDeleting] = useState(false);
 
   /**
-   * Función para confirmar la eliminación del producto
-   * Llama a la API y actualiza el estado local si la eliminación es exitosa
+   * Procesa la solicitud de eliminación del producto
+   * 
+   * Este método:
+   * 1. Verifica que existan IDs válidos de producto y sección para eliminar
+   * 2. Establece el estado de carga durante el proceso
+   * 3. Realiza la llamada a la API para eliminar el producto
+   * 4. Actualiza el estado global eliminando el producto de la lista de su sección
+   * 5. Muestra una notificación del resultado al usuario
+   * 6. Cierra el modal si la operación es exitosa
+   * 
+   * La actualización del estado se realiza inmediatamente en el componente
+   * para proporcionar una experiencia de usuario fluida sin necesidad de
+   * recargar datos desde el servidor.
    */
   const confirmDelete = async () => {
     if (!productToDelete || !selectedSection) return;

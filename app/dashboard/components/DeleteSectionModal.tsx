@@ -1,5 +1,17 @@
 "use client";
 
+/**
+ * @fileoverview Componente modal para la eliminación de secciones en el menú
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ * 
+ * Este componente proporciona una interfaz de usuario para confirmar y procesar
+ * la eliminación de secciones en el sistema de gestión de menús. Incluye
+ * advertencias sobre las consecuencias de la eliminación (pérdida de todos
+ * los productos asociados a la sección).
+ */
+
 import React, { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
@@ -8,13 +20,14 @@ import { Category, Section } from '@/app/types/menu';
 
 /**
  * Props para el componente DeleteSectionModal
+ * 
  * @property {boolean} isOpen - Controla si el modal está abierto o cerrado
- * @property {Function} onClose - Función para cerrar el modal
- * @property {number | null} sectionToDelete - ID de la sección a eliminar
- * @property {Function} deleteSection - Función que realiza la eliminación de la sección
- * @property {boolean} isDeletingSection - Indica si hay una operación de eliminación en curso
- * @property {Category | null} selectedCategory - La categoría a la que pertenece la sección
- * @property {Function} setSections - Función para actualizar el estado de secciones después de la eliminación
+ * @property {Function} onClose - Función para cerrar el modal y restablecer el estado
+ * @property {number | null} sectionToDelete - ID de la sección que se va a eliminar
+ * @property {Function} deleteSection - Función que realiza la petición de eliminación a la API
+ * @property {boolean} isDeletingSection - Indica si hay una operación de eliminación en proceso
+ * @property {Category | null} selectedCategory - Categoría a la que pertenece la sección a eliminar
+ * @property {Function} setSections - Función para actualizar el estado global de secciones
  */
 interface DeleteSectionModalProps {
   isOpen: boolean;
@@ -27,13 +40,22 @@ interface DeleteSectionModalProps {
 }
 
 /**
- * Componente modal para confirmar y procesar la eliminación de una sección
+ * Componente modal para confirmar y procesar la eliminación de secciones
  * 
- * Este componente muestra un modal de confirmación cuando el usuario intenta
- * eliminar una sección, y maneja el proceso de eliminación y actualización del estado.
+ * Este componente proporciona una interfaz de confirmación para eliminar
+ * secciones del sistema de menú, con las siguientes características:
  * 
- * @param {DeleteSectionModalProps} props - Las propiedades del componente
- * @returns {JSX.Element} El componente renderizado del modal de eliminación
+ * - Modal de confirmación con advertencias claras sobre las consecuencias
+ * - Gestión del estado de carga durante el proceso de eliminación
+ * - Notificaciones de éxito/error al usuario mediante toast
+ * - Prevención de eliminaciones accidentales mediante confirmación explícita
+ * - Integración con el sistema de gestión de estado de la aplicación
+ * 
+ * La eliminación de una sección es una operación destructiva que también 
+ * elimina todos los productos relacionados con ella.
+ * 
+ * @param {DeleteSectionModalProps} props - Propiedades del componente
+ * @returns {JSX.Element} Modal de confirmación para eliminar secciones
  */
 const DeleteSectionModal: React.FC<DeleteSectionModalProps> = ({
   isOpen,
@@ -44,14 +66,27 @@ const DeleteSectionModal: React.FC<DeleteSectionModalProps> = ({
   selectedCategory,
   setSections
 }) => {
-  // Estado local para controlar el proceso de eliminación
+  /**
+   * Estado local para controlar el proceso de eliminación
+   * Este estado es independiente del isDeletingSection que viene por props
+   * para permitir un control más granular dentro del componente.
+   */
   const [isDeleting, setIsDeleting] = useState(false);
 
   /**
-   * Función para confirmar la eliminación de la sección
-   * Llama a la API y actualiza el estado local si la eliminación es exitosa
+   * Procesa la solicitud de eliminación de la sección
    * 
-   * IMPORTANTE: Al eliminar una sección se eliminarán también todos sus productos
+   * Este método:
+   * 1. Verifica que existan IDs válidos de sección y categoría para eliminar
+   * 2. Establece el estado de carga durante el proceso
+   * 3. Realiza la llamada a la API para eliminar la sección
+   * 4. Muestra una notificación del resultado al usuario
+   * 5. Cierra el modal si la operación es exitosa
+   * 
+   * La actualización del estado global ocurre dentro de la función deleteSection,
+   * no en este método, para mantener la lógica de negocio separada.
+   * 
+   * IMPORTANTE: Al eliminar una sección se eliminarán también todos sus productos.
    */
   const confirmDelete = async () => {
     if (!sectionToDelete || !selectedCategory) return;

@@ -1,5 +1,17 @@
 "use client";
 
+/**
+ * @fileoverview Componente modal para la eliminación de categorías en el menú
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ * 
+ * Este componente proporciona una interfaz de usuario para confirmar y procesar
+ * la eliminación de categorías en el sistema de gestión de menús. Incluye
+ * advertencias sobre las consecuencias de la eliminación (pérdida de secciones
+ * y productos relacionados).
+ */
+
 import React, { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
@@ -8,12 +20,13 @@ import { Category } from '@/app/types/menu';
 
 /**
  * Props para el componente DeleteCategoryModal
+ * 
  * @property {boolean} isOpen - Controla si el modal está abierto o cerrado
- * @property {Function} onClose - Función para cerrar el modal
- * @property {number | null} categoryToDelete - ID de la categoría a eliminar
- * @property {Function} deleteCategory - Función que realiza la eliminación de la categoría
- * @property {boolean} isDeletingCategory - Indica si hay una operación de eliminación en curso
- * @property {Function} setCategories - Función para actualizar el estado de categorías después de la eliminación
+ * @property {Function} onClose - Función para cerrar el modal y restablecer el estado
+ * @property {number | null} categoryToDelete - ID de la categoría que se va a eliminar
+ * @property {Function} deleteCategory - Función que realiza la petición de eliminación a la API
+ * @property {boolean} isDeletingCategory - Indica si hay una operación de eliminación en proceso
+ * @property {Function} setCategories - Función para actualizar el estado global de categorías
  */
 interface DeleteCategoryModalProps {
   isOpen: boolean;
@@ -25,13 +38,22 @@ interface DeleteCategoryModalProps {
 }
 
 /**
- * Componente modal para confirmar y procesar la eliminación de una categoría
+ * Componente modal para confirmar y procesar la eliminación de categorías
  * 
- * Este componente muestra un modal de confirmación cuando el usuario intenta
- * eliminar una categoría, y maneja el proceso de eliminación y actualización del estado.
+ * Este componente proporciona una interfaz de confirmación para eliminar
+ * categorías del sistema, con las siguientes características:
  * 
- * @param {DeleteCategoryModalProps} props - Las propiedades del componente
- * @returns {JSX.Element} El componente renderizado del modal de eliminación
+ * - Modal de confirmación con advertencias claras sobre las consecuencias
+ * - Gestión del estado de carga durante el proceso de eliminación
+ * - Notificaciones de éxito/error al usuario mediante toast
+ * - Actualización automática del estado global de categorías tras eliminación exitosa
+ * - Prevención de eliminaciones accidentales mediante confirmación explícita
+ * 
+ * La eliminación de una categoría es una operación destructiva que también 
+ * elimina todas las secciones y productos relacionados con ella.
+ * 
+ * @param {DeleteCategoryModalProps} props - Propiedades del componente
+ * @returns {JSX.Element} Modal de confirmación para eliminar categorías
  */
 const DeleteCategoryModal: React.FC<DeleteCategoryModalProps> = ({
   isOpen,
@@ -41,14 +63,25 @@ const DeleteCategoryModal: React.FC<DeleteCategoryModalProps> = ({
   isDeletingCategory,
   setCategories
 }) => {
-  // Estado local para controlar el proceso de eliminación
+  /**
+   * Estado local para controlar el proceso de eliminación
+   * Este estado es independiente del isDeletingCategory que viene por props
+   * para permitir un control más granular dentro del componente.
+   */
   const [isDeleting, setIsDeleting] = useState(false);
 
   /**
-   * Función para confirmar la eliminación de la categoría
-   * Llama a la API y actualiza el estado local si la eliminación es exitosa
+   * Procesa la solicitud de eliminación de la categoría
    * 
-   * IMPORTANTE: Al eliminar una categoría se eliminarán también todas sus secciones y productos
+   * Este método:
+   * 1. Verifica que exista un ID de categoría válido para eliminar
+   * 2. Establece el estado de carga durante el proceso
+   * 3. Realiza la llamada a la API para eliminar la categoría
+   * 4. Actualiza el estado global eliminando la categoría de la lista
+   * 5. Muestra una notificación del resultado al usuario
+   * 6. Limpia el estado y cierra el modal al completar
+   * 
+   * En caso de error, captura la excepción y muestra un mensaje apropiado.
    */
   const confirmDelete = async () => {
     if (!categoryToDelete) return;

@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * @fileoverview Componente modal para la creación de nuevas secciones en el menú
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ * 
+ * Este componente proporciona una interfaz de usuario para crear nuevas secciones
+ * dentro de una categoría seleccionada en el sistema de gestión de menús.
+ * Permite configurar nombre e imagen de la sección.
+ */
+
 import React, { Fragment, useState, useRef } from 'react';
 import Image from 'next/image';
 import { Dialog, Transition } from '@headlessui/react';
@@ -10,11 +21,12 @@ import { PrismaClient } from '@prisma/client';
 
 /**
  * Props para el componente NewSectionModal
+ * 
  * @property {boolean} isOpen - Controla si el modal está abierto o cerrado
- * @property {Function} onClose - Función para cerrar el modal
+ * @property {Function} onClose - Función para cerrar el modal y restablecer el estado del formulario
  * @property {PrismaClient} client - Cliente de Prisma para realizar operaciones en la base de datos
- * @property {Category | null} selectedCategory - Categoría seleccionada donde se añadirá la sección
- * @property {Function} setSections - Función para actualizar el estado de secciones
+ * @property {Category | null} selectedCategory - Categoría seleccionada donde se añadirá la nueva sección
+ * @property {Function} setSections - Función para actualizar el estado global de secciones después de la creación
  */
 interface NewSectionModalProps {
   isOpen: boolean;
@@ -25,13 +37,23 @@ interface NewSectionModalProps {
 }
 
 /**
- * Componente modal para crear una nueva sección en una categoría
+ * Componente modal para crear una nueva sección en el menú
  * 
- * Este componente permite al usuario crear una nueva sección dentro de una categoría seleccionada,
- * proporcionando un nombre y una imagen opcional para la sección.
+ * Este componente proporciona un formulario para la creación de secciones
+ * con las siguientes características:
  * 
- * @param {NewSectionModalProps} props - Las propiedades del componente
- * @returns {JSX.Element} El componente renderizado del modal de creación de sección
+ * - Formulario con validación del nombre como campo obligatorio
+ * - Carga y previsualización de imágenes para la sección (opcional)
+ * - Integración con la API para crear la sección en la base de datos
+ * - Actualización automática del estado global para reflejar la nueva sección
+ * - Gestión de estados de carga durante el proceso de creación
+ * - Notificaciones de éxito/error para informar al usuario sobre el resultado
+ * 
+ * El componente requiere una categoría seleccionada para poder crear la sección,
+ * ya que cada sección debe pertenecer a una categoría específica del menú.
+ * 
+ * @param {NewSectionModalProps} props - Propiedades del componente
+ * @returns {JSX.Element} Modal interactivo para crear nuevas secciones
  */
 const NewSectionModal: React.FC<NewSectionModalProps> = ({
   isOpen,
@@ -40,17 +62,37 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
   selectedCategory,
   setSections
 }) => {
-  // Estados para el formulario
+  /**
+   * Estados del formulario para la creación de secciones
+   * 
+   * @property {string} sectionName - Nombre de la sección
+   * @property {File | null} sectionImage - Archivo de imagen seleccionado para la sección
+   * @property {string | null} imagePreview - URL de previsualización de la imagen como data URL
+   * @property {boolean} isCreating - Controla el estado de carga durante la creación
+   */
   const [sectionName, setSectionName] = useState('');
   const [sectionImage, setSectionImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  // Referencia para el input de archivos
+  /** 
+   * Referencia al input de tipo file para la carga de imágenes
+   * Se utiliza para activarlo programáticamente desde otros elementos de la UI
+   */
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
-   * Maneja el cambio de la imagen de sección
+   * Maneja la selección de una imagen para la sección
+   * 
+   * Este método:
+   * 1. Captura el archivo seleccionado por el usuario
+   * 2. Actualiza el estado con el archivo seleccionado
+   * 3. Crea una previsualización de la imagen utilizando FileReader
+   * 4. Muestra la previsualización en la interfaz
+   * 
+   * La previsualización permite al usuario confirmar que ha seleccionado
+   * la imagen correcta antes de enviar el formulario.
+   * 
    * @param {React.ChangeEvent<HTMLInputElement>} e - Evento de cambio del input de archivo
    */
   const handleSectionImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,15 +112,32 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
   };
 
   /**
-   * Método para abrir el selector de archivos
+   * Activa el selector de archivos nativo del navegador
+   * 
+   * Este método simula un clic en el input de tipo file oculto,
+   * lo que abre el selector de archivos del sistema operativo.
+   * Se utiliza para mejorar la experiencia de usuario al ofrecer un botón
+   * estilizado personalizado en lugar del input nativo.
    */
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
 
   /**
-   * Maneja el envío del formulario para crear una nueva sección
-   * @param {React.FormEvent} e - Evento de formulario
+   * Procesa el envío del formulario para crear una nueva sección
+   * 
+   * Este método:
+   * 1. Previene el comportamiento predeterminado del formulario
+   * 2. Valida que exista una categoría seleccionada y un nombre de sección
+   * 3. Prepara los datos del formulario, incluyendo la imagen si existe
+   * 4. Envía los datos al servidor mediante una petición POST
+   * 5. Actualiza el estado global con la nueva sección
+   * 6. Muestra una notificación de éxito y reinicia el formulario
+   * 
+   * Si ocurre algún error durante el proceso, se muestra una notificación
+   * y se registra el error en la consola para diagnóstico.
+   * 
+   * @param {React.FormEvent} e - Evento de envío del formulario
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -143,6 +202,15 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
 
   /**
    * Reinicia el formulario y cierra el modal
+   * 
+   * Este método:
+   * 1. Limpia el campo de nombre de la sección
+   * 2. Elimina la imagen seleccionada y su previsualización
+   * 3. Cierra el modal de creación de sección
+   * 
+   * Se utiliza cuando el usuario cancela la creación o después de
+   * crear una sección exitosamente para preparar el formulario para
+   * una nueva entrada.
    */
   const handleCancel = () => {
     setSectionName('');
