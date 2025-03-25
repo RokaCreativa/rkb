@@ -8,7 +8,8 @@
  *   useDashboardSections, 
  *   useDashboardProducts,
  *   useDashboardNavigation,
- *   useDashboardModals
+ *   useDashboardModals,
+ *   useDashboardService
  * } from '@/lib/hooks/dashboard';
  */
 
@@ -17,4 +18,5 @@ export { default as useDashboardSections } from './useDashboardSections';
 export { default as useDashboardProducts } from './useDashboardProducts';
 export { default as useDashboardNavigation } from './useDashboardNavigation';
 export { default as useDashboardModals } from './useDashboardModals';
+export { default as useDashboardService } from './useDashboardService';
 export type { DashboardView } from './useDashboardNavigation'; 
