@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Fragment, useRef } from 'react';
+import { useState, useEffect, Fragment, useRef } from 'react';
 import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon, TrashIcon, ArrowUpTrayIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
