@@ -1074,7 +1074,7 @@ export default function DashboardPage() {
           if (!prev[sectionId]) return prev;
           
           return {
-            ...prev,
+              ...prev,
             [sectionId]: prev[sectionId].filter(prod => prod.product_id !== productId)
           };
         });
@@ -1105,7 +1105,7 @@ export default function DashboardPage() {
         // Consideramos esto como un éxito a pesar del error en la respuesta
         return true;
       }
-    } catch (error) {
+              } catch (error) {
       console.error('Error en deleteProductAdapter:', error);
       toast.error('Error al eliminar el producto');
       return false;
@@ -1146,7 +1146,7 @@ export default function DashboardPage() {
       }
       
       return result;
-              } catch (error) {
+            } catch (error) {
       console.error('Error en deleteSection:', error);
       return false;
     }
@@ -1314,7 +1314,7 @@ export default function DashboardPage() {
                 {productsFromHook[selectedSection.section_id] ? (
                   <ProductTable 
                     products={productsFromHook[selectedSection.section_id]}
-                    onBackClick={navigateBack}
+          onBackClick={navigateBack}
                     sectionName={selectedSection.name}
                     onEditProduct={(productToEdit) => {
                       handleEditProduct(productToEdit as unknown as Product);
@@ -1458,15 +1458,15 @@ export default function DashboardPage() {
         }}
       />
       
-        <EditCategoryModal
+      <EditCategoryModal
           isOpen={isEditModalOpen}
         onClose={() => {
             setIsEditModalOpen(false);
             setEditingCategory(null);
-          }}
+        }}
           categoryToEdit={editingCategory ? categories.find(c => c.category_id === editingCategory.id) || null : null}
-          client={client as any}
-          setCategories={setCategories}
+        client={client as any}
+        setCategories={setCategories}
         onSuccess={() => {
             // Recargar las categorías después de editar
             console.log("Recargando categorías después de editar...");
@@ -1516,23 +1516,23 @@ export default function DashboardPage() {
             setEditingProduct(null);
         }}
           productToEdit={editingProduct as any}
-          client={client as any}
+        client={client as any}
         selectedSection={selectedSection}
         setProducts={setProducts}
-        />
-
+      />
+      
         {/* Modal para editar sección */}
         {isEditSectionModalOpen && (
-          <EditSectionModal
-            isOpen={isEditSectionModalOpen}
+      <EditSectionModal
+        isOpen={isEditSectionModalOpen}
             onClose={() => setIsEditSectionModalOpen(false)}
             sectionToEdit={editingSection ? sections[selectedCategory?.category_id || 0]?.find(s => s.section_id === editingSection.id) || null : null}
-            clientId={client?.id || null}
-            selectedCategory={selectedCategory}
+        clientId={client?.id || null}
+        selectedCategory={selectedCategory}
         onSuccess={() => {
               // Recargar las secciones de la categoría actual utilizando fetch directamente en lugar
               // de la función fetchSections para garantizar datos frescos
-              if (selectedCategory) {
+          if (selectedCategory) {
                 console.log("Recargando secciones después de editar...");
                 // Usar fetch directamente para obtener los datos más recientes
                 fetch(`/api/sections?category_id=${selectedCategory.category_id}`)
@@ -1543,8 +1543,8 @@ export default function DashboardPage() {
               .then(data => {
                     console.log("Datos de secciones actualizados:", data);
                     // Actualizar el estado con los datos frescos
-                    setSections(prev => ({
-                      ...prev,
+                setSections(prev => ({
+                  ...prev,
                       [selectedCategory.category_id]: data
                     }));
                     
@@ -1581,15 +1581,15 @@ export default function DashboardPage() {
           isOpen={isNewSectionModalOpen}
           onClose={() => setIsNewSectionModalOpen(false)}
           client={client as any}
-          selectedCategory={selectedCategory}
-          setSections={setSections}
-        />
-
+        selectedCategory={selectedCategory}
+        setSections={setSections}
+      />
+      
         {/* Modal de nuevo producto */}
-        <NewProductModal
-          isOpen={isNewProductModalOpen}
-          onClose={() => setIsNewProductModalOpen(false)}
-          client={client as any}
+      <NewProductModal
+        isOpen={isNewProductModalOpen}
+        onClose={() => setIsNewProductModalOpen(false)}
+        client={client as any}
         selectedSection={selectedSection}
         setProducts={setProducts}
       />

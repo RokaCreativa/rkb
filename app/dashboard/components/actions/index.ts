@@ -4,11 +4,10 @@
  * Este archivo simplifica la importación de componentes desde un único punto,
  * permitiendo usar:
  * 
- * import { CategoryActions, SectionActions, ProductActions } from '@/app/dashboard/components/actions';
+ * import { CategoryActions, SectionActions, ProductActions, BackButton } from '@/app/dashboard/components/actions';
  */
 
-// Estos componentes serán implementados según el plan de refactorización
-// export { default as CategoryActions } from './CategoryActions';
-// export { default as SectionActions } from './SectionActions';
-// export { default as ProductActions } from './ProductActions'; 
- 
+export { default as CategoryActions } from './CategoryActions';
+export { default as SectionActions } from './SectionActions';
+export { default as ProductActions } from './ProductActions';
+export { default as BackButton } from './BackButton'; 
