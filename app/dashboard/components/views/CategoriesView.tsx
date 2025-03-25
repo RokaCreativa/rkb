@@ -4,13 +4,14 @@
  * @fileoverview Componente para la visualización y gestión de categorías en el dashboard de RokaMenu
  * @author RokaMenu Team
  * @version 1.0.0
- * @updated 2024-03-26
+ * @updated 2024-03-27
  */
 
 import React from 'react';
 import { Category } from '@/app/types/menu';
 import { ChevronDownIcon, ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
+import { useDragAndDrop } from '@/lib/hooks/ui';
 
 /**
  * Props para el componente CategoriesView
@@ -110,6 +111,9 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({
   isUpdatingVisibility,
   onReorderCategory
 }) => {
+  // Utilizar el hook para manejar eventos de drag and drop
+  const { getDragHandlers } = useDragAndDrop<Category>(onReorderCategory);
+  
   return (
     <div className="bg-white shadow rounded-lg">
       <div className="p-4 border-b border-gray-200 flex justify-between items-center">
@@ -134,27 +138,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({
             <li 
               key={category.category_id} 
               className="px-4 py-3 flex items-center hover:bg-gray-50"
-              draggable={true}
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', index.toString());
-                e.currentTarget.classList.add('bg-gray-100');
-              }}
-              onDragEnd={(e) => {
-                e.currentTarget.classList.remove('bg-gray-100');
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.add('bg-blue-50');
-              }}
-              onDragLeave={(e) => {
-                e.currentTarget.classList.remove('bg-blue-50');
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                e.currentTarget.classList.remove('bg-blue-50');
-                const sourceIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                onReorderCategory(sourceIndex, index);
-              }}
+              {...getDragHandlers(index)}
             >
               <div className="flex-1 flex items-center">
                 <button
