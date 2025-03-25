@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * @fileoverview Componente modal para la creación de nuevas categorías en el menú
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ * 
+ * Este componente proporciona una interfaz de usuario para crear nuevas categorías
+ * en el sistema de gestión de menús. Las categorías son la estructura principal
+ * de organización en el menú, agrupando diversas secciones de productos.
+ */
+
 import React, { Fragment, useState, useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
@@ -9,10 +20,11 @@ import { PrismaClient } from '@prisma/client';
 
 /**
  * Props para el componente NewCategoryModal
+ * 
  * @property {boolean} isOpen - Controla si el modal está abierto o cerrado
- * @property {Function} onClose - Función para cerrar el modal
+ * @property {Function} onClose - Función para cerrar el modal y limpiar el estado
  * @property {PrismaClient} client - Cliente de Prisma para realizar operaciones en la base de datos
- * @property {Function} setCategories - Función para actualizar el estado de categorías
+ * @property {Function} setCategories - Función para actualizar el estado global de categorías
  */
 interface NewCategoryModalProps {
   isOpen: boolean;
@@ -22,13 +34,22 @@ interface NewCategoryModalProps {
 }
 
 /**
- * Componente modal para crear una nueva categoría
+ * Componente modal para crear nuevas categorías
  * 
- * Este componente permite al usuario crear una nueva categoría,
- * proporcionando un nombre y una imagen opcional para la categoría.
+ * Este componente proporciona una interfaz gráfica para que los administradores
+ * puedan crear nuevas categorías en el sistema de menús. Características:
  * 
- * @param {NewCategoryModalProps} props - Las propiedades del componente
- * @returns {JSX.Element} El componente renderizado del modal de creación de categoría
+ * - Formulario con validación para el nombre de la categoría
+ * - Selector de imágenes con previsualización
+ * - Comunicación con la API mediante FormData para manejar archivos
+ * - Notificaciones de estado mediante toast
+ * - Integración con el estado global de categorías
+ * 
+ * Una vez creada la categoría, se actualiza automáticamente el listado
+ * sin necesidad de recargar la página.
+ * 
+ * @param {NewCategoryModalProps} props - Propiedades del componente 
+ * @returns {JSX.Element} Modal interactivo para creación de categorías
  */
 const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
   isOpen,
@@ -36,17 +57,28 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
   client,
   setCategories
 }) => {
-  // Estados para el formulario
+  /**
+   * Estados del formulario y gestión de categorías
+   */
+  // Estados para los campos del formulario
   const [categoryName, setCategoryName] = useState('');
   const [categoryImage, setCategoryImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Estado para controlar el proceso de creación
   const [isCreating, setIsCreating] = useState(false);
 
-  // Referencia para el input de archivos
+  // Referencia para el input de archivos oculto
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
    * Maneja el cambio de la imagen de la categoría
+   * 
+   * Este método gestiona el proceso de selección de una imagen:
+   * - Obtiene el archivo seleccionado por el usuario
+   * - Actualiza el estado con el archivo seleccionado
+   * - Genera una vista previa de la imagen para mostrarla al usuario
+   * 
    * @param {React.ChangeEvent<HTMLInputElement>} e - Evento de cambio del input de archivo
    */
   const handleCategoryImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,7 +98,11 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
   };
 
   /**
-   * Método para abrir el selector de archivos
+   * Abre el selector de archivos nativo del sistema
+   * 
+   * Este método simula un clic en el input de tipo file oculto,
+   * permitiendo mostrar un botón personalizado en la interfaz
+   * en lugar del selector de archivos predeterminado.
    */
   const triggerFileInput = () => {
     fileInputRef.current?.click();
@@ -74,7 +110,16 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
 
   /**
    * Maneja el envío del formulario para crear una nueva categoría
-   * @param {React.FormEvent} e - Evento de formulario
+   * 
+   * Este método:
+   * - Valida que los datos ingresados sean correctos
+   * - Prepara el FormData con los datos del formulario
+   * - Envía la solicitud a la API para crear la categoría
+   * - Actualiza el estado global con la nueva categoría creada
+   * - Muestra notificaciones de éxito o error al usuario
+   * - Limpia el formulario y cierra el modal si la operación es exitosa
+   * 
+   * @param {React.FormEvent} e - Evento de envío del formulario
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,7 +174,14 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
   };
 
   /**
-   * Reinicia el formulario y cierra el modal
+   * Cancela la creación y cierra el modal
+   * 
+   * Este método:
+   * - Limpia todos los campos del formulario
+   * - Elimina cualquier vista previa de imagen
+   * - Cierra el modal sin crear la categoría
+   * 
+   * Se utiliza cuando el usuario decide cancelar manualmente la operación.
    */
   const handleCancel = () => {
     setCategoryName('');

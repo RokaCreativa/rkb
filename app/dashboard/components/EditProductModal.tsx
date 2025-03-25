@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * @fileoverview Componente modal para la edición de productos en el menú
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ * 
+ * Este componente proporciona una interfaz de usuario para editar productos existentes
+ * en el sistema de gestión de menús. Permite modificar el nombre, precio, descripción
+ * e imagen del producto.
+ */
+
 import React, { Fragment, useState, useRef, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
@@ -10,13 +21,14 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 
 /**
  * Props para el componente EditProductModal
+ * 
  * @property {boolean} isOpen - Controla si el modal está abierto o cerrado
- * @property {Function} onClose - Función para cerrar el modal
- * @property {Product | null} productToEdit - Producto que se va a editar
- * @property {Client | null} client - Cliente al que pertenece el producto
- * @property {Section | null} selectedSection - La sección a la que pertenece el producto
- * @property {Function} setProducts - Función para actualizar el estado de productos
- * @property {Function} onSuccess - Callback opcional para cuando la edición es exitosa
+ * @property {Function} onClose - Función para cerrar el modal y limpiar el estado
+ * @property {object} productToEdit - Datos básicos del producto a editar (id y nombre)
+ * @property {Client | null} client - Cliente propietario del menú y productos
+ * @property {Section | null} selectedSection - Sección a la que pertenece el producto
+ * @property {Function} setProducts - Función para actualizar el estado global de productos
+ * @property {Function} [onSuccess] - Callback opcional ejecutado tras una edición exitosa
  */
 interface EditProductModalProps {
   isOpen: boolean;
@@ -29,13 +41,23 @@ interface EditProductModalProps {
 }
 
 /**
- * Componente modal para editar un producto existente
+ * Componente modal para editar productos existentes
  * 
- * Este componente permite al usuario editar un producto existente,
- * modificando su nombre, precio, descripción y/o imagen.
+ * Este componente proporciona una interfaz visual para que los usuarios modifiquen
+ * las propiedades de un producto existente en el sistema. Características:
  * 
- * @param {EditProductModalProps} props - Las propiedades del componente
- * @returns {JSX.Element} El componente renderizado del modal de edición de producto
+ * - Carga automática de detalles del producto al abrir el modal
+ * - Formulario para editar nombre, precio y descripción
+ * - Selector de imágenes con vista previa
+ * - Validación de datos antes del envío
+ * - Comunicación con la API mediante FormData para manejar archivos
+ * - Notificaciones de éxito/error usando toast
+ * 
+ * El componente utiliza el hook personalizado useProducts para gestionar
+ * las operaciones CRUD relacionadas con productos.
+ * 
+ * @param {EditProductModalProps} props - Propiedades del componente
+ * @returns {JSX.Element} Modal de edición de productos
  */
 const EditProductModal: React.FC<EditProductModalProps> = ({
   isOpen,
@@ -46,18 +68,29 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   setProducts,
   onSuccess
 }) => {
-  // Estados para el formulario
+  /**
+   * Estados para el formulario y la gestión del producto
+   */
+  // Estados para los campos del formulario
   const [editProductName, setEditProductName] = useState('');
   const [editProductPrice, setEditProductPrice] = useState('');
   const [editProductDescription, setEditProductDescription] = useState('');
+  
+  // Estados para la gestión de imágenes
   const [editProductImage, setEditProductImage] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
-  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
   
-  // Obtener producto completo desde el estado
+  // Estados para controlar el flujo y estado de la operación
+  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
 
-  // Usar el hook de productos
+  // Referencia para el input de archivos
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  /**
+   * Hook personalizado para gestionar operaciones CRUD de productos
+   * con manejo integrado de notificaciones y estado
+   */
   const { updateProduct } = useProducts({
     onSuccess: () => {
       if (onSuccess) {
@@ -181,9 +214,6 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     setCurrentProduct(null);
     onClose();
   };
-
-  // Referencia para el input de archivos
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>

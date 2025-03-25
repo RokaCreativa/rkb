@@ -1,5 +1,16 @@
 "use client";
 
+/**
+ * @fileoverview Componente modal para la edición de secciones en el menú
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-03-26
+ * 
+ * Este componente proporciona una interfaz de usuario para editar secciones existentes
+ * en el sistema de gestión de menús. Las secciones son agrupaciones de productos dentro
+ * de una categoría, y este modal permite modificar su nombre e imagen asociada.
+ */
+
 import React, { Fragment, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Dialog, Transition } from '@headlessui/react';
@@ -10,12 +21,13 @@ import useSections from '@/app/hooks/useSections';
 
 /**
  * Props para el componente EditSectionModal
+ * 
  * @property {boolean} isOpen - Controla si el modal está abierto o cerrado
- * @property {Function} onClose - Función para cerrar el modal
- * @property {Section | null} sectionToEdit - Sección que se va a editar
- * @property {number | null} clientId - ID del cliente actual
- * @property {Category | null} selectedCategory - La categoría a la que pertenece la sección
- * @property {Function} [onSuccess] - Función opcional para ejecutar después de una edición exitosa
+ * @property {Function} onClose - Función para cerrar el modal y limpiar el estado
+ * @property {Section | null} sectionToEdit - Datos completos de la sección a editar
+ * @property {number | null} clientId - ID del cliente propietario del menú
+ * @property {Category | null} selectedCategory - Categoría a la que pertenece la sección
+ * @property {Function} [onSuccess] - Callback opcional que se ejecuta tras una edición exitosa
  */
 interface EditSectionModalProps {
   isOpen: boolean;
@@ -27,13 +39,23 @@ interface EditSectionModalProps {
 }
 
 /**
- * Componente de modal para editar secciones
+ * Componente modal para editar secciones del menú
  * 
- * Este componente muestra un formulario en un modal para editar
- * los detalles de una sección existente, incluyendo nombre e imagen.
+ * Este componente proporciona una interfaz visual para que los administradores
+ * modifiquen las propiedades de una sección existente. Características:
+ * 
+ * - Formulario con validación para el nombre de la sección
+ * - Carga y vista previa de imágenes para la sección
+ * - Integración con el hook useSections para gestionar operaciones CRUD
+ * - Manejo automático de estados de carga y notificaciones
+ * - Comunicación bidireccional con el componente padre mediante callbacks
+ * 
+ * Las secciones son una parte fundamental de la estructura del menú, ya que
+ * agrupan productos relacionados dentro de una categoría (ej: entrantes, 
+ * platos principales, postres, etc.).
  * 
  * @param {EditSectionModalProps} props - Propiedades del componente
- * @returns {JSX.Element} El componente de modal renderizado
+ * @returns {JSX.Element} Modal interactivo para editar secciones
  */
 const EditSectionModal: React.FC<EditSectionModalProps> = ({
   isOpen,
@@ -43,13 +65,21 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
   selectedCategory,
   onSuccess
 }) => {
-  // Estados locales para el formulario
+  /**
+   * Estados del formulario y gestión de la sección
+   */
+  // Estados para los campos del formulario
   const [editSectionName, setEditSectionName] = useState('');
   const [editSectionImage, setEditSectionImage] = useState<File | null>(null);
   const [editSectionImagePreview, setEditSectionImagePreview] = useState<string | null>(null);
+  
+  // Estado para controlar la operación de actualización
   const [isUpdatingSectionName, setIsUpdatingSectionName] = useState(false);
   
-  // Usar el hook useSections para operaciones de secciones
+  /**
+   * Hook personalizado para operaciones CRUD de secciones
+   * Proporciona métodos optimizados y manejo de estado/notificaciones
+   */
   const { updateSection } = useSections(clientId);
 
   /**
@@ -72,8 +102,15 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
   }, [sectionToEdit]);
 
   /**
-   * Función para manejar el envío del formulario
-   * Actualiza la sección en la API y notifica al componente padre
+   * Maneja el envío del formulario de edición
+   * 
+   * Este método recopila los datos del formulario, valida que sean correctos,
+   * y envía la solicitud de actualización al servidor a través del hook useSections.
+   * Incluye:
+   * - Prevención de envíos múltiples mientras se procesa una solicitud
+   * - Manejo adecuado de la imagen (solo se envía si ha cambiado)
+   * - Notificación al usuario sobre el resultado de la operación
+   * - Ejecución del callback onSuccess si la operación es exitosa
    */
   const handleSubmit = async () => {
     if (!sectionToEdit || !selectedCategory) return;
@@ -134,14 +171,41 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
   };
 
   /**
-   * Función para manejar el cierre del modal
-   * Limpia el formulario y llama a la función onClose
+   * Limpia el formulario y cierra el modal
+   * 
+   * Este método se encarga de:
+   * - Reiniciar todos los campos del formulario a sus valores iniciales
+   * - Eliminar cualquier vista previa de imagen
+   * - Llamar a la función onClose proporcionada por el componente padre
+   * 
+   * Se utiliza tanto al cancelar manualmente como al completar con éxito una edición.
    */
   const handleCloseModal = () => {
     setEditSectionName('');
     setEditSectionImage(null);
     setEditSectionImagePreview(null);
     onClose();
+  };
+
+  /**
+   * Maneja el cambio de la imagen de la sección
+   * 
+   * @param {React.ChangeEvent<HTMLInputElement>} e - Evento del input de tipo file
+   */
+  const handleSectionImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setEditSectionImage(file);
+      
+      // Crear vista previa de la imagen
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target && typeof event.target.result === 'string') {
+          setEditSectionImagePreview(event.target.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -259,19 +323,7 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
                                 type="file" 
                                 className="sr-only" 
                                 accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    setEditSectionImage(file);
-                                    
-                                    // Crear vista previa de la imagen
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => {
-                                      setEditSectionImagePreview(reader.result as string);
-                                    };
-                                    reader.readAsDataURL(file);
-                                  }
-                                }}
+                                onChange={handleSectionImageChange}
                               />
                             </label>
                             <p className="pl-1">o arrastra y suelta</p>
