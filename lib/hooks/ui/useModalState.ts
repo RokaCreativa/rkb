@@ -13,156 +13,114 @@
 import { useState, useCallback } from 'react';
 import { Category, Section, Product } from '@/app/types/menu';
 
+interface ModalOptions<T = any> {
+  /**
+   * Datos iniciales para el modal
+   */
+  initialData?: T;
+}
+
 /**
- * Hook que proporciona estados y funciones para gestionar modales
+ * Hook para gestionar el estado de modales
  * 
- * Este hook gestiona:
- * - Estados de apertura/cierre de modales
- * - Elementos seleccionados para editar o eliminar
- * - Funciones para abrir modales con elementos específicos
- * - Función para resetear todos los estados de modales
- * 
- * @returns Objeto con estados y funciones para gestionar modales
+ * @param initialState - Estado inicial (abierto/cerrado)
+ * @returns Funciones y estado para controlar un modal
  */
-export default function useModalState() {
-  // Estados para modales de categoría
-  const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
-  const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
-  const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
-  const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
-  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
+export function useModalState<T = any>(initialState: boolean = false) {
+  // Estado para controlar si el modal está abierto
+  const [isOpen, setIsOpen] = useState<boolean>(initialState);
   
-  // Estados para modales de sección
-  const [isNewSectionModalOpen, setIsNewSectionModalOpen] = useState(false);
-  const [isEditSectionModalOpen, setIsEditSectionModalOpen] = useState(false);
-  const [isDeleteSectionModalOpen, setIsDeleteSectionModalOpen] = useState(false);
-  const [sectionToEdit, setSectionToEdit] = useState<Section | null>(null);
-  const [sectionToDelete, setSectionToDelete] = useState<number | null>(null);
+  // Estado para almacenar datos asociados al modal
+  const [data, setData] = useState<T | undefined>(undefined);
   
-  // Estados para modales de producto
-  const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
-  const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
-  const [isDeleteProductModalOpen, setIsDeleteProductModalOpen] = useState(false);
-  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
-  const [productToDelete, setProductToDelete] = useState<number | null>(null);
-  
-  // Manejadores para categorías
-  const handleNewCategory = useCallback(() => {
-    setIsNewCategoryModalOpen(true);
+  /**
+   * Abre el modal
+   * @param options - Opciones al abrir el modal
+   */
+  const open = useCallback((options?: ModalOptions<T>) => {
+    if (options?.initialData !== undefined) {
+      setData(options.initialData);
+    }
+    setIsOpen(true);
   }, []);
   
-  const handleEditCategory = useCallback((category: Category) => {
-    setCategoryToEdit(category);
-    setIsEditCategoryModalOpen(true);
+  /**
+   * Cierra el modal y limpia los datos
+   */
+  const close = useCallback(() => {
+    setIsOpen(false);
+    // Opcional: se podría mantener los datos para animaciones de cierre
+    // o limpiarlos inmediatamente
   }, []);
   
-  const handleDeleteCategory = useCallback((categoryId: number) => {
-    setCategoryToDelete(categoryId);
-    setIsDeleteCategoryModalOpen(true);
-  }, []);
+  /**
+   * Alterna el estado del modal (abierto/cerrado)
+   * @param options - Opciones al abrir el modal (si se abre)
+   */
+  const toggle = useCallback((options?: ModalOptions<T>) => {
+    if (!isOpen && options?.initialData !== undefined) {
+      setData(options.initialData);
+    }
+    setIsOpen(!isOpen);
+  }, [isOpen]);
   
-  // Manejadores para secciones
-  const handleNewSection = useCallback(() => {
-    setIsNewSectionModalOpen(true);
-  }, []);
-  
-  const handleEditSection = useCallback((section: Section) => {
-    setSectionToEdit(section);
-    setIsEditSectionModalOpen(true);
-  }, []);
-  
-  const handleDeleteSection = useCallback((sectionId: number) => {
-    setSectionToDelete(sectionId);
-    setIsDeleteSectionModalOpen(true);
-  }, []);
-  
-  // Manejadores para productos
-  const handleNewProduct = useCallback(() => {
-    setIsNewProductModalOpen(true);
-  }, []);
-  
-  const handleEditProduct = useCallback((product: Product) => {
-    setProductToEdit(product);
-    setIsEditProductModalOpen(true);
-  }, []);
-  
-  const handleDeleteProduct = useCallback((productId: number) => {
-    setProductToDelete(productId);
-    setIsDeleteProductModalOpen(true);
-  }, []);
-  
-  // Resetear estados de modales
-  const resetModalStates = useCallback(() => {
-    // Cerrar todos los modales
-    setIsNewCategoryModalOpen(false);
-    setIsEditCategoryModalOpen(false);
-    setIsDeleteCategoryModalOpen(false);
-    
-    setIsNewSectionModalOpen(false);
-    setIsEditSectionModalOpen(false);
-    setIsDeleteSectionModalOpen(false);
-    
-    setIsNewProductModalOpen(false);
-    setIsEditProductModalOpen(false);
-    setIsDeleteProductModalOpen(false);
-    
-    // Resetear elementos seleccionados
-    setCategoryToEdit(null);
-    setCategoryToDelete(null);
-    
-    setSectionToEdit(null);
-    setSectionToDelete(null);
-    
-    setProductToEdit(null);
-    setProductToDelete(null);
+  /**
+   * Actualiza los datos del modal
+   * @param newData - Nuevos datos o función para actualizar los datos existentes
+   */
+  const updateData = useCallback((newData: T | ((prevData: T | undefined) => T)) => {
+    if (typeof newData === 'function') {
+      setData(newData as ((prevData: T | undefined) => T));
+    } else {
+      setData(newData);
+    }
   }, []);
   
   return {
-    // Estados de modales de categoría
-    isNewCategoryModalOpen,
-    isEditCategoryModalOpen,
-    isDeleteCategoryModalOpen,
-    categoryToEdit,
-    categoryToDelete,
-    setIsNewCategoryModalOpen,
-    setIsEditCategoryModalOpen,
-    setIsDeleteCategoryModalOpen,
-    
-    // Estados de modales de sección
-    isNewSectionModalOpen,
-    isEditSectionModalOpen,
-    isDeleteSectionModalOpen,
-    sectionToEdit,
-    sectionToDelete,
-    setIsNewSectionModalOpen,
-    setIsEditSectionModalOpen,
-    setIsDeleteSectionModalOpen,
-    
-    // Estados de modales de producto
-    isNewProductModalOpen,
-    isEditProductModalOpen,
-    isDeleteProductModalOpen,
-    productToEdit,
-    productToDelete,
-    setIsNewProductModalOpen,
-    setIsEditProductModalOpen,
-    setIsDeleteProductModalOpen,
-    
-    // Manejadores
-    handleNewCategory,
-    handleEditCategory,
-    handleDeleteCategory,
-    
-    handleNewSection,
-    handleEditSection,
-    handleDeleteSection,
-    
-    handleNewProduct,
-    handleEditProduct,
-    handleDeleteProduct,
-    
-    // Función para resetear estados
-    resetModalStates
+    isOpen,
+    data,
+    open,
+    close,
+    toggle,
+    updateData
   };
-} 
- 
+}
+
+/**
+ * Hook para gestionar múltiples modales
+ * 
+ * @returns Objeto con funciones para controlar múltiples modales
+ */
+export function useMultipleModals<T extends Record<string, any> = Record<string, any>>(
+  modalNames: string[]
+) {
+  // Crear un objeto con un estado para cada modal
+  const modalStates = modalNames.reduce((acc, modalName) => {
+    const { isOpen, data, open, close, toggle, updateData } = useModalState<T[typeof modalName]>();
+    
+    acc[modalName] = {
+      isOpen,
+      data,
+      open,
+      close,
+      toggle,
+      updateData
+    };
+    
+    return acc;
+  }, {} as Record<string, ReturnType<typeof useModalState>>);
+  
+  /**
+   * Cierra todos los modales
+   */
+  const closeAll = useCallback(() => {
+    Object.values(modalStates).forEach(modal => modal.close());
+  }, [modalStates]);
+  
+  return {
+    modals: modalStates,
+    closeAll
+  };
+}
+
+export default useModalState; 

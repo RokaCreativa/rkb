@@ -20,6 +20,67 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Estructura del Proyecto
+
+Este proyecto está organizado siguiendo una arquitectura modular con separación clara de responsabilidades:
+
+### Componentes
+
+- `/components` - Componentes reutilizables para toda la aplicación
+- `/app/dashboard/components` - Componentes específicos para el dashboard
+  - `/views` - Vistas principales del dashboard (CategoriesView, SectionsView, ProductsView)
+  - `/actions` - Componentes de acción (CategoryActions, SectionActions, ProductActions)
+  - `/modals` - Modales del dashboard (confirmación, formularios, etc.)
+  - `/state` - Componentes para estados de carga, error y vacíos
+
+### Hooks
+
+- `/lib/hooks/ui` - Hooks de UI genéricos (modales, drag-and-drop, etc.)
+- `/lib/hooks/dashboard` - Hooks específicos para el dashboard
+
+### Servicios
+
+- `/lib/services` - Servicios para interactuar con la API
+
+## Componentes de Modal
+
+El proyecto incluye un sistema modular para los modales:
+
+- `BaseModal` - Componente base para todos los modales con transiciones
+- `FormModal` - Modal específico para formularios
+- `ConfirmationModal` - Modal para solicitar confirmación
+- `DeleteModal` - Modal especializado para confirmar eliminaciones
+
+### Uso de Modales
+
+```tsx
+import { useModalState } from '@/lib/hooks/ui';
+import { DeleteCategoryConfirmation } from '@/app/dashboard/components/modals';
+
+// En tu componente:
+const { isOpen, data, open, close } = useModalState<Category>();
+
+// Abrir el modal con datos
+const handleDeleteClick = (category) => {
+  open({ initialData: category });
+};
+
+// Renderizado
+return (
+  <>
+    <button onClick={handleDeleteClick}>Eliminar</button>
+    
+    <DeleteCategoryConfirmation 
+      isOpen={isOpen}
+      onClose={close}
+      categoryId={data?.category_id}
+      categoryName={data?.name}
+      onDeleted={handleCategoryDeleted}
+    />
+  </>
+);
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
