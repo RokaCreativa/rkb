@@ -24,11 +24,6 @@ interface DeleteSectionConfirmationProps {
   sectionName: string;
   
   /**
-   * ID de la categoría a la que pertenece la sección
-   */
-  categoryId: number;
-  
-  /**
    * Indica si el modal está abierto
    */
   isOpen: boolean;
@@ -56,7 +51,6 @@ interface DeleteSectionConfirmationProps {
 const DeleteSectionConfirmation: React.FC<DeleteSectionConfirmationProps> = ({
   sectionId,
   sectionName,
-  categoryId,
   isOpen,
   onClose,
   onDeleted
@@ -72,20 +66,16 @@ const DeleteSectionConfirmation: React.FC<DeleteSectionConfirmationProps> = ({
       const success = await deleteSection(id);
       
       if (success) {
-        toast.success(`La sección "${sectionName}" ha sido eliminada correctamente`);
-        
         if (onDeleted) {
           onDeleted(id);
         }
         
         return true;
       } else {
-        toast.error(`Error al eliminar la sección "${sectionName}"`);
         return false;
       }
     } catch (error) {
       console.error('Error al eliminar la sección:', error);
-      toast.error(`Error al eliminar la sección "${sectionName}"`);
       return false;
     }
   }, [sectionName, deleteSection, onDeleted]);

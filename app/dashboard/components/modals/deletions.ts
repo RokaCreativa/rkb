@@ -1,9 +1,12 @@
 /**
  * @file deletions.ts
- * @description Archivo barril (barrel file) para componentes de confirmación de eliminación
+ * @description Archivo de barril para componentes de confirmación de eliminación
  * @author TuNombre
  * @version 1.0.0
  * @lastUpdated 2024-03-27
+ * 
+ * @usage
+ * import { DeleteCategoryConfirmation, DeleteSectionConfirmation, DeleteProductConfirmation } from '@/app/dashboard/components/modals';
  */
 
 /**

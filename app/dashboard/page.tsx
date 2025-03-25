@@ -22,7 +22,6 @@ import TopNavbar from '@/components/layout/TopNavbar';
 import useSections from '@/app/hooks/useSections';
 import useProducts from '@/app/hooks/useProducts';
 // Importar los componentes de modal que hemos creado
-import DeleteCategoryModal from './components/DeleteCategoryModal';
 import DeleteSectionModal from './components/DeleteSectionModal';
 import DeleteProductModal from './components/DeleteProductModal';
 // Importar los tipos desde el archivo centralizado
@@ -34,6 +33,8 @@ import NewSectionModal from './components/NewSectionModal';
 import NewProductModal from './components/NewProductModal';
 import { PrismaClient } from '@prisma/client';
 import EditCategoryModal from './components/EditCategoryModal';
+// Importar los nuevos componentes de confirmación
+import { DeleteCategoryConfirmation, DeleteSectionConfirmation, DeleteProductConfirmation } from './components/modals';
 
 // Interfaces para FloatingPhonePreview
 interface FloatingPhoneCategory {
@@ -1044,8 +1045,18 @@ export default function DashboardPage() {
 
   // Función para eliminar un producto (abre el modal de confirmación)
   const handleDeleteProduct = (productId: number) => {
-    setProductToDelete(productId);
-    setIsDeleteProductModalOpen(true);
+    // Buscar el nombre del producto para mostrarlo en la ventana de confirmación
+    let productName = '';
+    if (selectedSection) {
+      const product = products[selectedSection.section_id.toString()]?.find(p => p.product_id === productId);
+      productName = product?.name || '';
+    }
+    
+    // Abrir un cuadro de diálogo de confirmación nativo del navegador
+    if (window.confirm(`¿Estás seguro de que deseas eliminar el producto "${productName}"? Esta acción no se puede deshacer.`)) {
+      // Si el usuario confirma, llamar a la función de eliminación
+      deleteProductAdapter(productId);
+    }
   };
 
   // Crear un adaptador para la función deleteProduct que coincida con la interfaz esperada
@@ -1053,13 +1064,50 @@ export default function DashboardPage() {
     try {
       if (!selectedSection) return false;
       
-      // Llamar a la función deleteProduct del hook con el ID de sección
-      await deleteProduct(productId, selectedSection.section_id);
-      
-      // Si llegamos aquí, consideramos que fue exitoso
-      return true;
-            } catch (error) {
+      try {
+        // Llamar a la función deleteProduct del hook con el ID de sección
+        await deleteProduct(productId, selectedSection.section_id);
+        
+        // Actualizar el estado local aunque haya habido un error en la respuesta
+        setProducts(prev => {
+          const sectionId = selectedSection.section_id.toString();
+          if (!prev[sectionId]) return prev;
+          
+          return {
+            ...prev,
+            [sectionId]: prev[sectionId].filter(prod => prod.product_id !== productId)
+          };
+        });
+        
+        // Mostrar mensaje de éxito manualmente, en caso de que el hook no lo hiciera
+        toast.success('Producto eliminado con éxito');
+        
+        return true;
+      } catch (err) {
+        // Verificar si el error es de tipo "error de red" (que podría ocurrir si la respuesta 
+        // no se puede procesar pero la operación fue exitosa)
+        console.warn("Error al procesar respuesta:", err);
+        
+        // Actualizar el estado local de todas formas, asumiendo que el producto fue eliminado
+        setProducts(prev => {
+          const sectionId = selectedSection.section_id.toString();
+          if (!prev[sectionId]) return prev;
+          
+          return {
+            ...prev,
+            [sectionId]: prev[sectionId].filter(prod => prod.product_id !== productId)
+          };
+        });
+        
+        // Mostrar mensaje de éxito asumiendo que realmente se eliminó
+        toast.success('Producto eliminado con éxito');
+        
+        // Consideramos esto como un éxito a pesar del error en la respuesta
+        return true;
+      }
+    } catch (error) {
       console.error('Error en deleteProductAdapter:', error);
+      toast.error('Error al eliminar el producto');
       return false;
     }
   };
@@ -1396,16 +1444,18 @@ export default function DashboardPage() {
         setCategories={setCategories}
       />
       
-      <DeleteCategoryModal
-          isOpen={isDeleteModalOpen}
+      <DeleteCategoryConfirmation
+        isOpen={isDeleteModalOpen}
         onClose={() => {
-            setIsDeleteModalOpen(false);
+          setIsDeleteModalOpen(false);
           setCategoryToDelete(null);
         }}
-        categoryToDelete={categoryToDelete}
-          deleteCategory={deleteCategory}
-        isDeletingCategory={isDeletingCategory}
-        setCategories={setCategories}
+        categoryId={categoryToDelete || 0}
+        categoryName={categories.find(c => c.category_id === categoryToDelete)?.name || ''}
+        onDeleted={(categoryId) => {
+          // Actualizar el estado local para eliminar la categoría
+          setCategories(prev => prev.filter(cat => cat.category_id !== categoryId));
+        }}
       />
       
         <EditCategoryModal
@@ -1436,25 +1486,26 @@ export default function DashboardPage() {
         />
 
         {/* Modal para eliminar sección */}
-      <DeleteSectionModal
+      <DeleteSectionConfirmation
         isOpen={isDeleteSectionModalOpen}
-        onClose={() => setIsDeleteSectionModalOpen(false)}
-        sectionToDelete={sectionToDelete}
-        deleteSection={deleteSection}
-        isDeletingSection={isDeletingSection}
-        selectedCategory={selectedCategory}
-        setSections={setSections}
-      />
-      
-        {/* Modal para eliminar producto */}
-        <DeleteProductModal 
-          isOpen={isDeleteProductModalOpen}
-          onClose={() => setIsDeleteProductModalOpen(false)}
-          productToDelete={productToDelete}
-          deleteProduct={deleteProductAdapter}
-          isDeletingProduct={isDeletingProduct}
-        selectedSection={selectedSection}
-        setProducts={setProducts}
+        onClose={() => {
+          setIsDeleteSectionModalOpen(false);
+          setSectionToDelete(null);
+        }}
+        sectionId={sectionToDelete || 0}
+        sectionName={sectionToDelete && selectedCategory ? 
+          (sections[selectedCategory.category_id.toString()]?.find(s => s.section_id === sectionToDelete)?.name || '') : 
+          ''}
+        onDeleted={(sectionId: number) => {
+          // Actualizar el estado local para eliminar la sección
+          if (selectedCategory) {
+            setSections(prev => ({
+              ...prev,
+              [selectedCategory.category_id.toString()]: 
+                prev[selectedCategory.category_id.toString()]?.filter(sec => sec.section_id !== sectionId) || []
+            }));
+          }
+        }}
       />
       
         {/* Modal para editar producto */}

@@ -189,12 +189,8 @@ export default function useProducts(options?: UseProductsOptions) {
     setError(null);
     
     try {
-      const response = await fetch(`/api/products`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ product_id: productId })
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE'
       });
       
       if (!response.ok) {

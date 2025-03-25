@@ -24,11 +24,6 @@ interface DeleteProductConfirmationProps {
   productName: string;
   
   /**
-   * ID de la sección a la que pertenece el producto
-   */
-  sectionId: number;
-  
-  /**
    * Indica si el modal está abierto
    */
   isOpen: boolean;
@@ -56,7 +51,6 @@ interface DeleteProductConfirmationProps {
 const DeleteProductConfirmation: React.FC<DeleteProductConfirmationProps> = ({
   productId,
   productName,
-  sectionId,
   isOpen,
   onClose,
   onDeleted
@@ -72,20 +66,16 @@ const DeleteProductConfirmation: React.FC<DeleteProductConfirmationProps> = ({
       const success = await deleteProduct(id);
       
       if (success) {
-        toast.success(`El producto "${productName}" ha sido eliminado correctamente`);
-        
         if (onDeleted) {
           onDeleted(id);
         }
         
         return true;
       } else {
-        toast.error(`Error al eliminar el producto "${productName}"`);
         return false;
       }
     } catch (error) {
       console.error('Error al eliminar el producto:', error);
-      toast.error(`Error al eliminar el producto "${productName}"`);
       return false;
     }
   }, [productName, deleteProduct, onDeleted]);

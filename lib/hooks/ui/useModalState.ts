@@ -96,19 +96,28 @@ export function useMultipleModals<T extends Record<string, any> = Record<string,
 ) {
   // Crear un objeto con un estado para cada modal
   const modalStates = modalNames.reduce((acc, modalName) => {
-    const { isOpen, data, open, close, toggle, updateData } = useModalState<T[typeof modalName]>();
+    const modalState = useModalState<unknown>();
     
     acc[modalName] = {
-      isOpen,
-      data,
-      open,
-      close,
-      toggle,
-      updateData
+      isOpen: modalState.isOpen,
+      data: modalState.data,
+      open: modalState.open as (options?: ModalOptions<T[string]>) => void,
+      close: modalState.close,
+      toggle: modalState.toggle as (options?: ModalOptions<T[string]>) => void,
+      updateData: modalState.updateData as (
+        newData: T[string] | ((prevData: T[string] | undefined) => T[string])
+      ) => void
     };
     
     return acc;
-  }, {} as Record<string, ReturnType<typeof useModalState>>);
+  }, {} as Record<string, {
+    isOpen: boolean;
+    data: unknown;
+    open: (options?: ModalOptions<T[string]>) => void;
+    close: () => void;
+    toggle: (options?: ModalOptions<T[string]>) => void;
+    updateData: (newData: T[string] | ((prevData: T[string] | undefined) => T[string])) => void;
+  }>);
   
   /**
    * Cierra todos los modales

@@ -66,20 +66,16 @@ const DeleteCategoryConfirmation: React.FC<DeleteCategoryConfirmationProps> = ({
       const success = await deleteCategory(id);
       
       if (success) {
-        toast.success(`La categoría "${categoryName}" ha sido eliminada correctamente`);
-        
         if (onDeleted) {
           onDeleted(id);
         }
         
         return true;
       } else {
-        toast.error(`Error al eliminar la categoría "${categoryName}"`);
         return false;
       }
     } catch (error) {
       console.error('Error al eliminar la categoría:', error);
-      toast.error(`Error al eliminar la categoría "${categoryName}"`);
       return false;
     }
   }, [categoryName, deleteCategory, onDeleted]);
