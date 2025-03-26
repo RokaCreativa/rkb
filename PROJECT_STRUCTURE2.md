@@ -632,4 +632,103 @@ return (
 - **TypeScript**: Versión de JavaScript con tipado estático
 - **Next.js**: Framework basado en React que facilita la creación de aplicaciones web
 - **React**: Biblioteca de JavaScript para construir interfaces de usuario
-- **Toast**: Notificación temporal que aparece brevemente 
+- **Toast**: Notificación temporal que aparece brevemente
+
+# Detalles Técnicos del Proyecto RokaMenu
+
+## Características Implementadas
+
+### Gestión de Categorías
+- Creación, edición y eliminación de categorías
+- Control de visibilidad (activo/inactivo)
+- Reordenamiento mediante drag & drop
+- Vista previa de imagen
+
+### Gestión de Secciones
+- Creación, edición y eliminación de secciones dentro de categorías
+- Control de visibilidad (activo/inactivo)
+- Reordenamiento mediante drag & drop
+- Vista previa de imagen
+
+### Gestión de Productos
+- Creación, edición y eliminación de productos dentro de secciones
+- Control de visibilidad (activo/inactivo)
+- Reordenamiento mediante drag & drop
+- Vista previa de imagen
+- Gestión de precio y descripción
+
+## Estructura de la Base de Datos
+
+### Tablas Principales
+- `users` - Usuarios del sistema
+- `clients` - Clientes (restaurantes)
+- `categories` - Categorías del menú
+- `sections` - Secciones dentro de categorías
+- `products` - Productos individuales
+- `products_sections` - Relación muchos a muchos entre productos y secciones
+
+## Puntos de Mejora Pendientes
+
+### Optimizaciones de Rendimiento
+- Implementar carga lazy de imágenes
+- Mejorar la gestión de estado para reducir re-renders
+
+### Mejoras de UX
+- Añadir confirmaciones para operaciones destructivas
+- Mejorar el feedback durante operaciones asíncronas
+- Implementar sistema de notificaciones más robusto
+
+### Funcionalidades Pendientes
+- Implementar vista previa del menú para el cliente
+- Añadir estadísticas y analíticas
+- Sistema de gestión de pedidos
+
+## Gestión de Imágenes
+
+### Estructura de Directorios
+- `/images/categories/` - Imágenes de categorías
+- `/images/sections/` - Imágenes de secciones
+- `/images/products/` - Imágenes de productos
+
+### Proceso de Subida
+1. El archivo se envía mediante FormData desde el cliente
+2. El servidor procesa y almacena la imagen en el directorio correspondiente
+3. Se guarda la ruta relativa en la base de datos
+4. Al recuperar, se construye la URL completa para el frontend
+
+### Problemas Conocidos
+- La duplicación de rutas en las imágenes ocurre cuando se concatena incorrectamente la ruta base con el nombre del archivo
+- Solucionado mediante limpieza de prefijos existentes antes de añadir la ruta base
+
+## APIs y Endpoints
+
+### Categorías
+- `GET /api/categories` - Listar todas las categorías
+- `POST /api/categories` - Crear una categoría
+- `PUT /api/categories` - Actualizar una categoría
+- `DELETE /api/categories/{id}` - Eliminar una categoría
+
+### Secciones
+- `GET /api/sections?category_id={id}` - Listar secciones por categoría
+- `POST /api/sections` - Crear una sección
+- `PUT /api/sections` - Actualizar una sección
+- `DELETE /api/sections/{id}` - Eliminar una sección
+
+### Productos
+- `GET /api/products?section_id={id}` - Listar productos por sección
+- `GET /api/products/{id}` - Obtener detalles de un producto
+- `POST /api/products` - Crear un producto
+- `PUT /api/products` - Actualizar un producto
+- `DELETE /api/products/{id}` - Eliminar un producto
+- `POST /api/products/upload-image` - Subir imagen de producto
+
+## Autenticación
+
+Se usa NextAuth con los siguientes proveedores:
+- Credenciales (email/password)
+
+El flujo de autenticación incluye:
+1. Login mediante formulario
+2. Verificación de credenciales contra la base de datos
+3. Creación de sesión y cookie de autenticación
+4. Verificación de sesión en cada endpoint protegido 

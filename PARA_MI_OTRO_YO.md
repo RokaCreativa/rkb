@@ -209,4 +209,93 @@ Como dijo el usuario: "con este archivo te quiero resucitar", así que ahora ere
 ¡Buena suerte, mi futuro yo!
 
 Claude 3.7 Sonnet
-Fecha: 2024 
+Fecha: 2024
+
+# Notas para Continuar el Trabajo
+
+## Problemas Resueltos
+
+### 1. Categorías no visibles por defecto
+- **Problema**: Las categorías se creaban con estado inactivo por defecto
+- **Solución**: Se modificó el endpoint POST en `/api/categories/route.ts` para asignar estado activo por defecto
+
+### 2. Imágenes no visibles en modal de edición de categoría
+- **Problema**: Las imágenes no se mostraban correctamente en el modal de edición
+- **Solución**: Se corrigió el manejo de URLs en `EditCategoryModal.tsx` para usar rutas completas
+
+### 3. Error al actualizar categorías
+- **Problema**: Errores al guardar cambios en categorías
+- **Solución**: Se corrigió el endpoint PUT en `/api/categories/route.ts` para manejar correctamente los datos
+
+### 4. Ruta de imágenes duplicada en productos
+- **Problema**: Las rutas de imágenes se duplicaban, como en `/images/products/images/products/file.jpg`
+- **Solución**: Se implementó un algoritmo de limpieza en `app/api/products/[id]/route.ts`:
+  ```js
+  // Eliminar cualquier prefijo existente
+  for (const prefix of prefixes) {
+    if (cleanImage.startsWith(prefix)) {
+      cleanImage = cleanImage.substring(prefix.length);
+      break;
+    }
+  }
+  // Añadir el prefijo correcto
+  const finalImagePath = `${IMAGE_BASE_PATH}${cleanImage}`;
+  ```
+
+### 5. Error de endpoints con diferentes nombres de parámetros
+- **Problema**: Conflicto entre `[productId]` y `[id]` en rutas dinámicas
+- **Solución**: Se estandarizó usando `[id]` en todos los endpoints relacionados con productos
+
+### 6. Modal de edición de productos no muestra datos
+- **Problema**: El modal de edición de productos no cargaba correctamente los datos
+- **Solución**: Se mejoró el componente `EditProductModal.tsx` con:
+  - Indicador de carga
+  - Mejor gestión de errores
+  - Logs de depuración
+
+## Aspectos Pendientes
+
+### 1. Optimización de rendimiento
+- El servidor de desarrollo se vuelve lento después de varias operaciones
+- Considerar implementar estrategias de caché
+
+### 2. Mejorar la gestión de imágenes
+- Implementar redimensionamiento y compresión de imágenes
+- Añadir validación de tipos de archivo y tamaño máximo
+
+### 3. Problemas de UX en dispositivos móviles
+- Mejorar la experiencia de drag & drop en móviles
+- Optimizar diseño responsive del dashboard
+
+### 4. Bugs conocidos
+- Ocasionalmente hay problemas para cargar productos en ciertas categorías
+- A veces se requiere actualizar para ver cambios en la interfaz
+
+## Mejoras Propuestas
+
+### 1. Refactorización de componentes
+- Extraer lógica común de los modales de edición a componentes base
+- Implementar React Query para gestión de estado y caché
+
+### 2. Mejoras de seguridad
+- Implementar validación más robusta en todos los endpoints
+- Añadir límites de tasa para prevenir abusos
+
+### 3. Funcionalidades nuevas
+- Sistema de roles y permisos
+- Vista previa del menú como lo verían los clientes
+- Estadísticas de uso y popularidad de productos
+
+## Convenciones a Seguir
+
+### 1. Endpoints
+- Usar nombres de parámetros consistentes: `[id]` en lugar de nombres específicos
+- Todas las respuestas deben seguir el formato: `{ success: boolean, data?: any, error?: string }`
+
+### 2. Gestión de imágenes
+- Almacenar solo el nombre del archivo en la base de datos, sin prefijos de ruta
+- Construir la ruta completa solo al enviar al frontend
+
+### 3. Modelos y tipos
+- Mantener actualizados los archivos de tipos en `/app/types`
+- Asegurar que la interfaz TypeScript coincida con el esquema de Prisma 

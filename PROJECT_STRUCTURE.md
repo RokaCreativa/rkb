@@ -1,5 +1,8 @@
 # Estructura del Proyecto RokaMenu
 
+## Descripción General
+RokaMenu es un sistema de gestión de menús digitales para restaurantes. Permite a los restaurantes crear y gestionar categorías, secciones y productos, así como controlar su visibilidad y orden de presentación.
+
 ## Índice
 
 1. [Introducción](#introducción)
@@ -17,35 +20,36 @@ Este documento proporciona una descripción detallada de la estructura del proye
 
 ## Estructura de Carpetas
 
-La estructura de carpetas principal es la siguiente:
+### `/app`
+Contiene la aplicación principal con estructura de Next.js App Router.
 
-```
-/
-├── app/                    # Rutas y páginas de Next.js App Router
-│   ├── api/                # Endpoints de la API
-│   ├── dashboard/          # Páginas del panel de administración
-│   │   ├── components/     # Componentes específicos del dashboard
-│   │   ├── context/        # Contexto global del dashboard
-│   │   └── ...
-│   ├── hooks/              # Hooks específicos de la aplicación
-│   └── types/              # Definiciones de tipos TypeScript
-│
-├── components/             # Componentes reutilizables en toda la aplicación
-│   ├── ui/                 # Componentes UI básicos
-│   ├── forms/              # Componentes de formularios
-│   ├── modals/             # Componentes base para modales
-│   └── tables/             # Componentes de tablas
-│
-├── lib/                    # Código de biblioteca del lado del cliente
-│   ├── hooks/              # Hooks reutilizables
-│   │   ├── ui/             # Hooks para UI
-│   │   └── dashboard/      # Hooks para el dashboard
-│   ├── services/           # Servicios para interactuar con APIs
-│   └── utils/              # Funciones utilitarias
-│
-├── public/                 # Archivos estáticos
-└── prisma/                 # Esquema y configuración de Prisma
-```
+#### `/app/api`
+API endpoints para el backend.
+- `/categories` - Gestión de categorías
+- `/products` - Gestión de productos
+- `/products/[id]` - Operaciones específicas por ID de producto
+- `/sections` - Gestión de secciones
+
+#### `/app/dashboard`
+Componentes y lógica para el panel de administración.
+- `/components` - Componentes reutilizables del dashboard
+  - `/EditCategoryModal.tsx` - Modal para editar categorías
+  - `/EditSectionModal.tsx` - Modal para editar secciones
+  - `/EditProductModal.tsx` - Modal para editar productos
+- `/context` - Contexto para gestionar el estado global del dashboard
+- `/views` - Vistas principales del dashboard
+
+#### `/app/hooks`
+Hooks personalizados para la aplicación.
+- `useProducts.tsx` - Hook para gestionar operaciones CRUD de productos
+- `useDashboardService.ts` - Hook para servicios del dashboard
+
+### `/prisma`
+Configuración y cliente de Prisma para la base de datos.
+
+### `/lib`
+Utilidades y funciones auxiliares.
+- `/auth` - Configuración de autenticación
 
 ## Componentes
 
@@ -206,12 +210,11 @@ app/dashboard/context/
 
 ## Flujo de Datos
 
-El flujo de datos en la aplicación sigue un patrón similar a Flux/Redux:
-
-1. **UI**: Los componentes muestran datos y capturan eventos de usuario
-2. **Hooks**: Proporcionan funciones para actualizar el estado en respuesta a eventos
-3. **Servicios**: Realizan operaciones CRUD mediante llamadas a la API
-4. **Contexto**: Mantiene el estado global y notifica a los componentes de los cambios
+1. El usuario interactúa con componentes en el dashboard
+2. Los hooks personalizados gestionan las operaciones CRUD
+3. Las solicitudes se envían a los endpoints de la API
+4. La API interactúa con la base de datos mediante Prisma
+5. Los resultados se devuelven a través de la jerarquía de componentes
 
 ### Ejemplo: Eliminar una categoría
 
@@ -305,4 +308,18 @@ export function useCustomHook() {
 }
 
 export default useCustomHook;
-``` 
+```
+
+## Entidades Principales
+
+### Categorías
+Agrupaciones principales del menú (ej. Comidas, Bebidas)
+
+### Secciones
+Subdivisiones dentro de las categorías (ej. Entrantes, Postres)
+
+### Productos
+Elementos individuales dentro de las secciones (ej. platos específicos)
+
+## Autenticación
+Se utiliza NextAuth para la autenticación de usuarios. 
