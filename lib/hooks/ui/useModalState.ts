@@ -1,13 +1,16 @@
 "use client";
 
 /**
- * @fileoverview Hook para gestionar los estados de modales del dashboard
+ * @fileoverview Hook personalizado para gestionar el estado de modales
  * @author RokaMenu Team
  * @version 1.0.0
- * @updated 2024-03-26
+ * @updated 2024-03-27
  * 
- * Este hook proporciona funcionalidades para gestionar los estados de los
- * modales en toda la aplicación, optimizando la lógica de UI.
+ * Este archivo proporciona hooks para gestionar el estado de modales en la aplicación.
+ * Incluye:
+ * 
+ * - useModalState: Hook básico para gestionar un único modal
+ * - useMultipleModals: Hook para gestionar múltiples modales con un solo estado
  */
 
 import { useState, useCallback } from 'react';
@@ -21,115 +24,172 @@ interface ModalOptions<T = any> {
 }
 
 /**
- * Hook para gestionar el estado de modales
+ * Hook para gestionar el estado de un modal (abierto/cerrado)
  * 
- * @param initialState - Estado inicial (abierto/cerrado)
- * @returns Funciones y estado para controlar un modal
+ * Proporciona funciones para abrir, cerrar y alternar el estado del modal,
+ * así como el estado actual del modal.
+ * 
+ * @returns {Object} Un objeto con el estado actual del modal y funciones para manipularlo
+ * @property {boolean} isOpen - Indica si el modal está abierto
+ * @property {() => void} open - Función para abrir el modal
+ * @property {() => void} close - Función para cerrar el modal
+ * @property {() => void} toggle - Función para alternar el estado del modal
+ * 
+ * @example
+ * // Uso básico en un componente
+ * const ProductModal = () => {
+ *   const { isOpen, open, close } = useModalState();
+ *   
+ *   return (
+ *     <>
+ *       <button onClick={open}>Abrir Modal</button>
+ *       
+ *       {isOpen && (
+ *         <div className="modal">
+ *           <h2>Detalles del Producto</h2>
+ *           <button onClick={close}>Cerrar</button>
+ *         </div>
+ *       )}
+ *     </>
+ *   );
+ * };
  */
-export function useModalState<T = any>(initialState: boolean = false) {
-  // Estado para controlar si el modal está abierto
-  const [isOpen, setIsOpen] = useState<boolean>(initialState);
+export function useModalState(initialState = false) {
+  const [isOpen, setIsOpen] = useState(initialState);
   
-  // Estado para almacenar datos asociados al modal
-  const [data, setData] = useState<T | undefined>(undefined);
+  const open = useCallback(() => setIsOpen(true), []);
+  const close = useCallback(() => setIsOpen(false), []);
+  const toggle = useCallback(() => setIsOpen(prev => !prev), []);
   
-  /**
-   * Abre el modal
-   * @param options - Opciones al abrir el modal
-   */
-  const open = useCallback((options?: ModalOptions<T>) => {
-    if (options?.initialData !== undefined) {
-      setData(options.initialData);
-    }
-    setIsOpen(true);
-  }, []);
-  
-  /**
-   * Cierra el modal y limpia los datos
-   */
-  const close = useCallback(() => {
-    setIsOpen(false);
-    // Opcional: se podría mantener los datos para animaciones de cierre
-    // o limpiarlos inmediatamente
-  }, []);
-  
-  /**
-   * Alterna el estado del modal (abierto/cerrado)
-   * @param options - Opciones al abrir el modal (si se abre)
-   */
-  const toggle = useCallback((options?: ModalOptions<T>) => {
-    if (!isOpen && options?.initialData !== undefined) {
-      setData(options.initialData);
-    }
-    setIsOpen(!isOpen);
-  }, [isOpen]);
-  
-  /**
-   * Actualiza los datos del modal
-   * @param newData - Nuevos datos o función para actualizar los datos existentes
-   */
-  const updateData = useCallback((newData: T | ((prevData: T | undefined) => T)) => {
-    if (typeof newData === 'function') {
-      setData(newData as ((prevData: T | undefined) => T));
-    } else {
-      setData(newData);
-    }
-  }, []);
-  
-  return {
-    isOpen,
-    data,
-    open,
-    close,
-    toggle,
-    updateData
-  };
+  return { isOpen, open, close, toggle };
 }
 
 /**
- * Hook para gestionar múltiples modales
- * 
- * @returns Objeto con funciones para controlar múltiples modales
+ * Interface para la configuración de modales múltiples
  */
-export function useMultipleModals<T extends Record<string, any> = Record<string, any>>(
-  modalNames: string[]
-) {
-  // Crear un objeto con un estado para cada modal
-  const modalStates = modalNames.reduce((acc, modalName) => {
-    const modalState = useModalState<unknown>();
-    
-    acc[modalName] = {
-      isOpen: modalState.isOpen,
-      data: modalState.data,
-      open: modalState.open as (options?: ModalOptions<T[string]>) => void,
-      close: modalState.close,
-      toggle: modalState.toggle as (options?: ModalOptions<T[string]>) => void,
-      updateData: modalState.updateData as (
-        newData: T[string] | ((prevData: T[string] | undefined) => T[string])
-      ) => void
-    };
-    
-    return acc;
-  }, {} as Record<string, {
-    isOpen: boolean;
-    data: unknown;
-    open: (options?: ModalOptions<T[string]>) => void;
-    close: () => void;
-    toggle: (options?: ModalOptions<T[string]>) => void;
-    updateData: (newData: T[string] | ((prevData: T[string] | undefined) => T[string])) => void;
-  }>);
+export interface ModalConfig {
+  [key: string]: boolean;
+}
+
+/**
+ * Hook para gestionar múltiples modales con un solo estado
+ * 
+ * Útil cuando necesitas controlar varios modales en un componente
+ * y asegurarte de que solo uno esté abierto a la vez.
+ * 
+ * @param {ModalConfig} initialState - Estado inicial de los modales (todos cerrados por defecto)
+ * @returns {Object} Un objeto con funciones para manipular los modales y su estado actual
+ * @property {ModalConfig} modalState - Estado actual de todos los modales
+ * @property {(modalKey: string) => void} openModal - Abre un modal específico y cierra los demás
+ * @property {(modalKey: string) => void} closeModal - Cierra un modal específico
+ * @property {(modalKey: string) => void} toggleModal - Alterna el estado de un modal específico
+ * @property {() => void} closeAll - Cierra todos los modales
+ * 
+ * @example
+ * // Gestionar múltiples modales en un componente
+ * const ProductManager = () => {
+ *   const { modalState, openModal, closeModal } = useMultipleModals({
+ *     create: false,
+ *     edit: false,
+ *     delete: false
+ *   });
+ *   
+ *   return (
+ *     <div>
+ *       <button onClick={() => openModal('create')}>Crear Producto</button>
+ *       <button onClick={() => openModal('edit')}>Editar Producto</button>
+ *       <button onClick={() => openModal('delete')}>Eliminar Producto</button>
+ *       
+ *       {modalState.create && (
+ *         <CreateProductModal onClose={() => closeModal('create')} />
+ *       )}
+ *       
+ *       {modalState.edit && (
+ *         <EditProductModal onClose={() => closeModal('edit')} />
+ *       )}
+ *       
+ *       {modalState.delete && (
+ *         <DeleteProductModal onClose={() => closeModal('delete')} />
+ *       )}
+ *     </div>
+ *   );
+ * };
+ */
+export function useMultipleModals(initialState: ModalConfig = {}) {
+  const [modalState, setModalState] = useState<ModalConfig>(initialState);
+  
+  /**
+   * Abre un modal específico y cierra todos los demás
+   * 
+   * @param {string} modalKey - Clave del modal a abrir
+   */
+  const openModal = useCallback((modalKey: string) => {
+    setModalState(prev => {
+      // Crear un nuevo objeto con todos los modales cerrados
+      const newState: ModalConfig = {};
+      
+      // Copiar todos los modales actuales como cerrados
+      Object.keys(prev).forEach(key => {
+        newState[key] = false;
+      });
+      
+      // Asegurarse de que el modal a abrir existe en el estado
+      if (!(modalKey in newState)) {
+        newState[modalKey] = true;
+      } else {
+        // Abrir el modal especificado
+        newState[modalKey] = true;
+      }
+      
+      return newState;
+    });
+  }, []);
+  
+  /**
+   * Cierra un modal específico
+   * 
+   * @param {string} modalKey - Clave del modal a cerrar
+   */
+  const closeModal = useCallback((modalKey: string) => {
+    setModalState(prev => ({
+      ...prev,
+      [modalKey]: false
+    }));
+  }, []);
+  
+  /**
+   * Alterna el estado de un modal específico
+   * 
+   * @param {string} modalKey - Clave del modal a alternar
+   */
+  const toggleModal = useCallback((modalKey: string) => {
+    setModalState(prev => ({
+      ...prev,
+      [modalKey]: !prev[modalKey]
+    }));
+  }, []);
   
   /**
    * Cierra todos los modales
    */
   const closeAll = useCallback(() => {
-    Object.values(modalStates).forEach(modal => modal.close());
-  }, [modalStates]);
+    setModalState(prev => {
+      const newState: ModalConfig = {};
+      Object.keys(prev).forEach(key => {
+        newState[key] = false;
+      });
+      return newState;
+    });
+  }, []);
   
   return {
-    modals: modalStates,
+    modalState,
+    openModal,
+    closeModal,
+    toggleModal,
     closeAll
   };
 }
 
+// Exportación por defecto
 export default useModalState; 

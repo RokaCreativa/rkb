@@ -1,9 +1,9 @@
 /**
  * @file useDashboardService.ts
  * @description Hook para proporcionar acceso a los servicios de API del dashboard
- * @author TuNombre
+ * @author RokaMenu Team
  * @version 1.0.0
- * @lastUpdated 2024-03-27
+ * @updated 2024-03-27
  */
 
 import { useState, useCallback } from 'react';
@@ -14,11 +14,40 @@ import { Category, Section, Product, Client } from '@/app/types/menu';
 /**
  * Hook que proporciona acceso a los servicios de API del dashboard
  * con manejo de estados de carga y errores
+ * 
+ * Este hook encapsula todas las operaciones de la API relacionadas con
+ * el dashboard, incluyendo:
+ * 
+ * - Gestión de categorías (crear, actualizar, eliminar, reordenar)
+ * - Gestión de secciones (crear, actualizar, eliminar, reordenar, mover)
+ * - Gestión de productos (crear, actualizar, eliminar, reordenar)
+ * - Manejo de estados de carga y errores
+ * - Notificaciones de éxito/error mediante toast
+ * 
+ * @example
+ * // Uso básico en un componente
+ * const {
+ *   createCategory,
+ *   updateCategory,
+ *   deleteCategory,
+ *   isLoading,
+ *   error
+ * } = useDashboardService();
+ * 
+ * // Crear una nueva categoría
+ * const handleSubmit = async (data) => {
+ *   const success = await createCategory(data);
+ *   if (success) {
+ *     // Operación exitosa
+ *   }
+ * };
+ * 
+ * @returns Objeto con funciones para operaciones CRUD y estados de carga/error
  */
 export const useDashboardService = () => {
   // Estados para tracking de operaciones en curso
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [updatingItems, setUpdatingItems] = useState<{
     categories: number[];
     sections: number[];
@@ -50,7 +79,7 @@ export const useDashboardService = () => {
       return result;
     } catch (err) {
       const error = err as Error;
-      setError(error);
+      setError(error.message || 'Ha ocurrido un error');
       toast.error(error.message || 'Ha ocurrido un error');
       console.error('Error en API call:', error);
       return null;
@@ -104,36 +133,65 @@ export const useDashboardService = () => {
   // ----- FUNCIONES PARA CATEGORÍAS -----
 
   /**
-   * Obtiene todas las categorías
+   * Crea una nueva categoría
+   * 
+   * @param category - Datos de la categoría a crear
+   * @param clientId - ID del cliente (opcional, se usa el cliente actual si no se proporciona)
+   * @returns Promise<boolean> - true si la operación fue exitosa, false en caso de error
+   * 
+   * @example
+   * const newCategory = {
+   *   name: "Bebidas",
+   *   image: "/uploads/bebidas.jpg",
+   *   status: 1
+   * };
+   * const success = await createCategory(newCategory);
    */
-  const fetchCategories = useCallback(async (): Promise<Category[]> => {
+  const createCategory = useCallback(async (category: Partial<Category>, clientId?: number): Promise<boolean> => {
     const result = await executeApiCall(
-      async () => DashboardService.fetchCategories(),
-      undefined,
+      async () => DashboardService.createCategory(category, clientId),
+      'Categoría creada correctamente',
       true
     );
     
-    return result?.categories || [];
+    return !!result?.success;
   }, [executeApiCall]);
-
+  
   /**
-   * Actualiza la visibilidad de una categoría
+   * Actualiza una categoría existente
+   * 
+   * @param categoryId - ID de la categoría a actualizar
+   * @param data - Datos actualizados para la categoría
+   * @returns Promise<boolean> - true si la operación fue exitosa, false en caso de error
+   * 
+   * @example
+   * const updatedData = {
+   *   name: "Bebidas Frías",
+   *   status: 1
+   * };
+   * const success = await updateCategory(5, updatedData);
    */
-  const toggleCategoryVisibility = useCallback(async (categoryId: number, newStatus: number): Promise<Category | null> => {
-    markItemAsUpdating('categories', categoryId);
-    
+  const updateCategory = useCallback(async (categoryId: number, data: Partial<Category>): Promise<boolean> => {
     const result = await executeApiCall(
-      async () => DashboardService.updateCategoryVisibility(categoryId, newStatus),
-      newStatus === 1 ? 'Categoría visible' : 'Categoría oculta',
-      false
+      async () => DashboardService.updateCategory(categoryId, data),
+      'Categoría actualizada correctamente',
+      true
     );
     
-    markItemUpdateComplete('categories', categoryId);
-    return result?.category || null;
-  }, [executeApiCall, markItemAsUpdating, markItemUpdateComplete]);
-
+    return !!result?.success;
+  }, [executeApiCall]);
+  
   /**
-   * Elimina una categoría
+   * Elimina una categoría por su ID
+   * 
+   * Esta operación también eliminará todas las secciones y productos
+   * asociados a la categoría.
+   * 
+   * @param categoryId - ID de la categoría a eliminar
+   * @returns Promise<boolean> - true si la operación fue exitosa, false en caso de error
+   * 
+   * @example
+   * const success = await deleteCategory(5);
    */
   const deleteCategory = useCallback(async (categoryId: number): Promise<boolean> => {
     const result = await executeApiCall(
@@ -157,36 +215,65 @@ export const useDashboardService = () => {
   // ----- FUNCIONES PARA SECCIONES -----
 
   /**
-   * Obtiene las secciones de una categoría
+   * Crea una nueva sección dentro de una categoría
+   * 
+   * @param section - Datos de la sección a crear
+   * @param categoryId - ID de la categoría a la que pertenece
+   * @returns Promise<boolean> - true si la operación fue exitosa, false en caso de error
+   * 
+   * @example
+   * const newSection = {
+   *   name: "Refrescos",
+   *   description: "Bebidas frías sin alcohol",
+   *   status: 1
+   * };
+   * const success = await createSection(newSection, 5);
    */
-  const fetchSections = useCallback(async (categoryId: number): Promise<Section[]> => {
+  const createSection = useCallback(async (section: Partial<Section>, categoryId: number): Promise<boolean> => {
     const result = await executeApiCall(
-      async () => DashboardService.fetchSections(categoryId),
-      undefined,
+      async () => DashboardService.createSection(section, categoryId),
+      'Sección creada correctamente',
       true
     );
     
-    return result?.sections || [];
+    return !!result?.success;
   }, [executeApiCall]);
-
+  
   /**
-   * Actualiza la visibilidad de una sección
+   * Actualiza una sección existente
+   * 
+   * @param sectionId - ID de la sección a actualizar
+   * @param data - Datos actualizados para la sección
+   * @returns Promise<boolean> - true si la operación fue exitosa, false en caso de error
+   * 
+   * @example
+   * const updatedData = {
+   *   name: "Refrescos y Sodas",
+   *   status: 1
+   * };
+   * const success = await updateSection(10, updatedData);
    */
-  const toggleSectionVisibility = useCallback(async (sectionId: number, newStatus: number): Promise<Section | null> => {
-    markItemAsUpdating('sections', sectionId);
-    
+  const updateSection = useCallback(async (sectionId: number, data: Partial<Section>): Promise<boolean> => {
     const result = await executeApiCall(
-      async () => DashboardService.updateSectionVisibility(sectionId, newStatus),
-      newStatus === 1 ? 'Sección visible' : 'Sección oculta',
-      false
+      async () => DashboardService.updateSection(sectionId, data),
+      'Sección actualizada correctamente',
+      true
     );
     
-    markItemUpdateComplete('sections', sectionId);
-    return result?.section || null;
-  }, [executeApiCall, markItemAsUpdating, markItemUpdateComplete]);
-
+    return !!result?.success;
+  }, [executeApiCall]);
+  
   /**
-   * Elimina una sección
+   * Elimina una sección por su ID
+   * 
+   * Esta operación también eliminará todos los productos
+   * asociados a la sección.
+   * 
+   * @param sectionId - ID de la sección a eliminar
+   * @returns Promise<boolean> - true si la operación fue exitosa, false en caso de error
+   * 
+   * @example
+   * const success = await deleteSection(10);
    */
   const deleteSection = useCallback(async (sectionId: number): Promise<boolean> => {
     const result = await executeApiCall(
@@ -214,38 +301,67 @@ export const useDashboardService = () => {
   // ----- FUNCIONES PARA PRODUCTOS -----
 
   /**
-   * Obtiene los productos de una sección
+   * Crea un nuevo producto dentro de una sección
+   * 
+   * @param product - Datos del producto a crear
+   * @param sectionId - ID de la sección a la que pertenece
+   * @returns Promise<boolean> - true si la operación fue exitosa, false en caso de error
+   * 
+   * @example
+   * const newProduct = {
+   *   name: "Coca Cola",
+   *   description: "Refresco de cola",
+   *   price: 2.50,
+   *   status: 1
+   * };
+   * const success = await createProduct(newProduct, 10);
    */
-  const fetchProducts = useCallback(async (sectionId: number): Promise<Product[]> => {
+  const createProduct = useCallback(async (product: Partial<Product>, sectionId: number): Promise<boolean> => {
     const result = await executeApiCall(
-      async () => DashboardService.fetchProducts(sectionId),
-      undefined,
+      async () => DashboardService.createProduct(product, sectionId),
+      'Producto creado correctamente',
       true
     );
     
-    return result?.products || [];
+    return !!result?.success;
   }, [executeApiCall]);
-
+  
   /**
-   * Actualiza la visibilidad de un producto
+   * Actualiza un producto existente
+   * 
+   * @param productId - ID del producto a actualizar
+   * @param data - Datos actualizados para el producto
+   * @returns Promise<boolean> - true si la operación fue exitosa, false en caso de error
+   * 
+   * @example
+   * const updatedData = {
+   *   name: "Coca Cola Zero",
+   *   price: 2.75,
+   *   status: 1
+   * };
+   * const success = await updateProduct(15, updatedData);
    */
-  const toggleProductVisibility = useCallback(async (productId: number, newStatus: number): Promise<Product | null> => {
-    markItemAsUpdating('products', productId);
-    
+  const updateProduct = useCallback(async (productId: number, data: Partial<Product>): Promise<boolean> => {
     const result = await executeApiCall(
-      async () => DashboardService.updateProductVisibility(productId, newStatus),
-      newStatus === 1 ? 'Producto visible' : 'Producto oculto',
-      false
+      async () => DashboardService.updateProduct(productId, data),
+      'Producto actualizado correctamente',
+      true
     );
     
-    markItemUpdateComplete('products', productId);
-    return result?.product || null;
-  }, [executeApiCall, markItemAsUpdating, markItemUpdateComplete]);
-
+    return !!result?.success;
+  }, [executeApiCall]);
+  
   /**
-   * Elimina un producto
+   * Elimina un producto por su ID
+   * 
+   * @param productId - ID del producto a eliminar
+   * @param sectionId - ID de la sección a la que pertenece (para actualizar caché)
+   * @returns Promise<boolean> - true si la operación fue exitosa, false en caso de error
+   * 
+   * @example
+   * const success = await deleteProduct(15, 10);
    */
-  const deleteProduct = useCallback(async (productId: number): Promise<boolean> => {
+  const deleteProduct = useCallback(async (productId: number, sectionId?: number): Promise<boolean> => {
     const result = await executeApiCall(
       async () => DashboardService.deleteProduct(productId),
       'Producto eliminado correctamente',
@@ -278,20 +394,20 @@ export const useDashboardService = () => {
     fetchClientData,
     
     // Funciones para categorías
-    fetchCategories,
-    toggleCategoryVisibility,
+    createCategory,
+    updateCategory,
     deleteCategory,
     reorderCategories,
     
     // Funciones para secciones
-    fetchSections,
-    toggleSectionVisibility,
+    createSection,
+    updateSection,
     deleteSection,
     reorderSections,
     
     // Funciones para productos
-    fetchProducts,
-    toggleProductVisibility,
+    createProduct,
+    updateProduct,
     deleteProduct,
     reorderProducts
   };
