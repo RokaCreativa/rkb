@@ -8,10 +8,14 @@
  */
 
 import React from 'react';
+import { useDashboard } from '../../context';
 import { Category } from '@/app/types/menu';
 import { ChevronDownIcon, ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import { useDragAndDrop } from '@/lib/hooks/ui';
+import { CategoryTable } from '../tables';
+import { CategoryActions } from '../actions';
+import { toast } from 'react-hot-toast';
 
 /**
  * Props para el componente CategoriesView
@@ -106,110 +110,97 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({
   onCategoryClick,
   onNewCategory,
   onEditCategory,
-  onDeleteCategory,
-  onToggleVisibility,
-  isUpdatingVisibility,
-  onReorderCategory
+  onDeleteCategory
 }) => {
-  // Utilizar el hook para manejar eventos de drag and drop
-  const { getDragHandlers } = useDragAndDrop<Category>(onReorderCategory);
+  const {
+    toggleCategoryExpanded,
+    isLoading
+  } = useDashboard();
+  
+  // Usar el hook de drag and drop para manejar el reordenamiento
+  const { getDragHandlers } = useDragAndDrop<Category>({
+    items: categories,
+    idField: 'category_id',
+    onReorder: async (reordered) => {
+      try {
+        // Actualizar visualmente el orden inmediatamente
+        // (esto se maneja internamente en el hook)
+        
+        // Enviar los cambios al servidor
+        const updatePromises = reordered.map((category, index) => 
+          fetch(`/api/categories/${category.category_id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              display_order: index + 1,
+              name: category.name,
+              client_id: category.client_id,
+              image: category.image || null,
+              status: category.status
+            }),
+          })
+        );
+        
+        await Promise.all(updatePromises);
+        toast.success('Orden de categorías actualizado');
+      } catch (error) {
+        console.error('Error al reordenar categorías:', error);
+        toast.error('Error al actualizar el orden de las categorías');
+      }
+    }
+  });
+  
+  // Función para actualizar la visibilidad de una categoría
+  const toggleCategoryVisibility = async (categoryId: number, currentStatus: number) => {
+    try {
+      // Llamar a la API para actualizar el estado
+      const response = await fetch('/api/categories', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          category_id: categoryId,
+          status: currentStatus === 1 ? 0 : 1
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al actualizar la visibilidad');
+      }
+      
+      toast.success('Estado actualizado correctamente');
+      
+      // La actualización del estado local se manejará en el contexto
+      // a través de la recarga de categorías
+    } catch (error) {
+      console.error('Error al actualizar visibilidad:', error);
+      toast.error('Error al actualizar el estado');
+    }
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-full py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
   
   return (
-    <div className="bg-white shadow rounded-lg">
-      <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-        <h2 className="text-lg font-medium text-gray-900">Categorías</h2>
-        <button
-          type="button"
-          onClick={onNewCategory}
-          className="inline-flex items-center gap-x-1.5 rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-        >
-          <PlusIcon className="-ml-0.5 h-5 w-5" aria-hidden="true" />
-          Nueva Categoría
-        </button>
-      </div>
+    <div className="w-full px-4">
+      <CategoryActions onNewCategory={onNewCategory} />
       
-      <ul className="divide-y divide-gray-200">
-        {categories.length === 0 ? (
-          <li className="p-4 text-center text-sm text-gray-500">
-            No hay categorías disponibles. ¡Crea una nueva categoría para comenzar!
-          </li>
-        ) : (
-          categories.map((category, index) => (
-            <li 
-              key={category.category_id} 
-              className="px-4 py-3 flex items-center hover:bg-gray-50"
-              {...getDragHandlers(index)}
-            >
-              <div className="flex-1 flex items-center">
-                <button
-                  onClick={() => onCategoryClick(category.category_id)}
-                  className="flex items-center text-left"
-                >
-                  {expandedCategories[category.category_id] ? (
-                    <ChevronDownIcon className="h-5 w-5 text-gray-400 mr-2" />
-                  ) : (
-                    <ChevronRightIcon className="h-5 w-5 text-gray-400 mr-2" />
-                  )}
-                  
-                  {category.image ? (
-                    <div className="relative h-10 w-10 mr-3">
-                      <Image
-                        src={category.image}
-                        alt={category.name}
-                        fill
-                        className="object-cover rounded"
-                        sizes="40px"
-                      />
-                    </div>
-                  ) : (
-                    <div className="h-10 w-10 bg-gray-200 rounded mr-3 flex items-center justify-center">
-                      <span className="text-xs text-gray-500">Sin img</span>
-                    </div>
-                  )}
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900">{category.name}</h3>
-                    <p className="text-xs text-gray-500">
-                      {category.status === 1 ? 'Visible' : 'Oculta'}
-                    </p>
-                  </div>
-                </button>
-              </div>
-              
-              <div className="ml-4 flex items-center space-x-2">
-                <button
-                  type="button"
-                  onClick={() => onToggleVisibility(category.category_id)}
-                  disabled={isUpdatingVisibility === category.category_id}
-                  className={`px-2 py-1 text-xs rounded-md ${
-                    category.status === 1
-                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                  }`}
-                >
-                  {isUpdatingVisibility === category.category_id ? 'Actualizando...' : category.status === 1 ? 'Visible' : 'Oculta'}
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={() => onEditCategory(category)}
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  Editar
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={() => onDeleteCategory(category.category_id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  Eliminar
-                </button>
-              </div>
-            </li>
-          ))
-        )}
-      </ul>
+      <CategoryTable
+        categories={categories}
+        expandedCategories={expandedCategories}
+        onCategoryClick={toggleCategoryExpanded}
+        onEditCategory={onEditCategory}
+        onDeleteCategory={onDeleteCategory}
+        onToggleVisibility={toggleCategoryVisibility}
+        isUpdatingVisibility={null}
+        onReorderCategory={getDragHandlers().onDragEnd}
+      />
     </div>
   );
 };

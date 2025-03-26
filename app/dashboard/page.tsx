@@ -1096,7 +1096,7 @@ export default function DashboardPage() {
           if (!prev[sectionId]) return prev;
           
           return {
-            ...prev,
+              ...prev,
             [sectionId]: prev[sectionId].filter(prod => prod.product_id !== productId)
           };
         });
@@ -1148,7 +1148,7 @@ export default function DashboardPage() {
       }
       
       return result;
-            } catch (error) {
+              } catch (error) {
       console.error('Error en deleteSection:', error);
       return false;
     }
@@ -1293,7 +1293,7 @@ export default function DashboardPage() {
               <div className="w-full md:w-2/3">
                 <ProductActions 
                   sectionName={selectedSection.name}
-                  onNewProduct={() => setIsNewProductModalOpen(true)} 
+          onNewProduct={() => setIsNewProductModalOpen(true)}
                 />
                 {productsFromHook[selectedSection.section_id] ? (
                   <ProductTable 
