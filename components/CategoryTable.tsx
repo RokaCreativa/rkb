@@ -4,6 +4,7 @@ import { PencilIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon, ViewColumnsIc
 import { Bars3Icon } from '@heroicons/react/24/solid';
 import { getImagePath, handleImageError } from '@/lib/imageUtils';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import Pagination from '@/components/ui/Pagination';
 
 // Tipos para las propiedades
 export interface Category {
@@ -25,6 +26,13 @@ export interface CategoryTableProps {
   onToggleVisibility?: (categoryId: number, currentStatus: number) => void;
   isUpdatingVisibility?: number | null;
   onReorderCategory?: (sourceIndex: number, destinationIndex: number) => void;
+  // Props de paginación (opcionales)
+  paginationEnabled?: boolean;
+  totalCategories?: number;
+  currentPage?: number;
+  itemsPerPage?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 /**
@@ -40,7 +48,14 @@ export default function CategoryTable({
   onDeleteCategory,
   onToggleVisibility,
   isUpdatingVisibility,
-  onReorderCategory
+  onReorderCategory,
+  // Props de paginación
+  paginationEnabled = false,
+  totalCategories,
+  currentPage = 1,
+  itemsPerPage = 10,
+  onPageChange,
+  onPageSizeChange
 }: CategoryTableProps) {
   
   const [showHiddenCategories, setShowHiddenCategories] = useState(false);
@@ -48,6 +63,22 @@ export default function CategoryTable({
   // Separar categorías visibles y no visibles
   const visibleCategories = categories.filter(cat => cat.status === 1);
   const hiddenCategories = categories.filter(cat => cat.status !== 1);
+  
+  // Total real de categorías (para paginación)
+  const actualTotalCategories = totalCategories ?? categories.length;
+  
+  // Cálculo de índices de paginación
+  const startIndex = paginationEnabled ? (currentPage - 1) * itemsPerPage : 0;
+  const endIndex = paginationEnabled ? startIndex + itemsPerPage : categories.length;
+  
+  // Obtener las categorías a mostrar según paginación
+  const paginatedCategories = paginationEnabled 
+    ? categories.slice(startIndex, endIndex)
+    : categories;
+    
+  // Separar las categorías paginadas por visibilidad
+  const paginatedVisibleCategories = paginatedCategories.filter(cat => cat.status === 1);
+  const paginatedHiddenCategories = paginatedCategories.filter(cat => cat.status !== 1);
   
   // Manejar el evento de drag and drop finalizado
   const handleDragEnd = (result: DropResult) => {
@@ -61,15 +92,19 @@ export default function CategoryTable({
       onReorderCategory(result.source.index, result.destination.index);
     }
   };
-  
+
   return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+    <div className="rounded-lg border border-gray-200 overflow-hidden bg-white w-full">
       <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200">
         <h2 className="text-sm font-medium text-indigo-600">
           Tus menús (Comidas, Bebidas, Postres..Etc)
         </h2>
         <div className="text-xs text-gray-500">
-          ({categories.filter(cat => cat.status === 1).length}/{categories.length} Visibles)
+          {paginationEnabled ? (
+            <span>Mostrando {paginatedCategories.length} de {categories.length} categorías</span>
+          ) : (
+            <span>({categories.filter(cat => cat.status === 1).length}/{categories.length} Visibles)</span>
+          )}
         </div>
       </div>
       
@@ -79,22 +114,22 @@ export default function CategoryTable({
             <table className="min-w-full divide-y divide-indigo-100" {...provided.droppableProps} ref={provided.innerRef}>
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
+                  <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10"></th>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
                       <ViewColumnsIcon className="h-3 w-3 text-gray-400" />
                       <span>Nombre</span>
                     </div>
                   </th>
-                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-12">Orden</th>
+                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Orden</th>
                   <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Foto</th>
                   <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Visible</th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Acciones</th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-indigo-100">
-                {/* Categorías visibles */}
-                {visibleCategories.map((category, index) => (
+                {/* Categorías visibles - usar las categorías filtradas por paginación */}
+                {paginatedVisibleCategories.map((category, index) => (
                   <Draggable 
                     key={category.category_id.toString()} 
                     draggableId={category.category_id.toString()} 
@@ -112,7 +147,7 @@ export default function CategoryTable({
                               : "hover:bg-gray-50"
                         }`}
                       >
-                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-8">
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                           <div className="flex items-center">
                             <button 
                               onClick={() => onCategoryClick && onCategoryClick(category.category_id)}
@@ -132,14 +167,14 @@ export default function CategoryTable({
                           </div>
                         </td>
                         <td 
-                          className="px-3 py-2 whitespace-nowrap"
+                          className="px-3 py-2"
                           {...provided.dragHandleProps}
                         >
                           <div className="flex items-center">
                             <div className="text-gray-400 mr-2">
                               <Bars3Icon className="h-5 w-5" />
                             </div>
-                            <div className={`font-medium text-sm max-w-xs truncate ${
+                            <div className={`font-medium text-sm ${
                               expandedCategories[category.category_id] 
                                 ? "text-indigo-700" 
                                 : "text-gray-600"
@@ -215,27 +250,27 @@ export default function CategoryTable({
                   </Draggable>
                 ))}
 
-                {/* Sección de categorías no visibles */}
-                {hiddenCategories.length > 0 && (
+                {/* Sección de categorías no visibles - usar las categorías filtradas por paginación */}
+                {paginatedHiddenCategories.length > 0 && (
                   <tr className="bg-indigo-50/30 hover:bg-indigo-50/50">
                     <td colSpan={6} className="py-2 px-4">
                       <button 
                         className="w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-700"
                         onClick={() => setShowHiddenCategories(!showHiddenCategories)}
                       >
-                        <span>{hiddenCategories.length} {hiddenCategories.length === 1 ? 'categoría' : 'categorías'} no visible{hiddenCategories.length !== 1 ? 's' : ''}</span>
+                        <span>{paginatedHiddenCategories.length} {paginatedHiddenCategories.length === 1 ? 'categoría' : 'categorías'} no visible{paginatedHiddenCategories.length !== 1 ? 's' : ''}</span>
                         <ChevronDownIcon className={`h-4 w-4 transition-transform ${showHiddenCategories ? 'rotate-180' : ''}`} />
                       </button>
                     </td>
                   </tr>
                 )}
 
-                {/* Categorías no visibles (mostrar solo si está expandido) */}
-                {showHiddenCategories && hiddenCategories.map((category, index) => (
+                {/* Categorías no visibles - usar las categorías filtradas por paginación */}
+                {showHiddenCategories && paginatedHiddenCategories.map((category, index) => (
                   <Draggable 
                     key={category.category_id.toString()} 
                     draggableId={category.category_id.toString()} 
-                    index={visibleCategories.length + index}
+                    index={paginatedVisibleCategories.length + index}
                   >
                     {(provided, snapshot) => (
                       <tr 
@@ -249,7 +284,7 @@ export default function CategoryTable({
                               : "bg-indigo-50 hover:bg-indigo-50"
                         }`}
                       >
-                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-8">
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                           <div className="flex items-center">
                             <button 
                               onClick={() => onCategoryClick && onCategoryClick(category.category_id)}
@@ -269,14 +304,14 @@ export default function CategoryTable({
                           </div>
                         </td>
                         <td 
-                          className="px-3 py-2 whitespace-nowrap"
+                          className="px-3 py-2"
                           {...provided.dragHandleProps}
                         >
                           <div className="flex items-center">
                             <div className="text-gray-400 mr-2">
                               <Bars3Icon className="h-5 w-5" />
                             </div>
-                            <div className="font-medium text-sm text-gray-500 max-w-xs truncate">
+                            <div className="font-medium text-sm text-gray-500">
                               {category.name}
                               {category.sections_count !== undefined && (
                                 <span className="ml-2 text-xs text-gray-500">
@@ -348,6 +383,19 @@ export default function CategoryTable({
           )}
         </Droppable>
       </DragDropContext>
+      
+      {/* Añadir paginación al final de la tabla */}
+      {paginationEnabled && onPageChange && (
+        <div className="px-4 py-3 border-t border-gray-200">
+          <Pagination
+            totalItems={actualTotalCategories}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+          />
+        </div>
+      )}
     </div>
   );
 } 

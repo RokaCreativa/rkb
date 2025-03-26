@@ -37,6 +37,7 @@ import EditCategoryModal from './components/EditCategoryModal';
 import { DeleteCategoryConfirmation, DeleteSectionConfirmation, DeleteProductConfirmation } from './components/modals';
 // Importar los nuevos componentes de acción
 import { CategoryActions, SectionActions, ProductActions, BackButton } from './components/actions';
+import Pagination from '@/components/ui/Pagination';
 
 // Interfaces para FloatingPhonePreview
 interface FloatingPhoneCategory {
@@ -79,21 +80,50 @@ interface DashboardClient extends Client {
  * Actualizado: 23-03-2025 (UTC+0 - Londres)
  */
 async function fetchClientData() {
-  const response = await fetch('/api/client');
-  if (!response.ok) throw new Error('Error al cargar datos del cliente');
-  return await response.json();
+  try {
+    const response = await fetch('/api/client');
+    
+    if (!response.ok) {
+      throw new Error(`Error al cargar datos del cliente: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error en fetchClientData:', error);
+    throw error; // Re-lanzar para manejar en el componente
+  }
 }
 
 /**
  * Obtiene las categorías del cliente autenticado
  * 
- * @returns Promise con las categorías
- * Actualizado: 23-03-2025 (UTC+0 - Londres)
+ * @param options - Opciones de paginación (page y limit)
+ * @returns Promise con las categorías o un objeto con datos paginados y metadatos
+ * Actualizado: 30-05-2024 (UTC+0 - Londres)
  */
-async function fetchCategories() {
-  const response = await fetch('/api/categories');
-  if (!response.ok) throw new Error('Error al cargar categorías');
-  return await response.json();
+async function fetchCategories(options?: { page?: number; limit?: number }) {
+  let url = '/api/categories';
+  
+  // Añadir parámetros de paginación si se proporcionan
+  if (options?.page || options?.limit) {
+    const params = new URLSearchParams();
+    if (options.page) params.append('page', options.page.toString());
+    if (options.limit) params.append('limit', options.limit.toString());
+    url = `${url}?${params.toString()}`;
+  }
+  
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Error al cargar las categorías: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error en fetchCategories:', error);
+    throw error; // Re-lanzar para manejar en el componente
+  }
 }
 
 /**
@@ -407,6 +437,19 @@ export default function DashboardPage() {
     }
   });
 
+  // Estados para paginación de categorías
+  const [categoryPagination, setCategoryPagination] = useState({
+    page: 1,
+    limit: 10,
+    enabled: false // Por defecto, cargar todas las categorías sin paginación
+  });
+  
+  // Estado para metadatos de paginación
+  const [categoryPaginationMeta, setCategoryPaginationMeta] = useState<{
+    total: number;
+    totalPages: number;
+  } | null>(null);
+
   // ----- MANEJADORES DE EVENTOS -----
 
   // Función para reordenar categorías (drag and drop)
@@ -677,27 +720,76 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
+      
       try {
-        const clientData = await fetchClientData();
-        const categoriesData = await fetchCategories();
-
-        setClient(clientData);
-        setCategories(categoriesData);
-        setSelectedCategory(categoriesData[0] || null);
+        // Cargar datos del cliente primero
+        let clientData;
+        try {
+          clientData = await fetchClientData();
+          console.log("Datos del cliente cargados correctamente:", clientData);
+          setClient(clientData);
+        } catch (clientError) {
+          console.error("Error específico al cargar cliente:", clientError);
+          toast.error("No se pudieron cargar los datos del cliente");
+          // Continuar con otras operaciones
+        }
         
-        console.log("Datos del cliente:", clientData);
-        console.log("Logo principal:", clientData.main_logo);
-        console.log("Logo URL completa:", `/images/main_logo/${clientData.main_logo}`);
+        // Cargar categorías, con paginación si está habilitada
+        try {
+          const options = categoryPagination.enabled 
+            ? { page: categoryPagination.page, limit: categoryPagination.limit } 
+            : undefined;
+          
+          const result = await fetchCategories(options);
+          console.log("Categorías cargadas:", result);
+          
+          // Manejar la respuesta según su formato
+          if (categoryPagination.enabled && result && typeof result === 'object' && 'data' in result && 'meta' in result) {
+            // Respuesta paginada
+            setCategories(result.data);
+            setCategoryPaginationMeta({
+              total: result.meta.total,
+              totalPages: result.meta.lastPage
+            });
+            
+            // Seleccionar la primera categoría si hay alguna
+            if (result.data && result.data.length > 0) {
+              setSelectedCategory(result.data[0]);
+            }
+          } else {
+            // Respuesta normal (array)
+            setCategories(result);
+            setCategoryPaginationMeta(null);
+            
+            // Seleccionar la primera categoría si hay alguna
+            if (result && result.length > 0) {
+              setSelectedCategory(result[0]);
+            }
+          }
+        } catch (categoriesError) {
+          console.error("Error específico al cargar categorías:", categoriesError);
+          toast.error("No se pudieron cargar las categorías");
+          // Continuar con otras operaciones
+        }
+        
+        if (clientData && clientData.main_logo) {
+          console.log("Logo principal:", clientData.main_logo);
+          console.log("Logo URL completa:", `/images/main_logo/${clientData.main_logo}`);
+        }
         
       } catch (err: any) {
+        // Error general en caso de fallos no capturados en los bloques anteriores
         setError(err.message || 'Error desconocido al cargar datos');
+        console.error('Error general al cargar datos:', err);
+        toast.error('No se pudieron cargar los datos');
       } finally {
         setIsLoading(false);
       }
     };
     
+    // Mantener la condición de autenticación
     if (status === 'authenticated') loadData();
-  }, [status]);
+  }, [status, categoryPagination]);
 
   // Función para manejar el click en una categoría
   const handleCategoryClick = async (categoryId: number) => {
@@ -1152,6 +1244,39 @@ export default function DashboardPage() {
     }
   };
 
+  // Manejar cambio de página en categorías
+  const handleCategoryPageChange = (page: number) => {
+    setCategoryPagination(prev => ({
+      ...prev,
+      page
+    }));
+  };
+  
+  // Manejar cambio de tamaño de página en categorías
+  const handleCategoryPageSizeChange = (limit: number) => {
+    setCategoryPagination(prev => ({
+      ...prev,
+      limit,
+      page: 1 // Resetear a primera página
+    }));
+  };
+  
+  // Activar/desactivar paginación de categorías
+  const toggleCategoryPagination = () => {
+    setCategoryPagination(prev => ({
+      ...prev,
+      enabled: !prev.enabled,
+      page: 1 // Resetear a primera página
+    }));
+  };
+
+  // Modificar la función para obtener las categorías de la página actual
+  const getCurrentPageCategories = () => {
+    // Ya sea con paginación habilitada (datos ya filtrados por API) o no (todos los datos),
+    // simplemente devolvemos el array de categorías actual
+    return categories;
+  };
+
   return (
     <>
       <TopNavbar 
@@ -1211,208 +1336,168 @@ export default function DashboardPage() {
           {currentView === 'categories' && (
             <div className="w-full px-4">
               <CategoryActions onNewCategory={() => setIsNewCategoryModalOpen(true)} />
-              <CategoryTable
-                categories={categories}
-                expandedCategories={expandedCategories}
-                onCategoryClick={handleCategoryClick}
-                onEditCategory={handleEditCategory}
-                onDeleteCategory={handleDeleteCategory}
-                onToggleVisibility={toggleCategoryVisibility}
-                isUpdatingVisibility={isUpdatingVisibility}
-                onReorderCategory={handleReorderCategory}
-              />
+              <div className="w-full">
+                {/* Eliminar los controles de paginación visibles */}
+                
+                {/* Tabla de categorías */}
+                <CategoryTable
+                  categories={categories}
+                  expandedCategories={expandedCategories}
+                  onCategoryClick={handleCategoryClick}
+                  onEditCategory={(category) => handleEditCategory(category as Category)}
+                  onDeleteCategory={handleDeleteCategory}
+                  onToggleVisibility={toggleCategoryVisibility}
+                  isUpdatingVisibility={isUpdatingVisibility}
+                  onReorderCategory={handleReorderCategory}
+                  paginationEnabled={categoryPagination.enabled}
+                  currentPage={categoryPagination.page}
+                  itemsPerPage={categoryPagination.limit}
+                  totalCategories={categoryPaginationMeta?.total || categories.length}
+                  onPageChange={handleCategoryPageChange}
+                  onPageSizeChange={handleCategoryPageSizeChange}
+                />
+                
+                {/* Secciones expandidas para categorías - ahora dentro de la misma columna */}
+                {categories.map(category => {
+                  if (!expandedCategories[category.category_id]) return null;
+                  
+                  return (
+                    <div 
+                      key={`category-${category.category_id}`}
+                      id={`category-${category.category_id}`}
+                      className="mt-4 w-full"
+                    >
+                      <SectionActions 
+                        categoryName={category.name}
+                        onNewSection={() => {
+                          setSelectedCategory(category);
+                          setIsNewSectionModalOpen(true);
+                        }} 
+                      />
+                      <SectionTable
+                        sections={sections[category.category_id]?.map(s => ({
+                          ...s,
+                          image: s.image || null,
+                          display_order: s.display_order || 0
+                        })) || []}
+                        expandedSections={expandedSections}
+                        onSectionClick={handleSectionClick}
+                        categoryName={category.name}
+                        onToggleVisibility={toggleSectionVisibility}
+                        isUpdatingVisibility={isUpdatingVisibility}
+                        onEditSection={(section) => handleEditSection(section as unknown as Section)}
+                        onDeleteSection={handleDeleteSection}
+                      />
+                      
+                      {/* Productos expandidos para secciones */}
+                      {sections[category.category_id]?.map(section => {
+                        if (!expandedSections[section.section_id]) return null;
+                        
+                        // Asegurar que section es tratado como Section para TypeScript
+                        const currentSection: Section = section;
+                        
+                        return (
+                          <div 
+                            key={`section-${currentSection.section_id}`}
+                            id={`section-${currentSection.section_id}`}
+                            className="mt-4 border-l-2 border-teal-100 w-full"
+                          >
+                            <div className="mb-4">
+                              <button
+                                onClick={() => {
+                                  setSelectedSection(currentSection);
+                                  setIsNewProductModalOpen(true);
+                                }}
+                                className="w-full flex items-center justify-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 shadow-sm"
+                              >
+                                <PlusIcon className="h-5 w-5 mr-2" />
+                                Nuevo Producto
+                              </button>
+                            </div>
+                            <ProductTable 
+                              products={productsFromHook[currentSection.section_id] || []}
+                              sectionName={currentSection.name}
+                              onToggleVisibility={handleToggleProductVisibility}
+                              isUpdatingVisibility={isUpdatingVisibility}
+                              onEditProduct={(productToEdit) => {
+                                handleEditProduct(productToEdit as unknown as Product);
+                              }}
+                              onDeleteProduct={deleteProductAdapter}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
           
           {currentView === 'sections' && selectedCategory && (
-            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 px-4">
-              <div className="w-full md:w-2/3">
-                <SectionActions 
+            <div className="w-full px-4">
+              <SectionActions 
+                categoryName={selectedCategory.name}
+                onNewSection={() => setIsNewSectionModalOpen(true)} 
+              />
+              {sections[selectedCategory.category_id] ? (
+                <SectionTable 
+                  sections={sections[selectedCategory.category_id]?.map(s => ({
+                    ...s,
+                    image: s.image || null,
+                    display_order: s.display_order || 0
+                  })) || []}
+                  expandedSections={expandedSections}
+                  onSectionClick={handleSectionClick}
                   categoryName={selectedCategory.name}
-                  onNewSection={() => setIsNewSectionModalOpen(true)} 
+                  onEditSection={(section) => handleEditSection(section as unknown as Section)}
+                  onDeleteSection={handleDeleteSection}
+                  onToggleVisibility={toggleSectionVisibility}
+                  isUpdatingVisibility={isUpdatingVisibility}
+                  onReorderSection={(sourceIndex, destinationIndex) => {
+                    // Implementar reordenamiento de secciones
+                    console.log('Reordenar secciones', sourceIndex, destinationIndex);
+                  }}
                 />
-                {sections[selectedCategory.category_id] ? (
-                  <SectionTable 
-                    sections={sections[selectedCategory.category_id]?.map(s => ({
-                      ...s,
-                      image: s.image || null,
-                      display_order: s.display_order || 0
-                    })) || []}
-                    expandedSections={expandedSections}
-                    onSectionClick={handleSectionClick}
-                    categoryName={selectedCategory.name}
-                    onEditSection={(section) => handleEditSection(section as unknown as Section)}
-                    onDeleteSection={handleDeleteSection}
-                    onToggleVisibility={toggleSectionVisibility}
-                    isUpdatingVisibility={isUpdatingVisibility}
-                    onReorderSection={(sourceIndex, destinationIndex) => {
-                      // Implementar reordenamiento de secciones
-                      console.log('Reordenar secciones', sourceIndex, destinationIndex);
-                    }}
-                  />
-                ) : (
-                  <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-                  </div>
-                )}
-              </div>
-              <div className="w-full md:w-1/3">
-                <FloatingPhonePreview 
-                  clientName={client?.name || "Mi Restaurante"}
-                  clientMainLogo={client?.main_logo || undefined}
-                  categories={categories.filter(cat => cat.status === 1).map(cat => ({
-                    id: cat.category_id,
-                    category_id: cat.category_id,
-                    name: cat.name,
-                    image: cat.image ? getImagePath(cat.image, 'categories') : undefined,
-                    sections: sections[cat.category_id]?.filter(sec => sec.status === 1).map(sec => ({
-                        id: sec.section_id,
-                        name: sec.name,
-                        image: sec.image || undefined
-                    })) || []
-                  })) as FloatingPhoneCategory[]}
-                  selectedCategory={selectedCategory ? {
-                    id: selectedCategory.category_id,
-                    name: selectedCategory.name,
-                    image: selectedCategory.image ? getImagePath(selectedCategory.image, 'categories') : undefined
-                  } : null}
-                  selectedSection={selectedSection ? {
-                    id: selectedSection.section_id,
-                    name: selectedSection.name,
-                    image: selectedSection.image ? getImagePath(selectedSection.image, 'sections') : undefined
-                  } : null}
-                />
-              </div>
+              ) : (
+                <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                </div>
+              )}
             </div>
           )}
           
       {currentView === 'products' && selectedCategory && selectedSection && (
-            <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 px-4">
-              <div className="w-full md:w-2/3">
-                <ProductActions 
+            <div className="w-full px-4">
+              <ProductActions 
+                sectionName={selectedSection.name}
+                onNewProduct={() => setIsNewProductModalOpen(true)}
+              />
+              {productsFromHook[selectedSection.section_id] ? (
+                <ProductTable 
+                  products={productsFromHook[selectedSection.section_id]}
+                  onBackClick={navigateBack}
                   sectionName={selectedSection.name}
-          onNewProduct={() => setIsNewProductModalOpen(true)}
+                  onEditProduct={(productToEdit) => {
+                    handleEditProduct(productToEdit as unknown as Product);
+                  }}
+                  onDeleteProduct={deleteProductAdapter}
+                  onToggleVisibility={handleToggleProductVisibility}
+                  isUpdatingVisibility={isUpdatingVisibility}
+                  onReorderProduct={(sourceIndex, destinationIndex) => {
+                    // Implementar reordenamiento de productos
+                    console.log('Reordenar productos', sourceIndex, destinationIndex);
+                  }}
                 />
-                {productsFromHook[selectedSection.section_id] ? (
-                  <ProductTable 
-                    products={productsFromHook[selectedSection.section_id]}
-          onBackClick={navigateBack}
-                    sectionName={selectedSection.name}
-                    onEditProduct={(productToEdit) => {
-                      handleEditProduct(productToEdit as unknown as Product);
-                    }}
-                    onDeleteProduct={deleteProductAdapter}
-                    onToggleVisibility={handleToggleProductVisibility}
-                    isUpdatingVisibility={isUpdatingVisibility}
-                    onReorderProduct={(sourceIndex, destinationIndex) => {
-                      // Implementar reordenamiento de productos
-                      console.log('Reordenar productos', sourceIndex, destinationIndex);
-                    }}
-                  />
-                ) : (
-                  <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-                  </div>
-                )}
-              </div>
-              <div className="w-full md:w-1/3">
-                <FloatingPhonePreview 
-                  clientName={client?.name || "Mi Restaurante"}
-                  clientMainLogo={client?.main_logo || undefined}
-                  categories={categories.filter(cat => cat.status === 1).map(cat => ({
-                    id: cat.category_id,
-                    name: cat.name,
-                    image: cat.image ? getImagePath(cat.image, 'categories') : undefined,
-                    sections: sections[cat.category_id]?.filter(sec => sec.status === 1).map(sec => ({
-                      id: sec.section_id,
-                      name: sec.name,
-                      image: sec.image ? getImagePath(sec.image, 'sections') : undefined,
-                      products: productsFromHook[sec.section_id]?.filter(prod => prod.status === 1).map(prod => ({
-                          id: prod.product_id,
-                          name: prod.name,
-                        image: prod.image ? getImagePath(prod.image, 'products') : undefined,
-                          price: prod.price,
-                        description: prod.description ?? undefined
-                      })) || []
-                    })) || []
-                  })) as FloatingPhoneCategory[]}
-                />
-              </div>
+              ) : (
+                <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                </div>
+              )}
             </div>
           )}
       </div>
       
-        {/* Secciones expandidas para categorías */}
-        {currentView === 'categories' && categories.map(category => {
-          if (!expandedCategories[category.category_id]) return null;
-          
-          return (
-            <div 
-              key={`category-${category.category_id}`}
-              id={`category-${category.category_id}`}
-              className="mt-4 pl-4 pr-4 border-l-2 border-indigo-100 max-w-[95%] mx-auto"
-            >
-              <SectionActions 
-                categoryName={category.name}
-                onNewSection={() => {
-                  setSelectedCategory(category);
-                  setIsNewSectionModalOpen(true);
-                }} 
-              />
-              <SectionTable
-                sections={sections[category.category_id]?.map(s => ({
-                  ...s,
-                  image: s.image || null,
-                  display_order: s.display_order || 0
-                })) || []}
-                expandedSections={expandedSections}
-                onSectionClick={handleSectionClick}
-                categoryName={category.name}
-                onToggleVisibility={toggleSectionVisibility}
-          isUpdatingVisibility={isUpdatingVisibility}
-                onEditSection={(section) => handleEditSection(section as unknown as Section)}
-                onDeleteSection={handleDeleteSection}
-              />
-              
-              {/* Productos expandidos para secciones */}
-              {sections[category.category_id]?.map(section => {
-                if (!expandedSections[section.section_id]) return null;
-                
-                return (
-                  <div 
-                    key={`section-${section.section_id}`}
-                    id={`section-${section.section_id}`}
-                    className="mt-4 pl-4 pr-4 border-l-2 border-teal-100 max-w-[90%] mx-auto"
-                  >
-                    <div className="mb-4">
-                      <button
-                        onClick={() => {
-                          setSelectedSection(section);
-                          setIsNewProductModalOpen(true);
-                        }}
-                        className="w-full flex items-center justify-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 shadow-sm"
-                      >
-                        <PlusIcon className="h-5 w-5 mr-2" />
-                        Nuevo Producto
-                      </button>
-                    </div>
-                    <ProductTable 
-                      products={productsFromHook[section.section_id] || []}
-                      sectionName={section.name}
-                      onToggleVisibility={handleToggleProductVisibility}
-                      isUpdatingVisibility={isUpdatingVisibility}
-                      onEditProduct={(productToEdit) => {
-                        handleEditProduct(productToEdit as unknown as Product);
-                      }}
-                      onDeleteProduct={deleteProductAdapter}
-                    />
-                  </div>
-                );
-              })}
-                    </div>
-          );
-        })}
-        
         {/* Modal para crear categoría */}
       <NewCategoryModal
         isOpen={isNewCategoryModalOpen}

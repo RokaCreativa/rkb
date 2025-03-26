@@ -18,270 +18,222 @@ import {
  * Propiedades para el componente Pagination
  */
 export interface PaginationProps {
-  /** Página actual (1-indexed) */
+  /** Número total de elementos */
+  totalItems: number;
+  /** Número de elementos por página */
+  itemsPerPage: number;
+  /** Página actual (comenzando en 1) */
   currentPage: number;
-  /** Total de páginas */
-  totalPages: number;
-  /** Función para cambiar de página */
+  /** Función que se llama cuando se cambia de página */
   onPageChange: (page: number) => void;
-  /** Si debe mostrar los controles de primera/última página */
-  showFirstLast?: boolean;
-  /** Número de páginas a mostrar alrededor de la página actual */
-  siblingCount?: number;
-  /** Si debe mostrar el total de páginas */
-  showPageCount?: boolean;
-  /** Si debe tener un tamaño pequeño */
-  small?: boolean;
-  /** Si debe tener un borde */
-  withBorder?: boolean;
-  /** Clases CSS adicionales */
+  /** Función que se llama cuando se cambia el tamaño de página */
+  onPageSizeChange?: (pageSize: number) => void;
+  /** Opciones de tamaño de página disponibles */
+  pageSizeOptions?: number[];
+  /** Número máximo de páginas a mostrar en la navegación (por defecto: 5) */
+  maxPageButtons?: number;
+  /** Deshabilitar todos los botones (útil durante carga de datos) */
+  disabled?: boolean;
+  /** Clase CSS adicional para el contenedor */
   className?: string;
 }
 
 /**
- * Genera un rango de números
- */
-function range(start: number, end: number): number[] {
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
-}
-
-/**
- * Componente Pagination
+ * Componente de paginación reutilizable
+ * 
+ * Proporciona controles para navegar entre páginas y cambiar el tamaño de página.
+ * Diseñado siguiendo el estilo y las directrices de Tailwind UI.
  * 
  * @example
+ * // Uso básico:
  * <Pagination
- *   currentPage={currentPage}
- *   totalPages={totalPages}
- *   onPageChange={handlePageChange}
- *   showFirstLast
+ *   totalItems={100}
+ *   itemsPerPage={10}
+ *   currentPage={1}
+ *   onPageChange={(page) => setCurrentPage(page)}
+ * />
+ * 
+ * // Con selector de tamaño de página:
+ * <Pagination
+ *   totalItems={100}
+ *   itemsPerPage={10}
+ *   currentPage={1}
+ *   onPageChange={(page) => setCurrentPage(page)}
+ *   onPageSizeChange={(size) => setItemsPerPage(size)}
+ *   pageSizeOptions={[5, 10, 25, 50]}
  * />
  */
 export default function Pagination({
+  totalItems,
+  itemsPerPage,
   currentPage,
-  totalPages,
   onPageChange,
-  showFirstLast = false,
-  siblingCount = 1,
-  showPageCount = true,
-  small = false,
-  withBorder = false,
-  className,
+  onPageSizeChange,
+  pageSizeOptions = [10, 25, 50, 100],
+  maxPageButtons = 5,
+  disabled = false,
+  className = '',
 }: PaginationProps) {
-  // Asegurar que currentPage está dentro de los límites
-  const page = Math.max(1, Math.min(currentPage, totalPages));
+  // Calcular el número total de páginas
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
   
-  // Generar los botones de página a mostrar
-  const getPageNumbers = () => {
-    const totalPageNumbers = siblingCount * 2 + 3; // Incluye current + siblings + primero/último
+  // Asegurar que currentPage esté en el rango válido
+  const validCurrentPage = Math.max(1, Math.min(currentPage, totalPages));
+  
+  // Calcular el rango de elementos mostrados
+  const startItem = totalItems === 0 ? 0 : (validCurrentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(validCurrentPage * itemsPerPage, totalItems);
+  
+  // Determinar qué números de página mostrar
+  const getPageNumbers = (): (number | string)[] => {
+    const pageNumbers: (number | string)[] = [];
     
-    // Si hay suficiente espacio para mostrar todas las páginas
-    if (totalPageNumbers >= totalPages) {
-      return range(1, totalPages);
+    // Si hay pocas páginas, mostrar todas
+    if (totalPages <= maxPageButtons) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+      return pageNumbers;
     }
     
-    // Calcular los índices de los hermanos izquierdo y derecho
-    const leftSiblingIndex = Math.max(page - siblingCount, 1);
-    const rightSiblingIndex = Math.min(page + siblingCount, totalPages);
+    // Siempre mostrar la primera página
+    pageNumbers.push(1);
     
-    // No mostrar puntos suspensivos cuando solo hay una página entre ellos
-    const shouldShowLeftDots = leftSiblingIndex > 2;
-    const shouldShowRightDots = rightSiblingIndex < totalPages - 1;
+    // Calcular el rango de páginas a mostrar alrededor de la página actual
+    const leftSide = Math.floor(maxPageButtons / 2);
+    const rightSide = maxPageButtons - leftSide - 1;
     
-    // Caso especial: mostrar últimas páginas
-    if (!shouldShowLeftDots && shouldShowRightDots) {
-      const leftItemCount = 3 + 2 * siblingCount;
-      return [...range(1, leftItemCount), -1, totalPages];
+    // Si la página actual está cerca del inicio
+    if (validCurrentPage <= leftSide + 1) {
+      for (let i = 2; i <= maxPageButtons - 1; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push('...');
+      pageNumbers.push(totalPages);
+      return pageNumbers;
     }
     
-    // Caso especial: mostrar primeras páginas
-    if (shouldShowLeftDots && !shouldShowRightDots) {
-      const rightItemCount = 3 + 2 * siblingCount;
-      return [1, -1, ...range(totalPages - rightItemCount + 1, totalPages)];
+    // Si la página actual está cerca del final
+    if (validCurrentPage >= totalPages - rightSide) {
+      pageNumbers.push('...');
+      for (let i = totalPages - maxPageButtons + 2; i < totalPages; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push(totalPages);
+      return pageNumbers;
     }
     
-    // Caso estándar: mostrar puntos suspensivos en ambos lados
-    if (shouldShowLeftDots && shouldShowRightDots) {
-      return [
-        1,
-        -1,
-        ...range(leftSiblingIndex, rightSiblingIndex),
-        -2,
-        totalPages,
-      ];
+    // Si la página actual está en medio
+    pageNumbers.push('...');
+    for (
+      let i = validCurrentPage - Math.floor((maxPageButtons - 4) / 2);
+      i <= validCurrentPage + Math.ceil((maxPageButtons - 4) / 2);
+      i++
+    ) {
+      pageNumbers.push(i);
     }
+    pageNumbers.push('...');
+    pageNumbers.push(totalPages);
     
-    return [];
+    return pageNumbers;
   };
   
   const pageNumbers = getPageNumbers();
   
-  // Clases para los botones
-  const buttonClasses = cn(
-    "relative inline-flex items-center justify-center",
-    small ? "min-w-8 h-8 text-xs" : "min-w-10 h-10 text-sm",
-    "font-medium focus:z-10 focus:outline-none",
-    withBorder
-      ? "border border-gray-300 bg-white text-gray-500 hover:bg-gray-50"
-      : "text-gray-700 hover:bg-gray-100",
-    "transition-colors"
-  );
-  
-  // Clases para el botón activo
-  const activeButtonClasses = cn(
-    "z-10",
-    withBorder 
-      ? "border-indigo-500 bg-indigo-50 text-indigo-600"
-      : "bg-indigo-50 text-indigo-600"
-  );
-  
-  // Clases para los botones deshabilitados
-  const disabledButtonClasses = cn(
-    "cursor-not-allowed opacity-50",
-    withBorder 
-      ? "border-gray-200 bg-gray-50"
-      : "bg-gray-50"
-  );
-  
   return (
-    <nav
-      className={cn(
-        "flex items-center justify-between",
-        small ? "py-2" : "py-3",
-        className
-      )}
-      aria-label="Paginación"
-    >
-      {/* Información de página para móviles */}
-      {showPageCount && (
-        <div className="sm:hidden">
-          <p className="text-sm text-gray-700">
-            Página <span className="font-medium">{page}</span> de{" "}
-            <span className="font-medium">{totalPages}</span>
-          </p>
-        </div>
-      )}
-      
-      {/* Controles de paginación */}
-      <div className={cn(
-        "flex flex-1 items-center justify-center sm:justify-between",
-        !showPageCount && "justify-center"
-      )}>
-        {/* Información de página para escritorio */}
-        {showPageCount && (
-          <div className="hidden sm:block">
-            <p className="text-sm text-gray-700">
-              Mostrando página <span className="font-medium">{page}</span> de{" "}
-              <span className="font-medium">{totalPages}</span>
-            </p>
-          </div>
-        )}
-        
-        {/* Botones de paginación */}
-        <div>
-          <nav
-            className="isolate inline-flex -space-x-px rounded-md shadow-sm"
-            aria-label="Paginación"
-          >
-            {/* Botón de primera página */}
-            {showFirstLast && (
-              <button
-                onClick={() => onPageChange(1)}
-                disabled={page === 1}
-                className={cn(
-                  buttonClasses,
-                  "rounded-l-md",
-                  page === 1 ? disabledButtonClasses : ""
-                )}
-                aria-label="Primera página"
-              >
-                <ChevronDoubleLeftIcon className="h-4 w-4" />
-              </button>
-            )}
-            
-            {/* Botón anterior */}
-            <button
-              onClick={() => onPageChange(page - 1)}
-              disabled={page === 1}
-              className={cn(
-                buttonClasses,
-                !showFirstLast && "rounded-l-md",
-                page === 1 ? disabledButtonClasses : ""
-              )}
-              aria-label="Página anterior"
+    <div className={`flex flex-col sm:flex-row items-center justify-between space-y-3 sm:space-y-0 px-4 py-3 sm:px-6 ${className}`}>
+      <div className="flex items-center text-sm text-gray-700">
+        <p className="sm:flex sm:items-center">
+          Mostrando 
+          <span className="font-medium mx-1">
+            {totalItems === 0 ? 0 : startItem}
+          </span>
+          a
+          <span className="font-medium mx-1">
+            {endItem}
+          </span>
+          de
+          <span className="font-medium mx-1">
+            {totalItems}
+          </span>
+          resultados
+          
+          {/* Selector de tamaño de página */}
+          {onPageSizeChange && (
+            <select
+              className="ml-2 border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+              value={itemsPerPage}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              disabled={disabled}
             >
-              <ChevronLeftIcon className="h-5 w-5" />
-            </button>
-            
-            {/* Números de página */}
-            {pageNumbers.map((pageNumber, index) => {
-              // Si es un indicador de elipsis
-              if (pageNumber < 0) {
-                return (
-                  <span
-                    key={`ellipsis-${pageNumber}-${index}`}
-                    className={cn(
-                      "relative inline-flex items-center justify-center px-4",
-                      small ? "min-w-8 h-8 text-xs" : "min-w-10 h-10 text-sm",
-                      withBorder 
-                        ? "border border-gray-300 bg-white text-gray-700"
-                        : "text-gray-700"
-                    )}
-                  >
-                    ...
-                  </span>
-                );
-              }
-              
-              const isActive = pageNumber === page;
-              
-              return (
-                <button
-                  key={pageNumber}
-                  onClick={() => onPageChange(pageNumber)}
-                  className={cn(
-                    buttonClasses,
-                    isActive ? activeButtonClasses : ""
-                  )}
-                  aria-current={isActive ? "page" : undefined}
-                  aria-label={`Página ${pageNumber}`}
-                >
-                  {pageNumber}
-                </button>
-              );
-            })}
-            
-            {/* Botón siguiente */}
-            <button
-              onClick={() => onPageChange(page + 1)}
-              disabled={page === totalPages}
-              className={cn(
-                buttonClasses,
-                !showFirstLast && "rounded-r-md",
-                page === totalPages ? disabledButtonClasses : ""
-              )}
-              aria-label="Página siguiente"
-            >
-              <ChevronRightIcon className="h-5 w-5" />
-            </button>
-            
-            {/* Botón de última página */}
-            {showFirstLast && (
-              <button
-                onClick={() => onPageChange(totalPages)}
-                disabled={page === totalPages}
-                className={cn(
-                  buttonClasses,
-                  "rounded-r-md",
-                  page === totalPages ? disabledButtonClasses : ""
-                )}
-                aria-label="Última página"
-              >
-                <ChevronDoubleRightIcon className="h-4 w-4" />
-              </button>
-            )}
-          </nav>
-        </div>
+              {pageSizeOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option} por página
+                </option>
+              ))}
+            </select>
+          )}
+        </p>
       </div>
-    </nav>
+      
+      <div>
+        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Paginación">
+          {/* Botón Anterior */}
+          <button
+            onClick={() => onPageChange(validCurrentPage - 1)}
+            disabled={validCurrentPage === 1 || disabled}
+            className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium ${
+              validCurrentPage === 1 || disabled
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-500 hover:bg-gray-50 cursor-pointer'
+            }`}
+          >
+            <span className="sr-only">Anterior</span>
+            <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+          </button>
+          
+          {/* Números de página */}
+          {pageNumbers.map((pageNumber, index) => {
+            return typeof pageNumber === 'string' ? (
+              // Mostrar puntos suspensivos para páginas omitidas
+              <span
+                key={`ellipsis-${index}`}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"
+              >
+                ...
+              </span>
+            ) : (
+              // Botón de número de página
+              <button
+                key={pageNumber}
+                onClick={() => onPageChange(pageNumber)}
+                disabled={disabled}
+                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                  pageNumber === validCurrentPage
+                    ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+              >
+                {pageNumber}
+              </button>
+            );
+          })}
+          
+          {/* Botón Siguiente */}
+          <button
+            onClick={() => onPageChange(validCurrentPage + 1)}
+            disabled={validCurrentPage === totalPages || disabled}
+            className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium ${
+              validCurrentPage === totalPages || disabled
+                ? 'text-gray-300 cursor-not-allowed'
+                : 'text-gray-500 hover:bg-gray-50 cursor-pointer'
+            }`}
+          >
+            <span className="sr-only">Siguiente</span>
+            <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </nav>
+      </div>
+    </div>
   );
 } 

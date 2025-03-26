@@ -64,7 +64,7 @@ export default function ProductTable({
   };
   
   return (
-    <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+    <div className="rounded-lg border border-gray-200 overflow-hidden bg-white w-full">
       <div className="flex items-center justify-between px-4 py-3 bg-amber-50 border-b border-amber-100">
         <div className="flex items-center space-x-2">
           {onBackClick && (
@@ -96,11 +96,11 @@ export default function ProductTable({
                       <span>Nombre</span>
                     </div>
                   </th>
-                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-12">Orden</th>
+                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Orden</th>
                   <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Foto</th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Precio</th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Precio</th>
                   <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Visible</th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Acciones</th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -118,14 +118,14 @@ export default function ProductTable({
                         className={`${snapshot.isDragging ? "bg-amber-100" : "hover:bg-amber-50/50"}`}
                       >
                         <td 
-                          className="px-3 py-2 whitespace-nowrap"
+                          className="px-3 py-2"
                           {...provided.dragHandleProps}
                         >
                           <div className="flex items-center">
                             <div className="text-gray-400 mr-2">
                               <Bars3Icon className="h-5 w-5" />
                             </div>
-                            <div className="font-medium text-sm text-amber-700 max-w-xs truncate">
+                            <div className="font-medium text-sm text-amber-700">
                               {product.name}
                             </div>
                           </div>
@@ -226,14 +226,14 @@ export default function ProductTable({
                         className={`${snapshot.isDragging ? "bg-amber-100" : "bg-amber-50/30 hover:bg-amber-50/50"}`}
                       >
                         <td 
-                          className="px-3 py-2 whitespace-nowrap"
+                          className="px-3 py-2"
                           {...provided.dragHandleProps}
                         >
                           <div className="flex items-center">
                             <div className="text-gray-400 mr-2">
                               <Bars3Icon className="h-5 w-5" />
                             </div>
-                            <div className="font-medium text-sm text-amber-700 max-w-xs truncate">
+                            <div className="font-medium text-sm text-amber-700">
                               {product.name}
                             </div>
                           </div>

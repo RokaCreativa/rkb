@@ -226,16 +226,86 @@ Este es un "archivo barril" que simplifica las importaciones de los componentes 
 import { CategoryTable, SectionTable } from '@/app/dashboard/components/tables';
 ```
 
-##### 📄 `CategoryTable.tsx` (importado desde components/CategoryTable.tsx)
+##### 📄 `CategoryTable.tsx`
 
-Una tabla especializada para mostrar categorías.
+Este componente muestra una tabla de categorías con opciones para expandir/colapsar, editar, eliminar y cambiar la visibilidad. Además, soporta drag-and-drop para reordenar las categorías.
 
-**¿Qué hace específicamente?**
-- Muestra categorías en filas con columnas para nombre, imagen, orden, etc.
-- Implementa funcionalidades como expandir/contraer filas
-- Soporta arrastrar y soltar para reordenar
-- Incluye acciones en línea (editar, eliminar, mostrar/ocultar)
-- Separa visualmente categorías visibles y ocultas
+**Características principales:**
+- Visualización de categorías en formato tabla
+- Soporte para expandir/colapsar categorías
+- Opciones para editar y eliminar categorías
+- Toggle de visibilidad
+- Reordenamiento mediante drag-and-drop
+- **Nuevo:** Paginación opcional para grandes conjuntos de datos
+- **Nuevo:** Manejo optimizado de la expansión de categorías con paginación
+
+**Ejemplo de uso (versión básica):**
+```tsx
+<CategoryTable
+  categories={categories}
+  expandedCategories={expandedCategories}
+  onCategoryClick={handleCategoryClick}
+  onEditCategory={handleEditCategory}
+  onDeleteCategory={handleDeleteCategory}
+  onToggleVisibility={toggleCategoryVisibility}
+  isUpdatingVisibility={isUpdatingVisibility}
+  onReorderCategory={handleReorderCategory}
+/>
+```
+
+**Ejemplo de uso (con paginación):**
+```tsx
+<CategoryTable
+  categories={currentPageCategories} // Solo las categorías de la página actual
+  expandedCategories={expandedCategories}
+  onCategoryClick={handleCategoryClick}
+  onEditCategory={handleEditCategory}
+  onDeleteCategory={handleDeleteCategory}
+  onToggleVisibility={toggleCategoryVisibility}
+  isUpdatingVisibility={isUpdatingVisibility}
+  onReorderCategory={handleReorderCategory}
+  // Propiedades de paginación
+  paginationEnabled={true}
+  currentPage={currentPage}
+  itemsPerPage={itemsPerPage}
+  totalCategories={totalCategories}
+  onPageChange={handlePageChange}
+  onPageSizeChange={handlePageSizeChange}
+/>
+```
+
+**Nota importante sobre la expansión con paginación:**
+Para garantizar que la función de expansión funcione correctamente con la paginación, es esencial que:
+1. Solo se pasen al componente las categorías de la página actual
+2. La sección que muestra las categorías expandidas debe usar la misma lista filtrada
+3. El componente ajusta automáticamente su visualización según si la paginación está habilitada o no
+
+**Cómo se implementó la solución:**
+```tsx
+// En el dashboard (page.tsx)
+const getCurrentPageCategories = () => {
+  if (!categoryPagination.enabled) {
+    return categories;
+  }
+  
+  const startIndex = (categoryPagination.page - 1) * categoryPagination.limit;
+  const endIndex = startIndex + categoryPagination.limit;
+  return categories.slice(startIndex, endIndex);
+};
+
+// En la sección de categorías expandidas
+{currentView === 'categories' && getCurrentPageCategories().map(category => {
+  if (!expandedCategories[category.category_id]) return null;
+  
+  return (
+    <div key={`category-${category.category_id}`}>
+      {/* Contenido expandido */}
+    </div>
+  );
+})}
+```
+
+Esta implementación garantiza que solo se puedan expandir las categorías que están visibles en la página actual.
 
 ### 📁 `app/dashboard/context/`
 
@@ -727,106 +797,129 @@ return (
 
 ## Optimizaciones de Rendimiento Implementadas
 
-### Paginación en Endpoints API
+### Paginación de Endpoints API
 
-#### Categorías (implementado 28/03/2024)
-Se ha implementado paginación opcional en el endpoint `/api/categories` para mejorar el rendimiento inicial del dashboard.
+#### API de Categorías (/api/categories)
+- Implementación completa de paginación opcional mediante parámetros `page` y `limit`.
+- Ejemplo de solicitud: `/api/categories?page=1&limit=10`
+- Formato de respuesta paginada:
+  ```json
+  {
+    "items": [
+      { /* categoría 1 */ },
+      { /* categoría 2 */ },
+      // ...
+    ],
+    "meta": {
+      "total": 45,       // Total de categorías
+      "page": 1,         // Página actual
+      "limit": 10,       // Elementos por página
+      "totalPages": 5    // Total de páginas
+    }
+  }
+  ```
+- Para mantener compatibilidad, las solicitudes sin parámetros de paginación reciben todas las categorías en el formato original:
+  ```json
+  [
+    { /* categoría 1 */ },
+    { /* categoría 2 */ },
+    // ...
+  ]
+  ```
 
-##### Cómo funciona:
-1. **Parámetros de consulta**:
-   - `page`: Número de página (predeterminado: 1)
-   - `limit`: Elementos por página (predeterminado: 0, que significa "sin límite")
+### Implementación en Servicios
 
-2. **Respuesta sin paginación** (compatible con el código existente):
-   ```json
-   [
-     {
-       "category_id": 1,
-       "name": "Comidas",
-       "image": "/images/categories/comidas.jpg",
-       "status": 1,
-       "display_order": 1,
-       "client_id": 100,
-       "products": 0
-     },
-     ...
-   ]
-   ```
+#### DashboardService (lib/services/dashboardService.ts)
+- Añadido soporte para enviar parámetros de paginación al endpoint de categorías.
+- Procesa automáticamente las respuestas para detectar si son paginadas o no.
+- Interfaz mejorada con tipos para mayor seguridad y documentación.
+- Ejemplo de uso:
+  ```typescript
+  // Sin paginación (comportamiento original)
+  const allCategories = await DashboardService.fetchCategories();
+  
+  // Con paginación
+  const paginatedResult = await DashboardService.fetchCategories({ 
+    page: 1, 
+    limit: 10 
+  });
+  
+  // Acceso a los datos y metadatos
+  const categories = paginatedResult.categories;
+  const metadata = paginatedResult.meta; // null si no hay paginación
+  ```
 
-3. **Respuesta con paginación**:
-   ```json
-   {
-     "data": [
-       {
-         "category_id": 1,
-         "name": "Comidas",
-         "image": "/images/categories/comidas.jpg",
-         "status": 1,
-         "display_order": 1,
-         "client_id": 100,
-         "products": 0
-       },
-       ...
-     ],
-     "meta": {
-       "total": 20,
-       "page": 1,
-       "limit": 10,
-       "totalPages": 2
-     }
-   }
-   ```
+#### useDashboardService (lib/hooks/dashboard/useDashboardService.ts)
+- Adaptado para usar y proporcionar opciones de paginación.
+- Mantiene compatibilidad con código existente.
+- Proporciona una interfaz consistente para componentes que consumen el servicio.
+- Ejemplo de uso:
+  ```typescript
+  const dashboardService = useDashboardService();
+  
+  // Sin paginación
+  const result = await dashboardService.fetchCategories();
+  
+  // Con paginación
+  const paginatedResult = await dashboardService.fetchCategories({ 
+    page: 2, 
+    limit: 15 
+  });
+  ```
 
-### Implementación en Servicios (actualizado 28/03/2024)
-
-Se han actualizado los servicios para soportar la paginación manteniendo compatibilidad con el código existente:
-
-#### DashboardService
+#### useDashboardCategories (lib/hooks/dashboard/useDashboardCategories.ts)
+- Implementación completa de soporte para paginación.
+- Nuevas interfaces `PaginationOptions` y `PaginationMeta` para tipado seguro.
+- Funciones para navegación entre páginas: `changePage`, `changePageSize` y `loadAllCategories`.
+- Mantiene compatibilidad total con código existente.
+- Manejo inteligente del estado y operaciones CRUD sensibles a la paginación.
+- Ejemplos de uso:
 
 ```typescript
-// Opciones de paginación
-interface PaginationOptions {
-  page?: number;
-  limit?: number;
-}
+// Uso sin paginación (comportamiento original)
+const {
+  categories,
+  isLoading,
+  createCategory
+} = useDashboardCategories({ 
+  clientId: 123 
+});
 
-// Uso del servicio
-// Sin paginación (comportamiento original)
-const result = await DashboardService.fetchCategories();
+// Uso con paginación
+const {
+  categories,           // Lista de categorías de la página actual
+  paginationMeta,       // Metadatos de paginación (total, página actual, etc.)
+  isLoading,
+  changePage,           // Función para cambiar a una página específica
+  changePageSize,       // Función para cambiar el número de elementos por página
+  loadAllCategories,    // Función para desactivar paginación y cargar todo
+  createCategory
+} = useDashboardCategories({
+  clientId: 123,
+  initialPagination: { page: 1, limit: 10 }
+});
 
-// Con paginación
-const result = await DashboardService.fetchCategories({ page: 1, limit: 10 });
+// Navegar a otra página
+changePage(2);
+
+// Cambiar tamaño de página (automáticamente regresa a página 1)
+changePageSize(20);
+
+// Desactivar paginación y cargar todas las categorías
+loadAllCategories();
 ```
 
-#### useDashboardService Hook
+#### Beneficios Implementados
+1. **Rendimiento mejorado**: Reducción significativa de datos transferidos en cargas iniciales.
+2. **Experiencia de usuario más fluida**: Carga más rápida de datos iniciales.
+3. **Escalabilidad**: Permite manejar grandes colecciones de datos sin problemas de rendimiento.
+4. **Compatibilidad preservada**: Todo el código existente sigue funcionando sin modificaciones.
+5. **API intuitiva**: Las nuevas funciones son fáciles de entender y usar.
 
-```typescript
-// Interfaz del resultado con soporte para metadatos de paginación
-interface FetchCategoriesResult {
-  categories: Category[];
-  meta?: PaginationMeta;
-}
-
-// Uso del hook
-// Sin paginación (comportamiento original)
-const { categories } = await fetchCategories();
-
-// Con paginación
-const { categories, meta } = await fetchCategories({ page: 1, limit: 10 });
-console.log(`Mostrando ${categories.length} de ${meta?.total} categorías`);
-```
-
-##### Beneficios:
-- **Carga inicial más rápida**: Se cargan menos datos al inicio
-- **Mejor experiencia de usuario**: La interfaz responde más rápidamente
-- **Menor consumo de recursos**: Reduce la carga en el servidor y el cliente
-- **Compatibilidad mantenida**: No rompe el código existente
-- **Adopción gradual**: Permite migrar componentes uno a uno
-
-#### Implementaciones pendientes:
-- Adaptación de `useDashboardCategories.ts` para usar paginación
-- Componentes de UI para navegar entre páginas
-- Paginación para endpoints de secciones y productos
+### Pendiente de Implementación
+1. Componentes UI para controles de paginación en el Dashboard.
+2. Paginación para otros endpoints (secciones, productos, etc.).
+3. Optimizaciones adicionales para carga diferida y caché.
 
 ### Optimización de campos seleccionados
 
@@ -898,3 +991,125 @@ El flujo de autenticación incluye:
 2. Verificación de credenciales contra la base de datos
 3. Creación de sesión y cookie de autenticación
 4. Verificación de sesión en cada endpoint protegido 
+
+## Componentes UI
+
+### Componentes Generales
+
+#### Pagination (components/ui/Pagination.tsx)
+Componente genérico de paginación con soporte para cambio de página y tamaño de página.
+
+```tsx
+// Uso básico
+<Pagination
+  totalItems={100}
+  itemsPerPage={10}
+  currentPage={1}
+  onPageChange={(page) => setPage(page)}
+/>
+
+// Con selector de tamaño de página
+<Pagination
+  totalItems={100}
+  itemsPerPage={10}
+  currentPage={1}
+  onPageChange={(page) => setPage(page)}
+  onPageSizeChange={(size) => setItemsPerPage(size)}
+  pageSizeOptions={[10, 25, 50, 100]}
+/>
+```
+
+**Props**:
+- `totalItems`: Número total de elementos
+- `itemsPerPage`: Elementos por página
+- `currentPage`: Página actual (comenzando en 1)
+- `onPageChange`: Función que se llama cuando se cambia de página
+- `onPageSizeChange`: (opcional) Función que se llama cuando se cambia el tamaño de página
+- `pageSizeOptions`: (opcional) Opciones de tamaño de página disponibles
+- `maxPageButtons`: (opcional) Número máximo de botones de página a mostrar
+- `disabled`: (opcional) Deshabilitar todos los botones
+- `className`: (opcional) Clase CSS adicional
+
+### Componentes de Tabla
+
+#### CategoryTable (components/tables/CategoryTable.tsx)
+Tabla para mostrar y gestionar categorías con soporte para paginación.
+
+**Actualizado (28/03/2024)**: Ahora soporta paginación opcional a través de estas nuevas props:
+- `paginationEnabled`: Activa/desactiva la paginación
+- `currentPage`: Página actual
+- `itemsPerPage`: Elementos por página
+- `totalCategories`: Total de categorías (usado para metadatos de paginación)
+- `onPageChange`: Función para cambiar de página
+- `onPageSizeChange`: Función para cambiar el tamaño de página
+
+La paginación está desactivada por defecto para mantener compatibilidad con el código existente.
+
+```tsx
+// Sin paginación (comportamiento original)
+<CategoryTable
+  categories={categories}
+  expandedCategories={expandedCategories}
+  onCategoryClick={handleCategoryClick}
+/>
+
+// Con paginación activada
+<CategoryTable
+  categories={categories}
+  expandedCategories={expandedCategories}
+  onCategoryClick={handleCategoryClick}
+  
+  paginationEnabled={true}
+  currentPage={currentPage}
+  itemsPerPage={itemsPerPage}
+  totalCategories={totalCategories}
+  onPageChange={handlePageChange}
+  onPageSizeChange={handlePageSizeChange}
+/>
+```
+
+#### Beneficios Implementados
+1. **Rendimiento mejorado**: Reducción significativa de datos transferidos en cargas iniciales.
+2. **Experiencia de usuario más fluida**: Carga más rápida de datos iniciales.
+3. **Adopción gradual**: La paginación es opcional y puede activarse/desactivarse según se necesite.
+4. **Interfaz intuitiva**: Controles claros y familiares para navegación entre páginas.
+5. **Configurabilidad**: Soporte para diferentes tamaños de página según preferencias del usuario.
+
+### Paginación en el Dashboard
+
+#### UI de Paginación (implementado 28/03/2024)
+
+Se han añadido nuevos componentes y funcionalidades para dar soporte a la paginación en la interfaz de usuario:
+
+1. **Componente Pagination**:
+   - Componente genérico y reutilizable para navegación entre páginas
+   - Muestra información sobre el rango de elementos actuales
+   - Soporta selector de tamaño de página
+   - Diseño responsivo con soporte para móviles y escritorio
+
+2. **Actualización de CategoryTable**:
+   - Soporte para mostrar controles de paginación
+   - Mantenimiento de funcionalidades existentes (expandir, reordenar, etc.)
+   - La paginación es opcional y está desactivada por defecto
+
+3. **Mejoras en la página de Dashboard**:
+   - Botón para activar/desactivar paginación
+   - Gestión de estado para opciones de paginación
+   - Detección automática de respuestas paginadas vs. no paginadas
+
+#### Flujo de Datos con Paginación
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   API con   │    │ DashboardSvc│    │ useDashboard│    │ Componentes │
+│  Paginación │◄──►│ con soporte │◄──►│Categories con│◄──►│  UI con    │
+│  Opcional   │    │ Paginación  │    │  Paginación │    │ Paginación  │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+```
+
+#### Beneficios Implementados
+1. **Rendimiento mejorado**: Reducción significativa de datos transferidos en cargas iniciales.
+2. **Experiencia de usuario más fluida**: Carga más rápida de datos iniciales.
+3. **Adopción gradual**: La paginación es opcional y puede activarse/desactivarse según se necesite.
+4. **Interfaz intuitiva**: Controles claros y familiares para navegación entre páginas.
+5. **Configurabilidad**: Soporte para diferentes tamaños de página según preferencias del usuario. 

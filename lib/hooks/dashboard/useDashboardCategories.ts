@@ -4,16 +4,42 @@
  * @fileoverview Hook para gestionar categorías en el dashboard
  * @author RokaMenu Team
  * @version 1.0.0
- * @updated 2024-03-27
+ * @updated 2024-03-28
  * 
  * Este hook proporciona funcionalidades para gestionar categorías,
  * incluyendo creación, actualización, eliminación y cambio de visibilidad.
+ * Se ha añadido soporte para paginación (28/03/2024).
  */
 
 import { useState, useCallback, useEffect } from 'react';
 import { Category } from '@/app/types/menu';
 import { toast } from 'react-hot-toast';
 import axios from 'axios';
+import useDashboardService from './useDashboardService';
+
+/**
+ * Interfaz para opciones de paginación
+ */
+interface PaginationOptions {
+  /** Número de página (comienza en 1) */
+  page?: number;
+  /** Elementos por página (0 = sin límite) */
+  limit?: number;
+}
+
+/**
+ * Interfaz para metadatos de paginación
+ */
+interface PaginationMeta {
+  /** Número total de elementos disponibles */
+  total: number;
+  /** Página actual */
+  page: number;
+  /** Elementos por página */
+  limit: number;
+  /** Número total de páginas */
+  totalPages: number;
+}
 
 /**
  * Opciones de configuración para el hook de categorías
@@ -25,45 +51,96 @@ interface UseDashboardCategoriesOptions {
   onSuccess?: () => void;
   /** Función a ejecutar cuando una operación falla */
   onError?: (error: Error) => void;
+  /** Opciones de paginación iniciales (opcional) */
+  initialPagination?: PaginationOptions;
 }
 
 /**
  * Hook para gestionar categorías en el dashboard
  * 
  * Proporciona funcionalidades para:
- * - Cargar categorías de un cliente específico
+ * - Cargar categorías de un cliente específico (con soporte para paginación)
  * - Crear nuevas categorías
  * - Actualizar categorías existentes
  * - Eliminar categorías
  * - Cambiar visibilidad de categorías
  * - Reordenar categorías mediante drag and drop
+ * - Navegación entre páginas de categorías
  * 
  * @param options - Opciones de configuración para el hook
- * @returns Objeto con categorías y funciones para gestionarlas
+ * @returns Objeto con categorías, funciones para gestionarlas y metadatos de paginación
+ * 
+ * @example
+ * // Sin paginación (comportamiento original)
+ * const {
+ *   categories,
+ *   isLoading,
+ *   createCategory
+ * } = useDashboardCategories({ clientId: 123 });
+ * 
+ * // Con paginación
+ * const {
+ *   categories,
+ *   paginationMeta,
+ *   changePage,
+ *   changePageSize,
+ *   isLoading,
+ *   createCategory
+ * } = useDashboardCategories({
+ *   clientId: 123,
+ *   initialPagination: { page: 1, limit: 10 }
+ * });
  */
 export default function useDashboardCategories(options: UseDashboardCategoriesOptions) {
-  const { clientId, onSuccess, onError } = options;
+  const { clientId, onSuccess, onError, initialPagination } = options;
+  
+  // Obtener el servicio del dashboard (actualizado con soporte para paginación)
+  const dashboardService = useDashboardService();
   
   // Estados
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState<number | null>(null);
+  
+  // Estado para paginación
+  const [paginationOptions, setPaginationOptions] = useState<PaginationOptions>(initialPagination || {});
+  const [paginationMeta, setPaginationMeta] = useState<PaginationMeta | null>(null);
 
   /**
    * Carga las categorías del cliente
+   * Soporta paginación opcional
+   * 
+   * @returns Array de categorías cargadas
    */
   const fetchCategories = useCallback(async () => {
-    if (!clientId) return;
+    if (!clientId) return [];
     
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await axios.get(`/api/clients/${clientId}/categories`);
-      setCategories(response.data);
+      // Usar el servicio actualizado que soporta paginación
+      const result = await dashboardService.fetchCategories(paginationOptions);
+      
+      // Actualizar el estado con las categorías recibidas
+      setCategories(result.categories);
+      
+      // Si hay metadatos de paginación, guardarlos
+      if (result.meta) {
+        setPaginationMeta(result.meta);
+      } else {
+        // Si no hay metadatos pero hay categorías, calcular valores aproximados
+        setPaginationMeta({
+          total: result.categories.length,
+          page: 1,
+          limit: result.categories.length,
+          totalPages: 1
+        });
+      }
+      
       onSuccess?.();
-      return response.data;
+      return result.categories;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Error desconocido al cargar categorías');
       setError(error);
@@ -73,14 +150,57 @@ export default function useDashboardCategories(options: UseDashboardCategoriesOp
     } finally {
       setIsLoading(false);
     }
-  }, [clientId, onSuccess, onError]);
+  }, [clientId, dashboardService, paginationOptions, onSuccess, onError]);
 
-  // Cargar categorías al iniciar si hay un clientId
+  // Cargar categorías al iniciar o cuando cambian las opciones de paginación
   useEffect(() => {
     if (clientId) {
       fetchCategories();
     }
-  }, [clientId, fetchCategories]);
+  }, [clientId, paginationOptions, fetchCategories]);
+
+  /**
+   * Cambia a una página específica de categorías
+   * 
+   * @param page - Número de página a cargar (comenzando en 1)
+   */
+  const changePage = useCallback((page: number) => {
+    if (page < 1) {
+      console.error('El número de página debe ser mayor o igual a 1');
+      return;
+    }
+    
+    setPaginationOptions(prev => ({
+      ...prev,
+      page
+    }));
+  }, []);
+
+  /**
+   * Cambia el número de elementos por página
+   * 
+   * @param limit - Número de elementos por página (0 = sin límite)
+   */
+  const changePageSize = useCallback((limit: number) => {
+    if (limit < 0) {
+      console.error('El límite debe ser mayor o igual a 0');
+      return;
+    }
+    
+    setPaginationOptions(prev => ({
+      ...prev,
+      limit,
+      // Resetear a página 1 cuando cambia el tamaño de página
+      page: 1
+    }));
+  }, []);
+
+  /**
+   * Desactiva la paginación y carga todas las categorías
+   */
+  const loadAllCategories = useCallback(() => {
+    setPaginationOptions({});
+  }, []);
 
   /**
    * Crea una nueva categoría
@@ -114,7 +234,15 @@ export default function useDashboardCategories(options: UseDashboardCategoriesOp
       
       // Actualizar estado local
       const newCategory = response.data;
-      setCategories(prev => [...prev, newCategory]);
+      
+      // Si estamos en la primera página o sin paginación, añadir la categoría al estado
+      // De lo contrario, recargar para mantener consistencia con el servidor
+      if (!paginationOptions.page || paginationOptions.page === 1) {
+        setCategories(prev => [...prev, newCategory]);
+      } else {
+        // Recargar para mantener integridad de datos
+        fetchCategories();
+      }
       
       toast.success('Categoría creada correctamente');
       onSuccess?.();
@@ -129,7 +257,7 @@ export default function useDashboardCategories(options: UseDashboardCategoriesOp
     } finally {
       setIsLoading(false);
     }
-  }, [clientId, onSuccess, onError]);
+  }, [clientId, fetchCategories, paginationOptions.page, onSuccess, onError]);
 
   /**
    * Actualiza una categoría existente
@@ -202,6 +330,19 @@ export default function useDashboardCategories(options: UseDashboardCategoriesOp
       // Actualizar estado local
       setCategories(prev => prev.filter(cat => cat.category_id !== categoryId));
       
+      // Si estamos usando paginación y esto reduce el número total por debajo del límite de la página
+      if (paginationMeta && categories.length <= 1 && paginationMeta.page > 1) {
+        // Ir a la página anterior
+        changePage(paginationMeta.page - 1);
+      } else if (paginationMeta) {
+        // Actualizar metadatos de paginación
+        setPaginationMeta(prev => prev ? {
+          ...prev,
+          total: Math.max(0, prev.total - 1),
+          totalPages: Math.max(1, Math.ceil((prev.total - 1) / prev.limit))
+        } : null);
+      }
+      
       toast.success('Categoría eliminada correctamente');
       onSuccess?.();
       
@@ -215,7 +356,7 @@ export default function useDashboardCategories(options: UseDashboardCategoriesOp
     } finally {
       setIsLoading(false);
     }
-  }, [clientId, onSuccess, onError]);
+  }, [clientId, categories.length, paginationMeta, changePage, onSuccess, onError]);
 
   /**
    * Cambia la visibilidad de una categoría
@@ -308,6 +449,13 @@ export default function useDashboardCategories(options: UseDashboardCategoriesOp
     isLoading,
     error,
     isUpdatingVisibility,
+    // Propiedades relacionadas con paginación
+    paginationMeta,
+    paginationOptions,
+    changePage,
+    changePageSize,
+    loadAllCategories,
+    // Funciones CRUD
     fetchCategories,
     createCategory,
     updateCategory,
