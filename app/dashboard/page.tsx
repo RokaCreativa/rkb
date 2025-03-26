@@ -1094,7 +1094,7 @@ export default function DashboardPage() {
           if (!prev[sectionId]) return prev;
           
           return {
-              ...prev,
+                ...prev,
             [sectionId]: prev[sectionId].filter(prod => prod.product_id !== productId)
           };
         });
@@ -1105,7 +1105,7 @@ export default function DashboardPage() {
         // Consideramos esto como un éxito a pesar del error en la respuesta
         return true;
       }
-              } catch (error) {
+            } catch (error) {
       console.error('Error en deleteProductAdapter:', error);
       toast.error('Error al eliminar el producto');
       return false;
@@ -1618,10 +1618,10 @@ export default function DashboardPage() {
           // Actualizar el estado local para eliminar el producto
           if (selectedSection) {
             const sectionId = selectedSection.section_id.toString();
-            setProducts(prev => ({
-              ...prev,
+                setProducts(prev => ({
+                  ...prev,
               [sectionId]: prev[sectionId].filter(product => product.product_id !== productId)
-            }));
+                }));
           }
         }}
       />

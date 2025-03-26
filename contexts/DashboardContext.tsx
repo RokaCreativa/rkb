@@ -55,7 +55,7 @@ const DashboardContext = createContext<DashboardContextType>({
   expandedSections: {},
   currentView: 'categories',
   selectedCategory: null,
-  selectedSection: null,
+        selectedSection: null,
   isUpdatingVisibility: null,
   
   // Acciones
