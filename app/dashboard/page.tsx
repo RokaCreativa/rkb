@@ -1054,11 +1054,9 @@ export default function DashboardPage() {
       productName = product?.name || '';
     }
     
-    // Abrir un cuadro de diálogo de confirmación nativo del navegador
-    if (window.confirm(`¿Estás seguro de que deseas eliminar el producto "${productName}"? Esta acción no se puede deshacer.`)) {
-      // Si el usuario confirma, llamar a la función de eliminación
-      deleteProductAdapter(productId);
-    }
+    // Guardar el ID del producto a eliminar y abrir el modal
+    setProductToDelete(productId);
+    setIsDeleteProductModalOpen(true);
   };
 
   // Crear un adaptador para la función deleteProduct que coincida con la interfaz esperada
@@ -1602,6 +1600,30 @@ export default function DashboardPage() {
           name: selectedSection.name,
           image: selectedSection.image ? getImagePath(selectedSection.image, 'sections') : undefined
         } : null}
+      />
+      
+      {/* Modal para confirmar eliminación de producto */}
+      <DeleteProductConfirmation
+        isOpen={isDeleteProductModalOpen}
+        onClose={() => {
+          setIsDeleteProductModalOpen(false);
+          setProductToDelete(null);
+        }}
+        productId={productToDelete || 0}
+        productName={productToDelete && selectedSection ? 
+          (products[selectedSection.section_id.toString()]?.find(p => p.product_id === productToDelete)?.name || '') : 
+          ''}
+        deleteProduct={deleteProductAdapter}
+        onDeleted={(productId: number) => {
+          // Actualizar el estado local para eliminar el producto
+          if (selectedSection) {
+            const sectionId = selectedSection.section_id.toString();
+            setProducts(prev => ({
+              ...prev,
+              [sectionId]: prev[sectionId].filter(product => product.product_id !== productId)
+            }));
+          }
+        }}
       />
     </>
   );

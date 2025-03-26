@@ -1,93 +1,125 @@
 /**
  * @file DeleteProductConfirmation.tsx
- * @description Componente específico para confirmar eliminación de productos
- * @author TuNombre
+ * @description Modal de confirmación para eliminar productos
+ * @author RokaMenu Team
  * @version 1.0.0
- * @lastUpdated 2024-03-27
+ * @updated 2024-03-27
  */
 
-import React, { useCallback } from 'react';
+import React, { useState } from 'react';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import ConfirmationModal from './ConfirmationModal';
 import { toast } from 'react-hot-toast';
-import { Product } from '@/app/types/menu';
-import { DeleteModal } from '../modals';
-import { useDashboardService } from '@/lib/hooks/dashboard';
 
+/**
+ * Props para el componente DeleteProductConfirmation
+ */
 interface DeleteProductConfirmationProps {
+  /**
+   * Determina si el modal está abierto o cerrado
+   */
+  isOpen: boolean;
+  
+  /**
+   * Función que se ejecuta al cerrar el modal
+   */
+  onClose: () => void;
+  
   /**
    * ID del producto a eliminar
    */
   productId: number;
   
   /**
-   * Nombre del producto a eliminar
+   * Nombre del producto (para mostrar en el mensaje)
    */
   productName: string;
   
   /**
-   * Indica si el modal está abierto
+   * Función para eliminar el producto
+   * @param productId ID del producto a eliminar
+   * @returns Promise con el resultado de la operación
    */
-  isOpen: boolean;
+  deleteProduct?: (productId: number) => Promise<boolean>;
   
   /**
-   * Función para cerrar el modal
+   * Función que se ejecuta después de eliminar el producto
+   * @param productId ID del producto eliminado
    */
-  onClose: () => void;
-  
-  /**
-   * Función a ejecutar después de eliminar correctamente
-   */
-  onDeleted?: (productId: number) => void;
+  onDeleted: (productId: number) => void;
 }
 
 /**
  * Componente para confirmar la eliminación de un producto
  * 
- * Este componente utiliza el DeleteModal genérico con configuración específica
- * para el caso de eliminación de productos, incluyendo:
- * - Llamada a la API del dashboard para eliminar el producto
- * - Manejo de errores y mensajes de éxito/error
- * - Actualización del estado después de la eliminación
+ * Muestra un modal con mensaje de advertencia y botones para confirmar o cancelar.
+ * Si el usuario confirma, realiza la solicitud al API para eliminar el producto.
+ * 
+ * @example
+ * <DeleteProductConfirmation
+ *   isOpen={isModalOpen}
+ *   onClose={() => setIsModalOpen(false)}
+ *   productId={123}
+ *   productName="Hamburguesa"
+ *   onDeleted={(id) => console.log(`Producto ${id} eliminado`)}
+ * />
  */
 const DeleteProductConfirmation: React.FC<DeleteProductConfirmationProps> = ({
-  productId,
-  productName,
   isOpen,
   onClose,
+  productId,
+  productName,
+  deleteProduct,
   onDeleted
 }) => {
-  // Obtener la función de eliminación del servicio del dashboard
-  const { deleteProduct } = useDashboardService();
+  const [isDeleting, setIsDeleting] = useState(false);
   
-  /**
-   * Función para eliminar el producto
-   */
-  const handleDeleteProduct = useCallback(async (id: number) => {
+  const handleDelete = async () => {
+    if (!productId) return;
+    
+    setIsDeleting(true);
     try {
-      const success = await deleteProduct(id);
+      let success = false;
+      
+      if (deleteProduct) {
+        // Usar la función proporcionada por el padre
+        success = await deleteProduct(productId);
+      } else {
+        // Fallback: Llamar directamente a la API si no se proporciona la función
+        const response = await fetch(`/api/products/${productId}`, {
+          method: 'DELETE',
+        });
+        
+        success = response.ok;
+      }
       
       if (success) {
-        if (onDeleted) {
-          onDeleted(id);
-        }
-        
-        return true;
+        toast.success('Producto eliminado correctamente');
+        onDeleted(productId);
+        onClose();
       } else {
-        return false;
+        throw new Error('Error al eliminar el producto');
       }
     } catch (error) {
-      console.error('Error al eliminar el producto:', error);
-      return false;
+      console.error('Error al eliminar producto:', error);
+      toast.error('No se pudo eliminar el producto');
+    } finally {
+      setIsDeleting(false);
     }
-  }, [productName, deleteProduct, onDeleted]);
+  };
   
   return (
-    <DeleteModal
-      itemType="product"
-      itemId={productId}
-      itemName={productName}
+    <ConfirmationModal
       isOpen={isOpen}
       onClose={onClose}
-      deleteFunction={handleDeleteProduct}
+      title="Eliminar producto"
+      message={`¿Estás seguro de que deseas eliminar el producto "${productName}"? Esta acción no se puede deshacer.`}
+      itemName={productName}
+      confirmText="Eliminar"
+      variant="danger"
+      cancelText="Cancelar"
+      isProcessing={isDeleting}
+      onConfirm={handleDelete}
     />
   );
 };

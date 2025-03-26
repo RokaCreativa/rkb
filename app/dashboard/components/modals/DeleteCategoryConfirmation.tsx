@@ -1,93 +1,107 @@
 /**
  * @file DeleteCategoryConfirmation.tsx
- * @description Componente específico para confirmar eliminación de categorías
- * @author TuNombre
+ * @description Modal de confirmación para eliminar categorías
+ * @author RokaMenu Team
  * @version 1.0.0
- * @lastUpdated 2024-03-27
+ * @updated 2024-03-27
  */
 
-import React, { useCallback } from 'react';
+import React, { useState } from 'react';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import ConfirmationModal from './ConfirmationModal';
 import { toast } from 'react-hot-toast';
-import { Category } from '@/app/types/menu';
-import { DeleteModal } from '../modals';
-import { useDashboardService } from '@/lib/hooks/dashboard';
 
+/**
+ * Props para el componente DeleteCategoryConfirmation
+ */
 interface DeleteCategoryConfirmationProps {
+  /**
+   * Determina si el modal está abierto o cerrado
+   */
+  isOpen: boolean;
+  
+  /**
+   * Función que se ejecuta al cerrar el modal
+   */
+  onClose: () => void;
+  
   /**
    * ID de la categoría a eliminar
    */
   categoryId: number;
   
   /**
-   * Nombre de la categoría a eliminar
+   * Nombre de la categoría (para mostrar en el mensaje)
    */
   categoryName: string;
   
   /**
-   * Indica si el modal está abierto
+   * Función que se ejecuta después de eliminar la categoría
+   * @param categoryId ID de la categoría eliminada
    */
-  isOpen: boolean;
-  
-  /**
-   * Función para cerrar el modal
-   */
-  onClose: () => void;
-  
-  /**
-   * Función a ejecutar después de eliminar correctamente
-   */
-  onDeleted?: (categoryId: number) => void;
+  onDeleted: (categoryId: number) => void;
 }
 
 /**
  * Componente para confirmar la eliminación de una categoría
  * 
- * Este componente utiliza el DeleteModal genérico con configuración específica
- * para el caso de eliminación de categorías, incluyendo:
- * - Llamada a la API del dashboard para eliminar la categoría
- * - Manejo de errores y mensajes de éxito/error
- * - Actualización del estado después de la eliminación
+ * Muestra un modal con mensaje de advertencia y botones para confirmar o cancelar.
+ * Si el usuario confirma, realiza la solicitud al API para eliminar la categoría.
+ * 
+ * @example
+ * <DeleteCategoryConfirmation
+ *   isOpen={isModalOpen}
+ *   onClose={() => setIsModalOpen(false)}
+ *   categoryId={123}
+ *   categoryName="Bebidas"
+ *   onDeleted={(id) => console.log(`Categoría ${id} eliminada`)}
+ * />
  */
 const DeleteCategoryConfirmation: React.FC<DeleteCategoryConfirmationProps> = ({
-  categoryId,
-  categoryName,
   isOpen,
   onClose,
+  categoryId,
+  categoryName,
   onDeleted
 }) => {
-  // Obtener la función de eliminación del servicio del dashboard
-  const { deleteCategory } = useDashboardService();
+  const [isDeleting, setIsDeleting] = useState(false);
   
-  /**
-   * Función para eliminar la categoría
-   */
-  const handleDeleteCategory = useCallback(async (id: number) => {
+  const handleDelete = async () => {
+    if (!categoryId) return;
+    
+    setIsDeleting(true);
     try {
-      const success = await deleteCategory(id);
+      const response = await fetch(`/api/categories/${categoryId}`, {
+        method: 'DELETE',
+      });
       
-      if (success) {
-        if (onDeleted) {
-          onDeleted(id);
-        }
-        
-        return true;
-      } else {
-        return false;
+      if (!response.ok) {
+        throw new Error('Error al eliminar la categoría');
       }
+      
+      toast.success('Categoría eliminada correctamente');
+      onDeleted(categoryId);
+      onClose();
     } catch (error) {
-      console.error('Error al eliminar la categoría:', error);
-      return false;
+      console.error('Error al eliminar categoría:', error);
+      toast.error('No se pudo eliminar la categoría');
+    } finally {
+      setIsDeleting(false);
     }
-  }, [categoryName, deleteCategory, onDeleted]);
+  };
   
   return (
-    <DeleteModal
-      itemType="category"
-      itemId={categoryId}
-      itemName={categoryName}
+    <ConfirmationModal
       isOpen={isOpen}
       onClose={onClose}
-      deleteFunction={handleDeleteCategory}
+      title="Eliminar categoría"
+      message={`¿Estás seguro de que deseas eliminar la categoría "${categoryName}"? Esta acción no se puede deshacer. Se eliminarán todas las secciones y productos asociados a esta categoría.`}
+      itemName={categoryName}
+      confirmText="Eliminar"
+      variant="danger"
+      cancelText="Cancelar"
+      isProcessing={isDeleting}
+      onConfirm={handleDelete}
     />
   );
 };
