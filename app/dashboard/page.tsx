@@ -35,6 +35,8 @@ import { PrismaClient } from '@prisma/client';
 import EditCategoryModal from './components/EditCategoryModal';
 // Importar los nuevos componentes de confirmación
 import { DeleteCategoryConfirmation, DeleteSectionConfirmation, DeleteProductConfirmation } from './components/modals';
+// Importar los nuevos componentes de acción
+import { CategoryActions, SectionActions, ProductActions, BackButton } from './components/actions';
 
 // Interfaces para FloatingPhonePreview
 interface FloatingPhoneCategory {
@@ -1210,15 +1212,7 @@ export default function DashboardPage() {
         <div className="space-y-3" ref={sectionListRef}>
           {currentView === 'categories' && (
             <div className="w-full px-4">
-              <div className="mb-4">
-                <button
-                  onClick={() => setIsNewCategoryModalOpen(true)}
-                  className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
-                >
-                  <PlusIcon className="h-5 w-5 mr-2" />
-                  Nueva Categoría
-                </button>
-              </div>
+              <CategoryActions onNewCategory={() => setIsNewCategoryModalOpen(true)} />
               <CategoryTable
                 categories={categories}
                 expandedCategories={expandedCategories}
@@ -1235,15 +1229,10 @@ export default function DashboardPage() {
           {currentView === 'sections' && selectedCategory && (
             <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 px-4">
               <div className="w-full md:w-2/3">
-                <div className="mb-4">
-                  <button
-                    onClick={() => setIsNewSectionModalOpen(true)}
-                    className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
-                  >
-                    <PlusIcon className="h-5 w-5 mr-2" />
-                    Añadir nueva sección a {selectedCategory.name}
-                  </button>
-                </div>
+                <SectionActions 
+                  categoryName={selectedCategory.name}
+                  onNewSection={() => setIsNewSectionModalOpen(true)} 
+                />
                 {sections[selectedCategory.category_id] ? (
                   <SectionTable 
                     sections={sections[selectedCategory.category_id]?.map(s => ({
@@ -1302,15 +1291,10 @@ export default function DashboardPage() {
       {currentView === 'products' && selectedCategory && selectedSection && (
             <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 px-4">
               <div className="w-full md:w-2/3">
-                <div className="mb-4">
-                  <button
-                    onClick={() => setIsNewProductModalOpen(true)}
-                    className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
-                  >
-                    <PlusIcon className="h-5 w-5 mr-2" />
-                    Añadir nuevo producto a {selectedSection.name}
-                  </button>
-                </div>
+                <ProductActions 
+                  sectionName={selectedSection.name}
+                  onNewProduct={() => setIsNewProductModalOpen(true)} 
+                />
                 {productsFromHook[selectedSection.section_id] ? (
                   <ProductTable 
                     products={productsFromHook[selectedSection.section_id]}
@@ -1370,19 +1354,14 @@ export default function DashboardPage() {
               id={`category-${category.category_id}`}
               className="mt-4 pl-4 pr-4 border-l-2 border-indigo-100 max-w-[95%] mx-auto"
             >
-              <div className="mb-4">
-                <button
-                  onClick={() => {
-                    setSelectedCategory(category);
-                    setIsNewSectionModalOpen(true);
-                  }}
-                  className="w-full flex items-center justify-center px-4 py-2 border border-teal-300 text-sm font-medium rounded-md text-teal-700 bg-teal-50 hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 shadow-sm"
-                >
-                  <PlusIcon className="h-5 w-5 mr-2" />
-                  Nueva Sección
-                </button>
-              </div>
-              <SectionTable 
+              <SectionActions 
+                categoryName={category.name}
+                onNewSection={() => {
+                  setSelectedCategory(category);
+                  setIsNewSectionModalOpen(true);
+                }} 
+              />
+              <SectionTable
                 sections={sections[category.category_id]?.map(s => ({
                   ...s,
                   image: s.image || null,
