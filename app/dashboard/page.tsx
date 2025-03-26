@@ -99,7 +99,11 @@ async function fetchClientData() {
  * 
  * @param options - Opciones de paginación (page y limit)
  * @returns Promise con las categorías o un objeto con datos paginados y metadatos
- * Actualizado: 30-05-2024 (UTC+0 - Londres)
+ * @example
+ * // Sin paginación - obtiene todas las categorías
+ * const allCategories = await fetchCategories();
+ * // Con paginación - obtiene página específica
+ * const pagedCategories = await fetchCategories({ page: 2, limit: 10 });
  */
 async function fetchCategories(options?: { page?: number; limit?: number }) {
   let url = '/api/categories';
@@ -717,6 +721,19 @@ export default function DashboardPage() {
   }, [categories, isLoading]);
 
   // Efecto para cargar datos iniciales al autenticarse
+  /**
+   * Flujo de datos para paginación:
+   * 1. El estado categoryPagination controla cómo se cargan los datos
+   * 2. Cuando categoryPagination.enabled = true:
+   *   - Se envían parámetros page y limit a la API 
+   *   - API devuelve sólo los datos de la página actual y metadata
+   *   - Se actualizan los estados: categories y categoryPaginationMeta
+   * 3. Cuando categoryPagination.enabled = false:
+   *   - Se cargan todos los datos sin paginación
+   *   - Se almacenan en categories sin metadata de paginación
+   * 4. Los cambios en categoryPagination (por UI) desencadenan 
+   *    este efecto para recargar datos con la nueva configuración
+   */
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -1244,7 +1261,12 @@ export default function DashboardPage() {
     }
   };
 
-  // Manejar cambio de página en categorías
+  /**
+   * Maneja el cambio de página en la lista de categorías
+   * Actualiza el estado de paginación y desencadena una nueva carga de datos
+   * 
+   * @param page - Número de página a la que navegar (comienza en 1)
+   */
   const handleCategoryPageChange = (page: number) => {
     setCategoryPagination(prev => ({
       ...prev,
@@ -1252,7 +1274,12 @@ export default function DashboardPage() {
     }));
   };
   
-  // Manejar cambio de tamaño de página en categorías
+  /**
+   * Maneja el cambio de tamaño de página en categorías
+   * Actualiza el límite de elementos por página y reinicia a la primera página
+   * 
+   * @param limit - Nuevo número de elementos por página
+   */
   const handleCategoryPageSizeChange = (limit: number) => {
     setCategoryPagination(prev => ({
       ...prev,
@@ -1261,7 +1288,11 @@ export default function DashboardPage() {
     }));
   };
   
-  // Activar/desactivar paginación de categorías
+  /**
+   * Activa o desactiva la paginación de categorías
+   * Cuando se activa, se cargan los datos con paginación desde la API
+   * Cuando se desactiva, se cargan todos los datos sin paginación
+   */
   const toggleCategoryPagination = () => {
     setCategoryPagination(prev => ({
       ...prev,
@@ -1269,8 +1300,14 @@ export default function DashboardPage() {
       page: 1 // Resetear a primera página
     }));
   };
-
-  // Modificar la función para obtener las categorías de la página actual
+  
+  /**
+   * Obtiene las categorías de la página actual
+   * Con la implementación actual, simplemente devuelve todas las categorías
+   * ya que el filtrado se hace en la API cuando la paginación está habilitada
+   * 
+   * @returns Array de categorías para mostrar en la UI
+   */
   const getCurrentPageCategories = () => {
     // Ya sea con paginación habilitada (datos ya filtrados por API) o no (todos los datos),
     // simplemente devolvemos el array de categorías actual
