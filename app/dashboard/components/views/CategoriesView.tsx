@@ -117,37 +117,39 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({
     isLoading
   } = useDashboard();
   
-  // Usar el hook de drag and drop para manejar el reordenamiento
-  const { getDragHandlers } = useDragAndDrop<Category>({
-    items: categories,
-    idField: 'category_id',
-    onReorder: async (reordered) => {
-      try {
-        // Actualizar visualmente el orden inmediatamente
-        // (esto se maneja internamente en el hook)
-        
-        // Enviar los cambios al servidor
-        const updatePromises = reordered.map((category, index) => 
-          fetch(`/api/categories/${category.category_id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              display_order: index + 1,
-              name: category.name,
-              client_id: category.client_id,
-              image: category.image || null,
-              status: category.status
-            }),
-          })
-        );
-        
-        await Promise.all(updatePromises);
-        toast.success('Orden de categorías actualizado');
-      } catch (error) {
-        console.error('Error al reordenar categorías:', error);
-        toast.error('Error al actualizar el orden de las categorías');
-      }
+  // Función para reordenar categorías
+  const reorderCategories = async (sourceIndex: number, destinationIndex: number) => {
+    const reorderedCategories = [...categories];
+    const [removed] = reorderedCategories.splice(sourceIndex, 1);
+    reorderedCategories.splice(destinationIndex, 0, removed);
+    
+    try {
+      // Enviar los cambios al servidor
+      const updatePromises = reorderedCategories.map((category, index) => 
+        fetch(`/api/categories/${category.category_id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            display_order: index + 1,
+            name: category.name,
+            client_id: category.client_id,
+            image: category.image || null,
+            status: category.status
+          }),
+        })
+      );
+      
+      await Promise.all(updatePromises);
+      toast.success('Orden de categorías actualizado');
+    } catch (error) {
+      console.error('Error al reordenar categorías:', error);
+      toast.error('Error al actualizar el orden de las categorías');
     }
+  };
+  
+  // Usar el hook de drag and drop para manejar el reordenamiento
+  const { getDragHandlers } = useDragAndDrop<Category>((sourceIndex: number, destinationIndex: number) => {
+    reorderCategories(sourceIndex, destinationIndex);
   });
   
   // Función para actualizar la visibilidad de una categoría
@@ -199,7 +201,7 @@ const CategoriesView: React.FC<CategoriesViewProps> = ({
         onDeleteCategory={onDeleteCategory}
         onToggleVisibility={toggleCategoryVisibility}
         isUpdatingVisibility={null}
-        onReorderCategory={getDragHandlers().onDragEnd}
+        onReorderCategory={reorderCategories}
       />
     </div>
   );
