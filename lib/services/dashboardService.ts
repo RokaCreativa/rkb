@@ -6,7 +6,20 @@
  * @lastUpdated 2024-03-27
  */
 
-import { Category, Section, Product, Client } from '@/app/types/menu';
+import { Category as BaseCategory, Section as BaseSection, Product as BaseProduct, Client } from '@/app/types/menu';
+
+// Extender los tipos para incluir File en la propiedad image
+interface Category extends Omit<BaseCategory, 'image'> {
+  image?: File | string | null;
+}
+
+interface Section extends Omit<BaseSection, 'image'> {
+  image?: File | string | null;
+}
+
+interface Product extends Omit<BaseProduct, 'image'> {
+  image?: File | string | null;
+}
 
 /**
  * Servicio para manejar las operaciones de API del dashboard
@@ -310,6 +323,232 @@ export const DashboardService = {
       return await response.json();
     } catch (error) {
       console.error('Error al eliminar la sección:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Crea una nueva categoría
+   * 
+   * @param category - Datos de la categoría a crear
+   * @param clientId - ID del cliente (opcional)
+   * @returns Promise con la respuesta de la API
+   */
+  async createCategory(category: Partial<Category>, clientId?: number): Promise<{ success: boolean }> {
+    try {
+      const formData = new FormData();
+      
+      // Agregar datos básicos
+      formData.append('name', category.name || '');
+      formData.append('status', String(category.status || 1));
+      if (clientId) formData.append('client_id', String(clientId));
+      
+      // Agregar imagen si existe
+      if (category.image instanceof File) {
+        formData.append('image', category.image);
+      }
+      
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al crear la categoría');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error al crear la categoría:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Actualiza una categoría existente
+   * 
+   * @param categoryId - ID de la categoría a actualizar
+   * @param data - Datos actualizados de la categoría
+   * @returns Promise con la respuesta de la API
+   */
+  async updateCategory(categoryId: number, data: Partial<Category>): Promise<{ success: boolean }> {
+    try {
+      const formData = new FormData();
+      
+      // Agregar datos básicos
+      formData.append('category_id', String(categoryId));
+      if (data.name) formData.append('name', data.name);
+      if (typeof data.status !== 'undefined') formData.append('status', String(data.status));
+      
+      // Agregar imagen si existe
+      if (data.image instanceof File) {
+        formData.append('image', data.image);
+      }
+      
+      const response = await fetch('/api/categories', {
+        method: 'PUT',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al actualizar la categoría');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error al actualizar la categoría:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Crea una nueva sección
+   * 
+   * @param section - Datos de la sección a crear
+   * @param categoryId - ID de la categoría padre
+   * @returns Promise con la respuesta de la API
+   */
+  async createSection(section: Partial<Section>, categoryId: number): Promise<{ success: boolean }> {
+    try {
+      const formData = new FormData();
+      
+      // Agregar datos básicos
+      formData.append('name', section.name || '');
+      formData.append('status', String(section.status || 1));
+      formData.append('category_id', String(categoryId));
+      
+      // Agregar imagen si existe
+      if (section.image instanceof File) {
+        formData.append('image', section.image);
+      }
+      
+      const response = await fetch('/api/sections', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al crear la sección');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error al crear la sección:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Actualiza una sección existente
+   * 
+   * @param sectionId - ID de la sección a actualizar
+   * @param data - Datos actualizados de la sección
+   * @returns Promise con la respuesta de la API
+   */
+  async updateSection(sectionId: number, data: Partial<Section>): Promise<{ success: boolean }> {
+    try {
+      const formData = new FormData();
+      
+      // Agregar datos básicos
+      formData.append('section_id', String(sectionId));
+      if (data.name) formData.append('name', data.name);
+      if (typeof data.status !== 'undefined') formData.append('status', String(data.status));
+      
+      // Agregar imagen si existe
+      if (data.image instanceof File) {
+        formData.append('image', data.image);
+      }
+      
+      const response = await fetch('/api/sections', {
+        method: 'PUT',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al actualizar la sección');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error al actualizar la sección:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Crea un nuevo producto
+   * 
+   * @param product - Datos del producto a crear
+   * @param sectionId - ID de la sección padre
+   * @returns Promise con la respuesta de la API
+   */
+  async createProduct(product: Partial<Product>, sectionId: number): Promise<{ success: boolean }> {
+    try {
+      const formData = new FormData();
+      
+      // Agregar datos básicos
+      formData.append('name', product.name || '');
+      formData.append('description', product.description || '');
+      formData.append('price', String(product.price || 0));
+      formData.append('status', String(product.status || 1));
+      formData.append('section_id', String(sectionId));
+      
+      // Agregar imagen si existe
+      if (product.image instanceof File) {
+        formData.append('image', product.image);
+      }
+      
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al crear el producto');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error al crear el producto:', error);
+      throw error;
+    }
+  },
+
+  /**
+   * Actualiza un producto existente
+   * 
+   * @param productId - ID del producto a actualizar
+   * @param data - Datos actualizados del producto
+   * @returns Promise con la respuesta de la API
+   */
+  async updateProduct(productId: number, data: Partial<Product>): Promise<{ success: boolean }> {
+    try {
+      const formData = new FormData();
+      
+      // Agregar datos básicos
+      formData.append('product_id', String(productId));
+      if (data.name) formData.append('name', data.name);
+      if (data.description) formData.append('description', data.description);
+      if (typeof data.price !== 'undefined') formData.append('price', String(data.price));
+      if (typeof data.status !== 'undefined') formData.append('status', String(data.status));
+      
+      // Agregar imagen si existe
+      if (data.image instanceof File) {
+        formData.append('image', data.image);
+      }
+      
+      const response = await fetch('/api/products', {
+        method: 'PUT',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al actualizar el producto');
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error al actualizar el producto:', error);
       throw error;
     }
   }

@@ -1490,12 +1490,33 @@ export default function DashboardPage() {
         isOpen={isEditProductModalOpen}
         onClose={() => {
           setIsEditProductModalOpen(false);
-            setEditingProduct(null);
+          setEditingProduct(null);
         }}
-          productToEdit={editingProduct as any}
+        productToEdit={editingProduct as any}
         client={client as any}
         selectedSection={selectedSection}
         setProducts={setProducts}
+        onSuccess={() => {
+          // Recargar los productos después de editar
+          if (selectedSection) {
+            console.log("Recargando productos después de editar producto...");
+            fetch(`/api/products?section_id=${selectedSection.section_id}`)
+              .then(response => {
+                if (!response.ok) throw new Error('Error al cargar productos');
+                return response.json();
+              })
+              .then(productData => {
+                console.log("Datos de productos actualizados:", productData);
+                setProducts(prev => ({
+                  ...prev,
+                  [selectedSection.section_id]: productData
+                }));
+              })
+              .catch(err => {
+                console.error("Error al recargar productos:", err);
+              });
+          }
+        }}
       />
       
         {/* Modal para editar sección */}

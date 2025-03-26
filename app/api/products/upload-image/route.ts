@@ -1,14 +1,17 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/prisma/prisma';
-import fs from 'fs';
-import path from 'path';
+import { writeFile } from 'fs/promises';
+import { join } from 'path';
 
-// Ruta para procesar y guardar imágenes de productos
+/**
+ * Endpoint para subir una imagen de producto
+ * @route POST /api/products/upload-image
+ */
 export async function POST(request: Request) {
   try {
-    // 1. Verificación de autenticación
+    // 1. Verificar autenticación
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
@@ -23,23 +26,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
-    // 3. Obtener y validar los datos del formulario
+    // 3. Procesar FormData para obtener el archivo y el ID del producto
     const formData = await request.formData();
-    const productId = formData.get('product_id');
+    const productIdStr = formData.get('product_id');
     const file = formData.get('image') as File | null;
 
-    if (!productId) {
-      return NextResponse.json({ error: 'ID de producto es requerido' }, { status: 400 });
+    console.log('POST /api/products/upload-image - productId:', productIdStr);
+
+    if (!productIdStr) {
+      return NextResponse.json({ error: 'ID de producto requerido' }, { status: 400 });
     }
+
+    const productId = parseInt(productIdStr.toString());
 
     if (!file) {
-      return NextResponse.json({ error: 'No se proporcionó ninguna imagen' }, { status: 400 });
+      return NextResponse.json({ error: 'Imagen requerida' }, { status: 400 });
     }
 
-    // 4. Verificar que el producto pertenezca al cliente del usuario
+    // 4. Verificar que el producto existe y pertenece al cliente
     const product = await prisma.products.findFirst({
       where: {
-        product_id: Number(productId),
+        product_id: productId,
         client_id: user.client_id,
       },
     });
@@ -48,58 +55,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
     }
 
-    // 5. Procesar la imagen
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // 5. Procesar y guardar la imagen
+    try {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
 
-    // Crear nombre de archivo único basado en timestamp
-    const timestamp = Date.now();
-    const originalName = file.name.replace(/\s+/g, '-').toLowerCase();
-    const extension = path.extname(originalName);
-    const filename = `product_${product.product_id}_${timestamp}${extension}`;
+      // Crear nombre de archivo único (timestamp + nombre original)
+      const timestamp = Date.now();
+      const fileName = file.name.replace(/\s+/g, '-').toLowerCase();
+      const uniqueFileName = `${timestamp}_${fileName}`;
 
-    // Asegurar que el directorio existe
-    const uploadDir = path.join(process.cwd(), 'public', 'images', 'products');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+      // Guardar la imagen en el directorio público
+      const publicDir = join(process.cwd(), 'public');
+      const productsDir = join(publicDir, 'images', 'products');
+      const imagePath = join(productsDir, uniqueFileName);
+
+      await writeFile(imagePath, buffer);
+
+      // 6. Actualizar el producto con la nueva imagen
+      await prisma.products.update({
+        where: {
+          product_id: productId,
+        },
+        data: {
+          image: uniqueFileName,
+        },
+      });
+
+      // 7. Retornar éxito con la URL de la imagen
+      return NextResponse.json({
+        success: true,
+        image: uniqueFileName,
+        imageUrl: `/images/products/${uniqueFileName}`,
+      });
+    } catch (error) {
+      console.error('Error al procesar la imagen:', error);
+      return NextResponse.json({ error: 'Error al procesar la imagen' }, { status: 500 });
     }
-
-    // Escribir el archivo en el sistema de archivos
-    const filepath = path.join(uploadDir, filename);
-    fs.writeFileSync(filepath, buffer);
-
-    // 6. Actualizar la referencia de la imagen en la base de datos
-    // Si hay una imagen anterior, eliminarla
-    if (product.image) {
-      try {
-        const oldImagePath = path.join(process.cwd(), 'public', 'images', 'products', product.image as string);
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
-      } catch (error) {
-        console.error('Error al eliminar imagen anterior:', error);
-      }
-    }
-
-    // Actualizar la referencia en la base de datos
-    await prisma.products.update({
-      where: {
-        product_id: Number(productId),
-      },
-      data: {
-        image: filename,
-      },
-    });
-
-    // 7. Devolver la respuesta
-    return NextResponse.json({ 
-      success: true, 
-      image: filename,
-      imageUrl: `/images/products/${filename}`
-    });
-
   } catch (error) {
-    console.error('Error al procesar la imagen del producto:', error);
-    return NextResponse.json({ error: 'Error al procesar la imagen' }, { status: 500 });
+    console.error('Error en upload-image:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 } 

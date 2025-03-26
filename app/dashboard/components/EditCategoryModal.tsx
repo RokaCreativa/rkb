@@ -1,5 +1,3 @@
-"use client";
-
 import React, { Fragment, useState, useRef, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
@@ -61,11 +59,12 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
       setEditCategoryName(categoryToEdit.name || '');
       
       if (categoryToEdit.image) {
-        // Para imágenes de categorías, necesitamos la ruta completa
-        const imagePath = `/images/categories/${categoryToEdit.image}`;
-        setEditImagePreview(imagePath);
+        // Usar la URL completa de la imagen
+        setEditImagePreview(categoryToEdit.image);
+        console.log('Imagen de categoría cargada:', categoryToEdit.image);
       } else {
         setEditImagePreview(null);
+        console.log('La categoría no tiene imagen');
       }
     }
   }, [categoryToEdit, isOpen]);

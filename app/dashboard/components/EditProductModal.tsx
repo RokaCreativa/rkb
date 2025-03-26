@@ -68,29 +68,18 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   setProducts,
   onSuccess
 }) => {
-  /**
-   * Estados para el formulario y la gestión del producto
-   */
-  // Estados para los campos del formulario
+  // Estados para el formulario
   const [editProductName, setEditProductName] = useState('');
   const [editProductPrice, setEditProductPrice] = useState('');
   const [editProductDescription, setEditProductDescription] = useState('');
-  
-  // Estados para la gestión de imágenes
   const [editProductImage, setEditProductImage] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
-  
-  // Estados para controlar el flujo y estado de la operación
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
+  
+  // Obtener producto completo desde el estado
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
 
-  // Referencia para el input de archivos
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  /**
-   * Hook personalizado para gestionar operaciones CRUD de productos
-   * con manejo integrado de notificaciones y estado
-   */
+  // Usar el hook de productos
   const { updateProduct } = useProducts({
     onSuccess: () => {
       if (onSuccess) {
@@ -110,9 +99,14 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     // Obtener el producto completo del estado de productos
     const fetchProductDetails = async () => {
       try {
+        setIsUpdatingProduct(true); // Mostrar estado de carga
+        console.time('fetchProductDetails');
+        
         const response = await fetch(`/api/products/${productToEdit.id}`);
         if (!response.ok) throw new Error('Error al obtener detalles del producto');
         const product = await response.json();
+        
+        console.log('Producto obtenido:', product);
         setCurrentProduct(product);
         
         // Establecer valores iniciales
@@ -121,15 +115,18 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         setEditProductDescription(product.description || '');
         
         if (product.image) {
-          // Para imágenes de productos, necesitamos la ruta completa
-          const imagePath = `/images/products/${product.image}`;
-          setEditImagePreview(imagePath);
+          console.log('Imagen del producto:', product.image);
+          // La imagen ya incluye la ruta completa desde la API
+          setEditImagePreview(product.image);
         } else {
           setEditImagePreview(null);
         }
+        console.timeEnd('fetchProductDetails');
       } catch (error) {
         console.error('Error al cargar detalles del producto:', error);
         toast.error('No se pudieron cargar los detalles del producto');
+      } finally {
+        setIsUpdatingProduct(false);
       }
     };
     
@@ -187,10 +184,21 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       // Solo agregar la imagen si se ha seleccionado una nueva
       if (editProductImage) {
         formData.append('image', editProductImage);
+      } else if (currentProduct?.image) {
+        // Si no hay una nueva imagen pero hay una imagen existente, incluirla en el formulario
+        formData.append('image', currentProduct.image);
       }
 
       // Usar la función updateProduct del hook
       await updateProduct(formData);
+      
+      // Forzar actualización manual si onSuccess está disponible
+      if (onSuccess) {
+        console.log("Ejecutando onSuccess desde handleSubmit...");
+        setTimeout(() => {
+          onSuccess();
+        }, 100); // Pequeño retraso para asegurar que la API se ha actualizado
+      }
       
       // Cerrar el modal (el mensaje de éxito lo muestra el hook)
       handleCloseModal();
@@ -214,6 +222,9 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     setCurrentProduct(null);
     onClose();
   };
+
+  // Referencia para el input de archivos
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -251,7 +262,18 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                   <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
                     Editar Producto
                   </Dialog.Title>
-                  <div className="mt-2">
+                  
+                  {isUpdatingProduct && (
+                    <div className="mt-2 flex items-center justify-center py-4">
+                      <svg className="animate-spin h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span className="ml-2 text-sm text-gray-600">Cargando datos...</span>
+                    </div>
+                  )}
+                  
+                  <div className={`mt-2 ${isUpdatingProduct ? 'opacity-50 pointer-events-none' : ''}`}>
                     {/* Campo de nombre de producto */}
                     <div className="mb-4">
                       <label htmlFor="productName" className="block text-sm font-medium text-gray-700">
@@ -407,4 +429,5 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   );
 };
 
-export default EditProductModal; 
+// Exportar componente optimizado
+export default React.memo(EditProductModal); 

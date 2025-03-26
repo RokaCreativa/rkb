@@ -133,6 +133,27 @@ export const useDashboardService = () => {
   // ----- FUNCIONES PARA CATEGORÍAS -----
 
   /**
+   * Obtiene todas las categorías del cliente actual
+   */
+  const fetchCategories = useCallback(async (): Promise<Category[]> => {
+    const result = await executeApiCall(
+      async () => DashboardService.fetchCategories(),
+      undefined,
+      true
+    );
+    
+    return result?.categories?.map(category => ({
+      category_id: category.category_id,
+      name: category.name,
+      image: typeof category.image === 'string' ? category.image : null,
+      status: category.status,
+      display_order: category.display_order,
+      client_id: category.client_id,
+      sections_count: category.sections_count
+    })) || [];
+  }, [executeApiCall]);
+
+  /**
    * Crea una nueva categoría
    * 
    * @param category - Datos de la categoría a crear
@@ -213,6 +234,30 @@ export const useDashboardService = () => {
   }, []);
 
   // ----- FUNCIONES PARA SECCIONES -----
+
+  /**
+   * Obtiene todas las secciones de una categoría
+   */
+  const fetchSections = useCallback(async (categoryId: number): Promise<Section[]> => {
+    const result = await executeApiCall(
+      async () => DashboardService.fetchSections(categoryId),
+      undefined,
+      true
+    );
+    
+    return result?.sections?.map(section => ({
+      section_id: section.section_id,
+      name: section.name,
+      image: typeof section.image === 'string' ? section.image : null,
+      category_id: section.category_id,
+      client_id: section.client_id,
+      display_order: section.display_order,
+      status: section.status,
+      created_at: section.created_at,
+      updated_at: section.updated_at,
+      products_count: section.products_count
+    })) || [];
+  }, [executeApiCall]);
 
   /**
    * Crea una nueva sección dentro de una categoría
@@ -301,6 +346,30 @@ export const useDashboardService = () => {
   // ----- FUNCIONES PARA PRODUCTOS -----
 
   /**
+   * Obtiene todos los productos de una sección
+   */
+  const fetchProducts = useCallback(async (sectionId: number): Promise<Product[]> => {
+    const result = await executeApiCall(
+      async () => DashboardService.fetchProducts(sectionId),
+      undefined,
+      true
+    );
+    
+    return result?.products?.map(product => ({
+      product_id: product.product_id,
+      name: product.name,
+      image: typeof product.image === 'string' ? product.image : null,
+      status: product.status,
+      price: product.price,
+      section_id: product.section_id,
+      client_id: product.client_id,
+      display_order: product.display_order,
+      description: product.description,
+      sections: product.sections
+    })) || [];
+  }, [executeApiCall]);
+
+  /**
    * Crea un nuevo producto dentro de una sección
    * 
    * @param product - Datos del producto a crear
@@ -384,28 +453,34 @@ export const useDashboardService = () => {
     return !!result?.success;
   }, [executeApiCall]);
 
+  // Retornar todas las funciones y estados
   return {
     // Estados
     isLoading,
     error,
+    
+    // Funciones de utilidad
     isItemUpdating,
     
-    // Funciones para datos del cliente
+    // Funciones del cliente
     fetchClientData,
     
-    // Funciones para categorías
+    // Funciones de categorías
+    fetchCategories,
     createCategory,
     updateCategory,
     deleteCategory,
     reorderCategories,
     
-    // Funciones para secciones
+    // Funciones de secciones
+    fetchSections,
     createSection,
     updateSection,
     deleteSection,
     reorderSections,
     
-    // Funciones para productos
+    // Funciones de productos
+    fetchProducts,
     createProduct,
     updateProduct,
     deleteProduct,

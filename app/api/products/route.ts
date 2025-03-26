@@ -121,7 +121,20 @@ export async function GET(request: Request) {
       return {
         product_id: product.product_id,
         name: product.name || '',
-        image: product.image ? `${IMAGE_BASE_PATH}${product.image}` : null,
+        image: product.image 
+          ? (() => {
+              // Si ya contiene el prefijo completo, devolverlo tal cual
+              if (product.image.startsWith('/images/products/')) {
+                return product.image;
+              }
+              // Si contiene el prefijo sin la barra inicial, añadirla
+              if (product.image.startsWith('images/products/')) {
+                return '/' + product.image;
+              }
+              // En cualquier otro caso, añadir el prefijo completo
+              return `${IMAGE_BASE_PATH}${product.image}`;
+            })()
+          : null,
         status: product.status ? 1 : 0,
         display_order: product.display_order || 0,
         client_id: product.client_id || 0,
@@ -336,6 +349,8 @@ export async function PUT(request: Request) {
     if (data.description !== undefined) updateData.description = data.description;
     
     console.log('PUT /api/products - Datos a actualizar:', updateData);
+    console.log('PUT /api/products - ¿Imagen incluida?:', data.image !== undefined);
+    console.log('PUT /api/products - Valor de imagen:', data.image);
 
     // 5. Actualizar el producto
     await prisma.products.updateMany({
@@ -405,7 +420,20 @@ export async function PUT(request: Request) {
     const processedProduct: ProcessedProduct = {
       product_id: updatedProduct.product_id,
       name: updatedProduct.name || '',
-      image: updatedProduct.image ? `${IMAGE_BASE_PATH}${updatedProduct.image}` : null,
+      image: updatedProduct.image 
+        ? (() => {
+            // Si ya contiene el prefijo completo, devolverlo tal cual
+            if (updatedProduct.image.startsWith('/images/products/')) {
+              return updatedProduct.image;
+            }
+            // Si contiene el prefijo sin la barra inicial, añadirla
+            if (updatedProduct.image.startsWith('images/products/')) {
+              return '/' + updatedProduct.image;
+            }
+            // En cualquier otro caso, añadir el prefijo completo
+            return `${IMAGE_BASE_PATH}${updatedProduct.image}`;
+          })()
+        : null,
       status: updatedProduct.status ? 1 : 0,
       display_order: updatedProduct.display_order || 0,
       client_id: updatedProduct.client_id || 0,

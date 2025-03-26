@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const name = formData.get('name') as string;
     const file = formData.get('image') as File | null;
-    const status = formData.get('status') === '1'; // Convertir a booleano
+    const status = formData.get('status') !== '0'; // Si no se especifica explícitamente como 0, será activo
 
     if (!name) {
       return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
       data: {
         name,
         image: imageUrl,
-        status,
+        status: true, // Por defecto activo
         display_order: maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 1,
         client_id: user.client_id,
         deleted: 'N', // Mantener compatibilidad con el esquema actual
@@ -191,43 +191,60 @@ export async function PUT(request: Request) {
     }
 
     // 3. Obtener y validar los datos de actualización
-    const data = await request.json();
-    console.log('PUT /api/categories - Datos recibidos:', data);
+    const formData = await request.formData();
+    const categoryId = parseInt(formData.get('category_id') as string);
+    const name = formData.get('name') as string;
+    const status = formData.get('status') !== '0'; // Si no se especifica explícitamente como 0, será activo
+    const file = formData.get('image') as File | null;
 
-    if (!data.category_id) {
-      return NextResponse.json({ error: 'ID de categoría requerido' }, { status: 400 });
+    if (!categoryId || isNaN(categoryId)) {
+      return NextResponse.json({ error: 'ID de categoría inválido' }, { status: 400 });
     }
 
-    // 4. Preparar los datos de actualización
-    const updateData: any = {};
-    
-    if (data.name !== undefined) updateData.name = data.name;
-    if (data.display_order !== undefined) updateData.display_order = data.display_order;
-    if (data.image !== undefined) updateData.image = data.image;
-    if (data.status !== undefined) updateData.status = data.status === 1; // Convertir numérico a booleano
-    
-    console.log('PUT /api/categories - Datos a actualizar:', updateData);
-
-    // 5. Actualizar la categoría
-    await prisma.categories.updateMany({
+    // 4. Verificar que la categoría existe y pertenece al cliente
+    const existingCategory = await prisma.categories.findFirst({
       where: {
-        category_id: data.category_id,
+        category_id: categoryId,
         client_id: user.client_id,
+        deleted: { not: 'Y' },
+      },
+    });
+
+    if (!existingCategory) {
+      return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
+    }
+
+    // 5. Procesar la imagen si existe
+    let imageUrl = undefined;
+    if (file) {
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      // Crear un nombre de archivo único con timestamp
+      const timestamp = Date.now();
+      const fileName = file.name;
+      const uniqueFileName = `${timestamp}_${fileName}`;
+      
+      // Guardar la imagen en el sistema de archivos
+      const path = join(process.cwd(), 'public', 'images', 'categories', uniqueFileName);
+      await writeFile(path, buffer);
+      
+      // URL relativa para la base de datos
+      imageUrl = uniqueFileName;
+    }
+
+    // 6. Actualizar la categoría
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (typeof status !== 'undefined') updateData.status = status;
+    if (imageUrl) updateData.image = imageUrl;
+
+    const updatedCategory = await prisma.categories.update({
+      where: {
+        category_id: categoryId,
       },
       data: updateData,
     });
-
-    // 6. Obtener la categoría actualizada
-    const updatedCategory = await prisma.categories.findFirst({
-      where: {
-        category_id: data.category_id,
-        client_id: user.client_id,
-      },
-    });
-
-    if (!updatedCategory) {
-      return NextResponse.json({ error: 'No se pudo actualizar la categoría' }, { status: 404 });
-    }
 
     // 7. Preparar la respuesta
     const processedCategory: ProcessedCategory = {
@@ -237,12 +254,11 @@ export async function PUT(request: Request) {
       status: updatedCategory.status ? 1 : 0,
       display_order: updatedCategory.display_order || 0,
       client_id: updatedCategory.client_id || 0,
-      products: 0, // No calculamos productos para esta respuesta
+      products: 0,
     };
 
-    return NextResponse.json(processedCategory);
+    return NextResponse.json({ success: true, category: processedCategory });
   } catch (error) {
-    // 8. Manejo centralizado de errores
     console.error('Error al actualizar la categoría:', error);
     return NextResponse.json({ error: 'Error al actualizar la categoría' }, { status: 500 });
   }

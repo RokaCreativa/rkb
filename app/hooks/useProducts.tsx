@@ -108,6 +108,18 @@ export default function useProducts(options?: UseProductsOptions) {
         throw new Error('ID de sección no proporcionado');
       }
       
+      console.log('Actualizando producto con ID:', productId);
+      console.log('Datos del formulario:', Object.fromEntries(productData.entries()));
+      
+      // Obtener la imagen del formulario
+      const imageFile = productData.get('image');
+      let imageValue = null;
+      
+      // Si la imagen es una cadena (URL existente), usarla directamente
+      if (imageFile && typeof imageFile === 'string') {
+        imageValue = imageFile;
+      }
+      
       const response = await fetch(`/api/products`, {
         method: 'PUT',
         headers: {
@@ -119,14 +131,13 @@ export default function useProducts(options?: UseProductsOptions) {
           price: parseFloat(productData.get('price') as string),
           description: productData.get('description') || '',
           client_id: parseInt(productData.get('client_id') as string),
-          // Manejar la imagen separadamente si es un archivo
-          image: productData.get('image') instanceof File ? null : productData.get('image')
+          // Incluir la imagen existente si no hay una nueva
+          image: imageValue
         }),
       });
       
       // Si hay un archivo de imagen, enviarlo en una petición separada
       let updatedImage = null;
-      const imageFile = productData.get('image');
       if (imageFile instanceof File) {
         const imageFormData = new FormData();
         imageFormData.append('product_id', productId);
@@ -158,18 +169,30 @@ export default function useProducts(options?: UseProductsOptions) {
       setProducts(prev => {
         if (!prev[sectionId]) return prev;
         
+        const updatedProducts = prev[sectionId].map(product => 
+          product.product_id === parseInt(productId) 
+            ? updatedProduct 
+            : product
+        );
+        
+        console.log("Estado actualizado localmente:", {
+          sectionId,
+          productId: parseInt(productId),
+          updatedProducts
+        });
+        
         return {
           ...prev,
-          [sectionId]: prev[sectionId].map(product => 
-            product.product_id === parseInt(productId) 
-              ? updatedProduct 
-              : product
-          )
+          [sectionId]: updatedProducts
         };
       });
       
       toast.success('Producto actualizado con éxito');
-      options?.onSuccess?.();
+      
+      // Forzamos una ejecución del callback onSuccess después de que el estado se ha actualizado
+      setTimeout(() => {
+        options?.onSuccess?.();
+      }, 100);
       
       return updatedProduct;
     } catch (err) {

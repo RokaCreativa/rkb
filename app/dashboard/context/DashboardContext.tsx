@@ -193,17 +193,23 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({ children }
     // Si estamos expandiendo y no tenemos los productos, cargarlos
     if (!isExpanded && !products[sectionId]) {
       try {
+        setIsLoading(true);
         const response = await fetch(`/api/products?section_id=${sectionId}`);
         if (!response.ok) throw new Error('Error al cargar productos');
         const productsData = await response.json();
         
+        // Asegurarnos de que productsData es un array
+        const productsArray = Array.isArray(productsData) ? productsData : [];
+        
         setProducts(prev => ({
           ...prev,
-          [sectionId]: productsData
+          [sectionId]: productsArray
         }));
       } catch (error) {
         console.error('Error al cargar productos:', error);
         toast.error('Error al cargar los productos');
+      } finally {
+        setIsLoading(false);
       }
     }
   };
