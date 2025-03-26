@@ -704,6 +704,9 @@ return (
 
 ### Categorías
 - `GET /api/categories` - Listar todas las categorías
+  - **Nuevo (28/03/2024)**: Soporta paginación opcional con parámetros `?page=1&limit=10`
+  - Sin parámetros devuelve todas las categorías (comportamiento original)
+  - Con parámetros devuelve `{ data: [...], meta: { total, page, limit, totalPages } }`
 - `POST /api/categories` - Crear una categoría
 - `PUT /api/categories` - Actualizar una categoría
 - `DELETE /api/categories/{id}` - Eliminar una categoría
@@ -721,6 +724,169 @@ return (
 - `PUT /api/products` - Actualizar un producto
 - `DELETE /api/products/{id}` - Eliminar un producto
 - `POST /api/products/upload-image` - Subir imagen de producto
+
+## Optimizaciones de Rendimiento Implementadas
+
+### Paginación en Endpoints API
+
+#### Categorías (implementado 28/03/2024)
+Se ha implementado paginación opcional en el endpoint `/api/categories` para mejorar el rendimiento inicial del dashboard.
+
+##### Cómo funciona:
+1. **Parámetros de consulta**:
+   - `page`: Número de página (predeterminado: 1)
+   - `limit`: Elementos por página (predeterminado: 0, que significa "sin límite")
+
+2. **Respuesta sin paginación** (compatible con el código existente):
+   ```json
+   [
+     {
+       "category_id": 1,
+       "name": "Comidas",
+       "image": "/images/categories/comidas.jpg",
+       "status": 1,
+       "display_order": 1,
+       "client_id": 100,
+       "products": 0
+     },
+     ...
+   ]
+   ```
+
+3. **Respuesta con paginación**:
+   ```json
+   {
+     "data": [
+       {
+         "category_id": 1,
+         "name": "Comidas",
+         "image": "/images/categories/comidas.jpg",
+         "status": 1,
+         "display_order": 1,
+         "client_id": 100,
+         "products": 0
+       },
+       ...
+     ],
+     "meta": {
+       "total": 20,
+       "page": 1,
+       "limit": 10,
+       "totalPages": 2
+     }
+   }
+   ```
+
+### Implementación en Servicios (actualizado 28/03/2024)
+
+Se han actualizado los servicios para soportar la paginación manteniendo compatibilidad con el código existente:
+
+#### DashboardService
+
+```typescript
+// Opciones de paginación
+interface PaginationOptions {
+  page?: number;
+  limit?: number;
+}
+
+// Uso del servicio
+// Sin paginación (comportamiento original)
+const result = await DashboardService.fetchCategories();
+
+// Con paginación
+const result = await DashboardService.fetchCategories({ page: 1, limit: 10 });
+```
+
+#### useDashboardService Hook
+
+```typescript
+// Interfaz del resultado con soporte para metadatos de paginación
+interface FetchCategoriesResult {
+  categories: Category[];
+  meta?: PaginationMeta;
+}
+
+// Uso del hook
+// Sin paginación (comportamiento original)
+const { categories } = await fetchCategories();
+
+// Con paginación
+const { categories, meta } = await fetchCategories({ page: 1, limit: 10 });
+console.log(`Mostrando ${categories.length} de ${meta?.total} categorías`);
+```
+
+##### Beneficios:
+- **Carga inicial más rápida**: Se cargan menos datos al inicio
+- **Mejor experiencia de usuario**: La interfaz responde más rápidamente
+- **Menor consumo de recursos**: Reduce la carga en el servidor y el cliente
+- **Compatibilidad mantenida**: No rompe el código existente
+- **Adopción gradual**: Permite migrar componentes uno a uno
+
+#### Implementaciones pendientes:
+- Adaptación de `useDashboardCategories.ts` para usar paginación
+- Componentes de UI para navegar entre páginas
+- Paginación para endpoints de secciones y productos
+
+### Optimización de campos seleccionados
+
+Para reducir el tamaño de las respuestas y mejorar el rendimiento, los endpoints están siendo optimizados para seleccionar solo los campos necesarios en las consultas a la base de datos:
+
+```typescript
+// Ejemplo de selección optimizada (implementado en /api/categories)
+const categories = await prisma.categories.findMany({
+  where: { /* condiciones */ },
+  select: {
+    category_id: true,
+    name: true,
+    image: true, 
+    status: true,
+    display_order: true,
+    client_id: true,
+    // Solo los campos necesarios
+  },
+  // Opciones de paginación
+});
+```
+
+## Buenas Prácticas de API
+
+### Estructura de Respuestas
+
+#### Respuestas Estándar (CRUD)
+```typescript
+// Éxito
+{
+  success: true,
+  data: { /* datos relevantes */ }
+}
+
+// Error
+{
+  success: false,
+  error: "Mensaje descriptivo del error"
+}
+```
+
+#### Respuestas Paginadas
+```typescript
+{
+  data: [ /* array de elementos */ ],
+  meta: {
+    total: 100,        // Total de elementos
+    page: 2,           // Página actual
+    limit: 10,         // Elementos por página
+    totalPages: 10     // Total de páginas
+  }
+}
+```
+
+### Convenciones de Endpoints
+
+1. **Consistencia de parámetros**: Usar siempre `id` como nombre de parámetro en rutas dinámicas
+2. **Paginación**: Usar siempre `page` y `limit` como parámetros de consulta para paginación
+3. **Filtrado**: Usar nombres descriptivos para parámetros de filtrado (ej: `category_id`)
+4. **Errores**: Devolver siempre códigos HTTP apropiados junto con mensajes descriptivos
 
 ## Autenticación
 

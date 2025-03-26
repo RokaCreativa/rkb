@@ -9,7 +9,10 @@ import { join } from 'path';
 // Ruta base para las imágenes
 const IMAGE_BASE_PATH = '/images/categories/';
 
-// Interfaz para categorías procesadas para el frontend
+/**
+ * Interfaz para categorías procesadas para el frontend
+ * Define la estructura de datos que se enviará al cliente
+ */
 interface ProcessedCategory {
   category_id: number;
   name: string;
@@ -21,7 +24,22 @@ interface ProcessedCategory {
 }
 
 /**
- * Obtiene todas las categorías del cliente actual
+ * Interfaz para la respuesta paginada de categorías
+ * Se usa cuando se solicitan datos con paginación
+ */
+interface PaginatedCategoriesResponse {
+  data: ProcessedCategory[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+/**
+ * Obtiene las categorías del cliente actual
+ * Soporta paginación opcional mediante parámetros de consulta
  * 
  * @param request - Objeto de solicitud HTTP
  * @returns Respuesta HTTP con las categorías o un mensaje de error
@@ -43,7 +61,31 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
-    // 3. Obtener las categorías del cliente
+    // 3. Obtener y procesar parámetros de consulta para paginación
+    const url = new URL(request.url);
+    
+    // Parámetros de paginación (opcionales)
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const limit = parseInt(url.searchParams.get('limit') || '0'); // 0 significa "sin límite"
+    
+    // Validar parámetros
+    const validPage = isNaN(page) || page < 1 ? 1 : page;
+    const validLimit = isNaN(limit) || limit < 0 ? 0 : limit;
+    const isPaginated = validLimit > 0;
+    
+    // 4. Calcular parámetros de paginación para la consulta
+    const skip = isPaginated ? (validPage - 1) * validLimit : undefined;
+    const take = isPaginated ? validLimit : undefined;
+
+    // 5. Obtener el total de categorías para metadatos de paginación
+    const totalCategories = await prisma.categories.count({
+      where: {
+        client_id: user.client_id,
+        deleted: { not: 'Y' },
+      },
+    });
+
+    // 6. Obtener las categorías con paginación opcional
     const categories = await prisma.categories.findMany({
       where: {
         client_id: user.client_id,
@@ -52,9 +94,20 @@ export async function GET(request: Request) {
       orderBy: {
         display_order: 'asc',
       },
+      // Solo seleccionar los campos necesarios para optimizar rendimiento
+      select: {
+        category_id: true,
+        name: true,
+        image: true, 
+        status: true,
+        display_order: true,
+        client_id: true,
+      },
+      skip,
+      take,
     });
 
-    // 4. Procesar las categorías para el formato esperado por el frontend
+    // 7. Procesar las categorías para el formato esperado por el frontend
     const processedCategories = categories.map(category => ({
       category_id: category.category_id,
       name: category.name || '',
@@ -65,10 +118,26 @@ export async function GET(request: Request) {
       products: 0, // Simplificación temporal: no calculamos productos para evitar errores
     }));
 
-    // 5. Devolver las categorías procesadas
-    return NextResponse.json(processedCategories);
+    // 8. Devolver respuesta según si se solicitó paginación o no
+    if (isPaginated) {
+      // Respuesta paginada con metadatos
+      const totalPages = Math.ceil(totalCategories / validLimit);
+      const response: PaginatedCategoriesResponse = {
+        data: processedCategories,
+        meta: {
+          total: totalCategories,
+          page: validPage,
+          limit: validLimit,
+          totalPages,
+        },
+      };
+      return NextResponse.json(response);
+    } else {
+      // Mantener el formato original de respuesta cuando no hay paginación
+      return NextResponse.json(processedCategories);
+    }
   } catch (error) {
-    // 6. Manejo centralizado de errores
+    // 9. Manejo centralizado de errores
     console.error('Error al obtener categorías:', error);
     return NextResponse.json({ error: 'Error al obtener categorías' }, { status: 500 });
   }
@@ -254,11 +323,12 @@ export async function PUT(request: Request) {
       status: updatedCategory.status ? 1 : 0,
       display_order: updatedCategory.display_order || 0,
       client_id: updatedCategory.client_id || 0,
-      products: 0,
+      products: 0, // Simplificación temporal: no calculamos productos para evitar errores
     };
 
-    return NextResponse.json({ success: true, category: processedCategory });
+    return NextResponse.json(processedCategory);
   } catch (error) {
+    // 8. Manejo centralizado de errores
     console.error('Error al actualizar la categoría:', error);
     return NextResponse.json({ error: 'Error al actualizar la categoría' }, { status: 500 });
   }

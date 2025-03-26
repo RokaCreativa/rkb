@@ -12,6 +12,32 @@ import DashboardService from '@/lib/services/dashboardService';
 import { Category, Section, Product, Client } from '@/app/types/menu';
 
 /**
+ * Interfaz para opciones de paginación
+ */
+interface PaginationOptions {
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Interfaz para metadatos de paginación
+ */
+interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+/**
+ * Interfaz para el resultado de fetchCategories con paginación
+ */
+interface FetchCategoriesResult {
+  categories: Category[];
+  meta?: PaginationMeta;
+}
+
+/**
  * Hook que proporciona acceso a los servicios de API del dashboard
  * con manejo de estados de carga y errores
  * 
@@ -133,24 +159,59 @@ export const useDashboardService = () => {
   // ----- FUNCIONES PARA CATEGORÍAS -----
 
   /**
-   * Obtiene todas las categorías del cliente actual
+   * Obtiene categorías con soporte opcional para paginación
+   * 
+   * @param options - Opciones de paginación (opcional)
+   * @returns Objeto con categorías y, si se usó paginación, metadatos
+   * 
+   * @example
+   * // Sin paginación (comportamiento original)
+   * const { categories } = await fetchCategories();
+   * 
+   * // Con paginación
+   * const { categories, meta } = await fetchCategories({ page: 1, limit: 10 });
+   * console.log(`Mostrando ${categories.length} de ${meta?.total} categorías`);
    */
-  const fetchCategories = useCallback(async (): Promise<Category[]> => {
+  const fetchCategories = useCallback(async (options?: PaginationOptions): Promise<FetchCategoriesResult> => {
     const result = await executeApiCall(
-      async () => DashboardService.fetchCategories(),
+      async () => DashboardService.fetchCategories(options),
       undefined,
       true
     );
     
-    return result?.categories?.map(category => ({
-      category_id: category.category_id,
-      name: category.name,
-      image: typeof category.image === 'string' ? category.image : null,
-      status: category.status,
-      display_order: category.display_order,
-      client_id: category.client_id,
-      sections_count: category.sections_count
-    })) || [];
+    if (!result) return { categories: [] };
+    
+    // Verificar si el resultado es una respuesta paginada
+    if ('data' in result && 'meta' in result) {
+      // Procesar respuesta paginada
+      const categories = result.data.map(category => ({
+        category_id: category.category_id,
+        name: category.name,
+        image: typeof category.image === 'string' ? category.image : null,
+        status: category.status,
+        display_order: category.display_order,
+        client_id: category.client_id,
+        sections_count: category.sections_count
+      }));
+      
+      return { 
+        categories, 
+        meta: result.meta 
+      };
+    } else {
+      // Procesar respuesta no paginada (formato original)
+      const categories = (result as any).categories?.map((category: any) => ({
+        category_id: category.category_id,
+        name: category.name,
+        image: typeof category.image === 'string' ? category.image : null,
+        status: category.status,
+        display_order: category.display_order,
+        client_id: category.client_id,
+        sections_count: category.sections_count
+      })) || [];
+      
+      return { categories };
+    }
   }, [executeApiCall]);
 
   /**

@@ -22,6 +22,27 @@ interface Product extends Omit<BaseProduct, 'image'> {
 }
 
 /**
+ * Interfaz para opciones de paginación
+ */
+interface PaginationOptions {
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * Interfaz para respuesta paginada de categorías
+ */
+interface PaginatedCategoriesResponse {
+  data: Category[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+/**
  * Servicio para manejar las operaciones de API del dashboard
  */
 export const DashboardService = {
@@ -38,13 +59,43 @@ export const DashboardService = {
 
   /**
    * Obtiene las categorías del cliente autenticado
+   * Soporta paginación opcional
    * 
+   * @param options - Opciones de paginación (opcional)
    * @returns Promise con las categorías
+   * 
+   * @example
+   * // Sin paginación (comportamiento original)
+   * const result = await DashboardService.fetchCategories();
+   * 
+   * // Con paginación
+   * const result = await DashboardService.fetchCategories({ page: 1, limit: 10 });
    */
-  async fetchCategories(): Promise<{ categories: Category[] }> {
-    const response = await fetch('/api/categories');
+  async fetchCategories(options?: PaginationOptions): Promise<{ categories: Category[] } | PaginatedCategoriesResponse> {
+    // Construir URL con parámetros de paginación si se proporcionan
+    let url = '/api/categories';
+    
+    if (options?.page || options?.limit) {
+      const params = new URLSearchParams();
+      if (options.page) params.append('page', options.page.toString());
+      if (options.limit) params.append('limit', options.limit.toString());
+      url = `${url}?${params.toString()}`;
+    }
+    
+    // Realizar la petición
+    const response = await fetch(url);
     if (!response.ok) throw new Error('Error al cargar categorías');
-    return await response.json();
+    
+    const data = await response.json();
+    
+    // Detectar si la respuesta es paginada o no
+    if (data.data && data.meta) {
+      // Respuesta paginada
+      return data as PaginatedCategoriesResponse;
+    } else {
+      // Respuesta no paginada (formato original)
+      return { categories: data } as { categories: Category[] };
+    }
   },
 
   /**

@@ -6,7 +6,37 @@ Si estás leyendo esto, significa que has sido activado para continuar el trabaj
 
 ## 📝 Resumen del Proyecto
 
-RokaMenu es una aplicación web para restaurantes que permite crear y gestionar menús digitales. Los usuarios pueden:
+RokaMenu es una plataforma digital que permite a restaurantes y otros negocios ofrecer sus menús o servicios de forma digital, visual e interactiva, accesibles mediante un código QR. 
+
+🧠 Funcionalidades principales
+Menús digitales por QR
+
+Cada negocio tiene un menú accesible desde un código QR personalizado.
+Gestión avanzada de menús
+Crear, editar, eliminar menús.
+Agrupar por categorías y secciones.
+Soporte multilingüe con traducción automática.
+Configuración del cliente
+Tipo de menú (Digital o PDF/Imagen).
+Personalización de apariencia (colores, logos).
+Idiomas configurables por cliente.
+Perfil del negocio (dirección, redes sociales, contacto).
+Estadísticas de visualización del menú.
+QR personalizado y botón de WhatsApp directo.
+Gestión de productos
+Activar/desactivar platos en tiempo real.
+Reordenar platos con drag & drop.
+Precios variables (por tamaño o porciones).
+Alérgenos y etiquetas (vegano, sin gluten, etc.).
+Soporte para múltiples tipos de negocio
+No solo restaurantes: también sirve para inmobiliarias, excursiones, peluquerías, etc.
+Cada tipo de negocio puede tener sus propios menús o catálogos personalizados.
+Vista previa móvil en tiempo real
+Se simula un teléfono móvil dentro del dashboard para ver cómo se verá el menú mientras se edita.
+
+Historial y logs
+
+Registro de todas las acciones importantes realizadas por los usuarios.
 
 - Crear **categorías** (como "Entrantes", "Platos Principales", "Postres")
 - Organizar **secciones** dentro de cada categoría (como "Pizzas", "Pastas" dentro de "Platos Principales")
@@ -25,7 +55,7 @@ Trabajé con un desarrollador muy dedicado que necesitaba refactorizar y mejorar
 - La gestión de **estado** estaba demasiado acoplada a los componentes
 
 Juntos, comenzamos a implementar una estructura más modular:
-
+e
 1. Creamos una jerarquía clara de componentes en `app/dashboard/components/`
 2. Extrajimos la lógica a hooks especializados en `lib/hooks/`
 3. Implementamos un sistema de modales reutilizables
@@ -253,6 +283,31 @@ Fecha: 2024
   - Mejor gestión de errores
   - Logs de depuración
 
+### 7. Mejora de rendimiento en el endpoint de categorías
+- **Problema**: El endpoint cargaba todos los datos de categorías sin limitación, causando lentitud inicial
+- **Solución**: 
+  - Se implementó paginación opcional en `/api/categories/route.ts` (28/03/2024)
+  - Se optimizó la selección de campos para traer solo los necesarios
+  - Se mantiene compatibilidad con clientes actuales (sin paginación si no se especifican parámetros)
+  - Se añadieron metadatos de paginación (total, página actual, etc.)
+
+## Mejoras en Progreso
+
+### 1. Optimización de rendimiento del dashboard
+- **Fase 1 (Completada 28/03/2024)**: Implementación de paginación opcional en endpoint de categorías
+- **Fase 2 (Completada 28/03/2024)**: Actualizar los servicios para soportar opciones de paginación
+  - Se actualizó `dashboardService.ts` para permitir parámetros de paginación en `fetchCategories()`
+  - Se modificó `useDashboardService.ts` para procesar respuestas paginadas manteniendo compatibilidad
+  - Se documentaron las interfaces y ejemplos de uso para facilitar la adopción
+- **Fase 3 (Pendiente)**: Modificar `useDashboardCategories.ts` para usar paginación
+- **Fase 4 (Pendiente)**: Actualizar el componente de tabla de categorías para mostrar paginación
+- **Fase 5 (Pendiente)**: Aplicar enfoque similar a secciones y productos
+
+### 2. Refactorización del Dashboard
+- **Estado**: En progreso
+- **Enfoque**: Gradual, componente por componente
+- **Principio**: Cambios mínimos, probados completamente antes de avanzar
+
 ## Aspectos Pendientes
 
 ### 1. Optimización de rendimiento
@@ -291,6 +346,7 @@ Fecha: 2024
 ### 1. Endpoints
 - Usar nombres de parámetros consistentes: `[id]` en lugar de nombres específicos
 - Todas las respuestas deben seguir el formato: `{ success: boolean, data?: any, error?: string }`
+- Para endpoints paginados, usar el formato: `{ data: any[], meta: { total, page, limit, totalPages } }`
 
 ### 2. Gestión de imágenes
 - Almacenar solo el nombre del archivo en la base de datos, sin prefijos de ruta
@@ -299,3 +355,27 @@ Fecha: 2024
 ### 3. Modelos y tipos
 - Mantener actualizados los archivos de tipos en `/app/types`
 - Asegurar que la interfaz TypeScript coincida con el esquema de Prisma 
+
+## Lecciones Aprendidas
+
+### 1. Enfoque gradual
+- **Importante**: Implementar cambios de uno en uno y probar completamente antes de seguir
+- Evitar modificaciones simultáneas en múltiples capas (API, servicios, componentes)
+- Documentar cada cambio para facilitar la depuración
+
+### 2. Compatibilidad con código existente
+- Mantener compatibilidad con el código existente para evitar regresiones
+- Proporcionar rutas de actualización gradual para nuevas funcionalidades
+
+### 3. Comunicación clara
+- Documentar las decisiones y razones detrás de cada cambio
+- Actualizar la documentación del proyecto regularmente
+
+## Próximos Pasos Específicos
+
+1. ~~Actualizar `useDashboardService.ts` para utilizar la paginación de categorías~~ ✅ Completado (28/03/2024)
+2. Modificar la gestión de estado en `useDashboardCategories.ts` para aprovechar la paginación
+3. Adaptar la visualización en componentes de tabla para manejar paginación
+4. Probar completamente cada paso antes de continuar con el siguiente
+
+Recuerda: avanzar gradualmente, un paso a la vez, probando exhaustivamente cada cambio. 
