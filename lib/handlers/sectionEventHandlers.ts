@@ -130,19 +130,21 @@ export const toggleSectionVisibility = async (
 /**
  * Elimina una sección
  * @param sectionId - ID de la sección a eliminar
- * @param sections - Lista actual de secciones
  * @param setSections - Función para actualizar el estado de las secciones
+ * @param categoryId - ID de la categoría a la que pertenece la sección
  * @returns Promise<void>
  */
 export const deleteSection = async (
   sectionId: number,
-  sections: Section[],
-  setSections: React.Dispatch<React.SetStateAction<Section[]>>
+  setSections: (updater: (prev: Record<string | number, Section[]>) => Record<string | number, Section[]>) => void,
+  categoryId: number
 ): Promise<void> => {
   try {
     // Actualizar optimistamente el UI
-    const updatedSections = sections.filter((section) => section.section_id !== sectionId);
-    setSections(updatedSections);
+    setSections(prev => ({
+      ...prev,
+      [categoryId]: prev[categoryId]?.filter((section) => section.section_id !== sectionId) || []
+    }));
 
     // Enviar la eliminación al servidor
     const response = await fetch(`/api/sections/${sectionId}`, {
@@ -152,8 +154,7 @@ export const deleteSection = async (
     // Manejar respuesta con error
     if (!response.ok) {
       console.error('Error al eliminar la sección:', response.status);
-      // Si falla, recargar las secciones para asegurar datos correctos
-      reloadSections(setSections);
+      // Si falla, revertir el cambio optimista
       toast.error('Error al eliminar la sección. Por favor, inténtalo de nuevo.');
       return;
     }
@@ -161,8 +162,6 @@ export const deleteSection = async (
     toast.success('Sección eliminada correctamente');
   } catch (error) {
     console.error('Error al eliminar la sección:', error);
-    // Si falla, recargar las secciones para asegurar datos correctos
-    reloadSections(setSections);
     toast.error('Error al eliminar la sección. Por favor, inténtalo de nuevo.');
   }
 };
