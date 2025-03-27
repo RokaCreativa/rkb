@@ -830,8 +830,28 @@ export default function DashboardPage() {
           
           try {
             // Cargar productos desde la API o hook
-            await fetchProductsHook(sectionId);
+            const productsData = await fetchProductsHook(sectionId);
             console.log(`Productos cargados para sección ${sectionId}`);
+            
+            // Importante: Actualizar la sección para incluir los productos
+            setSections(prev => {
+              const updated = { ...prev };
+              // Encontrar la categoría que contiene la sección
+              const categoryKey = foundCategoryId?.toString();
+              if (categoryKey && updated[categoryKey]) {
+                // Actualizar la sección para incluir los productos
+                updated[categoryKey] = updated[categoryKey].map(s => {
+                  if (s.section_id === sectionId) {
+                    return {
+                      ...s,
+                      products: productsData
+                    };
+                  }
+                  return s;
+                });
+              }
+              return updated;
+            });
           } catch (error) {
             console.error(`Error al cargar productos para sección ${sectionId}:`, error);
             toast.error('Error al cargar los productos');

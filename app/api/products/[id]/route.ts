@@ -59,7 +59,7 @@ export async function DELETE(
     
     console.log(`Producto encontrado: ${JSON.stringify(product)}`);
     
-    if (product.deleted === 'Y') {
+    if (product.deleted === '1') {
       console.log(`Advertencia: El producto ya está marcado como eliminado: ${productId}`);
       return NextResponse.json({ 
         success: true, 
@@ -256,7 +256,7 @@ export async function PATCH(
       where: {
         product_id: productId,
         client_id: user.client_id,
-        deleted: { not: 'Y' },
+        deleted: { not: '1' },
       },
     });
 
