@@ -171,6 +171,29 @@ export async function toggleProductVisibility(
       throw new Error(data.error || "Error al cambiar la visibilidad");
     }
 
+    // Actualizar también el estado global de productos (productsFromHook) para refrescar la UI
+    // Esta parte es crítica para que se refleje el cambio en la interfaz
+    try {
+      // Intentar obtener los productos actualizados desde la API
+      const response = await fetch(`/api/products?section_id=${sectionId}`);
+      if (response.ok) {
+        const updatedProducts = await response.json();
+        console.log(`[DEBUG] Productos actualizados obtenidos de la API:`, updatedProducts);
+        
+        // Disparar un evento personalizado para notificar la actualización
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('product-visibility-changed', { 
+            detail: { 
+              sectionId,
+              products: updatedProducts
+            } 
+          }));
+        }
+      }
+    } catch (refreshError) {
+      console.error('[ERROR] Error al actualizar productos desde API:', refreshError);
+    }
+
     toast.success(`El producto ahora está ${newVisibility === 1 ? "visible" : "oculto"}`);
   } catch (error) {
     console.error("[ERROR] Error en toggleProductVisibility:", error);

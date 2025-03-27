@@ -966,6 +966,32 @@ export default function DashboardPage() {
     );
   }, [selectedSection, selectedCategory, sections, setSections]);
 
+  // Añadir un efecto para escuchar el evento personalizado de cambio de visibilidad
+  useEffect(() => {
+    const handleProductVisibilityChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { sectionId, products } = customEvent.detail;
+      
+      console.log(`[DEBUG] Evento product-visibility-changed recibido: sectionId=${sectionId}`);
+      
+      // Actualizar el estado de productos para reflejar los cambios
+      if (sectionId && products) {
+        setProducts(prev => ({
+          ...prev,
+          [sectionId]: products
+        }));
+      }
+    };
+
+    // Añadir el event listener
+    window.addEventListener('product-visibility-changed', handleProductVisibilityChange);
+    
+    // Limpiar el event listener al desmontar
+    return () => {
+      window.removeEventListener('product-visibility-changed', handleProductVisibilityChange);
+    };
+  }, [setProducts]);
+
   // ----- RENDERIZADO -----
   
   // Mostrar indicador de carga mientras se cargan los datos
