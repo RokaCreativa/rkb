@@ -52,7 +52,7 @@ import {
 } from '@/lib/handlers/sectionEventHandlers';
 import { 
   handleReorderProduct, 
-  toggleProductVisibility as toggleProductVisibilityExtracted, 
+  toggleProductVisibility, 
   deleteProduct as deleteProductExtracted 
 } from '@/lib/handlers/productEventHandlers';
 
@@ -951,20 +951,51 @@ export default function DashboardPage() {
     }
     
     const sectionId = selectedSection.section_id;
-    const categoryId = selectedCategory.category_id;
     
-    console.log(`[DEBUG] Parámetros completos: productId=${productId}, status=${currentStatus}, sectionId=${sectionId}, categoryId=${categoryId}`);
+    console.log(`[DEBUG] Parámetros: productId=${productId}, status=${currentStatus}, sectionId=${sectionId}`);
     
-    // Llamar a la función con los parámetros correctos según su firma
-    await toggleProductVisibilityExtracted(
-      productId,
-      currentStatus,
-      sectionId,
-      categoryId,
-      sections,
-      setSections
-    );
-  }, [selectedSection, selectedCategory, sections, setSections]);
+    // Usar toggleProductVisibility con los 3 argumentos que espera
+    setIsUpdatingVisibility(productId);
+    try {
+      await toggleProductVisibility(productId, currentStatus, sectionId);
+      
+      // Si necesitamos actualizar las secciones manualmente después de cambiar la visibilidad
+      // Obtenemos la sección actualizada y actualizamos el estado
+      const freshProductsResponse = await fetch(`/api/products?section_id=${sectionId}`);
+      if (freshProductsResponse.ok) {
+        const updatedProducts = await freshProductsResponse.json();
+        
+        // Actualizar productos en las secciones
+        if (selectedCategory) {
+          const categoryId = selectedCategory.category_id;
+          setSections(prev => {
+            const updatedSections = { ...prev };
+            const categoryKey = categoryId.toString();
+            
+            // Actualizar productos dentro de la sección
+            if (updatedSections[categoryKey]) {
+              updatedSections[categoryKey] = updatedSections[categoryKey].map(section => {
+                if (section.section_id === sectionId) {
+                  return {
+                    ...section,
+                    products: updatedProducts
+                  };
+                }
+                return section;
+              });
+            }
+            
+            return updatedSections;
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[ERROR] Error al cambiar visibilidad del producto:', error);
+      toast.error('Error al cambiar la visibilidad del producto');
+    } finally {
+      setIsUpdatingVisibility(null);
+    }
+  }, [selectedSection, selectedCategory, toggleProductVisibility, setSections]);
 
   // Añadir un efecto para escuchar el evento personalizado de cambio de visibilidad
   useEffect(() => {

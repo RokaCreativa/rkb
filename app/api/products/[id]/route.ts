@@ -229,9 +229,12 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    console.log(`[API] PATCH /api/products/${params.id} - Iniciando actualización parcial`);
+    
     // 1. Verificación de autenticación
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
+      console.log(`[API] Error: No autorizado`);
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -241,6 +244,7 @@ export async function PATCH(
     });
 
     if (!user?.client_id) {
+      console.log(`[API] Error: Cliente no encontrado`);
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
@@ -248,47 +252,71 @@ export async function PATCH(
     const productId = parseInt(params.id);
     
     if (isNaN(productId)) {
+      console.log(`[API] Error: ID de producto inválido: ${params.id}`);
       return NextResponse.json({ error: 'ID de producto inválido' }, { status: 400 });
     }
     
-    // 4. Verificar que el producto exista y pertenezca al cliente
+    // 4. Verificar que el producto existe y pertenece al cliente
     const product = await prisma.products.findFirst({
       where: {
         product_id: productId,
         client_id: user.client_id,
-        deleted: { not: '1' },
-      },
+        deleted: '0'
+      }
     });
-
+    
     if (!product) {
+      console.log(`[API] Error: Producto no encontrado: ${productId}`);
       return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
     }
-
-    // 5. Obtener los datos a actualizar
-    const data = await request.json();
-    const updateData: Record<string, any> = {};
-
-    // Actualizar el estado si se proporciona
-    if (data.status !== undefined) {
-      updateData.status = data.status === 1;
+    
+    // 5. Obtener los datos de la petición
+    const requestData = await request.json();
+    console.log(`[API] Datos recibidos:`, requestData);
+    
+    // 6. Extraer campos a actualizar
+    const fieldsToUpdate: any = {};
+    
+    // Actualización de la visibilidad (status)
+    if (requestData.status !== undefined) {
+      console.log(`[API] Actualizando visibilidad de ${product.status ? 'Visible' : 'Oculto'} a ${requestData.status ? 'Visible' : 'Oculto'}`);
+      fieldsToUpdate.status = Boolean(requestData.status);
     }
-
-    // 6. Actualizar el producto
+    
+    // Si no hay campos para actualizar, devolver error
+    if (Object.keys(fieldsToUpdate).length === 0) {
+      console.log(`[API] Error: No se proporcionaron datos para actualizar`);
+      return NextResponse.json({ error: 'No se proporcionaron datos para actualizar' }, { status: 400 });
+    }
+    
+    // 7. Actualizar el producto
+    console.log(`[API] Actualizando producto ${productId} con datos:`, fieldsToUpdate);
     const updatedProduct = await prisma.products.update({
       where: {
         product_id: productId,
       },
-      data: updateData,
+      data: fieldsToUpdate
     });
-
-    // 7. Devolver respuesta de éxito
+    
+    console.log(`[API] Producto actualizado correctamente:`, updatedProduct);
+    
+    // 8. Devolver respuesta de éxito
     return NextResponse.json({
-      ...updatedProduct,
-      status: updatedProduct.status ? 1 : 0, // Convertir a formato numérico
+      success: true,
+      message: 'Producto actualizado correctamente',
+      product: {
+        product_id: updatedProduct.product_id,
+        name: updatedProduct.name,
+        status: updatedProduct.status ? 1 : 0,
+        // Otros campos relevantes...
+      }
     });
+    
   } catch (error) {
-    // 8. Manejo centralizado de errores
-    console.error('Error al actualizar el producto:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    console.error('[API] Error al actualizar el producto:', error);
+    return NextResponse.json({
+      error: 'Error interno del servidor',
+      details: error instanceof Error ? error.message : 'Error desconocido'
+    }, { status: 500 });
   }
 } 

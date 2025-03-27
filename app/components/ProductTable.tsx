@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { Product } from '@/lib/types';
+
+/**
+ * Propiedades para el componente ProductTable
+ */
+interface ProductTableProps {
+  products: Product[];
+  onEditProduct: (product: Product) => void;
+  onDeleteProduct: (productId: number) => void;
+  onToggleVisibility: (productId: number, newStatus: number) => void;
+  isUpdatingVisibility?: boolean;
+  onBackClick?: () => void;
+  sectionName?: string;
+  onReorderProduct: (productId: number, newPosition: number) => void;
+}
 
 /**
  * Tabla de productos con soporte para arrastrar y soltar
