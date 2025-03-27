@@ -10,6 +10,7 @@
 
 import { toast } from 'react-hot-toast';
 import { Section } from '@/lib/types';
+import { Dispatch, SetStateAction } from 'react';
 
 /**
  * Maneja el reordenamiento de secciones mediante arrastrar y soltar
@@ -61,71 +62,87 @@ export const handleReorderSection = async (
 };
 
 /**
- * Cambia la visibilidad de una sección
- * @param sectionId - ID de la sección a actualizar
+ * Actualiza la visibilidad de una sección
+ * 
+ * @param sectionId - ID de la sección a modificar
  * @param currentStatus - Estado actual (1 = visible, 0 = oculto)
- * @param setIsUpdatingVisibility - Función para controlar el estado de carga
- * @param setSections - Función para actualizar el estado de las secciones
  * @param categoryId - ID de la categoría a la que pertenece la sección
- * @returns Promise<void>
+ * @param sections - Estado actual de las secciones organizadas por categoría
+ * @param setSections - Función para actualizar el estado de secciones
+ * @returns Promise que se resuelve cuando la operación está completa
  */
-export const toggleSectionVisibility = async (
+export async function toggleSectionVisibility(
   sectionId: number,
   currentStatus: number,
-  setIsUpdatingVisibility: (id: number | null) => void,
-  setSections: (updater: (prev: Record<string | number, Section[]>) => Record<string | number, Section[]>) => void,
-  categoryId: number
-): Promise<void> => {
+  categoryId: number,
+  sections: Record<string, Section[]>,
+  setSections: Dispatch<SetStateAction<Record<string, Section[]>>>
+): Promise<void> {
   try {
-    // Indicar que está procesando esta sección específica
-    setIsUpdatingVisibility(sectionId);
+    console.log(`[DEBUG] Cambiando visibilidad de sección ${sectionId} en categoría ${categoryId}: De ${currentStatus} a ${currentStatus === 1 ? 0 : 1}`);
     
-    // Nuevo estado: invertir el actual
-    const newStatus = currentStatus === 1 ? 0 : 1;
+    // Validar que la sección existe en la categoría
+    const categoryKey = categoryId.toString();
+    const sectionExists = sections[categoryKey]?.some(section => section.section_id === sectionId);
     
-    // Actualización optimista de la UI
-    setSections(prev => ({
-      ...prev,
-      [categoryId]: prev[categoryId]?.map(section => 
+    if (!sectionExists) {
+      console.error(`[ERROR] Sección con ID ${sectionId} no encontrada en categoría ${categoryId}`);
+      toast.error(`No se encontró la sección con ID ${sectionId}`);
+      return;
+    }
+    
+    // Nuevo estado de visibilidad (invertir el actual)
+    const newVisibility = currentStatus === 1 ? 0 : 1;
+    console.log(`[DEBUG] Nuevo estado: ${newVisibility}`);
+    
+    // Actualización optimista en UI
+    setSections(prevSections => {
+      const updatedSections = { ...prevSections };
+      updatedSections[categoryKey] = prevSections[categoryKey].map(section =>
         section.section_id === sectionId
-          ? { ...section, status: newStatus } 
+          ? { ...section, status: newVisibility }
           : section
-      ) || []
-    }));
-
-    // Enviar la actualización al servidor
-    const response = await fetch(`/api/sections/${sectionId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ status: newStatus }),
+      );
+      return updatedSections;
     });
 
-    // Manejar respuesta con error
+    // Formatear el valor status para la API
+    console.log(`[DEBUG] Enviando PATCH a /api/sections/${sectionId} con status=${newVisibility}`);
+    
+    // Llamada a la API
+    const response = await fetch(`/api/sections/${sectionId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: newVisibility }),
+    });
+
+    const data = await response.json();
+    console.log(`[DEBUG] Respuesta API:`, data);
+
     if (!response.ok) {
-      throw new Error(`Error al actualizar la visibilidad: ${response.status} ${response.statusText}`);
+      throw new Error(data.error || "Error al cambiar la visibilidad");
     }
 
-    toast.success(`Sección ${currentStatus === 1 ? 'ocultada' : 'mostrada'} correctamente`);
+    toast.success(`La sección ahora está ${newVisibility === 1 ? "visible" : "oculta"}`);
   } catch (error) {
-    console.error('Error al cambiar visibilidad de la sección:', error);
-    toast.error('Error al cambiar la visibilidad de la sección');
+    console.error("[ERROR] Error en toggleSectionVisibility:", error);
     
-    // Revertir a los datos originales si hay un error
-    setSections(prev => ({
-      ...prev,
-      [categoryId]: prev[categoryId]?.map(section => 
+    // Revertir cambios en UI en caso de error
+    setSections(prevSections => {
+      const updatedSections = { ...prevSections };
+      updatedSections[categoryId.toString()] = prevSections[categoryId.toString()].map(section =>
         section.section_id === sectionId
-          ? { ...section, status: currentStatus } 
+          ? { ...section, status: currentStatus }
           : section
-      ) || []
-    }));
-  } finally {
-    // Finalizar el estado de carga
-    setIsUpdatingVisibility(null);
+      );
+      return updatedSections;
+    });
+    
+    toast.error(`No se pudo cambiar la visibilidad: ${error instanceof Error ? error.message : 'Error desconocido'}`);
   }
-};
+}
 
 /**
  * Elimina una sección

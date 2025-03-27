@@ -5,7 +5,7 @@ import prisma from '@/prisma/prisma';
 
 /**
  * @route PATCH /api/sections/[id]
- * @description Actualiza una sección específica (como su estado de visibilidad)
+ * @description Actualiza parcialmente una sección (principalmente usado para visibilidad)
  */
 export async function PATCH(
   request: Request,
@@ -38,13 +38,20 @@ export async function PATCH(
     const section = await prisma.sections.findFirst({
       where: {
         section_id: sectionId,
-        client_id: user.client_id,
         deleted: { not: 'Y' },
+      },
+      include: {
+        categories: true,
       },
     });
 
     if (!section) {
       return NextResponse.json({ error: 'Sección no encontrada' }, { status: 404 });
+    }
+
+    // Verificar que la categoría de la sección pertenezca al cliente
+    if (section.categories?.client_id !== user.client_id) {
+      return NextResponse.json({ error: 'No tienes permiso para modificar esta sección' }, { status: 403 });
     }
 
     // 5. Obtener los datos a actualizar

@@ -10,6 +10,8 @@
 
 import { toast } from 'react-hot-toast';
 import { Category } from '@/lib/types';
+import { Dispatch, SetStateAction } from 'react';
+import { ToastOptions } from 'react-hot-toast';
 
 /**
  * Maneja el reordenamiento de categorías mediante drag and drop
@@ -85,63 +87,78 @@ export const handleReorderCategory = async (
 };
 
 /**
- * Actualiza la visibilidad de una categoría
- * 
- * @param categoryId - ID de la categoría a modificar
- * @param currentStatus - Estado actual (1 = visible, 0 = oculto)
- * @param setIsUpdatingVisibility - Función para controlar el estado de carga
+ * Función para cambiar la visibilidad de una categoría
+ * @param categoryId - ID de la categoría a actualizar
+ * @param currentVisibility - Estado actual de visibilidad
+ * @param categories - Array de categorías
  * @param setCategories - Función para actualizar el estado de categorías
- * @returns Promise que se resuelve cuando la operación está completa
+ * @returns Promise<void>
  */
-export const toggleCategoryVisibility = async (
+export async function toggleCategoryVisibility(
   categoryId: number,
-  currentStatus: number,
-  setIsUpdatingVisibility: (id: number | null) => void,
-  setCategories: (updater: (prev: Category[]) => Category[]) => void
-) => {
+  currentVisibility: number,
+  categories: Category[],
+  setCategories: Dispatch<SetStateAction<Category[]>>
+): Promise<void> {
   try {
-    // Indicar que está procesando esta categoría específica
-    setIsUpdatingVisibility(categoryId);
+    console.log(`[DEBUG] Cambiando visibilidad de categoría ${categoryId}: De ${currentVisibility} a ${currentVisibility === 1 ? 0 : 1}`);
     
-    // Optimistic UI update
-    setCategories(prev => 
-      prev.map(cat => 
-        cat.category_id === categoryId 
-          ? { ...cat, status: cat.status === 1 ? 0 : 1 } 
-          : cat
-      )
-    );
-    
-    // Realizar la llamada a la API
-    const response = await fetch(`/api/categories/${categoryId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: currentStatus === 1 ? 0 : 1 })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error al actualizar la visibilidad');
+    // Validar que la categoría existe
+    const categoryExists = categories.some(cat => cat.category_id === categoryId);
+    if (!categoryExists) {
+      console.error(`[ERROR] Categoría con ID ${categoryId} no encontrada`);
+      toast.error(`No se encontró la categoría con ID ${categoryId}`);
+      return;
     }
     
-    // Mostrar notificación de éxito
-    toast.success(`Categoría ${currentStatus === 1 ? 'oculta' : 'visible'}`);
-  } catch (error) {
-    console.error('Error al cambiar visibilidad:', error);
-    toast.error('Error al actualizar la categoría');
+    // Nuevo estado de visibilidad (invertir el actual)
+    const newVisibility = currentVisibility === 1 ? 0 : 1;
+    console.log(`[DEBUG] Nuevo estado: ${newVisibility}`);
     
-    // Revertir el cambio en caso de error
-    setCategories(prev => 
-      prev.map(cat => 
-        cat.category_id === categoryId 
-          ? { ...cat, status: currentStatus } 
-          : cat
+    // Actualización optimista en UI
+    setCategories(prevCategories =>
+      prevCategories.map(category =>
+        category.category_id === categoryId
+          ? { ...category, status: newVisibility }
+          : category
       )
     );
-  } finally {
-    // Finalizar el estado de carga
-    setIsUpdatingVisibility(null);
+
+    // Formatear el valor status para la API
+    console.log(`[DEBUG] Enviando PATCH a /api/categories/${categoryId} con status=${newVisibility}`);
+    
+    // Llamada a la API
+    const response = await fetch(`/api/categories/${categoryId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: newVisibility }),
+    });
+
+    const data = await response.json();
+    console.log(`[DEBUG] Respuesta API:`, data);
+
+    if (!response.ok) {
+      throw new Error(data.error || "Error al cambiar la visibilidad");
+    }
+
+    toast.success(`La categoría ahora está ${newVisibility === 1 ? "visible" : "oculta"}`);
+  } catch (error) {
+    console.error("[ERROR] Error en toggleCategoryVisibility:", error);
+    
+    // Revertir cambios en UI en caso de error
+    setCategories(prevCategories =>
+      prevCategories.map(category =>
+        category.category_id === categoryId
+          ? { ...category, status: currentVisibility }
+          : category
+      )
+    );
+    
+    toast.error(`No se pudo cambiar la visibilidad: ${error instanceof Error ? error.message : 'Error desconocido'}`);
   }
-};
+}
 
 /**
  * Elimina una categoría

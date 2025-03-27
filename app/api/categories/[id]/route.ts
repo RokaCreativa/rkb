@@ -5,6 +5,78 @@ import prisma from '@/prisma/prisma';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 
+/**
+ * @route PATCH /api/categories/[id]
+ * @description Actualiza parcialmente una categoría (principalmente usado para visibilidad)
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // 1. Verificación de autenticación
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    const user = await prisma.users.findFirst({
+      where: { email: session.user.email },
+    });
+
+    if (!user?.client_id) {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    }
+
+    // 3. Obtener y validar el ID de la categoría
+    const categoryId = parseInt(params.id);
+    
+    if (isNaN(categoryId)) {
+      return NextResponse.json({ error: 'ID de categoría inválido' }, { status: 400 });
+    }
+    
+    // 4. Verificar que la categoría exista y pertenezca al cliente
+    const category = await prisma.categories.findFirst({
+      where: {
+        category_id: categoryId,
+        client_id: user.client_id,
+      },
+    });
+
+    if (!category) {
+      return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
+    }
+
+    // 5. Obtener los datos a actualizar
+    const data = await request.json();
+    const updateData: Record<string, any> = {};
+
+    // Actualizar el estado si se proporciona
+    if (data.status !== undefined) {
+      updateData.status = data.status === 1;
+    }
+
+    // 6. Actualizar la categoría
+    const updatedCategory = await prisma.categories.update({
+      where: {
+        category_id: categoryId,
+      },
+      data: updateData,
+    });
+
+    // 7. Devolver respuesta de éxito
+    return NextResponse.json({
+      ...updatedCategory,
+      status: updatedCategory.status ? 1 : 0, // Convertir a formato numérico
+    });
+  } catch (error) {
+    // 8. Manejo centralizado de errores
+    console.error('Error al actualizar la categoría:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }

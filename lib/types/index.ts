@@ -30,6 +30,7 @@ export interface Section {
   category_id: number;
   client_id: number;
   products_count?: number;
+  products?: Product[];
 }
 
 /**

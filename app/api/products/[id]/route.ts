@@ -222,7 +222,7 @@ export async function GET(
 
 /**
  * @route PATCH /api/products/[id]
- * @description Actualiza un producto específico (como su estado de visibilidad)
+ * @description Actualiza parcialmente un producto (principalmente usado para visibilidad)
  */
 export async function PATCH(
   request: Request,
@@ -256,7 +256,7 @@ export async function PATCH(
       where: {
         product_id: productId,
         client_id: user.client_id,
-        deleted: { not: '1' },
+        deleted: { not: 'Y' },
       },
     });
 
@@ -283,11 +283,8 @@ export async function PATCH(
 
     // 7. Devolver respuesta de éxito
     return NextResponse.json({
-      success: true,
-      product: {
-        ...updatedProduct,
-        status: updatedProduct.status ? 1 : 0, // Convertir a formato numérico
-      },
+      ...updatedProduct,
+      status: updatedProduct.status ? 1 : 0, // Convertir a formato numérico
     });
   } catch (error) {
     // 8. Manejo centralizado de errores
