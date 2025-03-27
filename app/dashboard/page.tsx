@@ -929,6 +929,14 @@ export default function DashboardPage() {
     const currentProducts = products[selectedSection.section_id] || [];
     const sectionId = selectedSection.section_id;
     
+    // Verificar que el producto existe en el array
+    const product = currentProducts.find(p => p.product_id === productId);
+    if (!product) {
+      console.error("❌ handleToggleProductVisibility - No se encontró el producto", productId, "en la sección", sectionId);
+      return;
+    }
+    
+    console.log("🔍 handleToggleProductVisibility - Producto encontrado:", product);
     console.log("🔍 handleToggleProductVisibility - Productos actuales:", currentProducts);
     console.log("🔍 handleToggleProductVisibility - ID de sección:", sectionId);
     
