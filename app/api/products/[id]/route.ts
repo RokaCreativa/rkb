@@ -218,4 +218,80 @@ export async function GET(
       { status: 500 }
     );
   }
+}
+
+/**
+ * @route PATCH /api/products/[id]
+ * @description Actualiza un producto específico (como su estado de visibilidad)
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // 1. Verificación de autenticación
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    const user = await prisma.users.findFirst({
+      where: { email: session.user.email },
+    });
+
+    if (!user?.client_id) {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    }
+
+    // 3. Obtener y validar el ID del producto
+    const productId = parseInt(params.id);
+    
+    if (isNaN(productId)) {
+      return NextResponse.json({ error: 'ID de producto inválido' }, { status: 400 });
+    }
+    
+    // 4. Verificar que el producto exista y pertenezca al cliente
+    const product = await prisma.products.findFirst({
+      where: {
+        product_id: productId,
+        client_id: user.client_id,
+        deleted: { not: '1' },
+      },
+    });
+
+    if (!product) {
+      return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
+    }
+
+    // 5. Obtener los datos a actualizar
+    const data = await request.json();
+    const updateData: Record<string, any> = {};
+
+    // Actualizar el estado si se proporciona
+    if (data.status !== undefined) {
+      updateData.status = data.status === 1;
+    }
+
+    // 6. Actualizar el producto
+    const updatedProduct = await prisma.products.update({
+      where: {
+        product_id: productId,
+      },
+      data: updateData,
+    });
+
+    // 7. Devolver respuesta de éxito
+    return NextResponse.json({
+      success: true,
+      product: {
+        ...updatedProduct,
+        status: updatedProduct.status ? 1 : 0, // Convertir a formato numérico
+      },
+    });
+  } catch (error) {
+    // 8. Manejo centralizado de errores
+    console.error('Error al actualizar el producto:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
 } 
