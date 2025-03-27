@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Fragment, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
 import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon, TrashIcon, ArrowUpTrayIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -86,6 +86,31 @@ interface DashboardClient extends Client {
   logo?: string | null;
   name: string;
   main_logo: string | null;
+}
+
+// Agregar esta función auxiliar fuera del componente principal
+function getCategoryTableData(categories: Category[], sections: Record<string, Section[]>) {
+  return categories.map(category => {
+    const categorySections = sections[category.category_id] || [];
+    const visibleSections = categorySections.filter(section => section.status === 1);
+    return {
+      ...category,
+      sections_count: categorySections.length,
+      visible_sections_count: visibleSections.length
+    };
+  });
+}
+
+// Función auxiliar para obtener las categorías paginadas
+function getPaginatedCategories(allCategories: Category[], pagination: { enabled: boolean, page: number, limit: number }) {
+  if (!pagination.enabled) {
+    return allCategories;
+  }
+  
+  const startIndex = (pagination.page - 1) * pagination.limit;
+  const endIndex = startIndex + pagination.limit;
+  
+  return allCategories.slice(startIndex, endIndex);
 }
 
 // ----- FUNCIONES DE API -----
@@ -1068,19 +1093,6 @@ export default function DashboardPage() {
     return categories;
   };
 
-  // Función para contar secciones por categoría
-  const categoriesWithSectionCount = useMemo(() => {
-    return categories.map(category => {
-      const categorySections = sections[category.category_id] || [];
-      const visibleSections = categorySections.filter(section => section.status === 1);
-      return {
-        ...category,
-        sections_count: categorySections.length,
-        visible_sections_count: visibleSections.length
-      };
-    });
-  }, [categories, sections]);
-
   return (
     <>
       <TopNavbar 
@@ -1141,7 +1153,10 @@ export default function DashboardPage() {
             <div className="w-full px-4">
               <CategoryActions onNewCategory={() => setIsNewCategoryModalOpen(true)} />
               <CategoryTable 
-                categories={categoriesWithSectionCount}
+                categories={getCategoryTableData(
+                  getPaginatedCategories(categories, categoryPagination),
+                  sections
+                )}
                 expandedCategories={expandedCategories}
                 onCategoryClick={handleCategoryClick}
                 onEditCategory={handleEditCategory}
@@ -1152,7 +1167,7 @@ export default function DashboardPage() {
                 paginationEnabled={categoryPagination.enabled}
                 currentPage={categoryPagination.page}
                 itemsPerPage={categoryPagination.limit}
-                totalCategories={categoryPaginationMeta?.total || categoriesWithSectionCount.length}
+                totalCategories={categoryPaginationMeta?.total || categories.length}
                 onPageChange={page => setCategoryPagination(prev => ({...prev, page}))}
                 onPageSizeChange={pageSize => setCategoryPagination(prev => ({...prev, limit: pageSize}))}
               />
