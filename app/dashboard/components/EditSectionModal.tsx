@@ -18,6 +18,8 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { Section, Category, SectionWithFileUpload } from '@/app/types/menu';
 import useSections from '@/app/hooks/useSections';
+import { PlusIcon as PlusIconMini } from '@heroicons/react/20/solid';
+import { getImagePath } from '@/lib/imageUtils';
 
 /**
  * Props para el componente EditSectionModal
@@ -83,23 +85,21 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
   const { updateSection } = useSections(clientId);
 
   /**
-   * Efecto para reiniciar el formulario cuando cambia la sección seleccionada
+   * Efectos para cargar y establecer valores iniciales
    */
   useEffect(() => {
-    if (sectionToEdit) {
+    if (isOpen && sectionToEdit) {
+      // Solo establecer valores cuando el modal esté abierto y tengamos datos de sección
       setEditSectionName(sectionToEdit.name || '');
-      
-      if (sectionToEdit.image) {
-        // Asegurarse de que la URL de la imagen es completa
-        setEditSectionImagePreview(sectionToEdit.image);
-        // Log para depuración
-        console.log('Imagen de sección cargada:', sectionToEdit.image);
-      } else {
-        setEditSectionImagePreview(null);
-        console.log('La sección no tiene imagen');
-      }
+      setEditSectionImagePreview(sectionToEdit.image ? getImagePath(sectionToEdit.image, 'sections') : null);
+      console.log("Datos cargados para edición:", {
+        id: sectionToEdit.section_id,
+        name: sectionToEdit.name,
+        image: sectionToEdit.image,
+        previewUrl: sectionToEdit.image ? getImagePath(sectionToEdit.image, 'sections') : null
+      });
     }
-  }, [sectionToEdit]);
+  }, [isOpen, sectionToEdit]);
 
   /**
    * Maneja el envío del formulario de edición

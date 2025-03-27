@@ -15,6 +15,7 @@ export interface Category {
   display_order: number;
   client_id: number;
   sections_count?: number;
+  visible_sections_count?: number;
 }
 
 export interface CategoryTableProps {
@@ -180,9 +181,13 @@ export default function CategoryTable({
                                 : "text-gray-600"
                             }`}>
                               {category.name}
-                              {category.sections_count !== undefined && (
+                              {(category.sections_count !== undefined || category.visible_sections_count !== undefined) && (
                                 <span className="ml-2 text-xs text-gray-500">
-                                  ({category.sections_count > 0 ? `${category.sections_count}` : 'Sin'} secciones)
+                                  ({category.visible_sections_count !== undefined && category.sections_count !== undefined
+                                    ? `${category.visible_sections_count}/${category.sections_count} Secciones visibles`
+                                    : category.sections_count
+                                      ? `${category.sections_count} secciones`
+                                      : 'Sin secciones'})
                                 </span>
                               )}
                             </div>
@@ -313,9 +318,13 @@ export default function CategoryTable({
                             </div>
                             <div className="font-medium text-sm text-gray-500">
                               {category.name}
-                              {category.sections_count !== undefined && (
+                              {(category.sections_count !== undefined || category.visible_sections_count !== undefined) && (
                                 <span className="ml-2 text-xs text-gray-500">
-                                  ({category.sections_count > 0 ? `${category.sections_count}` : 'Sin'} secciones)
+                                  ({category.visible_sections_count !== undefined && category.sections_count !== undefined
+                                    ? `${category.visible_sections_count}/${category.sections_count} Secciones visibles`
+                                    : category.sections_count
+                                      ? `${category.sections_count} secciones`
+                                      : 'Sin secciones'})
                                 </span>
                               )}
                             </div>

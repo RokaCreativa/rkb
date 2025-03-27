@@ -28,6 +28,8 @@ export const handleReorderCategory = async (
   setCategories: (categories: Category[]) => void,
   setIsLoading: (isLoading: boolean) => void
 ) => {
+  if (sourceIndex === destinationIndex) return;
+  
   // Crear una copia del array de categorías
   const reorderedCategories = [...categories];
   
@@ -62,7 +64,7 @@ export const handleReorderCategory = async (
     });
     
     if (!response.ok) {
-      throw new Error('Error al actualizar el orden de categorías');
+      throw new Error(`Error al actualizar el orden de categorías: ${response.status} ${response.statusText}`);
     }
     
     toast.success('Orden de categorías actualizado');
@@ -71,7 +73,12 @@ export const handleReorderCategory = async (
     toast.error('Error al actualizar el orden de las categorías');
     
     // Volver a cargar las categorías en caso de error
-    await reloadCategories(setCategories);
+    try {
+      const refreshedCategories = await reloadCategories(setCategories);
+      console.log('Categorías recargadas después del error de reordenamiento');
+    } catch (refreshError) {
+      console.error('Error al intentar recargar categorías:', refreshError);
+    }
   } finally {
     setIsLoading(false);
   }

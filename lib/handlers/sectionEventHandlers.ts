@@ -100,6 +100,9 @@ export const toggleSectionVisibility = async (
   setSections: (updater: (prev: Record<number, Section[]>) => Record<number, Section[]>) => void,
   categoryId: number
 ) => {
+  // Valor nuevo
+  const newStatus = currentStatus === 1 ? 0 : 1;
+  
   try {
     // Indicar que está procesando esta sección específica
     setIsUpdatingVisibility(sectionId);
@@ -109,7 +112,7 @@ export const toggleSectionVisibility = async (
       ...prev,
       [categoryId]: prev[categoryId]?.map(section => 
         section.section_id === sectionId 
-          ? { ...section, status: section.status === 1 ? 0 : 1 } 
+          ? { ...section, status: newStatus } 
           : section
       ) || []
     }));
@@ -118,11 +121,11 @@ export const toggleSectionVisibility = async (
     const response = await fetch(`/api/sections/${sectionId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: currentStatus === 1 ? 0 : 1 })
+      body: JSON.stringify({ status: newStatus })
     });
     
     if (!response.ok) {
-      throw new Error('Error al actualizar la visibilidad');
+      throw new Error(`Error al actualizar la visibilidad: ${response.status} ${response.statusText}`);
     }
     
     // Mostrar notificación de éxito

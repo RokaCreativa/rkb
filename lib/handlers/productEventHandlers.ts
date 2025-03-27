@@ -7,6 +7,7 @@
  */
 
 import { Product } from '@/lib/types';
+import { toast } from 'react-hot-toast';
 
 /**
  * Maneja el reordenamiento de productos mediante arrastrar y soltar.
@@ -89,26 +90,28 @@ export const handleReorderProduct = async (
  */
 export const toggleProductVisibility = async (
   products: Product[],
-  setProducts: (products: Product[]) => void,
-  setIsUpdatingVisibility: (isUpdating: boolean) => void,
+  setProducts: (updater: (prev: Product[]) => Product[]) => void,
+  setIsUpdatingVisibility: (isUpdating: boolean | number | null) => void,
   productId: number
 ): Promise<void> => {
   const productIndex = products.findIndex(p => p.product_id === productId);
   if (productIndex === -1) return;
 
-  const updatedProducts = [...products];
-  const product = { ...updatedProducts[productIndex] };
+  const product = products[productIndex];
   const newStatus = product.status === 1 ? 0 : 1;
-  product.status = newStatus;
-  updatedProducts[productIndex] = product;
 
   // Actualización optimista de la UI
-  setProducts(updatedProducts);
-  setIsUpdatingVisibility(true);
+  setIsUpdatingVisibility(productId);
+  setProducts(prev => 
+    prev.map(p => p.product_id === productId 
+      ? { ...p, status: newStatus } 
+      : p
+    )
+  );
 
   try {
     const response = await fetch(`/api/products/${productId}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -116,24 +119,29 @@ export const toggleProductVisibility = async (
     });
 
     if (!response.ok) {
-      throw new Error('Error al actualizar la visibilidad del producto');
+      throw new Error(`Error al actualizar la visibilidad del producto: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    if (!data.success) {
+    if (!data.success && !data.product) {
       throw new Error(data.error || 'Error al actualizar la visibilidad del producto');
     }
 
+    toast.success(`Producto ${newStatus === 1 ? 'activado' : 'desactivado'}`);
     console.log(`Producto ${newStatus === 1 ? 'activado' : 'desactivado'} correctamente`);
   } catch (error) {
     console.error('Error al actualizar la visibilidad del producto:', error);
-    console.error('Error al actualizar la visibilidad del producto');
+    toast.error('Error al actualizar la visibilidad del producto');
     
     // Revertir cambio en la UI
-    const revertedProducts = [...products];
-    setProducts(revertedProducts);
+    setProducts(prev => 
+      prev.map(p => p.product_id === productId 
+        ? { ...p, status: product.status } 
+        : p
+      )
+    );
   } finally {
-    setIsUpdatingVisibility(false);
+    setIsUpdatingVisibility(null);
   }
 };
 

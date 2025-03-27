@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Fragment, useRef } from 'react';
+import { useState, useEffect, Fragment, useRef, useCallback, useMemo } from 'react';
 import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon, TrashIcon, ArrowUpTrayIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -40,9 +40,21 @@ import { CategoryActions, SectionActions, ProductActions, BackButton } from './c
 import Pagination from '@/components/ui/Pagination';
 
 // Importar los controladores de eventos extraídos
-import { handleReorderCategory as handleReorderCategoryExtracted, toggleCategoryVisibility as toggleCategoryVisibilityExtracted } from '@/lib/handlers/categoryEventHandlers';
-import { toggleSectionVisibility as toggleSectionVisibilityExtracted, deleteSection as deleteSectionExtracted, handleReorderSection as handleReorderSectionExtracted } from '@/lib/handlers/sectionEventHandlers';
-import { handleReorderProduct as handleReorderProductExtracted, toggleProductVisibility as toggleProductVisibilityExtracted, deleteProduct as deleteProductExtracted } from '@/lib/handlers/productEventHandlers';
+import { 
+  handleReorderCategory, 
+  toggleCategoryVisibility, 
+  deleteCategory as deleteCategoryExtracted 
+} from '@/lib/handlers/categoryEventHandlers';
+import { 
+  handleReorderSection, 
+  toggleSectionVisibility as toggleSectionVisibilityExtracted, 
+  deleteSection as deleteSectionExtracted 
+} from '@/lib/handlers/sectionEventHandlers';
+import { 
+  handleReorderProduct, 
+  toggleProductVisibility as toggleProductVisibilityExtracted, 
+  deleteProduct as deleteProductExtracted 
+} from '@/lib/handlers/productEventHandlers';
 
 // Interfaces para FloatingPhonePreview
 interface FloatingPhoneCategory {
@@ -461,23 +473,24 @@ export default function DashboardPage() {
 
   // ----- MANEJADORES DE EVENTOS -----
 
-  // Función para reordenar categorías (drag and drop)
-  const handleReorderCategory = async (sourceIndex: number, destinationIndex: number) => {
-    // Delegamos al controlador extraído
-    await handleReorderCategoryExtracted(
+  // Función para reordenar las categorías
+  const handleCategoryReorder = useCallback(async (sourceIndex: number, destinationIndex: number) => {
+    if (sourceIndex === destinationIndex) return;
+    
+    await handleReorderCategory(
       categories,
       sourceIndex,
       destinationIndex,
-      setCategories,
-      setIsLoading
+      (updatedCategories) => setCategories(updatedCategories),
+      (isLoading) => setIsLoading(isLoading)
     );
-  };
+  }, [categories]);
   
   // Función para reordenar secciones (drag and drop)
-  const handleReorderSection = async (sourceIndex: number, destinationIndex: number) => {
-    if (sourceIndex === destinationIndex || !selectedCategory) return;
+  const handleReorderSectionAdapter = async (sourceIndex: number, destinationIndex: number) => {
+    if (!selectedCategory) return;
     
-    await handleReorderSectionExtracted(
+    await handleReorderSection(
       sections[selectedCategory.category_id] || [],
       sourceIndex,
       destinationIndex,
@@ -488,21 +501,20 @@ export default function DashboardPage() {
   };
 
   // Función para reordenar productos (drag and drop)
-  const handleReorderProduct = async (sourceIndex: number, destinationIndex: number) => {
-    if (sourceIndex === destinationIndex || !selectedSection) return;
+  const handleReorderProductAdapter = async (sourceIndex: number, destinationIndex: number) => {
+    if (!selectedSection) return;
     
-    const currentProducts = products[selectedSection.section_id] || [];
-    
-    await handleReorderProductExtracted(
-      currentProducts,
+    await handleReorderProduct(
+      products[selectedSection.section_id] || [],
       (updatedProducts) => {
+        // Usar una conversión explícita para resolver el problema de tipos entre lib y app
         setProducts(prev => ({
           ...prev,
-          [selectedSection.section_id]: updatedProducts
+          [selectedSection.section_id]: updatedProducts as any
         }));
       },
       setIsLoading,
-      async (sectionId) => {
+      async (sectionId: number) => {
         try {
           const productsData = await fetchProducts(sectionId);
           setProducts(prev => ({
@@ -759,49 +771,48 @@ export default function DashboardPage() {
   };
 
   // Función para actualizar la visibilidad de una categoría
-  const toggleCategoryVisibility = async (categoryId: number, currentStatus: number) => {
-    await toggleCategoryVisibilityExtracted(
+  const handleToggleCategoryVisibility = useCallback(async (categoryId: number, currentStatus: number) => {
+    await toggleCategoryVisibility(
       categoryId,
       currentStatus,
       setIsUpdatingVisibility,
       setCategories
     );
-  };
+  }, []);
 
   // Función para actualizar la visibilidad de una sección
-  const toggleSectionVisibility = async (sectionId: number, currentStatus: number) => {
+  const toggleSectionVisibility = useCallback(async (sectionId: number, currentStatus: number) => {
     if (!selectedCategory) return;
     
     await toggleSectionVisibilityExtracted(
       sectionId,
       currentStatus,
-      setIsUpdatingVisibility,
+      (id) => setIsUpdatingVisibility(id),
       setSections,
       selectedCategory.category_id
     );
-  };
+  }, [selectedCategory]);
 
   // Función para actualizar la visibilidad de un producto
-  const handleToggleProductVisibility = async (productId: number, currentStatus: number) => {
+  const handleToggleProductVisibility = useCallback(async (productId: number, currentStatus: number) => {
     if (!selectedSection) return;
     
     const currentProducts = products[selectedSection.section_id] || [];
     
     await toggleProductVisibilityExtracted(
       currentProducts,
-      (updatedProducts) => {
+      (updater) => {
         setProducts(prev => ({
           ...prev,
-          [selectedSection.section_id]: updatedProducts
+          [selectedSection.section_id]: updater(currentProducts)
         }));
       },
-      // Adaptador para convertir de boolean a number | null
       (isUpdating) => {
         setIsUpdatingVisibility(isUpdating ? productId : null);
       },
       productId
     );
-  };
+  }, [selectedSection, products, setIsUpdatingVisibility, setProducts]);
 
   // ----- RENDERIZADO -----
   
@@ -1057,6 +1068,19 @@ export default function DashboardPage() {
     return categories;
   };
 
+  // Función para contar secciones por categoría
+  const categoriesWithSectionCount = useMemo(() => {
+    return categories.map(category => {
+      const categorySections = sections[category.category_id] || [];
+      const visibleSections = categorySections.filter(section => section.status === 1);
+      return {
+        ...category,
+        sections_count: categorySections.length,
+        visible_sections_count: visibleSections.length
+      };
+    });
+  }, [categories, sections]);
+
   return (
     <>
       <TopNavbar 
@@ -1116,101 +1140,49 @@ export default function DashboardPage() {
           {currentView === 'categories' && (
             <div className="w-full px-4">
               <CategoryActions onNewCategory={() => setIsNewCategoryModalOpen(true)} />
-              <div className="w-full">
-                {/* Eliminar los controles de paginación visibles */}
-                
-                {/* Tabla de categorías */}
-                <CategoryTable
-                  categories={categories}
-                  expandedCategories={expandedCategories}
-                  onCategoryClick={handleCategoryClick}
-                  onEditCategory={(category) => handleEditCategory(category as Category)}
-                  onDeleteCategory={handleDeleteCategory}
-                  onToggleVisibility={toggleCategoryVisibility}
-                  isUpdatingVisibility={isUpdatingVisibility}
-                  onReorderCategory={handleReorderCategory}
-                  paginationEnabled={categoryPagination.enabled}
-                  currentPage={categoryPagination.page}
-                  itemsPerPage={categoryPagination.limit}
-                  totalCategories={categoryPaginationMeta?.total || categories.length}
-                  onPageChange={handleCategoryPageChange}
-                  onPageSizeChange={handleCategoryPageSizeChange}
-                />
-                
-                {/* Secciones expandidas para categorías - ahora dentro de la misma columna */}
-                {categories.map(category => {
-                  if (!expandedCategories[category.category_id]) return null;
-                  
-                  return (
-                    <div 
-                      key={`category-${category.category_id}`}
-                      id={`category-${category.category_id}`}
-                      className="mt-4 w-full"
-                    >
-                      <SectionActions 
-                        categoryName={category.name}
-                        onNewSection={() => {
-                          setSelectedCategory(category);
-                          setIsNewSectionModalOpen(true);
-                        }} 
-                      />
-                      <SectionTable
-                        sections={sections[category.category_id]?.map(s => ({
-                          ...s,
-                          image: s.image || null,
-                          display_order: s.display_order || 0
-                        })) || []}
-                        expandedSections={expandedSections}
-                        onSectionClick={handleSectionClick}
-                        categoryName={category.name}
-                        onToggleVisibility={toggleSectionVisibility}
-                        isUpdatingVisibility={isUpdatingVisibility}
-                        onEditSection={(section) => handleEditSection(section as unknown as Section)}
-                        onDeleteSection={handleDeleteSection}
-                      />
-                      
-                      {/* Productos expandidos para secciones */}
-                      {sections[category.category_id]?.map(section => {
-                        if (!expandedSections[section.section_id]) return null;
-                        
-                        // Asegurar que section es tratado como Section para TypeScript
-                        const currentSection: Section = section;
-                        
-                        return (
-                          <div 
-                            key={`section-${currentSection.section_id}`}
-                            id={`section-${currentSection.section_id}`}
-                            className="mt-4 border-l-2 border-teal-100 w-full"
-                          >
-                            <div className="mb-4">
-                              <button
-                                onClick={() => {
-                                  setSelectedSection(currentSection);
-                                  setIsNewProductModalOpen(true);
-                                }}
-                                className="w-full flex items-center justify-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 shadow-sm"
-                              >
-                                <PlusIcon className="h-5 w-5 mr-2" />
-                                Nuevo Producto
-                              </button>
-                            </div>
-                            <ProductTable 
-                              products={productsFromHook[currentSection.section_id] || []}
-                              sectionName={currentSection.name}
-                              onToggleVisibility={handleToggleProductVisibility}
-                              isUpdatingVisibility={isUpdatingVisibility}
-                              onEditProduct={(productToEdit) => {
-                                handleEditProduct(productToEdit as unknown as Product);
-                              }}
-                              onDeleteProduct={deleteProductAdapter}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
+              <CategoryTable 
+                categories={categoriesWithSectionCount}
+                expandedCategories={expandedCategories}
+                onCategoryClick={handleCategoryClick}
+                onEditCategory={handleEditCategory}
+                onDeleteCategory={handleDeleteCategory}
+                onToggleVisibility={handleToggleCategoryVisibility}
+                isUpdatingVisibility={isUpdatingVisibility}
+                onReorderCategory={handleCategoryReorder}
+                paginationEnabled={categoryPagination.enabled}
+                currentPage={categoryPagination.page}
+                itemsPerPage={categoryPagination.limit}
+                totalCategories={categoryPaginationMeta?.total || categoriesWithSectionCount.length}
+                onPageChange={page => setCategoryPagination(prev => ({...prev, page}))}
+                onPageSizeChange={pageSize => setCategoryPagination(prev => ({...prev, limit: pageSize}))}
+              />
+              {categoryPagination.enabled && categoryPaginationMeta && (
+                <div className="mt-4 flex justify-between items-center">
+                  <button
+                    onClick={() => setCategoryPagination(prev => ({...prev, enabled: false}))}
+                    className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded"
+                  >
+                    Mostrar todas las categorías
+                  </button>
+                  <Pagination
+                    totalItems={categoryPaginationMeta.total}
+                    itemsPerPage={categoryPagination.limit}
+                    currentPage={categoryPagination.page}
+                    onPageChange={page => setCategoryPagination(prev => ({...prev, page}))}
+                    onPageSizeChange={pageSize => setCategoryPagination(prev => ({...prev, limit: pageSize}))}
+                  />
+                </div>
+              )}
+              {!categoryPagination.enabled && (
+                <div className="mt-4 text-right">
+                  <button
+                    onClick={() => setCategoryPagination(prev => ({...prev, enabled: true}))}
+                    className="px-3 py-1 text-sm text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded"
+                  >
+                    Habilitar paginación
+                  </button>
+                </div>
+              )}
             </div>
           )}
           
@@ -1230,14 +1202,11 @@ export default function DashboardPage() {
                   expandedSections={expandedSections}
                   onSectionClick={handleSectionClick}
                   categoryName={selectedCategory.name}
-                  onEditSection={(section) => handleEditSection(section as unknown as Section)}
-                  onDeleteSection={handleDeleteSection}
                   onToggleVisibility={toggleSectionVisibility}
                   isUpdatingVisibility={isUpdatingVisibility}
-                  onReorderSection={(sourceIndex, destinationIndex) => {
-                    // Implementar reordenamiento de secciones
-                    console.log('Reordenar secciones', sourceIndex, destinationIndex);
-                  }}
+                  onEditSection={(section) => handleEditSection(section as unknown as Section)}
+                  onDeleteSection={handleDeleteSection}
+                  onReorderSection={handleReorderSectionAdapter}
                 />
               ) : (
                 <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
