@@ -917,38 +917,66 @@ export default function DashboardPage() {
 
   // Función para actualizar la visibilidad de un producto
   const handleToggleProductVisibility = useCallback(async (productId: number, currentStatus: number) => {
-    if (!selectedSection) return;
+    console.log("🔍 handleToggleProductVisibility - Iniciando con productId:", productId, "y status:", currentStatus);
+    
+    if (!selectedSection) {
+      console.error("❌ handleToggleProductVisibility - No hay sección seleccionada");
+      return;
+    }
+    
+    console.log("🔍 handleToggleProductVisibility - Sección seleccionada:", selectedSection);
     
     const currentProducts = products[selectedSection.section_id] || [];
     const sectionId = selectedSection.section_id;
     
-    await toggleProductVisibilityExtracted(
-      currentProducts,
-      (updater) => {
-        setProducts((prev) => {
-          // Verificar si updater es una función o un valor
-          const updatedSectionProducts = typeof updater === 'function' 
-            ? updater(prev) 
-            : updater;
-            
-          // Si es un objeto Record, asumimos que ya tiene la estructura correcta
-          if (updatedSectionProducts && typeof updatedSectionProducts === 'object' && !Array.isArray(updatedSectionProducts)) {
-            return updatedSectionProducts as Record<string, Product[]>;
-          }
+    console.log("🔍 handleToggleProductVisibility - Productos actuales:", currentProducts);
+    console.log("🔍 handleToggleProductVisibility - ID de sección:", sectionId);
+    
+    try {
+      await toggleProductVisibilityExtracted(
+        currentProducts,
+        (updater) => {
+          console.log("🔍 handleToggleProductVisibility - Callback de actualización llamado con updater:", typeof updater);
           
-          // Si es un array, lo asignamos a la sección correcta
-          return {
-            ...prev,
-            [sectionId]: Array.isArray(updatedSectionProducts) 
-              ? updatedSectionProducts 
-              : prev[sectionId] || []
-          };
-        });
-      },
-      (isUpdating) => setIsUpdatingVisibility(isUpdating),
-      productId,
-      sectionId
-    );
+          setProducts((prev) => {
+            console.log("🔍 handleToggleProductVisibility - Estado previo de productos:", prev);
+            
+            // Verificar si updater es una función o un valor
+            const updatedSectionProducts = typeof updater === 'function' 
+              ? updater(prev) 
+              : updater;
+              
+            console.log("🔍 handleToggleProductVisibility - Productos de sección actualizados:", updatedSectionProducts);
+              
+            // Si es un objeto Record, asumimos que ya tiene la estructura correcta
+            if (updatedSectionProducts && typeof updatedSectionProducts === 'object' && !Array.isArray(updatedSectionProducts)) {
+              console.log("🔍 handleToggleProductVisibility - Retornando objeto Record directamente");
+              return updatedSectionProducts as Record<string, Product[]>;
+            }
+            
+            // Si es un array, lo asignamos a la sección correcta
+            console.log("🔍 handleToggleProductVisibility - Construyendo nuevo estado con array para sectionId:", sectionId);
+            const result = {
+              ...prev,
+              [sectionId]: Array.isArray(updatedSectionProducts) 
+                ? updatedSectionProducts 
+                : prev[sectionId] || []
+            };
+            console.log("🔍 handleToggleProductVisibility - Resultado final:", result);
+            return result;
+          });
+        },
+        (isUpdating) => {
+          console.log("🔍 handleToggleProductVisibility - Actualizando estado de visibilidad:", isUpdating);
+          setIsUpdatingVisibility(isUpdating);
+        },
+        productId,
+        sectionId
+      );
+      console.log("✅ handleToggleProductVisibility - Operación completada con éxito");
+    } catch (error) {
+      console.error("❌ handleToggleProductVisibility - Error:", error);
+    }
   }, [selectedSection, products, setIsUpdatingVisibility, setProducts]);
 
   // ----- RENDERIZADO -----

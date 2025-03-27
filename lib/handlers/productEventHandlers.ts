@@ -96,27 +96,44 @@ export const toggleProductVisibility = async (
   productId: number,
   sectionId: number
 ): Promise<void> => {
+  console.log("🔍 toggleProductVisibility - Iniciando toggle para producto:", productId);
+  
   // Buscar el producto en el array
   const product = products.find(p => p.product_id === productId);
-  if (!product) return;
+  console.log("🔍 toggleProductVisibility - Producto encontrado:", product);
+  
+  if (!product) {
+    console.error("❌ toggleProductVisibility - Producto no encontrado en el array");
+    return;
+  }
 
   const currentStatus = product.status;
   const newStatus = currentStatus === 1 ? 0 : 1;
+  console.log(`🔍 toggleProductVisibility - Cambiando estado de ${currentStatus} a ${newStatus}`);
 
   // Indicar que está procesando este producto específico
   setIsUpdatingVisibility(productId);
+  console.log("🔍 toggleProductVisibility - Estado de carga actualizado para productId:", productId);
   
   // Actualización optimista de la UI
-  setProducts(prev => ({
-    ...prev,
-    [sectionId]: prev[sectionId]?.map(p => 
-      p.product_id === productId 
-        ? { ...p, status: newStatus } 
-        : p
-    ) || []
-  }));
+  setProducts(prev => {
+    console.log("🔍 toggleProductVisibility - Estado previo:", prev);
+    const result = {
+      ...prev,
+      [sectionId]: prev[sectionId]?.map(p => 
+        p.product_id === productId 
+          ? { ...p, status: newStatus } 
+          : p
+      ) || []
+    };
+    console.log("🔍 toggleProductVisibility - Nuevo estado calculado:", result);
+    return result;
+  });
 
   try {
+    console.log(`🔍 toggleProductVisibility - Enviando solicitud PATCH a /api/products/${productId}`);
+    console.log(`🔍 toggleProductVisibility - Cuerpo de la solicitud:`, { status: newStatus });
+    
     const response = await fetch(`/api/products/${productId}`, {
       method: 'PATCH',
       headers: {
@@ -125,27 +142,36 @@ export const toggleProductVisibility = async (
       body: JSON.stringify({ status: newStatus }),
     });
 
+    console.log(`🔍 toggleProductVisibility - Respuesta de API, status:`, response.status);
+    const responseData = await response.json();
+    console.log(`🔍 toggleProductVisibility - Datos de respuesta:`, responseData);
+
     if (!response.ok) {
       throw new Error(`Error al actualizar la visibilidad del producto: ${response.status} ${response.statusText}`);
     }
 
     toast.success(`Producto ${currentStatus === 1 ? 'desactivado' : 'activado'} correctamente`);
+    console.log(`✅ toggleProductVisibility - Éxito: Producto ${productId} ahora tiene status=${newStatus}`);
   } catch (error) {
-    console.error('Error al actualizar la visibilidad del producto:', error);
+    console.error('❌ toggleProductVisibility - Error:', error);
     toast.error('Error al actualizar la visibilidad del producto');
     
     // Revertir cambio en la UI en caso de error
-    setProducts(prev => ({
-      ...prev,
-      [sectionId]: prev[sectionId]?.map(p => 
-        p.product_id === productId 
-          ? { ...p, status: currentStatus } 
-          : p
-      ) || []
-    }));
+    setProducts(prev => {
+      console.log("🔍 toggleProductVisibility - Revirtiendo cambios debido a error");
+      return {
+        ...prev,
+        [sectionId]: prev[sectionId]?.map(p => 
+          p.product_id === productId 
+            ? { ...p, status: currentStatus } 
+            : p
+        ) || []
+      };
+    });
   } finally {
     // Finalizar el estado de carga
     setIsUpdatingVisibility(null);
+    console.log("🔍 toggleProductVisibility - Estado de carga finalizado");
   }
 };
 
