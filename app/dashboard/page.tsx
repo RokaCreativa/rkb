@@ -905,17 +905,20 @@ export default function DashboardPage() {
   };
 
   // Función para actualizar la visibilidad de una sección
-  const toggleSectionVisibility = useCallback(async (sectionId: number, currentStatus: number) => {
+  const handleToggleSectionVisibility = useCallback(async (sectionId: number, currentStatus: number) => {
     if (!selectedCategory) return;
     
+    // Llamar directamente a toggleSectionVisibilityExtracted con los parámetros correctos
+    setIsUpdatingVisibility(sectionId);
     await toggleSectionVisibilityExtracted(
       sectionId,
       currentStatus,
-      (id) => setIsUpdatingVisibility(id),
-      setSections,
-      selectedCategory.category_id
+      selectedCategory.category_id,
+      sections,
+      setSections
     );
-  }, [selectedCategory]);
+    setIsUpdatingVisibility(0);
+  }, [selectedCategory, sections, setSections]);
 
   // Función para actualizar la visibilidad de un producto
   const handleToggleProductVisibility = useCallback(async (productId: number, currentStatus: number) => {
@@ -932,7 +935,8 @@ export default function DashboardPage() {
     
     console.log(`[DEBUG] Parámetros completos: productId=${productId}, status=${currentStatus}, sectionId=${sectionId}, categoryId=${categoryId}`);
     
-    toggleProductVisibility(
+    // Llamar a la función con los parámetros correctos según su firma
+    await toggleProductVisibilityExtracted(
       productId,
       currentStatus,
       sectionId,
@@ -940,7 +944,7 @@ export default function DashboardPage() {
       sections,
       setSections
     );
-  }, [selectedSection, selectedCategory, sections]);
+  }, [selectedSection, selectedCategory, sections, setSections]);
 
   // ----- RENDERIZADO -----
   
@@ -1294,7 +1298,7 @@ export default function DashboardPage() {
                       expandedSections={expandedSections}
                       onSectionClick={handleSectionClick}
                       categoryName={category.name}
-                      onToggleVisibility={toggleSectionVisibility}
+                      onToggleVisibility={handleToggleSectionVisibility}
                       isUpdatingVisibility={isUpdatingVisibility}
                       onEditSection={(section) => handleEditSection(section as unknown as Section)}
                       onDeleteSection={handleDeleteSection}
@@ -1346,7 +1350,7 @@ export default function DashboardPage() {
                   expandedSections={expandedSections}
                   onSectionClick={handleSectionClick}
                   categoryName={selectedCategory.name}
-                  onToggleVisibility={toggleSectionVisibility}
+                  onToggleVisibility={handleToggleSectionVisibility}
                   isUpdatingVisibility={isUpdatingVisibility}
                   onEditSection={(section) => handleEditSection(section as unknown as Section)}
                   onDeleteSection={handleDeleteSection}
