@@ -130,20 +130,43 @@ export async function toggleProductVisibility(
     const newVisibility = currentStatus === 1 ? 0 : 1;
     console.log(`[DEBUG] Nuevo estado: ${newVisibility}`);
     
-    // Actualización optimista en UI
+    // 1. ACTUALIZACIÓN OPTIMISTA UI - NIVEL DE SECCIONES
     setSections(prevSections => {
       const updatedSections = { ...prevSections };
       
       // Buscar la sección y actualizar el producto dentro de ella
       updatedSections[categoryKey] = prevSections[categoryKey].map(section => {
         if (section.section_id === sectionId) {
+          // Crear una copia de los productos con el cambio aplicado
+          const updatedProducts = section.products?.map(product =>
+            product.product_id === productId
+              ? { ...product, status: newVisibility }
+              : product
+          ) || [];
+          
+          // Si hay productos, disparar evento inmediatamente para actualización optimista
+          if (typeof window !== 'undefined' && updatedProducts.length > 0) {
+            window.dispatchEvent(new CustomEvent('product-visibility-changed', { 
+              detail: { 
+                sectionId,
+                products: updatedProducts,
+                source: 'optimistic-update'
+              } 
+            }));
+            
+            window.dispatchEvent(new CustomEvent('single-product-updated', { 
+              detail: { 
+                productId,
+                sectionId,
+                newStatus: newVisibility,
+                source: 'optimistic-update'
+              } 
+            }));
+          }
+          
           return {
             ...section,
-            products: section.products?.map(product =>
-              product.product_id === productId
-                ? { ...product, status: newVisibility }
-                : product
-            ) || []
+            products: updatedProducts
           };
         }
         return section;
@@ -152,10 +175,9 @@ export async function toggleProductVisibility(
       return updatedSections;
     });
 
-    // Formatear el valor status para la API
+    // 2. LLAMADA A LA API
     console.log(`[DEBUG] Enviando PATCH a /api/products/${productId} con status=${newVisibility}`);
     
-    // Llamada a la API
     const response = await fetch(`/api/products/${productId}`, {
       method: "PATCH",
       headers: {
@@ -164,37 +186,38 @@ export async function toggleProductVisibility(
       body: JSON.stringify({ status: newVisibility }),
     });
 
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
+      throw new Error(errorData.error || "Error al cambiar la visibilidad");
+    }
+
     const data = await response.json();
     console.log(`[DEBUG] Respuesta API:`, data);
 
-    if (!response.ok) {
-      throw new Error(data.error || "Error al cambiar la visibilidad");
-    }
-
-    // Actualizar también el estado global de productos (productsFromHook) para refrescar la UI
+    // 3. REFRESCAR DATOS DESPUÉS DE ÉXITO
     try {
-      // Intentar obtener los productos actualizados desde la API directamente
       const freshProductsResponse = await fetch(`/api/products?section_id=${sectionId}`);
       if (freshProductsResponse.ok) {
         const updatedProducts = await freshProductsResponse.json();
-        console.log(`[DEBUG] Productos actualizados obtenidos:`, updatedProducts);
+        console.log(`[DEBUG] Productos actualizados obtenidos de API:`, updatedProducts);
         
-        // Actualizar directamente el estado de productos sin usar eventos
+        // Disparar evento con datos frescos de API
         if (typeof window !== 'undefined') {
-          // Disparar un evento personalizado para notificar la actualización 
           window.dispatchEvent(new CustomEvent('product-visibility-changed', { 
             detail: { 
               sectionId,
-              products: updatedProducts
+              products: updatedProducts,
+              source: 'api-refresh'
             } 
           }));
           
-          // También actualizar el producto específico que se cambió
           window.dispatchEvent(new CustomEvent('single-product-updated', { 
             detail: { 
               productId,
               sectionId,
-              newStatus: newVisibility 
+              newStatus: newVisibility,
+              product: updatedProducts.find((p: Product) => p.product_id === productId),
+              source: 'api-refresh'
             } 
           }));
         }
@@ -207,7 +230,7 @@ export async function toggleProductVisibility(
   } catch (error) {
     console.error("[ERROR] Error en toggleProductVisibility:", error);
     
-    // Revertir cambios en UI en caso de error
+    // 4. REVERTIR CAMBIOS EN UI EN CASO DE ERROR
     setSections(prevSections => {
       const updatedSections = { ...prevSections };
       const categoryKey = categoryId.toString();
@@ -215,13 +238,35 @@ export async function toggleProductVisibility(
       // Buscar la sección y revertir el cambio del producto
       updatedSections[categoryKey] = prevSections[categoryKey].map(section => {
         if (section.section_id === sectionId) {
+          const revertedProducts = section.products?.map(product =>
+            product.product_id === productId
+              ? { ...product, status: currentStatus }
+              : product
+          ) || [];
+          
+          // Notificar reversion del cambio
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('product-visibility-changed', { 
+              detail: { 
+                sectionId,
+                products: revertedProducts,
+                source: 'error-revert'
+              } 
+            }));
+            
+            window.dispatchEvent(new CustomEvent('single-product-updated', { 
+              detail: { 
+                productId,
+                sectionId,
+                newStatus: currentStatus,
+                source: 'error-revert'
+              } 
+            }));
+          }
+          
           return {
             ...section,
-            products: section.products?.map(product =>
-              product.product_id === productId
-                ? { ...product, status: currentStatus }
-                : product
-            ) || []
+            products: revertedProducts
           };
         }
         return section;
