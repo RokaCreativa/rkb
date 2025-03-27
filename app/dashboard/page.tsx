@@ -537,13 +537,30 @@ export default function DashboardPage() {
   const handleReorderSectionAdapter = async (sourceIndex: number, destinationIndex: number) => {
     if (!selectedCategory) return;
     
+    // Crear una copia del array de secciones
+    const sectionsList = sections[selectedCategory.category_id] || [];
+    const reorderedSections = [...sectionsList];
+    
+    // Realizar el reordenamiento localmente
+    const [removed] = reorderedSections.splice(sourceIndex, 1);
+    reorderedSections.splice(destinationIndex, 0, removed);
+    
+    // Actualizar el display_order según la nueva posición
+    const updatedSections = reorderedSections.map((section, index) => ({
+      ...section,
+      display_order: index + 1
+    }));
+    
+    // Llamar a la función mejorada de reordenamiento
     await handleReorderSection(
-      sections[selectedCategory.category_id] || [],
-      sourceIndex,
-      destinationIndex,
-      setSections,
-      selectedCategory.category_id,
-      setIsLoading
+      sectionsList,
+      (sections) => {
+        setSections(prev => ({
+          ...prev,
+          [selectedCategory.category_id]: sections
+        }));
+      },
+      updatedSections
     );
   };
 

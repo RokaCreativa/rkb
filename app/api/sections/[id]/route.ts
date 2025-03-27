@@ -4,6 +4,79 @@ import { authOptions } from "@/lib/auth";
 import prisma from '@/prisma/prisma';
 
 /**
+ * @route PATCH /api/sections/[id]
+ * @description Actualiza una sección específica (como su estado de visibilidad)
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    // 1. Verificación de autenticación
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    }
+
+    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    const user = await prisma.users.findFirst({
+      where: { email: session.user.email },
+    });
+
+    if (!user?.client_id) {
+      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    }
+
+    // 3. Obtener y validar el ID de la sección
+    const sectionId = parseInt(params.id);
+    
+    if (isNaN(sectionId)) {
+      return NextResponse.json({ error: 'ID de sección inválido' }, { status: 400 });
+    }
+    
+    // 4. Verificar que la sección exista y pertenezca al cliente
+    const section = await prisma.sections.findFirst({
+      where: {
+        section_id: sectionId,
+        client_id: user.client_id,
+        deleted: { not: 'Y' },
+      },
+    });
+
+    if (!section) {
+      return NextResponse.json({ error: 'Sección no encontrada' }, { status: 404 });
+    }
+
+    // 5. Obtener los datos a actualizar
+    const data = await request.json();
+    const updateData: Record<string, any> = {};
+
+    // Actualizar el estado si se proporciona
+    if (data.status !== undefined) {
+      updateData.status = data.status === 1;
+    }
+
+    // 6. Actualizar la sección
+    const updatedSection = await prisma.sections.update({
+      where: {
+        section_id: sectionId,
+      },
+      data: updateData,
+    });
+
+    // 7. Devolver respuesta de éxito
+    return NextResponse.json({
+      ...updatedSection,
+      status: updatedSection.status ? 1 : 0, // Convertir a formato numérico
+    });
+  } catch (error) {
+    // 8. Manejo centralizado de errores
+    console.error('Error al actualizar la sección:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  }
+}
+
+/**
  * @route DELETE /api/sections/[id]
  * @description Elimina una sección específica por su ID
  */

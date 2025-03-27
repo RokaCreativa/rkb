@@ -12,205 +12,161 @@ import { toast } from 'react-hot-toast';
 import { Section } from '@/lib/types';
 
 /**
- * Maneja el reordenamiento de secciones mediante drag and drop
- * 
- * @param sections - Lista actual de secciones
- * @param sourceIndex - Índice de origen del elemento arrastrado
- * @param destinationIndex - Índice de destino donde se suelta
- * @param setSections - Función para actualizar el estado de secciones
- * @param setIsLoading - Función para controlar el estado de carga
- * @returns Promise que se resuelve cuando la operación está completa
+ * Maneja el reordenamiento de secciones mediante arrastrar y soltar
+ * @param sections - La lista actual de secciones
+ * @param setSections - Función para actualizar el estado de las secciones
+ * @param reorderedSections - Las secciones con el nuevo orden
+ * @returns Promise<void>
  */
 export const handleReorderSection = async (
   sections: Section[],
-  sourceIndex: number,
-  destinationIndex: number,
-  setSections: (updater: (prev: Record<number, Section[]>) => Record<number, Section[]>) => void,
-  categoryId: number,
-  setIsLoading: (isLoading: boolean) => void
-) => {
-  // Crear una copia del array de secciones
-  const reorderedSections = [...sections];
-  
-  // Realizar el reordenamiento localmente
-  const [removed] = reorderedSections.splice(sourceIndex, 1);
-  reorderedSections.splice(destinationIndex, 0, removed);
-  
-  // Actualizar el estado local inmediatamente para feedback visual
-  setSections(prev => ({
-    ...prev,
-    [categoryId]: reorderedSections
-  }));
-  
+  setSections: React.Dispatch<React.SetStateAction<Section[]>>,
+  reorderedSections: Section[]
+): Promise<void> => {
   try {
-    // Indicar que está procesando
-    setIsLoading(true);
-    
-    // Actualizar los display_order de todas las secciones reordenadas
-    const updatedSections = reorderedSections.map((section, index) => ({
-      ...section,
-      display_order: index + 1
-    }));
-    
-    // Preparar datos para la API
-    const updateData = updatedSections.map(section => ({
+    // Actualizar el estado localmente para una respuesta inmediata de la UI
+    setSections(reorderedSections);
+
+    // Preparar datos para enviar a la API
+    const sectionsForApi = reorderedSections.map((section, index) => ({
       id: section.section_id,
-      display_order: section.display_order
+      display_order: index + 1,
     }));
-    
-    // Llamar a la API para guardar los cambios
+
+    // Enviar los cambios al servidor
     const response = await fetch('/api/sections/reorder', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sections: updateData })
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ sections: sectionsForApi }),
     });
-    
+
+    // Manejar respuesta con error
     if (!response.ok) {
-      throw new Error('Error al actualizar el orden de secciones');
+      console.error('Error al reordenar secciones:', response.status);
+      // Revertir a los datos originales si hay un error
+      setSections(sections);
+      toast.error('Error al reordenar secciones. Por favor, inténtalo de nuevo.');
+      return;
     }
-    
-    toast.success('Orden de secciones actualizado');
+
+    toast.success('Secciones reordenadas correctamente');
   } catch (error) {
     console.error('Error al reordenar secciones:', error);
-    toast.error('Error al actualizar el orden de las secciones');
-    
-    // Volver a cargar las secciones en caso de error
-    await reloadSections(categoryId, sections => 
-      setSections(prev => ({ ...prev, [categoryId]: sections }))
-    );
-  } finally {
-    setIsLoading(false);
+    // Revertir a los datos originales si hay un error
+    setSections(sections);
+    toast.error('Error al reordenar secciones. Por favor, inténtalo de nuevo.');
   }
 };
 
 /**
- * Actualiza la visibilidad de una sección
- * 
- * @param sectionId - ID de la sección a modificar
- * @param currentStatus - Estado actual (1 = visible, 0 = oculto)
- * @param setIsUpdatingVisibility - Función para controlar el estado de carga
- * @param setSections - Función para actualizar el estado de secciones
- * @param categoryId - ID de la categoría a la que pertenece la sección
- * @returns Promise que se resuelve cuando la operación está completa
+ * Cambia la visibilidad de una sección
+ * @param sectionId - ID de la sección a actualizar
+ * @param isCurrentlyVisible - Estado actual de visibilidad de la sección
+ * @param sections - Lista actual de secciones
+ * @param setSections - Función para actualizar el estado de las secciones
+ * @returns Promise<void>
  */
 export const toggleSectionVisibility = async (
   sectionId: number,
-  currentStatus: number,
-  setIsUpdatingVisibility: (id: number | null) => void,
-  setSections: (updater: (prev: Record<number, Section[]>) => Record<number, Section[]>) => void,
-  categoryId: number
-) => {
-  // Valor nuevo
-  const newStatus = currentStatus === 1 ? 0 : 1;
-  
+  isCurrentlyVisible: boolean,
+  sections: Section[],
+  setSections: React.Dispatch<React.SetStateAction<Section[]>>
+): Promise<void> => {
   try {
-    // Indicar que está procesando esta sección específica
-    setIsUpdatingVisibility(sectionId);
-    
-    // Optimistic UI update
-    setSections(prev => ({
-      ...prev,
-      [categoryId]: prev[categoryId]?.map(section => 
-        section.section_id === sectionId 
-          ? { ...section, status: newStatus } 
-          : section
-      ) || []
-    }));
-    
-    // Realizar la llamada a la API
+    // Actualizar optimistamente el UI
+    const updatedSections = sections.map((section) =>
+      section.section_id === sectionId
+        ? { ...section, visibility: isCurrentlyVisible ? 'N' : 'Y' }
+        : section
+    );
+    setSections(updatedSections);
+
+    // Enviar la actualización al servidor
     const response = await fetch(`/api/sections/${sectionId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ visibility: isCurrentlyVisible ? 'N' : 'Y' }),
     });
-    
+
+    // Manejar respuesta con error
     if (!response.ok) {
-      throw new Error(`Error al actualizar la visibilidad: ${response.status} ${response.statusText}`);
+      console.error('Error al cambiar visibilidad de la sección:', response.status);
+      // Revertir a los datos originales si hay un error
+      setSections(sections);
+      toast.error('Error al cambiar la visibilidad de la sección. Por favor, inténtalo de nuevo.');
+      return;
     }
-    
-    // Mostrar notificación de éxito
-    toast.success(`Sección ${currentStatus === 1 ? 'oculta' : 'visible'}`);
+
+    toast.success(`Sección ${isCurrentlyVisible ? 'ocultada' : 'mostrada'} correctamente`);
   } catch (error) {
-    console.error('Error al cambiar visibilidad de sección:', error);
-    toast.error('Error al actualizar la sección');
-    
-    // Revertir el cambio en caso de error
-    setSections(prev => ({
-      ...prev,
-      [categoryId]: prev[categoryId]?.map(section => 
-        section.section_id === sectionId 
-          ? { ...section, status: currentStatus } 
-          : section
-      ) || []
-    }));
-  } finally {
-    // Finalizar el estado de carga
-    setIsUpdatingVisibility(null);
+    console.error('Error al cambiar visibilidad de la sección:', error);
+    // Revertir a los datos originales si hay un error
+    setSections(sections);
+    toast.error('Error al cambiar la visibilidad de la sección. Por favor, inténtalo de nuevo.');
   }
 };
 
 /**
  * Elimina una sección
- * 
  * @param sectionId - ID de la sección a eliminar
- * @param setSections - Función para actualizar el estado de secciones
- * @param categoryId - ID de la categoría a la que pertenece la sección
- * @returns Promise que se resuelve cuando la operación está completa
+ * @param sections - Lista actual de secciones
+ * @param setSections - Función para actualizar el estado de las secciones
+ * @returns Promise<void>
  */
 export const deleteSection = async (
   sectionId: number,
-  setSections: (updater: (prev: Record<number, Section[]>) => Record<number, Section[]>) => void,
-  categoryId: number
-) => {
+  sections: Section[],
+  setSections: React.Dispatch<React.SetStateAction<Section[]>>
+): Promise<void> => {
   try {
-    // Optimistic UI update
-    setSections(prev => ({
-      ...prev,
-      [categoryId]: prev[categoryId]?.filter(section => section.section_id !== sectionId) || []
-    }));
-    
-    // Realizar la llamada a la API
+    // Actualizar optimistamente el UI
+    const updatedSections = sections.filter((section) => section.section_id !== sectionId);
+    setSections(updatedSections);
+
+    // Enviar la eliminación al servidor
     const response = await fetch(`/api/sections/${sectionId}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     });
-    
+
+    // Manejar respuesta con error
     if (!response.ok) {
-      throw new Error('Error al eliminar la sección');
+      console.error('Error al eliminar la sección:', response.status);
+      // Si falla, recargar las secciones para asegurar datos correctos
+      reloadSections(setSections);
+      toast.error('Error al eliminar la sección. Por favor, inténtalo de nuevo.');
+      return;
     }
-    
+
     toast.success('Sección eliminada correctamente');
   } catch (error) {
-    console.error('Error al eliminar sección:', error);
-    toast.error('Error al eliminar la sección');
-    
-    // Recargar datos en caso de error
-    await reloadSections(categoryId, sections => 
-      setSections(prev => ({ ...prev, [categoryId]: sections }))
-    );
+    console.error('Error al eliminar la sección:', error);
+    // Si falla, recargar las secciones para asegurar datos correctos
+    reloadSections(setSections);
+    toast.error('Error al eliminar la sección. Por favor, inténtalo de nuevo.');
   }
 };
 
 /**
- * Función auxiliar para recargar secciones desde la API
- * 
- * @param categoryId - ID de la categoría para la que recargar secciones
- * @param setSections - Función para actualizar el estado de secciones
- * @returns Promise que se resuelve con las secciones cargadas
+ * Recarga las secciones desde la API
+ * @param setSections - Función para actualizar el estado de las secciones
+ * @returns Promise<void>
  */
-const reloadSections = async (
-  categoryId: number,
-  setSections: (sections: Section[]) => void
-) => {
+export const reloadSections = async (
+  setSections: React.Dispatch<React.SetStateAction<Section[]>>
+): Promise<void> => {
   try {
-    const response = await fetch(`/api/categories/${categoryId}/sections`);
+    const response = await fetch('/api/sections');
     if (!response.ok) {
-      throw new Error('Error al recargar secciones');
+      throw new Error('Error al cargar secciones');
     }
     const data = await response.json();
     setSections(data);
-    return data;
-  } catch (err) {
-    console.error('Error al recargar secciones:', err);
-    throw err;
+  } catch (error) {
+    console.error('Error al recargar secciones:', error);
+    toast.error('Error al recargar datos. Por favor, actualiza la página.');
   }
 }; 
