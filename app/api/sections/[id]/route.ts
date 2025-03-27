@@ -38,7 +38,7 @@ export async function PATCH(
     const section = await prisma.sections.findFirst({
       where: {
         section_id: sectionId,
-        deleted: { not: 'Y' },
+        deleted: { not: '1' },
       },
       include: {
         categories: true,
@@ -119,7 +119,7 @@ export async function DELETE(
       where: {
         section_id: sectionId,
         client_id: user.client_id,
-        deleted: { not: 'Y' }, // Comprobamos que no esté ya eliminada
+        deleted: { not: '1' }, // Comprobamos que no esté ya eliminada
       },
     });
 
@@ -128,13 +128,13 @@ export async function DELETE(
     }
 
     // 5. En lugar de eliminar físicamente la sección, la marcamos como eliminada
-    // utilizando el campo 'deleted' con valor 'Y'
+    // utilizando el campo 'deleted' con valor '1'
     await prisma.sections.update({
       where: {
         section_id: sectionId,
       },
       data: {
-        deleted: 'Y',
+        deleted: '1',
         deleted_at: new Date().toISOString().substring(0, 19).replace('T', ' '),
         deleted_by: (session.user.email || '').substring(0, 50),
         deleted_ip: (request.headers.get('x-forwarded-for') || 'API').substring(0, 20),
