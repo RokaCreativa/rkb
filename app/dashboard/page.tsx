@@ -88,11 +88,23 @@ interface DashboardClient extends Client {
   main_logo: string | null;
 }
 
-// Agregar esta función auxiliar fuera del componente principal
-function getCategoryTableData(categories: Category[], sections: Record<string, Section[]>) {
+/**
+ * Función auxiliar que enriquece las categorías con información sobre sus secciones
+ * Calcula el número total de secciones y cuántas están visibles para cada categoría
+ * 
+ * @param categories - Lista de categorías a procesar
+ * @param sections - Mapa de secciones por ID de categoría
+ * @returns Lista de categorías con datos adicionales sobre sus secciones
+ */
+function getCategoryTableData(categories: Category[], sections: Record<string | number, Section[]>) {
   return categories.map(category => {
+    // Obtener las secciones para esta categoría (o un array vacío si no hay ninguna)
     const categorySections = sections[category.category_id] || [];
+    
+    // Contar cuántas secciones están visibles (status = 1)
     const visibleSections = categorySections.filter(section => section.status === 1);
+    
+    // Devolver la categoría con información adicional
     return {
       ...category,
       sections_count: categorySections.length,
@@ -101,15 +113,25 @@ function getCategoryTableData(categories: Category[], sections: Record<string, S
   });
 }
 
-// Función auxiliar para obtener las categorías paginadas
+/**
+ * Función auxiliar para obtener las categorías paginadas
+ * Filtra las categorías según la configuración de paginación actual
+ * 
+ * @param allCategories - Lista completa de categorías
+ * @param pagination - Configuración de paginación (habilitada, página, límite)
+ * @returns Lista filtrada de categorías según la paginación
+ */
 function getPaginatedCategories(allCategories: Category[], pagination: { enabled: boolean, page: number, limit: number }) {
+  // Si la paginación está deshabilitada, mostrar todas las categorías
   if (!pagination.enabled) {
     return allCategories;
   }
   
+  // Calcular índices para el slice
   const startIndex = (pagination.page - 1) * pagination.limit;
   const endIndex = startIndex + pagination.limit;
   
+  // Devolver solo las categorías de la página actual
   return allCategories.slice(startIndex, endIndex);
 }
 
@@ -661,98 +683,156 @@ export default function DashboardPage() {
     if (status === 'authenticated') loadData();
   }, [status, categoryPagination]);
 
-  // Función para manejar el click en una categoría
+  /**
+   * Maneja el clic en una categoría
+   * Carga las secciones para esa categoría si no están ya cargadas 
+   * y alterna el estado de expansión
+   * 
+   * @param categoryId - ID de la categoría seleccionada
+   */
   const handleCategoryClick = async (categoryId: number) => {
-    const isExpanded = expandedCategories[categoryId];
+    console.log("Clic en categoría:", categoryId);
     
-    // Actualizar el estado de expansión
+    // Verificar el estado actual de expansión
+    const isExpanded = expandedCategories[categoryId];
+    console.log(`Categoría ${categoryId} está ${isExpanded ? 'expandida' : 'colapsada'}`);
+    
+    // 1. Primero, actualizar el estado para reflejar inmediatamente en la UI
     setExpandedCategories(prev => ({
       ...prev,
       [categoryId]: !isExpanded
     }));
     
-    // Si estamos expandiendo y no tenemos las secciones cargadas, cargarlas
-    if (!isExpanded && !sections[categoryId]) {
-      // Marcar como cargando
-      setLoadingSections(prev => ({
-        ...prev,
-        [categoryId]: true
-      }));
+    // 2. Si estamos expandiendo y no tenemos secciones, cargarlas
+    if (!isExpanded) {
+      console.log(`Expandiendo categoría ${categoryId}`);
       
-      try {
-        const sectionsData = await fetchSections(categoryId);
+      // Si no tenemos secciones cargadas para esta categoría, cargarlas
+      if (!sections[categoryId] || sections[categoryId].length === 0) {
+        console.log(`Cargando secciones para categoría ${categoryId}...`);
         
-        // Actualizar las secciones
-        setSections(prev => ({
-          ...prev,
-          [categoryId]: sectionsData
-        }));
-      } catch (error) {
-        console.error('Error al cargar secciones:', error);
-        toast.error('Error al cargar las secciones');
-      } finally {
+        // Indicar que estamos cargando secciones para esta categoría
         setLoadingSections(prev => ({
           ...prev,
-          [categoryId]: false
+          [categoryId]: true
         }));
-      }
-    }
-    
-    // Hacer scroll automático a la sección expandida después de un breve retraso
-    setTimeout(() => {
-      if (!isExpanded) {
-        const element = document.getElementById(`category-${categoryId}`);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        try {
+          // Cargar secciones desde la API
+          const sectionsData = await fetchSections(categoryId);
+          console.log(`Secciones cargadas para categoría ${categoryId}:`, sectionsData);
+          
+          // Actualizar el estado con las secciones cargadas
+          setSections(prev => ({
+            ...prev,
+            [categoryId]: sectionsData
+          }));
+          
+          // Opcionalmente, también seleccionar esta categoría para la navegación
+          const category = categories.find(c => c.category_id === categoryId);
+          if (category) {
+            setSelectedCategory(category);
+          }
+        } catch (error) {
+          console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
+          toast.error('Error al cargar las secciones');
+        } finally {
+          // Finalizar el estado de carga
+          setLoadingSections(prev => ({
+            ...prev,
+            [categoryId]: false
+          }));
         }
+      } else {
+        console.log(`Ya tenemos secciones cargadas para categoría ${categoryId}:`, sections[categoryId]);
       }
-    }, 100);
+    } else {
+      console.log(`Colapsando categoría ${categoryId}`);
+    }
   };
   
   /**
-   * Maneja la acción de hacer clic en una sección
-   * Cargará los productos asociados a esa sección
+   * Maneja el clic en una sección
+   * Carga los productos para esa sección si no están ya cargados
+   * y alterna el estado de expansión
    * 
    * @param sectionId - ID de la sección seleccionada
    */
   const handleSectionClick = async (sectionId: number) => {
-    // Alternar el estado de expansión
-    if (expandedSections[sectionId]) {
+    console.log("Clic en sección:", sectionId);
+    
+    // Verificar el estado actual de expansión
+    const isExpanded = expandedSections[sectionId];
+    console.log(`Sección ${sectionId} está ${isExpanded ? 'expandida' : 'colapsada'}`);
+    
+    // 1. Actualizar el estado para reflejar inmediatamente en la UI
     setExpandedSections(prev => ({
       ...prev,
-        [sectionId]: false
-      }));
-      return;
-    }
-
-    // Buscar la sección actual en las secciones cargadas
-    const currentSection = sections[selectedCategory?.category_id || 0]?.find(
-      (s) => s.section_id === sectionId
-    );
-
-    if (!currentSection) return;
-
-    setExpandedSections(prev => ({
-      ...prev,
-      [sectionId]: true
+      [sectionId]: !isExpanded
     }));
-    setSelectedSection(currentSection);
-      setLoadingProducts(prev => ({
-        ...prev,
-        [sectionId]: true
-      }));
+
+    // 2. Si estamos expandiendo y no tenemos productos, cargarlos
+    if (!isExpanded) {
+      console.log(`Expandiendo sección ${sectionId}`);
       
-      try {
-      // Usar el hook para cargar productos
-      await fetchProductsHook(sectionId);
-      } catch (error) {
-        console.error('Error al cargar productos:', error);
-      toast.error('Error al cargar los productos.');
-      } finally {
-        setLoadingProducts(prev => ({
-          ...prev,
-          [sectionId]: false
-        }));
+      // Buscar a qué categoría pertenece esta sección
+      let foundCategoryId: number | null = null;
+      let foundSection: Section | null = null;
+      
+      // Recorrer todas las categorías para encontrar la que contiene esta sección
+      Object.entries(sections).forEach(([categoryId, categorySections]) => {
+        const section = categorySections.find(s => s.section_id === sectionId);
+        if (section) {
+          foundCategoryId = parseInt(categoryId);
+          foundSection = section;
+        }
+      });
+      
+      // Si encontramos la sección y su categoría
+      if (foundCategoryId !== null && foundSection !== null) {
+        console.log(`Sección ${sectionId} pertenece a categoría ${foundCategoryId}`);
+        
+        // Marcar la sección como seleccionada
+        setSelectedSection(foundSection);
+        
+        // Marcar la categoría como seleccionada
+        const category = categories.find(c => c.category_id === foundCategoryId);
+        if (category) {
+          setSelectedCategory(category);
+        }
+        
+        // Si no tenemos productos cargados para esta sección, cargarlos
+        if (!products[sectionId] || products[sectionId].length === 0) {
+          console.log(`Cargando productos para sección ${sectionId}...`);
+          
+          // Indicar que estamos cargando
+          setLoadingProducts(prev => ({
+            ...prev,
+            [sectionId]: true
+          }));
+          
+          try {
+            // Cargar productos desde la API o hook
+            await fetchProductsHook(sectionId);
+            console.log(`Productos cargados para sección ${sectionId}`);
+          } catch (error) {
+            console.error(`Error al cargar productos para sección ${sectionId}:`, error);
+            toast.error('Error al cargar los productos');
+          } finally {
+            // Finalizar el estado de carga
+            setLoadingProducts(prev => ({
+              ...prev,
+              [sectionId]: false
+            }));
+          }
+        } else {
+          console.log(`Ya tenemos productos cargados para sección ${sectionId}:`, products[sectionId]);
+        }
+      } else {
+        console.error(`No se pudo encontrar a qué categoría pertenece la sección ${sectionId}`);
+      }
+    } else {
+      console.log(`Colapsando sección ${sectionId}`);
     }
   };
 
@@ -1171,33 +1251,59 @@ export default function DashboardPage() {
                 onPageChange={page => setCategoryPagination(prev => ({...prev, page}))}
                 onPageSizeChange={pageSize => setCategoryPagination(prev => ({...prev, limit: pageSize}))}
               />
-              {categoryPagination.enabled && categoryPaginationMeta && (
-                <div className="mt-4 flex justify-between items-center">
-                  <button
-                    onClick={() => setCategoryPagination(prev => ({...prev, enabled: false}))}
-                    className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded"
+
+              {/* Secciones expandidas para categorías (cuando está en vista de categorías) */}
+              {currentView === 'categories' && categories.map(category => {
+                if (!expandedCategories[category.category_id]) return null;
+                
+                return (
+                  <div 
+                    key={`expanded-category-${category.category_id}`}
+                    id={`category-${category.category_id}`}
+                    className="mt-4 w-full pl-4 border-l-2 border-indigo-100"
                   >
-                    Mostrar todas las categorías
-                  </button>
-                  <Pagination
-                    totalItems={categoryPaginationMeta.total}
-                    itemsPerPage={categoryPagination.limit}
-                    currentPage={categoryPagination.page}
-                    onPageChange={page => setCategoryPagination(prev => ({...prev, page}))}
-                    onPageSizeChange={pageSize => setCategoryPagination(prev => ({...prev, limit: pageSize}))}
-                  />
-                </div>
-              )}
-              {!categoryPagination.enabled && (
-                <div className="mt-4 text-right">
-                  <button
-                    onClick={() => setCategoryPagination(prev => ({...prev, enabled: true}))}
-                    className="px-3 py-1 text-sm text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded"
-                  >
-                    Habilitar paginación
-                  </button>
-                </div>
-              )}
+                    <SectionTable 
+                      sections={sections[category.category_id]?.map(s => ({
+                        ...s,
+                        image: s.image || null,
+                        display_order: s.display_order || 0
+                      })) || []}
+                      expandedSections={expandedSections}
+                      onSectionClick={handleSectionClick}
+                      categoryName={category.name}
+                      onToggleVisibility={toggleSectionVisibility}
+                      isUpdatingVisibility={isUpdatingVisibility}
+                      onEditSection={(section) => handleEditSection(section as unknown as Section)}
+                      onDeleteSection={handleDeleteSection}
+                      onReorderSection={handleReorderSectionAdapter}
+                    />
+                    
+                    {/* Productos expandidos para secciones */}
+                    {sections[category.category_id]?.map(section => {
+                      if (!expandedSections[section.section_id]) return null;
+                      
+                      return (
+                        <div 
+                          key={`expanded-section-${section.section_id}`}
+                          id={`section-${section.section_id}`}
+                          className="mt-4 pl-4 border-l-2 border-teal-100"
+                        >
+                          <ProductTable 
+                            products={productsFromHook[section.section_id] || []}
+                            sectionName={section.name}
+                            onToggleVisibility={handleToggleProductVisibility}
+                            isUpdatingVisibility={isUpdatingVisibility}
+                            onEditProduct={(productToEdit) => {
+                              handleEditProduct(productToEdit as unknown as Product);
+                            }}
+                            onDeleteProduct={deleteProductAdapter}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           )}
           
