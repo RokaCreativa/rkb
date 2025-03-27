@@ -362,17 +362,32 @@ Esto resulta en:
 
 Para facilitar las optimizaciones y la evolución del código, se ha iniciado un proceso de refactorización completo:
 
-#### Fase 1: Extracción de Controladores de Eventos (En progreso)
+#### Fase 1: Extracción de Controladores de Eventos (Completada: 29/03/2024)
 - ✅ Creación del directorio `lib/handlers/` para controladores
 - ✅ Extracción de controladores para categorías en `categoryEventHandlers.ts`
 - ✅ Extracción de controladores para secciones en `sectionEventHandlers.ts`
 - ✅ Extracción de controladores para productos en `productEventHandlers.ts`
-- Pending: Actualización del archivo principal para usar los controladores
+- ✅ Integración de controladores en el archivo principal `app/dashboard/page.tsx`
 
-Esta refactorización permitirá:
-- Reducir el tamaño del archivo `page.tsx` (actualmente >1800 líneas)
+Esta refactorización ha permitido:
+- Reducir el tamaño y complejidad del archivo `page.tsx` (>1800 líneas)
 - Mejorar la claridad y mantenibilidad del código
-- Facilitar la implementación de las optimizaciones de carga
+- Centralizar la lógica de manejo de eventos por tipo (categorías, secciones, productos)
+- Facilitar las futuras implementaciones de optimización de carga
+
+Cada tipo de entidad ahora tiene su propio archivo de controladores que sigue un patrón común:
+- Funciones para reordenar elementos mediante drag-and-drop
+- Funciones para activar/desactivar elementos (toggle visibility)
+- Funciones para eliminar elementos
+- Funciones auxiliares para recargar datos tras errores
+
+Estos controladores implementan actualizaciones optimistas de la UI (cambios inmediatos en la interfaz antes de completar la operación en el servidor) y manejan adecuadamente los errores, revirtiendo cambios en caso necesario.
+
+#### Fase 2: Organización de Hooks Específicos (En progreso)
+- ✅ Creación de la estructura para hooks especializados
+- ⬜ Mejora de hooks existentes para mayor modularidad
+- ⬜ Implementación de carga diferida (lazy loading)
+- ⬜ Sistema de caché para reducir peticiones repetidas
 
 El detalle completo del plan de refactorización se encuentra en `REFACTOR_PLAN.md`.
 
@@ -385,9 +400,13 @@ El detalle completo del plan de refactorización se encuentra en `REFACTOR_PLAN.
 5. ✅ Crear componente `Pagination.tsx` genérico y reutilizable
 6. ✅ Adaptar `CategoryTable.tsx` para mostrar paginación
 7. ✅ Implementar activación/desactivación de paginación en el dashboard
-8. ⬜ Implementar paginación en endpoints de secciones
-9. ⬜ Implementar paginación en endpoints de productos
-10. ⬜ Optimizar la carga de datos con caché y carga diferida
+8. ✅ Extraer controladores de eventos para categorías
+9. ✅ Extraer controladores de eventos para secciones
+10. ✅ Extraer controladores de eventos para productos
+11. ✅ Integrar los controladores extraídos en el dashboard principal
+12. ⬜ Implementar paginación en endpoints de secciones
+13. ⬜ Implementar paginación en endpoints de productos
+14. ⬜ Optimizar la carga de datos con caché y carga diferida
 
 Recuerda: Este enfoque gradual nos permite implementar mejoras sin romper la funcionalidad existente. Los usuarios ahora pueden elegir entre la experiencia original (cargar todos los datos a la vez) o usar paginación para una carga más rápida, y en el futuro contarán con carga bajo demanda para una experiencia aún más optimizada.
 

@@ -42,6 +42,7 @@ import Pagination from '@/components/ui/Pagination';
 // Importar los controladores de eventos extraídos
 import { handleReorderCategory as handleReorderCategoryExtracted, toggleCategoryVisibility as toggleCategoryVisibilityExtracted } from '@/lib/handlers/categoryEventHandlers';
 import { toggleSectionVisibility as toggleSectionVisibilityExtracted, deleteSection as deleteSectionExtracted, handleReorderSection as handleReorderSectionExtracted } from '@/lib/handlers/sectionEventHandlers';
+import { handleReorderProduct as handleReorderProductExtracted, toggleProductVisibility as toggleProductVisibilityExtracted, deleteProduct as deleteProductExtracted } from '@/lib/handlers/productEventHandlers';
 
 // Interfaces para FloatingPhonePreview
 interface FloatingPhoneCategory {
@@ -490,75 +491,31 @@ export default function DashboardPage() {
   const handleReorderProduct = async (sourceIndex: number, destinationIndex: number) => {
     if (sourceIndex === destinationIndex || !selectedSection) return;
     
-    try {
-      setIsLoading(true);
-      
-      // Crear una copia del array de productos
-      const currentProducts = products[selectedSection.section_id] || [];
-      const updatedProducts = [...currentProducts];
-      
-      // Obtener el producto que se está moviendo
-      const [movedProduct] = updatedProducts.splice(sourceIndex, 1);
-      
-      // Insertar el producto en la nueva posición
-      updatedProducts.splice(destinationIndex, 0, movedProduct);
-      
-      // Actualizar los display_order de todos los productos reordenados
-      const reorderedProducts = updatedProducts.map((product, index) => ({
-        ...product,
-        display_order: index + 1,
-      }));
-      
-      // Actualizar el estado local inmediatamente para mejor UX
-      setProducts(prev => ({
-        ...prev,
-        [selectedSection.section_id]: reorderedProducts
-      }));
-      
-      // Enviar los cambios al servidor
-      const updatePromises = reorderedProducts.map(product => 
-        fetch(`/api/products/${product.product_id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            display_order: product.display_order,
-            // Incluir otros campos necesarios para la API
-            name: product.name,
-            section_id: selectedSection.section_id,
-            client_id: product.client_id,
-            image: product.image || null,
-            status: product.status,
-            price: product.price,
-            description: product.description || null
-          }),
-        })
-      );
-      
-      await Promise.all(updatePromises);
-      toast.success('Orden de productos actualizado');
-    } catch (error) {
-      console.error('Error al reordenar productos:', error);
-      toast.error('Error al actualizar el orden de los productos');
-      
-      // Volver a cargar los productos en caso de error
-      if (selectedSection) {
-        const loadProducts = async (sectionId: number) => {
-          try {
-            const productsData = await fetchProducts(sectionId);
-            setProducts(prev => ({
-              ...prev,
-              [sectionId]: productsData
-            }));
-          } catch (err) {
-            console.error('Error al recargar productos:', err);
-          }
-        };
-        
-        loadProducts(selectedSection.section_id);
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    const currentProducts = products[selectedSection.section_id] || [];
+    
+    await handleReorderProductExtracted(
+      currentProducts,
+      (updatedProducts) => {
+        setProducts(prev => ({
+          ...prev,
+          [selectedSection.section_id]: updatedProducts
+        }));
+      },
+      setIsLoading,
+      async (sectionId) => {
+        try {
+          const productsData = await fetchProducts(sectionId);
+          setProducts(prev => ({
+            ...prev,
+            [sectionId]: productsData
+          }));
+        } catch (err) {
+          console.error('Error al recargar productos:', err);
+        }
+      },
+      sourceIndex,
+      destinationIndex
+    );
   };
 
   // ----- EFECTOS -----
@@ -566,53 +523,18 @@ export default function DashboardPage() {
   // Efecto para precargar datos cuando se cargan las categorías
   useEffect(() => {
     if (categories.length > 0 && !isLoading) {
-      console.log("Iniciando precarga de datos para todas las categorías...");
-      const preloadAllData = async () => {
-        const activeCategories = categories.filter(cat => cat.status === 1);
-        console.log(`Precargando datos para ${activeCategories.length} categorías activas`);
-        
-        // Precargar todas las secciones primero
-        for (const category of activeCategories) {
-          if (!sections[category.category_id]) {
-            try {
-              console.log(`Precargando secciones para categoría ${category.name}`);
-              // Usar la función local fetchSections que retorna un array
-              const sectionsData = await fetchSections(category.category_id);
-              
-              if (sectionsData) {
-              setSections(prev => ({
-                ...prev,
-                [category.category_id]: sectionsData
-              }));
-              
-              // Precargar productos para cada sección
-              const activeSections = sectionsData.filter((sec: Section) => sec.status === 1);
-              for (const section of activeSections) {
-                if (!products[section.section_id]) {
-                  console.log(`Precargando productos para sección ${section.name}`);
-                  try {
-                    const productsData = await fetchProducts(section.section_id);
-                    setProducts(prev => ({
-                      ...prev,
-                      [section.section_id]: productsData
-                    }));
-                  } catch (error) {
-                    console.error(`Error al precargar productos para sección ${section.name}:`, error);
-                    }
-                  }
-                }
-              }
-            } catch (err) {
-              console.error(`Error al precargar secciones para categoría ${category.name}:`, err);
-            }
-          }
-        }
-        console.log("Precarga de datos completada.");
-      };
+      console.log("Optimizando la carga de datos para el dashboard...");
       
-      preloadAllData();
+      // Seleccionar la primera categoría automáticamente si no hay ninguna seleccionada
+      if (!selectedCategory && categories.length > 0) {
+        setSelectedCategory(categories[0]);
+      }
+      
+      // En lugar de precargar todo, cargamos solo lo necesario
+      // Las secciones y productos se cargarán a demanda al hacer clic
+      console.log("Configurado para carga bajo demanda de secciones y productos.");
     }
-  }, [categories, isLoading]);
+  }, [categories, isLoading, selectedCategory]);
 
   // Efecto para cargar datos iniciales al autenticarse
   /**
@@ -863,11 +785,22 @@ export default function DashboardPage() {
   const handleToggleProductVisibility = async (productId: number, currentStatus: number) => {
     if (!selectedSection) return;
     
-    try {
-      await toggleProductVisibility(productId, currentStatus, selectedSection.section_id);
-    } catch (error) {
-      console.error('Error al cambiar visibilidad del producto:', error);
-    }
+    const currentProducts = products[selectedSection.section_id] || [];
+    
+    await toggleProductVisibilityExtracted(
+      currentProducts,
+      (updatedProducts) => {
+        setProducts(prev => ({
+          ...prev,
+          [selectedSection.section_id]: updatedProducts
+        }));
+      },
+      // Adaptador para convertir de boolean a number | null
+      (isUpdating) => {
+        setIsUpdatingVisibility(isUpdating ? productId : null);
+      },
+      productId
+    );
   };
 
   // ----- RENDERIZADO -----
@@ -1028,55 +961,34 @@ export default function DashboardPage() {
 
   // Crear un adaptador para la función deleteProduct que coincida con la interfaz esperada
   const deleteProductAdapter = async (productId: number): Promise<boolean> => {
-    try {
-      if (!selectedSection) return false;
-      
-      try {
-        // Llamar a la función deleteProduct del hook con el ID de sección
-        await deleteProduct(productId, selectedSection.section_id);
-        
-        // Actualizar el estado local aunque haya habido un error en la respuesta
-        setProducts(prev => {
-          const sectionId = selectedSection.section_id.toString();
-          if (!prev[sectionId]) return prev;
-          
-          return {
-              ...prev,
-            [sectionId]: prev[sectionId].filter(prod => prod.product_id !== productId)
-          };
-        });
-        
-        // Mostrar mensaje de éxito manualmente, en caso de que el hook no lo hiciera
-        toast.success('Producto eliminado con éxito');
-        
-        return true;
-      } catch (err) {
-        // Verificar si el error es de tipo "error de red" (que podría ocurrir si la respuesta 
-        // no se puede procesar pero la operación fue exitosa)
-        console.warn("Error al procesar respuesta:", err);
-        
-        // Actualizar el estado local de todas formas, asumiendo que el producto fue eliminado
-        setProducts(prev => {
-          const sectionId = selectedSection.section_id.toString();
-          if (!prev[sectionId]) return prev;
-          
-          return {
-                ...prev,
-            [sectionId]: prev[sectionId].filter(prod => prod.product_id !== productId)
-          };
-        });
-        
-        // Mostrar mensaje de éxito asumiendo que realmente se eliminó
-        toast.success('Producto eliminado con éxito');
-        
-        // Consideramos esto como un éxito a pesar del error en la respuesta
-        return true;
+    if (!selectedSection) return false;
+    
+    const currentProducts = products[selectedSection.section_id] || [];
+    
+    return await deleteProductExtracted(
+      productId,
+      currentProducts,
+      (updatedProducts) => {
+        setProducts(prev => ({
+          ...prev,
+          [selectedSection.section_id]: updatedProducts
+        }));
+      },
+      (isDeleting) => {
+        setIsDeletingProduct(isDeleting);
+      },
+      async (sectionId) => {
+        try {
+          const productsData = await fetchProducts(sectionId);
+          setProducts(prev => ({
+            ...prev,
+            [sectionId]: productsData
+          }));
+        } catch (err) {
+          console.error('Error al recargar productos:', err);
+        }
       }
-            } catch (error) {
-      console.error('Error en deleteProductAdapter:', error);
-      toast.error('Error al eliminar el producto');
-      return false;
-    }
+    );
   };
 
   // Implementación local de deleteSection
