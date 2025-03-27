@@ -145,13 +145,13 @@ function getPaginatedCategories(allCategories: Category[], pagination: { enabled
  */
 async function fetchClientData() {
   try {
-    const response = await fetch('/api/client');
+  const response = await fetch('/api/client');
     
     if (!response.ok) {
       throw new Error(`Error al cargar datos del cliente: ${response.status} ${response.statusText}`);
     }
     
-    return await response.json();
+  return await response.json();
   } catch (error) {
     console.error('Error en fetchClientData:', error);
     throw error; // Re-lanzar para manejar en el componente
@@ -187,7 +187,7 @@ async function fetchCategories(options?: { page?: number; limit?: number }) {
       throw new Error(`Error al cargar las categorías: ${response.status} ${response.statusText}`);
     }
     
-    return await response.json();
+  return await response.json();
   } catch (error) {
     console.error('Error en fetchCategories:', error);
     throw error; // Re-lanzar para manejar en el componente
@@ -536,8 +536,8 @@ export default function DashboardPage() {
   // Función para reordenar secciones (drag and drop)
   const handleReorderSectionAdapter = async (sourceIndex: number, destinationIndex: number) => {
     if (!selectedCategory) return;
-    
-    // Crear una copia del array de secciones
+      
+      // Crear una copia del array de secciones
     const sectionsList = sections[selectedCategory.category_id] || [];
     const reorderedSections = [...sectionsList];
     
@@ -547,16 +547,16 @@ export default function DashboardPage() {
     
     // Actualizar el display_order según la nueva posición
     const updatedSections = reorderedSections.map((section, index) => ({
-      ...section,
+        ...section,
       display_order: index + 1
-    }));
-    
+      }));
+      
     // Llamar a la función mejorada de reordenamiento
     await handleReorderSection(
       sectionsList,
       (sections) => {
-        setSections(prev => ({
-          ...prev,
+      setSections(prev => ({
+        ...prev,
           [selectedCategory.category_id]: sections
         }));
       },
@@ -572,22 +572,22 @@ export default function DashboardPage() {
       products[selectedSection.section_id] || [],
       (updatedProducts) => {
         // Usar una conversión explícita para resolver el problema de tipos entre lib y app
-        setProducts(prev => ({
-          ...prev,
+      setProducts(prev => ({
+        ...prev,
           [selectedSection.section_id]: updatedProducts as any
         }));
       },
       setIsLoading,
       async (sectionId: number) => {
-        try {
-          const productsData = await fetchProducts(sectionId);
-          setProducts(prev => ({
-            ...prev,
-            [sectionId]: productsData
-          }));
-        } catch (err) {
-          console.error('Error al recargar productos:', err);
-        }
+          try {
+            const productsData = await fetchProducts(sectionId);
+            setProducts(prev => ({
+              ...prev,
+              [sectionId]: productsData
+            }));
+          } catch (err) {
+            console.error('Error al recargar productos:', err);
+          }
       },
       sourceIndex,
       destinationIndex
@@ -636,7 +636,7 @@ export default function DashboardPage() {
         try {
           clientData = await fetchClientData();
           console.log("Datos del cliente cargados correctamente:", clientData);
-          setClient(clientData);
+        setClient(clientData);
         } catch (clientError) {
           console.error("Error específico al cargar cliente:", clientError);
           toast.error("No se pudieron cargar los datos del cliente");
@@ -682,8 +682,8 @@ export default function DashboardPage() {
         }
         
         if (clientData && clientData.main_logo) {
-          console.log("Logo principal:", clientData.main_logo);
-          console.log("Logo URL completa:", `/images/main_logo/${clientData.main_logo}`);
+        console.log("Logo principal:", clientData.main_logo);
+        console.log("Logo URL completa:", `/images/main_logo/${clientData.main_logo}`);
         }
         
       } catch (err: any) {
@@ -729,37 +729,37 @@ export default function DashboardPage() {
         console.log(`Cargando secciones para categoría ${categoryId}...`);
         
         // Indicar que estamos cargando secciones para esta categoría
-        setLoadingSections(prev => ({
-          ...prev,
-          [categoryId]: true
-        }));
-        
-        try {
+      setLoadingSections(prev => ({
+        ...prev,
+        [categoryId]: true
+      }));
+      
+      try {
           // Cargar secciones desde la API
-          const sectionsData = await fetchSections(categoryId);
+        const sectionsData = await fetchSections(categoryId);
           console.log(`Secciones cargadas para categoría ${categoryId}:`, sectionsData);
-          
+        
           // Actualizar el estado con las secciones cargadas
-          setSections(prev => ({
-            ...prev,
-            [categoryId]: sectionsData
-          }));
+        setSections(prev => ({
+          ...prev,
+          [categoryId]: sectionsData
+        }));
           
           // Opcionalmente, también seleccionar esta categoría para la navegación
           const category = categories.find(c => c.category_id === categoryId);
           if (category) {
             setSelectedCategory(category);
           }
-        } catch (error) {
+      } catch (error) {
           console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
-          toast.error('Error al cargar las secciones');
-        } finally {
+        toast.error('Error al cargar las secciones');
+      } finally {
           // Finalizar el estado de carga
-          setLoadingSections(prev => ({
-            ...prev,
-            [categoryId]: false
-          }));
-        }
+        setLoadingSections(prev => ({
+          ...prev,
+          [categoryId]: false
+        }));
+      }
       } else {
         console.log(`Ya tenemos secciones cargadas para categoría ${categoryId}:`, sections[categoryId]);
       }
@@ -823,12 +823,12 @@ export default function DashboardPage() {
           console.log(`Cargando productos para sección ${sectionId}...`);
           
           // Indicar que estamos cargando
-          setLoadingProducts(prev => ({
-            ...prev,
-            [sectionId]: true
-          }));
-          
-          try {
+      setLoadingProducts(prev => ({
+        ...prev,
+        [sectionId]: true
+      }));
+      
+      try {
             // Cargar productos desde la API o hook
             const productsData = await fetchProductsHook(sectionId);
             console.log(`Productos cargados para sección ${sectionId}`);
@@ -852,15 +852,15 @@ export default function DashboardPage() {
               }
               return updated;
             });
-          } catch (error) {
+      } catch (error) {
             console.error(`Error al cargar productos para sección ${sectionId}:`, error);
             toast.error('Error al cargar los productos');
-          } finally {
+      } finally {
             // Finalizar el estado de carga
-            setLoadingProducts(prev => ({
-              ...prev,
-              [sectionId]: false
-            }));
+        setLoadingProducts(prev => ({
+          ...prev,
+          [sectionId]: false
+        }));
           }
         } else {
           console.log(`Ya tenemos productos cargados para sección ${sectionId}:`, products[sectionId]);
@@ -968,7 +968,7 @@ export default function DashboardPage() {
         // Actualizar productos en las secciones
         if (selectedCategory) {
           const categoryId = selectedCategory.category_id;
-          setSections(prev => {
+      setSections(prev => {
             const updatedSections = { ...prev };
             const categoryKey = categoryId.toString();
             
@@ -1177,8 +1177,8 @@ export default function DashboardPage() {
 
   // Función para eliminar una sección
   const handleDeleteSection = (sectionId: number) => {
-    setSectionToDelete(sectionId);
-    setIsDeleteSectionModalOpen(true);
+            setSectionToDelete(sectionId);
+            setIsDeleteSectionModalOpen(true);
   };
   
   // Función para editar un producto
@@ -1206,8 +1206,8 @@ export default function DashboardPage() {
 
   // Crear un adaptador para la función deleteProduct que coincida con la interfaz esperada
   const deleteProductAdapter = async (productId: number): Promise<boolean> => {
-    if (!selectedSection) return false;
-    
+      if (!selectedSection) return false;
+      
     const currentProducts = products[selectedSection.section_id] || [];
     
     return await deleteProductExtracted(
@@ -1215,7 +1215,7 @@ export default function DashboardPage() {
       currentProducts,
       (updatedProducts) => {
         setProducts(prev => ({
-          ...prev,
+              ...prev,
           [selectedSection.section_id]: updatedProducts
         }));
       },
@@ -1226,7 +1226,7 @@ export default function DashboardPage() {
         try {
           const productsData = await fetchProducts(sectionId);
           setProducts(prev => ({
-            ...prev,
+                ...prev,
             [sectionId]: productsData
           }));
         } catch (err) {
@@ -1361,7 +1361,7 @@ export default function DashboardPage() {
           {currentView === 'categories' && (
             <div className="w-full px-4">
               <CategoryActions onNewCategory={() => setIsNewCategoryModalOpen(true)} />
-              <CategoryTable 
+              <CategoryTable
                 categories={getCategoryTableData(
                   getPaginatedCategories(categories, categoryPagination),
                   sections
@@ -1438,65 +1438,65 @@ export default function DashboardPage() {
           
           {currentView === 'sections' && selectedCategory && (
             <div className="w-full px-4">
-              <SectionActions 
-                categoryName={selectedCategory.name}
-                onNewSection={() => setIsNewSectionModalOpen(true)} 
-              />
-              {sections[selectedCategory.category_id] ? (
-                <SectionTable 
-                  sections={sections[selectedCategory.category_id]?.map(s => ({
-                    ...s,
-                    image: s.image || null,
-                    display_order: s.display_order || 0
-                  })) || []}
-                  expandedSections={expandedSections}
-                  onSectionClick={handleSectionClick}
+                <SectionActions 
                   categoryName={selectedCategory.name}
+                  onNewSection={() => setIsNewSectionModalOpen(true)} 
+                />
+                {sections[selectedCategory.category_id] ? (
+                  <SectionTable 
+                    sections={sections[selectedCategory.category_id]?.map(s => ({
+                      ...s,
+                      image: s.image || null,
+                      display_order: s.display_order || 0
+                    })) || []}
+                    expandedSections={expandedSections}
+                    onSectionClick={handleSectionClick}
+                    categoryName={selectedCategory.name}
                   onToggleVisibility={handleToggleSectionVisibility}
                   isUpdatingVisibility={isUpdatingVisibility}
-                  onEditSection={(section) => handleEditSection(section as unknown as Section)}
-                  onDeleteSection={handleDeleteSection}
+                    onEditSection={(section) => handleEditSection(section as unknown as Section)}
+                    onDeleteSection={handleDeleteSection}
                   onReorderSection={handleReorderSectionAdapter}
-                />
-              ) : (
-                <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-                </div>
-              )}
+                  />
+                ) : (
+                  <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                  </div>
+                )}
             </div>
           )}
           
       {currentView === 'products' && selectedCategory && selectedSection && (
             <div className="w-full px-4">
-              <ProductActions 
-                sectionName={selectedSection.name}
-                onNewProduct={() => setIsNewProductModalOpen(true)}
-              />
-              {productsFromHook[selectedSection.section_id] ? (
-                <ProductTable 
-                  products={productsFromHook[selectedSection.section_id]}
-                  onBackClick={navigateBack}
+                <ProductActions 
                   sectionName={selectedSection.name}
-                  onEditProduct={(productToEdit) => {
-                    handleEditProduct(productToEdit as unknown as Product);
-                  }}
-                  onDeleteProduct={deleteProductAdapter}
-                  onToggleVisibility={handleToggleProductVisibility}
-                  isUpdatingVisibility={isUpdatingVisibility}
-                  onReorderProduct={(sourceIndex, destinationIndex) => {
-                    // Implementar reordenamiento de productos
-                    console.log('Reordenar productos', sourceIndex, destinationIndex);
-                  }}
+          onNewProduct={() => setIsNewProductModalOpen(true)}
                 />
-              ) : (
-                <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-                </div>
-              )}
+                {productsFromHook[selectedSection.section_id] ? (
+                  <ProductTable 
+                    products={productsFromHook[selectedSection.section_id]}
+          onBackClick={navigateBack}
+                    sectionName={selectedSection.name}
+                    onEditProduct={(productToEdit) => {
+                      handleEditProduct(productToEdit as unknown as Product);
+                    }}
+                    onDeleteProduct={deleteProductAdapter}
+                    onToggleVisibility={handleToggleProductVisibility}
+                    isUpdatingVisibility={isUpdatingVisibility}
+                    onReorderProduct={(sourceIndex, destinationIndex) => {
+                      // Implementar reordenamiento de productos
+                      console.log('Reordenar productos', sourceIndex, destinationIndex);
+                    }}
+                  />
+                ) : (
+                  <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                  </div>
+                )}
             </div>
           )}
       </div>
-      
+        
         {/* Modal para crear categoría */}
       <NewCategoryModal
         isOpen={isNewCategoryModalOpen}
