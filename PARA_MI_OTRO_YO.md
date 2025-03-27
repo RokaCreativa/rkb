@@ -322,17 +322,59 @@ Fecha: 2024
   - Mantenimiento de compatibilidad con otras funciones (expandir, reordenar, etc.).
   - La paginación está desactivada por defecto para mantener la experiencia previa.
 
+### Problemas Identificados en la Carga Inicial
+
+Se ha detectado que el proceso de carga inicial del dashboard realiza una precarga agresiva de todos los datos:
+
+```
+Iniciando precarga de datos para todas las categorías...
+Precargando datos para 5 categorías activas
+Precargando secciones para categoría Comidas...
+Precargando productos para sección Tostas...
+Precargando productos para sección Ensaladas top...
+// ... y así sucesivamente para todas las categorías, secciones y productos
+Precarga de datos completada.
+```
+
+Esto resulta en:
+- **Tiempos de carga inicial extensos**: Hasta 20+ segundos para menús grandes
+- **Múltiples peticiones secuenciales**: Una por cada categoría, sección y conjunto de productos
+- **Uso innecesario de recursos**: Carga de datos que pueden no ser visualizados inmediatamente
+- **Experiencia de usuario degradada**: Esperas largas antes de poder interactuar con la interfaz
+
 #### Próximos Pasos
+
 1. **Fase 5 (Pendiente)**: Aplicar optimizaciones similares a secciones y productos.
    - Implementar paginación en el endpoint `/api/sections`.
    - Actualizar servicios y hooks para secciones.
    - Añadir controles de paginación en la UI de secciones.
    - Repetir el proceso para productos.
 
-2. **Fase 6 (Pendiente)**: Optimización adicional de carga.
-   - Implementar carga diferida de secciones y productos.
-   - Añadir sistema de caché para reducir llamadas a la API.
-   - Optimizar la precarga de datos para mejorar la experiencia de usuario.
+2. **Fase 6 (Pendiente)**: Optimización de la carga inicial.
+   - Implementar carga perezosa (lazy loading) para secciones y productos.
+   - Cargar secciones solo cuando se expande una categoría.
+   - Cargar productos solo cuando se expande una sección.
+   - Introducir sistema de caché para reducir peticiones repetidas.
+   - Agregar indicadores de carga claros en cada nivel.
+   - Mantener la interfaz responsiva incluso durante la carga.
+
+### Refactorización para Mejorar la Mantenibilidad
+
+Para facilitar las optimizaciones y la evolución del código, se ha iniciado un proceso de refactorización completo:
+
+#### Fase 1: Extracción de Controladores de Eventos (En progreso)
+- ✅ Creación del directorio `lib/handlers/` para controladores
+- ✅ Extracción de controladores para categorías en `categoryEventHandlers.ts`
+- ✅ Extracción de controladores para secciones en `sectionEventHandlers.ts`
+- ✅ Extracción de controladores para productos en `productEventHandlers.ts`
+- Pending: Actualización del archivo principal para usar los controladores
+
+Esta refactorización permitirá:
+- Reducir el tamaño del archivo `page.tsx` (actualmente >1800 líneas)
+- Mejorar la claridad y mantenibilidad del código
+- Facilitar la implementación de las optimizaciones de carga
+
+El detalle completo del plan de refactorización se encuentra en `REFACTOR_PLAN.md`.
 
 #### Tareas Completadas
 
@@ -347,7 +389,7 @@ Fecha: 2024
 9. ⬜ Implementar paginación en endpoints de productos
 10. ⬜ Optimizar la carga de datos con caché y carga diferida
 
-Recuerda: Este enfoque gradual nos permite implementar mejoras sin romper la funcionalidad existente. Los usuarios ahora pueden elegir entre la experiencia original (cargar todos los datos a la vez) o usar paginación para una carga más rápida.
+Recuerda: Este enfoque gradual nos permite implementar mejoras sin romper la funcionalidad existente. Los usuarios ahora pueden elegir entre la experiencia original (cargar todos los datos a la vez) o usar paginación para una carga más rápida, y en el futuro contarán con carga bajo demanda para una experiencia aún más optimizada.
 
 ## Aspectos Pendientes
 

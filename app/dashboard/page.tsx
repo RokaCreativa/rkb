@@ -39,6 +39,10 @@ import { DeleteCategoryConfirmation, DeleteSectionConfirmation, DeleteProductCon
 import { CategoryActions, SectionActions, ProductActions, BackButton } from './components/actions';
 import Pagination from '@/components/ui/Pagination';
 
+// Importar los controladores de eventos extraídos
+import { handleReorderCategory as handleReorderCategoryExtracted, toggleCategoryVisibility as toggleCategoryVisibilityExtracted } from '@/lib/handlers/categoryEventHandlers';
+import { toggleSectionVisibility as toggleSectionVisibilityExtracted, deleteSection as deleteSectionExtracted, handleReorderSection as handleReorderSectionExtracted } from '@/lib/handlers/sectionEventHandlers';
+
 // Interfaces para FloatingPhonePreview
 interface FloatingPhoneCategory {
   id: number;
@@ -458,138 +462,28 @@ export default function DashboardPage() {
 
   // Función para reordenar categorías (drag and drop)
   const handleReorderCategory = async (sourceIndex: number, destinationIndex: number) => {
-    if (sourceIndex === destinationIndex) return;
-    
-    try {
-      setIsLoading(true);
-      
-      // Crear una copia del array de categorías
-      const updatedCategories = [...categories];
-      
-      // Obtener la categoría que se está moviendo
-      const [movedCategory] = updatedCategories.splice(sourceIndex, 1);
-      
-      // Insertar la categoría en la nueva posición
-      updatedCategories.splice(destinationIndex, 0, movedCategory);
-      
-      // Actualizar los display_order de todas las categorías reordenadas
-      const reorderedCategories = updatedCategories.map((category, index) => ({
-        ...category,
-        display_order: index + 1,
-      }));
-      
-      // Actualizar el estado local inmediatamente para mejor UX
-      setCategories(reorderedCategories);
-      
-      // Enviar los cambios al servidor
-      const updatePromises = reorderedCategories.map(category => 
-        fetch(`/api/categories/${category.category_id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            display_order: category.display_order,
-            // Incluir otros campos necesarios para la API
-            name: category.name,
-            client_id: category.client_id,
-            image: category.image || null,
-            status: category.status
-          }),
-        })
-      );
-      
-      await Promise.all(updatePromises);
-      toast.success('Orden de categorías actualizado');
-    } catch (error) {
-      console.error('Error al reordenar categorías:', error);
-      toast.error('Error al actualizar el orden de las categorías');
-      
-      // Volver a cargar las categorías en caso de error
-      const loadCategories = async () => {
-        try {
-        const categoriesData = await fetchCategories();
-      setCategories(categoriesData);
-        } catch (err) {
-          console.error('Error al recargar categorías:', err);
-        }
-      };
-      
-      loadCategories();
-    } finally {
-      setIsLoading(false);
-    }
+    // Delegamos al controlador extraído
+    await handleReorderCategoryExtracted(
+      categories,
+      sourceIndex,
+      destinationIndex,
+      setCategories,
+      setIsLoading
+    );
   };
   
   // Función para reordenar secciones (drag and drop)
   const handleReorderSection = async (sourceIndex: number, destinationIndex: number) => {
     if (sourceIndex === destinationIndex || !selectedCategory) return;
     
-    try {
-      setIsLoading(true);
-      
-      // Crear una copia del array de secciones
-      const currentSections = sections[selectedCategory.category_id] || [];
-      const updatedSections = [...currentSections];
-      
-      // Obtener la sección que se está moviendo
-      const [movedSection] = updatedSections.splice(sourceIndex, 1);
-      
-      // Insertar la sección en la nueva posición
-      updatedSections.splice(destinationIndex, 0, movedSection);
-      
-      // Actualizar los display_order de todas las secciones reordenadas
-      const reorderedSections = updatedSections.map((section, index) => ({
-        ...section,
-        display_order: index + 1,
-      }));
-      
-      // Actualizar el estado local inmediatamente para mejor UX
-      setSections(prev => ({
-        ...prev,
-        [selectedCategory.category_id]: reorderedSections
-      }));
-      
-      // Enviar los cambios al servidor
-      const updatePromises = reorderedSections.map(section => 
-        fetch(`/api/sections/${section.section_id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            display_order: section.display_order,
-            // Incluir otros campos necesarios para la API
-            name: section.name,
-            category_id: section.category_id,
-            client_id: section.client_id,
-            image: section.image || null,
-            status: section.status
-          }),
-        })
-      );
-      
-      await Promise.all(updatePromises);
-      toast.success('Orden de secciones actualizado');
-    } catch (error) {
-      console.error('Error al reordenar secciones:', error);
-      toast.error('Error al actualizar el orden de las secciones');
-      
-      // Volver a cargar las secciones en caso de error
-      if (selectedCategory) {
-        const loadSections = async (categoryId: number) => {
-          try {
-            const sectionsData = await fetchSections(categoryId);
-            setSections(prev => ({
-              ...prev,
-              [categoryId]: sectionsData
-            }));
-          } catch (err) {
-            console.error('Error al recargar secciones:', err);
-          }
-        };
-        
-        loadSections(selectedCategory.category_id);
-      }
-    } finally {
-      setIsLoading(false);
-    }
+    await handleReorderSectionExtracted(
+      sections[selectedCategory.category_id] || [],
+      sourceIndex,
+      destinationIndex,
+      setSections,
+      selectedCategory.category_id,
+      setIsLoading
+    );
   };
 
   // Función para reordenar productos (drag and drop)
@@ -944,61 +838,25 @@ export default function DashboardPage() {
 
   // Función para actualizar la visibilidad de una categoría
   const toggleCategoryVisibility = async (categoryId: number, currentStatus: number) => {
-    setIsUpdatingVisibility(categoryId);
-    try {
-      // Llamar a la API para actualizar el estado
-      await updateCategoryVisibility(categoryId, currentStatus === 1 ? 0 : 1);
-      
-      // Actualizar estado local
-      setCategories(prev => 
-        prev.map(cat => 
-          cat.category_id === categoryId 
-            ? { ...cat, status: currentStatus === 1 ? 0 : 1 } 
-            : cat
-        )
-      );
-      
-      toast.success('Estado actualizado correctamente');
-      } catch (error) {
-      console.error('Error al actualizar visibilidad:', error);
-      toast.error('Error al actualizar el estado');
-    } finally {
-      setIsUpdatingVisibility(null);
-    }
+    await toggleCategoryVisibilityExtracted(
+      categoryId,
+      currentStatus,
+      setIsUpdatingVisibility,
+      setCategories
+    );
   };
 
   // Función para actualizar la visibilidad de una sección
   const toggleSectionVisibility = async (sectionId: number, currentStatus: number) => {
-    setIsUpdatingVisibility(sectionId);
-    try {
-      // Llamar a la API para actualizar el estado
-      await updateSectionVisibility(sectionId, currentStatus === 1 ? 0 : 1);
-      
-      // Actualizar estado local
-      setSections(prev => {
-        const updated = {...prev};
-        
-        // Actualizar todas las secciones que coincidan con sectionId
-        Object.keys(updated).forEach(categoryId => {
-          if (updated[Number(categoryId)]) {
-            updated[Number(categoryId)] = updated[Number(categoryId)].map(section => 
-              section.section_id === sectionId 
-                ? { ...section, status: currentStatus === 1 ? 0 : 1 } 
-                : section
-            );
-          }
-        });
-        
-        return updated;
-      });
-      
-      toast.success('Estado actualizado correctamente');
-    } catch (error) {
-      console.error('Error al actualizar visibilidad:', error);
-      toast.error('Error al actualizar el estado');
-    } finally {
-      setIsUpdatingVisibility(null);
-    }
+    if (!selectedCategory) return;
+    
+    await toggleSectionVisibilityExtracted(
+      sectionId,
+      currentStatus,
+      setIsUpdatingVisibility,
+      setSections,
+      selectedCategory.category_id
+    );
   };
 
   // Función para actualizar la visibilidad de un producto
@@ -1141,8 +999,8 @@ export default function DashboardPage() {
 
   // Función para eliminar una sección
   const handleDeleteSection = (sectionId: number) => {
-            setSectionToDelete(sectionId);
-            setIsDeleteSectionModalOpen(true);
+    setSectionToDelete(sectionId);
+    setIsDeleteSectionModalOpen(true);
   };
   
   // Función para editar un producto
@@ -1223,42 +1081,15 @@ export default function DashboardPage() {
 
   // Implementación local de deleteSection
   const deleteSection = async (sectionId: number): Promise<boolean> => {
-    if (!client?.id) return false;
+    if (!selectedCategory) return false;
     
-    try {
-      // Buscar la categoría a la que pertenece esta sección
-      let categoryId: number | null = null;
-      for (const [catId, sectionList] of Object.entries(sections)) {
-        if (sectionList.some(s => s.section_id === sectionId)) {
-          categoryId = parseInt(catId);
-          break;
-        }
-      }
-      
-      if (!categoryId) {
-        console.error('No se encontró categoría para la sección', sectionId);
-        return false;
-      }
-      
-      // Usar directamente la función del hook, que ya tiene el clientId
-      const result = await deleteSectionHook(categoryId, sectionId);
-      
-      // Si fue exitoso, eliminar también del estado local para asegurar la consistencia
-      if (result) {
-        setSections(prev => {
-          const updated = {...prev};
-          updated[categoryId] = updated[categoryId].filter(
-            section => section.section_id !== sectionId
-          );
-          return updated;
-        });
-      }
-      
-      return result;
-              } catch (error) {
-      console.error('Error en deleteSection:', error);
-      return false;
-    }
+    await deleteSectionExtracted(
+      sectionId,
+      setSections,
+      selectedCategory.category_id
+    );
+    
+    return true;
   };
 
   /**
@@ -1595,14 +1426,13 @@ export default function DashboardPage() {
         sectionName={sectionToDelete && selectedCategory ? 
           (sections[selectedCategory.category_id.toString()]?.find(s => s.section_id === sectionToDelete)?.name || '') : 
           ''}
-        onDeleted={(sectionId: number) => {
-          // Actualizar el estado local para eliminar la sección
+        onDeleted={async (sectionId: number) => {
           if (selectedCategory) {
-            setSections(prev => ({
-              ...prev,
-              [selectedCategory.category_id.toString()]: 
-                prev[selectedCategory.category_id.toString()]?.filter(sec => sec.section_id !== sectionId) || []
-            }));
+            await deleteSectionExtracted(
+              sectionId,
+              setSections,
+              selectedCategory.category_id
+            );
           }
         }}
       />

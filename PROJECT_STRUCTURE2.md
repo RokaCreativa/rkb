@@ -827,120 +827,174 @@ return (
   ]
   ```
 
-### Implementación en Servicios
+### Optimización de Carga Inicial (Planificada)
 
-#### DashboardService (lib/services/dashboardService.ts)
-- Añadido soporte para enviar parámetros de paginación al endpoint de categorías.
-- Procesa automáticamente las respuestas para detectar si son paginadas o no.
-- Interfaz mejorada con tipos para mayor seguridad y documentación.
-- Ejemplo de uso:
-  ```typescript
-  // Sin paginación (comportamiento original)
-  const allCategories = await DashboardService.fetchCategories();
-  
-  // Con paginación
-  const paginatedResult = await DashboardService.fetchCategories({ 
-    page: 1, 
-    limit: 10 
-  });
-  
-  // Acceso a los datos y metadatos
-  const categories = paginatedResult.categories;
-  const metadata = paginatedResult.meta; // null si no hay paginación
-  ```
+El análisis de rendimiento ha revelado que la carga inicial del dashboard realiza numerosas peticiones secuenciales:
+1. Carga de datos del cliente
+2. Carga de todas las categorías
+3. Precarga de todas las secciones de cada categoría
+4. Precarga de todos los productos de cada sección
 
-#### useDashboardService (lib/hooks/dashboard/useDashboardService.ts)
-- Adaptado para usar y proporcionar opciones de paginación.
-- Mantiene compatibilidad con código existente.
-- Proporciona una interfaz consistente para componentes que consumen el servicio.
-- Ejemplo de uso:
-  ```typescript
-  const dashboardService = useDashboardService();
-  
-  // Sin paginación
-  const result = await dashboardService.fetchCategories();
-  
-  // Con paginación
-  const paginatedResult = await dashboardService.fetchCategories({ 
-    page: 2, 
-    limit: 15 
-  });
-  ```
-
-#### useDashboardCategories (lib/hooks/dashboard/useDashboardCategories.ts)
-- Implementación completa de soporte para paginación.
-- Nuevas interfaces `PaginationOptions` y `PaginationMeta` para tipado seguro.
-- Funciones para navegación entre páginas: `changePage`, `changePageSize` y `loadAllCategories`.
-- Mantiene compatibilidad total con código existente.
-- Manejo inteligente del estado y operaciones CRUD sensibles a la paginación.
-- Ejemplos de uso:
-
-```typescript
-// Uso sin paginación (comportamiento original)
-const {
-  categories,
-  isLoading,
-  createCategory
-} = useDashboardCategories({ 
-  clientId: 123 
-});
-
-// Uso con paginación
-const {
-  categories,           // Lista de categorías de la página actual
-  paginationMeta,       // Metadatos de paginación (total, página actual, etc.)
-  isLoading,
-  changePage,           // Función para cambiar a una página específica
-  changePageSize,       // Función para cambiar el número de elementos por página
-  loadAllCategories,    // Función para desactivar paginación y cargar todo
-  createCategory
-} = useDashboardCategories({
-  clientId: 123,
-  initialPagination: { page: 1, limit: 10 }
-});
-
-// Navegar a otra página
-changePage(2);
-
-// Cambiar tamaño de página (automáticamente regresa a página 1)
-changePageSize(20);
-
-// Desactivar paginación y cargar todas las categorías
-loadAllCategories();
+Los logs muestran operaciones secuenciales extensas:
+```
+Iniciando precarga de datos para todas las categorías...
+Precargando datos para 5 categorías activas
+Precargando secciones para categoría Comidas...
+Precargando productos para sección Tostas...
+// ... y así sucesivamente
+Precarga de datos completada.
 ```
 
-#### Beneficios Implementados
-1. **Rendimiento mejorado**: Reducción significativa de datos transferidos en cargas iniciales.
-2. **Experiencia de usuario más fluida**: Carga más rápida de datos iniciales.
-3. **Escalabilidad**: Permite manejar grandes colecciones de datos sin problemas de rendimiento.
-4. **Compatibilidad preservada**: Todo el código existente sigue funcionando sin modificaciones.
-5. **API intuitiva**: Las nuevas funciones son fáciles de entender y usar.
+Esta "precarga agresiva" genera tiempos de carga iniciales excesivos, especialmente para clientes con muchas categorías, secciones y productos.
 
-### Pendiente de Implementación
-1. Componentes UI para controles de paginación en el Dashboard.
-2. Paginación para otros endpoints (secciones, productos, etc.).
-3. Optimizaciones adicionales para carga diferida y caché.
+#### Estrategia de Optimización Planificada:
 
-### Optimización de campos seleccionados
+1. **Implementación de carga bajo demanda**:
+   ```typescript
+   // Ejemplo futuro: Carga de secciones solo cuando se expande una categoría
+   const handleCategoryExpand = async (categoryId: number) => {
+     setExpandedCategories(prev => ({
+       ...prev,
+       [categoryId]: !prev[categoryId]
+     }));
+     
+     // Cargar secciones solo si no están en caché y la categoría está expandida
+     if (!sectionsByCategoryId[categoryId] && expandedCategories[categoryId]) {
+       setLoadingSections(prev => ({ ...prev, [categoryId]: true }));
+       try {
+         const sections = await fetchSectionsForCategory(categoryId);
+         setSectionsByCategoryId(prev => ({ ...prev, [categoryId]: sections }));
+       } catch (error) {
+         console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
+       } finally {
+         setLoadingSections(prev => ({ ...prev, [categoryId]: false }));
+       }
+     }
+   };
+   ```
 
-Para reducir el tamaño de las respuestas y mejorar el rendimiento, los endpoints están siendo optimizados para seleccionar solo los campos necesarios en las consultas a la base de datos:
+2. **Sistema de caché con hooks personalizados**:
+   ```typescript
+   // Ejemplo futuro: Hook para gestionar caché de secciones
+   const useSectionsCache = () => {
+     const [cache, setCache] = useState<Record<number, Section[]>>({});
+     const [isLoading, setIsLoading] = useState<Record<number, boolean>>({});
+     
+     const getSections = async (categoryId: number, forceRefresh = false) => {
+       // Retornar desde caché si está disponible y no se fuerza actualización
+       if (cache[categoryId] && !forceRefresh) return cache[categoryId];
+       
+       // Evitar múltiples solicitudes simultáneas para los mismos datos
+       if (isLoading[categoryId]) return null;
+       
+       setIsLoading(prev => ({ ...prev, [categoryId]: true }));
+       try {
+         const sections = await fetchSectionsForCategory(categoryId);
+         setCache(prev => ({ ...prev, [categoryId]: sections }));
+         return sections;
+       } catch (error) {
+         console.error(`Error cargando secciones para categoría ${categoryId}:`, error);
+         return null;
+       } finally {
+         setIsLoading(prev => ({ ...prev, [categoryId]: false }));
+       }
+     };
+     
+     // Método para invalidar entradas de caché específicas
+     const invalidateCache = (categoryId?: number) => {
+       if (categoryId) {
+         setCache(prev => {
+           const newCache = { ...prev };
+           delete newCache[categoryId];
+           return newCache;
+         });
+       } else {
+         setCache({}); // Invalidar todo el caché
+       }
+     };
+     
+     return { 
+       getSections, 
+       cache, 
+       isLoading, 
+       invalidateCache 
+     };
+   };
+   ```
 
-```typescript
-// Ejemplo de selección optimizada (implementado en /api/categories)
-const categories = await prisma.categories.findMany({
-  where: { /* condiciones */ },
-  select: {
-    category_id: true,
-    name: true,
-    image: true, 
-    status: true,
-    display_order: true,
-    client_id: true,
-    // Solo los campos necesarios
-  },
-  // Opciones de paginación
-});
-```
+3. **Componentes optimizados con carga condicional e indicadores visuales**:
+   ```jsx
+   // Ejemplo futuro: Componente de categoría con carga bajo demanda e indicador visual
+   const CategoryItem = ({ category, isExpanded, onToggle }) => {
+     const { getSections, isLoading } = useSectionsCache();
+     const [sections, setSections] = useState([]);
+     
+     useEffect(() => {
+       // Cargar secciones solo si la categoría está expandida
+       if (isExpanded) {
+         getSections(category.category_id).then(result => {
+           if (result) setSections(result);
+         });
+       }
+     }, [isExpanded, category.category_id]);
+     
+     return (
+       <div className="category-container">
+         <div 
+           className="category-header" 
+           onClick={onToggle}
+         >
+           <span>{category.name}</span>
+           {isLoading[category.category_id] && (
+             <Spinner size="sm" className="ml-2" />
+           )}
+           <ChevronIcon 
+             className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+           />
+         </div>
+         
+         {isExpanded && (
+           <div className="category-sections">
+             {sections.length > 0 ? (
+               sections.map(section => (
+                 <SectionItem 
+                   key={section.section_id}
+                   section={section}
+                   withLazyLoadedProducts={true}
+                 />
+               ))
+             ) : (
+               <div className="empty-state">
+                 {isLoading[category.category_id] 
+                   ? "Cargando secciones..." 
+                   : "No hay secciones en esta categoría"
+                 }
+               </div>
+             )}
+           </div>
+         )}
+       </div>
+     );
+   };
+   ```
+
+4. **Optimización de la experiencia inicial**:
+   - Cargar inmediatamente solo datos esenciales (cliente, categorías)
+   - Mostrar esqueletos de carga (skeletons) mientras se obtienen los datos iniciales
+   - Implementar un sistema de priorización para cargar primero datos visibles
+   - Diferir cargas secundarias hasta después de que la interfaz esté interactiva
+
+#### Implementación gradual
+
+La implementación se realizará en fases:
+
+1. **Fase 1**: Refactorizar el código para separar controladores de eventos (completado)
+2. **Fase 2**: Extraer componentes de vista a archivos separados
+3. **Fase 3**: Implementar sistema de caché para categorías, secciones y productos
+4. **Fase 4**: Reemplazar carga inicial agresiva por carga bajo demanda
+5. **Fase 5**: Añadir indicadores visuales y mejorar la experiencia de usuario
+
+Esta optimización dramática en la carga de datos complementará la paginación ya implementada, logrando tiempos de respuesta mucho menores y una experiencia más fluida.
 
 ## Buenas Prácticas de API
 
