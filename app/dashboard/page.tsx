@@ -983,14 +983,39 @@ export default function DashboardPage() {
       }
     };
 
-    // Añadir el event listener
+    // Evento para actualizar un solo producto
+    const handleSingleProductUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { productId, sectionId, newStatus } = customEvent.detail;
+      
+      console.log(`[DEBUG] Evento single-product-updated recibido: productId=${productId}, status=${newStatus}`);
+      
+      // Actualizar directamente el estado de productsFromHook
+      if (productsFromHook[sectionId]) {
+        const updatedProducts = productsFromHook[sectionId].map(product => 
+          product.product_id === productId 
+            ? { ...product, status: newStatus }
+            : product
+        );
+        
+        // Actualizar el estado local
+        setProducts(prev => ({
+          ...prev,
+          [sectionId]: updatedProducts
+        }));
+      }
+    };
+
+    // Añadir los event listeners
     window.addEventListener('product-visibility-changed', handleProductVisibilityChange);
+    window.addEventListener('single-product-updated', handleSingleProductUpdate);
     
-    // Limpiar el event listener al desmontar
+    // Limpiar los event listeners al desmontar
     return () => {
       window.removeEventListener('product-visibility-changed', handleProductVisibilityChange);
+      window.removeEventListener('single-product-updated', handleSingleProductUpdate);
     };
-  }, [setProducts]);
+  }, [setProducts, productsFromHook]);
 
   // ----- RENDERIZADO -----
   

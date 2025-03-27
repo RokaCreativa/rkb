@@ -85,8 +85,8 @@ export const handleReorderProduct = async (
  * 
  * @param productId - ID del producto a modificar
  * @param currentStatus - Estado actual (1 = visible, 0 = oculto)
- * @param sectionId - ID de la sección a la que pertenece el producto
- * @param categoryId - ID de la categoría a la que pertenece la sección
+ * @param sectionId - ID da la sección a la quo perteneco el producto
+ * @param categoryId - ID da la categoría a la que perteneco la sección
  * @param sections - Estado actual de las secciones y sus productos
  * @param setSections - Función para actualizar el estado de secciones
  * @returns Promise que se resuelve cuando la operación está completa
@@ -172,20 +172,29 @@ export async function toggleProductVisibility(
     }
 
     // Actualizar también el estado global de productos (productsFromHook) para refrescar la UI
-    // Esta parte es crítica para que se refleje el cambio en la interfaz
     try {
-      // Intentar obtener los productos actualizados desde la API
-      const response = await fetch(`/api/products?section_id=${sectionId}`);
-      if (response.ok) {
-        const updatedProducts = await response.json();
-        console.log(`[DEBUG] Productos actualizados obtenidos de la API:`, updatedProducts);
+      // Intentar obtener los productos actualizados desde la API directamente
+      const freshProductsResponse = await fetch(`/api/products?section_id=${sectionId}`);
+      if (freshProductsResponse.ok) {
+        const updatedProducts = await freshProductsResponse.json();
+        console.log(`[DEBUG] Productos actualizados obtenidos:`, updatedProducts);
         
-        // Disparar un evento personalizado para notificar la actualización
+        // Actualizar directamente el estado de productos sin usar eventos
         if (typeof window !== 'undefined') {
+          // Disparar un evento personalizado para notificar la actualización 
           window.dispatchEvent(new CustomEvent('product-visibility-changed', { 
             detail: { 
               sectionId,
               products: updatedProducts
+            } 
+          }));
+          
+          // También actualizar el producto específico que se cambió
+          window.dispatchEvent(new CustomEvent('single-product-updated', { 
+            detail: { 
+              productId,
+              sectionId,
+              newStatus: newVisibility 
             } 
           }));
         }
