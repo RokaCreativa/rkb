@@ -86,28 +86,35 @@ export const handleReorderProduct = async (
  * @param {Function} setProducts - Función para actualizar el estado de productos
  * @param {Function} setIsUpdatingVisibility - Función para actualizar el estado de carga
  * @param {number} productId - ID del producto a actualizar
+ * @param {number} sectionId - ID de la sección a la que pertenece el producto
  * @returns {Promise<void>}
  */
 export const toggleProductVisibility = async (
   products: Product[],
-  setProducts: (updater: (prev: Product[]) => Product[]) => void,
-  setIsUpdatingVisibility: (isUpdating: boolean | number | null) => void,
-  productId: number
+  setProducts: (updater: (prev: Record<string | number, Product[]>) => Record<string | number, Product[]>) => void,
+  setIsUpdatingVisibility: (isUpdating: number | null) => void,
+  productId: number,
+  sectionId: number
 ): Promise<void> => {
-  const productIndex = products.findIndex(p => p.product_id === productId);
-  if (productIndex === -1) return;
+  // Buscar el producto en el array
+  const product = products.find(p => p.product_id === productId);
+  if (!product) return;
 
-  const product = products[productIndex];
-  const newStatus = product.status === 1 ? 0 : 1;
+  const currentStatus = product.status;
+  const newStatus = currentStatus === 1 ? 0 : 1;
 
-  // Actualización optimista de la UI
+  // Indicar que está procesando este producto específico
   setIsUpdatingVisibility(productId);
-  setProducts(prev => 
-    prev.map(p => p.product_id === productId 
-      ? { ...p, status: newStatus } 
-      : p
-    )
-  );
+  
+  // Actualización optimista de la UI
+  setProducts(prev => ({
+    ...prev,
+    [sectionId]: prev[sectionId]?.map(p => 
+      p.product_id === productId 
+        ? { ...p, status: newStatus } 
+        : p
+    ) || []
+  }));
 
   try {
     const response = await fetch(`/api/products/${productId}`, {
@@ -122,25 +129,22 @@ export const toggleProductVisibility = async (
       throw new Error(`Error al actualizar la visibilidad del producto: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    if (!data.success && !data.product) {
-      throw new Error(data.error || 'Error al actualizar la visibilidad del producto');
-    }
-
-    toast.success(`Producto ${newStatus === 1 ? 'activado' : 'desactivado'}`);
-    console.log(`Producto ${newStatus === 1 ? 'activado' : 'desactivado'} correctamente`);
+    toast.success(`Producto ${currentStatus === 1 ? 'desactivado' : 'activado'} correctamente`);
   } catch (error) {
     console.error('Error al actualizar la visibilidad del producto:', error);
     toast.error('Error al actualizar la visibilidad del producto');
     
-    // Revertir cambio en la UI
-    setProducts(prev => 
-      prev.map(p => p.product_id === productId 
-        ? { ...p, status: product.status } 
-        : p
-      )
-    );
+    // Revertir cambio en la UI en caso de error
+    setProducts(prev => ({
+      ...prev,
+      [sectionId]: prev[sectionId]?.map(p => 
+        p.product_id === productId 
+          ? { ...p, status: currentStatus } 
+          : p
+      ) || []
+    }));
   } finally {
+    // Finalizar el estado de carga
     setIsUpdatingVisibility(null);
   }
 };

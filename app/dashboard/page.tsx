@@ -920,19 +920,34 @@ export default function DashboardPage() {
     if (!selectedSection) return;
     
     const currentProducts = products[selectedSection.section_id] || [];
+    const sectionId = selectedSection.section_id;
     
     await toggleProductVisibilityExtracted(
       currentProducts,
       (updater) => {
-        setProducts(prev => ({
-          ...prev,
-          [selectedSection.section_id]: updater(currentProducts)
-        }));
+        setProducts((prev) => {
+          // Verificar si updater es una función o un valor
+          const updatedSectionProducts = typeof updater === 'function' 
+            ? updater(prev) 
+            : updater;
+            
+          // Si es un objeto Record, asumimos que ya tiene la estructura correcta
+          if (updatedSectionProducts && typeof updatedSectionProducts === 'object' && !Array.isArray(updatedSectionProducts)) {
+            return updatedSectionProducts as Record<string, Product[]>;
+          }
+          
+          // Si es un array, lo asignamos a la sección correcta
+          return {
+            ...prev,
+            [sectionId]: Array.isArray(updatedSectionProducts) 
+              ? updatedSectionProducts 
+              : prev[sectionId] || []
+          };
+        });
       },
-      (isUpdating) => {
-        setIsUpdatingVisibility(isUpdating ? productId : null);
-      },
-      productId
+      (isUpdating) => setIsUpdatingVisibility(isUpdating),
+      productId,
+      sectionId
     );
   }, [selectedSection, products, setIsUpdatingVisibility, setProducts]);
 
