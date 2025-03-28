@@ -344,17 +344,18 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
 
 #### Tareas:
 
-1. **Documentar estándar de tipos para visibilidad** 🔄
+1. **Documentar estándar de tipos para visibilidad** ✅
    - Crear guía sobre uso consistente de tipos:
    - En base de datos: booleano (true/false)
    - En API: numérico (1/0)
    - En frontend: numérico (1/0)
+   - ✓ Documento creado: `docs/estandares-tipos.md`
 
-2. **Revisar otras entidades** ⏳
+2. **Revisar otras entidades** ✅
    - Verificar manejo de tipos en otras entidades:
-   - Categorías
-   - Clientes
-   - Usuarios
+   - Categorías: Ya implementado correctamente
+   - Clientes: No usan campo de status visible/no visible
+   - Usuarios: No relevante para la UI actual
 
 ## Testing y Validación
 
@@ -409,18 +410,14 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
 
 Basado en el progreso actual, estas son las próximas tareas a abordar:
 
-1. **Finalizar conversión de tipos** 🔄
-   - Verificar que todas las entidades manejan tipos consistentemente
-   - Documentar estándar de tipos para futuros desarrollos
-
-2. **Limpieza de componentes duplicados y archivos innecesarios** ⏳
+1. **Limpieza de componentes duplicados y archivos innecesarios** 🔄
    - Eliminar archivos .bak y carpetas vacías
    - Unificar providers de sesión y CategoryForm
 
-3. **Implementar custom hooks para gestión de estado** ⏳
+2. **Implementar custom hooks para gestión de estado** ⏳
    - Comenzar con useCategories para extraer lógica del dashboard
 
-4. **Iniciar la optimización de rendimiento** ⏳
+3. **Iniciar la optimización de rendimiento** ⏳
    - Aplicar React.memo a componentes de tablas
 
 ## Implementación Paso a Paso
