@@ -362,6 +362,7 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
 
 1. ✅ Eliminar archivos de respaldo (.bak):
    - ✅ Archivos del dashboard y componentes: `app/dashboard/page.tsx.bak`, `app/dashboard/page.tsx.bak_`, `app/dashboard/page.tsx.bak_20240326`, `components/modals/DeleteConfirmationModal.tsx.bak`, `app/dashboard/page.tsx.backup`, `app/dashboard/page.tsx.gx_backup`, `app/dashboard/page.tsx.gx_backup2`
+   - ✅ Archivo adicional encontrado: `components/modals/DeleteConfirmationModal.tsx.bak` (eliminado en segunda revisión)
 
 2. ✅ Eliminar carpetas vacías:
    - ✅ `components/previews`
@@ -372,11 +373,19 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
    - ✅ Eliminar `components/providers/session-provider.tsx` (no utilizado)
    - ✅ Mantener `components/SessionProvider.tsx` (actualmente en uso)
 
-4. ⏳ Unificar componentes CategoryForm duplicados:
-   - ⏳ Identificar todos los componentes CategoryForm en el proyecto
-   - ⏳ Determinar cuál es la versión más actualizada
-   - ⏳ Migrar funcionalidades únicas a la versión principal
-   - ⏳ Eliminar versiones obsoletas
+4. ✅ Unificar componentes CategoryForm duplicados:
+   - ✅ Identificar todos los componentes CategoryForm en el proyecto
+   - ✅ Determinar la versión más actualizada (components/forms/CategoryForm.tsx)
+   - ✅ Verificar que no hay referencias a la versión antigua
+   - ✅ Eliminar la versión obsoleta (components/CategoryForm.tsx)
+
+5. ✅ Verificar componentes de tablas:
+   - ✅ Comparar `components/tables/CategoryTable.tsx` vs. `components/CategoryTable.tsx`
+   - ✅ Comparar `components/tables/SectionTable.tsx` vs. `components/SectionTable.tsx`
+   - ✅ Comparar `components/tables/ProductTable.tsx` vs. `components/ProductTable.tsx`
+   - ✅ Confirmar que las versiones en la raíz de `components/` son las utilizadas en la aplicación
+   - ✅ Las versiones en `components/tables/` no están siendo utilizadas
+   - ✅ Decisión: Mantener los componentes en `components/tables/` por ahora como referencia para futuras refactorizaciones
 
 ## Testing y Validación
 

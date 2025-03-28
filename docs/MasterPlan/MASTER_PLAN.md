@@ -11,7 +11,7 @@ Este documento maestro sirve como centro de control y coordinación para todos l
 | Corrección de Conversión de Tipos | ✅ 100% | Completado |
 | Implementación de Paginación | ✅ 100% | Completado |
 | Optimización de Carga Inicial | 🔄 30% | Alta |
-| Limpieza de Componentes Duplicados | 🔄 50% | Alta |
+| Limpieza de Componentes Duplicados | 🔄 70% | Alta |
 | Extracción de Lógica del Dashboard | 🔄 15% | Media |
 | Reorganización de Modales | ⏳ 0% | Media |
 | Optimización de Rendimiento | ⏳ 0% | Baja |
@@ -134,9 +134,10 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 - ✅ Eliminación de archivos de respaldo (.bak)
 - ✅ Eliminación de carpetas vacías (`components/previews`, `app/contexts`, `components/providers`)
 - ✅ Consolidación de providers de sesión (`components/SessionProvider.tsx`)
-- 🔄 Verificación de versiones actualizadas de cada tabla
-- ⏳ Actualización del archivo de índice de tablas
-- ⏳ Consolidación del componente `CategoryForm`
+- ✅ Consolidación del componente `CategoryForm` (`components/forms/CategoryForm.tsx`)
+- ✅ Verificación de componentes de tablas (se usan las versiones en la raíz de components/)
+- 🔄 Decisión sobre componentes de tablas duplicados
+- ⏳ Actualización del archivo de índice de tablas (si es necesario)
 
 ### 5. Extracción de Lógica del Dashboard (🔄 En progreso)
 
@@ -153,7 +154,8 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
    - ✅ Eliminar archivos .bak (Completado: 7 archivos eliminados)
    - ✅ Eliminar carpetas vacías (Completado: `components/previews`, `app/contexts`, `components/providers`)
    - ✅ Unificar providers de sesión (Completado: Se mantiene `components/SessionProvider.tsx`)
-   - ⏳ Consolidar componentes CategoryForm duplicados
+   - ✅ Consolidar componentes CategoryForm (Completado: Se mantiene la versión en `components/forms/`)
+   - 🔄 Resolver duplicación de componentes de tablas (Decisión pendiente: ¿Eliminar los componentes en `components/tables/` o mantenerlos?)
 
 2. **Continuar la extracción de lógica del dashboard**:
    - Implementar hooks personalizados comenzando por useCategories
@@ -176,6 +178,8 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 - Eliminación de 7 archivos de respaldo (.bak, .backup, etc.)
 - Eliminación de carpetas vacías (`components/previews`, `app/contexts`, `components/providers`)
 - Consolidación de providers de sesión (eliminado `session-provider.tsx` duplicado)
+- Consolidación de CategoryForm (eliminada versión antigua en la raíz de components)
+- Verificación de componentes de tablas (se determinó que las versiones en uso están en la raíz de components/)
 
 ---
 
