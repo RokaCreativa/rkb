@@ -14,7 +14,8 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
 4. [Fase 4: Optimización de Rendimiento](#fase-4-optimización-de-rendimiento)
 5. [Fase 5: Implementación de Paginación](#fase-5-implementación-de-paginación)
 6. [Fase 6: Corrección de Conversión de Tipos](#fase-6-corrección-de-conversión-de-tipos)
-7. [Testing y Validación](#testing-y-validación)
+7. [Fase 7: Limpieza de Componentes Duplicados y Archivos Innecesarios](#fase-7-limpieza-de-componentes-duplicados-y-archivos-innecesarios)
+8. [Testing y Validación](#testing-y-validación)
 
 ## Fase 1: Limpieza de Componentes Duplicados
 
@@ -357,9 +358,29 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
    - Clientes: No usan campo de status visible/no visible
    - Usuarios: No relevante para la UI actual
 
+## Fase 7: Limpieza de Componentes Duplicados y Archivos Innecesarios
+
+1. ✅ Eliminar archivos de respaldo (.bak):
+   - ✅ Archivos del dashboard y componentes: `app/dashboard/page.tsx.bak`, `app/dashboard/page.tsx.bak_`, `app/dashboard/page.tsx.bak_20240326`, `components/modals/DeleteConfirmationModal.tsx.bak`, `app/dashboard/page.tsx.backup`, `app/dashboard/page.tsx.gx_backup`, `app/dashboard/page.tsx.gx_backup2`
+
+2. ✅ Eliminar carpetas vacías:
+   - ✅ `components/previews`
+   - ✅ `app/contexts`
+   - ✅ `components/providers`
+
+3. ✅ Consolidar providers de sesión duplicados:
+   - ✅ Eliminar `components/providers/session-provider.tsx` (no utilizado)
+   - ✅ Mantener `components/SessionProvider.tsx` (actualmente en uso)
+
+4. ⏳ Unificar componentes CategoryForm duplicados:
+   - ⏳ Identificar todos los componentes CategoryForm en el proyecto
+   - ⏳ Determinar cuál es la versión más actualizada
+   - ⏳ Migrar funcionalidades únicas a la versión principal
+   - ⏳ Eliminar versiones obsoletas
+
 ## Testing y Validación
 
-### 7.1 Pruebas de Componentes
+### 8.1 Pruebas de Componentes
 
 #### Tareas:
 
@@ -393,7 +414,7 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
    });
    ```
 
-### 7.2 Validación de Rendimiento
+### 8.2 Validación de Rendimiento
 
 #### Tareas:
 

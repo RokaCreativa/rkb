@@ -11,7 +11,7 @@ Este documento maestro sirve como centro de control y coordinación para todos l
 | Corrección de Conversión de Tipos | ✅ 100% | Completado |
 | Implementación de Paginación | ✅ 100% | Completado |
 | Optimización de Carga Inicial | 🔄 30% | Alta |
-| Limpieza de Componentes Duplicados | 🔄 10% | Alta |
+| Limpieza de Componentes Duplicados | 🔄 50% | Alta |
 | Extracción de Lógica del Dashboard | 🔄 15% | Media |
 | Reorganización de Modales | ⏳ 0% | Media |
 | Optimización de Rendimiento | ⏳ 0% | Baja |
@@ -40,7 +40,7 @@ Este documento maestro sirve como centro de control y coordinación para todos l
 | Documento | Propósito | Estado |
 |-----------|-----------|--------|
 | [`organizacion-hooks-librerias.md`](organizacion-hooks-librerias.md) | Guía para organizar hooks y librerías | Actualizado |
-| [`docs/estandares-tipos.md`](docs/estandares-tipos.md) | Estándares para manejo de tipos en la aplicación | Nuevo |
+| [`docs/estandares-tipos.md`](../estandares-tipos.md) | Estándares para manejo de tipos en la aplicación | Nuevo |
 | [`PARA_MI_OTRO_YO_ACTUALIZADO.md`](PARA_MI_OTRO_YO_ACTUALIZADO.md) | Contexto general y estado actual del proyecto | Actualizado |
 
 ## Documentación de Estructura del Proyecto
@@ -98,7 +98,7 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
   - Sigue las mejores prácticas en [`organizacion-hooks-librerias.md`](organizacion-hooks-librerias.md)
 
 - **Manejar tipos y conversiones**:
-  - Consulta [`docs/estandares-tipos.md`](docs/estandares-tipos.md)
+  - Consulta [`../estandares-tipos.md`](../estandares-tipos.md)
 
 - **Entender la estructura general del proyecto**:
   - Comienza con [`PROJECT_STRUCTURE2.md`](PROJECT_STRUCTURE2.md) para la estructura base
@@ -131,11 +131,12 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 ### 4. Limpieza de Componentes Duplicados (🔄 En progreso)
 
 - ✅ Consolidación del componente `ProductTable.tsx`
+- ✅ Eliminación de archivos de respaldo (.bak)
+- ✅ Eliminación de carpetas vacías (`components/previews`, `app/contexts`, `components/providers`)
+- ✅ Consolidación de providers de sesión (`components/SessionProvider.tsx`)
 - 🔄 Verificación de versiones actualizadas de cada tabla
 - ⏳ Actualización del archivo de índice de tablas
-- ⏳ Eliminación de componentes duplicados
-- ⏳ Eliminación de archivos de respaldo (.bak)
-- ⏳ Eliminación de carpetas vacías
+- ⏳ Consolidación del componente `CategoryForm`
 
 ### 5. Extracción de Lógica del Dashboard (🔄 En progreso)
 
@@ -148,9 +149,11 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 
 ### 6. Próximos Pasos Prioritarios
 
-1. **Limpieza de componentes duplicados**:
-   - Eliminar archivos .bak y carpetas vacías
-   - Unificar providers de sesión y CategoryForm
+1. **Limpieza de componentes duplicados (en progreso)**:
+   - ✅ Eliminar archivos .bak (Completado: 7 archivos eliminados)
+   - ✅ Eliminar carpetas vacías (Completado: `components/previews`, `app/contexts`, `components/providers`)
+   - ✅ Unificar providers de sesión (Completado: Se mantiene `components/SessionProvider.tsx`)
+   - ⏳ Consolidar componentes CategoryForm duplicados
 
 2. **Continuar la extracción de lógica del dashboard**:
    - Implementar hooks personalizados comenzando por useCategories
@@ -166,6 +169,13 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 2. **Pruebas continuas**: Verificar que cada cambio mantiene la funcionalidad existente.
 3. **Actualización de documentación**: Mantener este documento y los relacionados actualizados.
 4. **Control de versiones**: Crear ramas específicas para cada fase de implementación.
+
+## Registro de Cambios Recientes
+
+### Abril 2024
+- Eliminación de 7 archivos de respaldo (.bak, .backup, etc.)
+- Eliminación de carpetas vacías (`components/previews`, `app/contexts`, `components/providers`)
+- Consolidación de providers de sesión (eliminado `session-provider.tsx` duplicado)
 
 ---
 
