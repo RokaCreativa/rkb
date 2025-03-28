@@ -21,9 +21,6 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import TopNavbar from '@/components/layout/TopNavbar';
 import useSections from '@/app/hooks/useSections';
 import useProducts from '@/app/hooks/useProducts';
-// Importar los componentes de modal que hemos creado
-import DeleteSectionModal from './components/DeleteSectionModal';
-import DeleteProductModal from './components/DeleteProductModal';
 // Importar los tipos desde el archivo centralizado
 import { Category, Section, Product, Client } from '@/app/types/menu';
 import EditProductModal from './components/EditProductModal';
