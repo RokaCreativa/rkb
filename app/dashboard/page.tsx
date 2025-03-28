@@ -56,9 +56,6 @@ import {
   deleteProduct as deleteProductExtracted 
 } from '@/lib/handlers/productEventHandlers';
 
-// Importar el nuevo hook para conteo de elementos
-import { useDashboardWithCounts } from '@/lib/hooks/dashboard';
-
 // Interfaces para FloatingPhonePreview
 interface FloatingPhoneCategory {
   id: number;
@@ -613,7 +610,7 @@ export default function DashboardPage() {
       // Las secciones y productos se cargarán a demanda al hacer clic
       console.log("Configurado para carga bajo demanda de secciones y productos.");
     }
-  }, [categories, isLoading, selectedCategory]);
+  }, [categories, isLoading]);
 
   // Efecto para cargar datos iniciales al autenticarse
   /**
@@ -1602,7 +1599,7 @@ export default function DashboardPage() {
                           className="mt-4 pl-4 border-l-2 border-teal-100"
                         >
                           <ProductTable 
-                            products={productsFromHook[section.section_id] || []}
+                            products={products[section.section_id] || []}
                             sectionName={section.name}
                             onToggleVisibility={handleToggleProductVisibility}
                             isUpdatingVisibility={isUpdatingVisibility}
