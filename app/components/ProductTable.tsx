@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { Product } from '@/lib/types';
+import Pagination from '@/components/ui/Pagination';
 
 /**
  * Propiedades para el componente ProductTable
@@ -15,6 +16,14 @@ interface ProductTableProps {
   onBackClick?: () => void;
   sectionName?: string;
   onReorderProduct: (productId: number, newPosition: number) => void;
+  // Propiedades de paginación
+  paginationEnabled?: boolean;
+  currentPage?: number;
+  itemsPerPage?: number;
+  totalProducts?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  onTogglePagination?: () => void;
 }
 
 /**
@@ -30,7 +39,15 @@ export default function ProductTable({
   isUpdatingVisibility,
   onBackClick,
   sectionName,
-  onReorderProduct
+  onReorderProduct,
+  // Propiedades de paginación
+  paginationEnabled = false,
+  currentPage = 1,
+  itemsPerPage = 10,
+  totalProducts = 0,
+  onPageChange,
+  onPageSizeChange,
+  onTogglePagination
 }: ProductTableProps) {
   
   const [showHiddenProducts, setShowHiddenProducts] = useState(false);
@@ -83,6 +100,10 @@ export default function ProductTable({
   const visibleProducts = localProducts.filter(prod => prod.status === 1);
   const hiddenProducts = localProducts.filter(prod => prod.status !== 1);
   
+  // Determinar el total real de productos para paginación
+  const effectiveTotalProducts = paginationEnabled && totalProducts ? 
+    totalProducts : localProducts.length;
+  
   return (
     <div className="rounded-lg border border-gray-200 overflow-hidden bg-white w-full">
       <div className="flex items-center justify-between px-4 py-3 bg-amber-50 border-b border-amber-100">
@@ -99,12 +120,54 @@ export default function ProductTable({
             {sectionName || 'Productos'}
           </h2>
         </div>
-        <div className="text-xs text-gray-500">
-          ({localProducts.filter(prod => prod.status === 1).length}/{localProducts.length} Visibles)
+        
+        <div className="flex items-center space-x-2">
+          <div className="text-xs text-gray-500">
+            ({localProducts.filter(prod => prod.status === 1).length}/{localProducts.length} Visibles)
+          </div>
+          
+          <button
+            onClick={() => setShowHiddenProducts(!showHiddenProducts)}
+            className={`px-2 py-1 text-xs rounded-md flex items-center ${
+              showHiddenProducts 
+                ? 'bg-amber-100 text-amber-800' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {showHiddenProducts ? 'Ocultar inactivos' : 'Mostrar inactivos'}
+          </button>
+          
+          {onTogglePagination && (
+            <button
+              onClick={onTogglePagination}
+              className={`px-2 py-1 text-xs rounded-md flex items-center ${
+                paginationEnabled 
+                  ? 'bg-amber-100 text-amber-800' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {paginationEnabled ? 'Desactivar paginación' : 'Activar paginación'}
+            </button>
+          )}
         </div>
       </div>
       
-      {/* Rest of the component code remains unchanged */}
+      {/* Resto del componente (tabla y productos) se mantiene igual */}
+      {/* ... existing code ... */}
+      
+      {/* Componente de paginación */}
+      {onPageChange && paginationEnabled && (
+        <div className="border-t border-amber-100 bg-white">
+          <Pagination
+            totalItems={effectiveTotalProducts}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
+        </div>
+      )}
     </div>
   );
 } 

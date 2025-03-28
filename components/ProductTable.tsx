@@ -19,12 +19,13 @@ export interface Product {
 
 interface ProductTableProps {
   products: Product[];
+  expandedProducts?: Product[];
+  onBackClick?: () => void;
+  sectionName?: string;
   onEditProduct?: (product: Product) => void;
   onDeleteProduct?: (productId: number) => void;
   onToggleVisibility?: (productId: number, currentStatus: number) => void;
   isUpdatingVisibility?: number | null;
-  onBackClick?: () => void;
-  sectionName?: string;
   onReorderProduct?: (sourceIndex: number, destinationIndex: number) => void;
 }
 
@@ -35,20 +36,24 @@ interface ProductTableProps {
  */
 export default function ProductTable({
   products,
+  expandedProducts,
+  onBackClick,
+  sectionName,
   onEditProduct,
   onDeleteProduct,
   onToggleVisibility,
   isUpdatingVisibility,
-  onBackClick,
-  sectionName,
   onReorderProduct
 }: ProductTableProps) {
-  
   const [showHiddenProducts, setShowHiddenProducts] = useState(false);
   
-  // Separar productos visibles y no visibles
-  const visibleProducts = products.filter(prod => prod.status === 1);
-  const hiddenProducts = products.filter(prod => prod.status !== 1);
+  console.log('ProductTable rendering:');
+  console.log('Products length:', products?.length || 0);
+  console.log('First few products:', products?.slice(0, 3));
+  
+  // Filtrar productos por visibilidad
+  const visibleProducts = products?.filter(product => product.status === 1) || [];
+  const hiddenProducts = products?.filter(product => product.status !== 1) || [];
   
   // Manejar el evento de drag and drop finalizado
   const handleDragEnd = (result: DropResult) => {

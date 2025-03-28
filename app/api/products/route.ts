@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from "@/prisma/prisma";
@@ -25,131 +25,135 @@ interface ProcessedProduct {
 }
 
 /**
+ * Interfaz para la respuesta paginada de productos
+ * Se usa cuando se solicitan datos con paginación
+ */
+interface PaginatedProductsResponse {
+  data: ProcessedProduct[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+/**
  * Obtiene todos los productos o los productos de una sección específica
+ * Soporta paginación opcional mediante parámetros de consulta
  * 
  * @param request - Objeto de solicitud HTTP
  * @returns Respuesta HTTP con los productos o un mensaje de error
  */
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
   try {
-    // 1. Verificación de autenticación
+    // Verificar autenticación
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    if (!session || !session.user) {
+      return new Response(JSON.stringify({ error: 'Not authenticated' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    // Obtener el ID del cliente del usuario autenticado
+    const userEmail = session.user.email as string;
     const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
+      where: {
+        email: userEmail
+      }
     });
 
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    if (!user || !user.client_id) {
+      return new Response(JSON.stringify({ error: 'User not associated with a client' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // 3. Obtener parámetros de consulta (si existe section_id)
-    const url = new URL(request.url);
+    const clientId = user.client_id;
+    
+    // Obtener los parámetros de la URL
+    const url = new URL(req.url);
     const sectionId = url.searchParams.get('section_id');
+    
+    if (!sectionId) {
+      // Si no se especifica una sección, devolver todos los productos del cliente
+      const allProducts = await prisma.products.findMany({
+        where: {
+          client_id: clientId,
+          deleted: false
+        },
+        orderBy: {
+          display_order: 'asc'
+        }
+      });
 
-    // 4. Obtener todos los productos del cliente
+      // Procesar los productos para el formato requerido por el frontend
+      const processedProducts = allProducts.map(product => {
+        return {
+          ...product,
+          image: product.image || null,
+          status: product.status ? 1 : 0
+        };
+      });
+      
+      return new Response(JSON.stringify(processedProducts), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Si se especifica una sección, buscar los productos de esa sección
+    const sectionIdInt = parseInt(sectionId);
+    
+    // Obtener los IDs de productos asociados a la sección
+    const productSectionRelations = await prisma.products_sections.findMany({
+      where: {
+        section_id: sectionIdInt
+      }
+    });
+    
+    const productIds = productSectionRelations.map(relation => relation.product_id);
+    
+    // Si no hay productos en esta sección, devolver un array vacío
+    if (productIds.length === 0) {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // Obtener los detalles de los productos
     const products = await prisma.products.findMany({
       where: {
-        client_id: user.client_id,
-        deleted: { not: 1 } as any
+        product_id: { in: productIds },
+        deleted: false
       },
       orderBy: {
-        display_order: 'asc',
-      },
+        display_order: 'asc'
+      }
     });
-
-    // 5. Obtener las relaciones productos-secciones
-    let productsSections;
-    if (sectionId) {
-      // Si se especificó una sección, filtrar por ella
-      productsSections = await prisma.products_sections.findMany({
-        where: {
-          section_id: parseInt(sectionId),
-        },
-      });
-    } else {
-      // Si no se especificó sección, obtener todas
-      productsSections = await prisma.products_sections.findMany();
-    }
-
-    // 6. Obtener información de todas las secciones para incluir sus nombres
-    const sections = await prisma.sections.findMany({
-      where: {
-        client_id: user.client_id,
-        deleted: { not: 1 } as any
-      },
-      select: {
-        section_id: true,
-        name: true,
-      },
-    });
-
-    // 7. Mapear secciones por ID para búsqueda rápida
-    const sectionsMap = new Map(
-      sections.map(section => [section.section_id, section])
-    );
-
-    // 8. Filtrar productos que están en la sección solicitada (si se especificó)
-    const filteredProductIds = sectionId
-      ? new Set(productsSections.map(ps => ps.product_id))
-      : null;
-
-    const filteredProducts = sectionId
-      ? products.filter(product => filteredProductIds?.has(product.product_id))
-      : products;
-
-    // 9. Procesar los productos para el formato esperado por el frontend
-    const processedProducts = filteredProducts.map(product => {
-      // Encontrar todas las secciones a las que pertenece este producto
-      const productSectionIds = productsSections
-        .filter(ps => ps.product_id === product.product_id)
-        .map(ps => ps.section_id);
-
-      // Mapear las secciones con nombres
-      const productSections = productSectionIds
-        .map(sectionId => sectionsMap.get(sectionId))
-        .filter(Boolean)
-        .map(section => ({
-          section_id: section!.section_id,
-          name: section!.name || '',
-        }));
-
+    
+    // Procesar los productos para el formato requerido por el frontend
+    const processedProducts = products.map(product => {
       return {
-        product_id: product.product_id,
-        name: product.name || '',
-        image: product.image 
-          ? (() => {
-              // Si ya contiene el prefijo completo, devolverlo tal cual
-              if (product.image.startsWith('/images/products/')) {
-                return product.image;
-              }
-              // Si contiene el prefijo sin la barra inicial, añadirla
-              if (product.image.startsWith('images/products/')) {
-                return '/' + product.image;
-              }
-              // En cualquier otro caso, añadir el prefijo completo
-              return `${IMAGE_BASE_PATH}${product.image}`;
-            })()
-          : null,
-        status: product.status ? 1 : 0,
-        display_order: product.display_order || 0,
-        client_id: product.client_id || 0,
-        price: parseFloat(product.price?.toString() || '0'),
-        description: product.description,
-        sections: productSections,
+        ...product,
+        image: product.image || null,
+        status: product.status ? 1 : 0
       };
     });
 
-    // 10. Devolver los productos procesados
-    return NextResponse.json(processedProducts);
+    return new Response(JSON.stringify(processedProducts), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
-    // 11. Manejo centralizado de errores
-    console.error('Error al obtener productos:', error);
-    return NextResponse.json({ error: 'Error al obtener productos' }, { status: 500 });
+    console.error('Error getting products:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
@@ -182,7 +186,8 @@ export async function POST(request: Request) {
     const price = parseFloat(formData.get('price') as string);
     const description = formData.get('description') as string;
     const file = formData.get('image') as File | null;
-    const status = formData.get('status') === '1'; // Convertir a booleano
+    // Convertir a booleano (true para activo, false para inactivo)
+    const status = formData.get('status') === '1';
     
     // Obtener secciones a las que pertenece este producto
     const sectionsJson = formData.get('sections') as string;
@@ -211,7 +216,7 @@ export async function POST(request: Request) {
       where: {
         section_id: { in: sectionIds },
         client_id: user.client_id,
-        deleted: { not: 1 } as any
+        deleted: 0 as any
       },
     });
 
@@ -255,10 +260,10 @@ export async function POST(request: Request) {
         price,
         description,
         image: imageUrl,
-        status: status,
+        status: status as any,
         display_order: maxOrder + 1,
         client_id: user.client_id,
-        deleted: 0 as any,
+        deleted: false as any,
       },
     });
 

@@ -152,7 +152,7 @@ export async function POST(request: Request) {
       where: {
         category_id: categoryId,
         client_id: user.client_id,
-        deleted: { not: 1 } as any,
+        deleted: 0 
       },
     });
 
@@ -199,7 +199,7 @@ export async function POST(request: Request) {
         display_order: maxOrder + 1,
         category_id: categoryId,
         client_id: user.client_id,
-        deleted: 0 as any,
+        deleted: 0,
       },
     });
 
@@ -384,7 +384,7 @@ export async function DELETE(request: Request) {
       where: {
         section_id: parseInt(sectionId),
         client_id: user.client_id,
-        deleted: { in: [0, null] as any }, // Verificar que no esté ya eliminada
+        deleted: 0
       },
     });
 
@@ -394,13 +394,13 @@ export async function DELETE(request: Request) {
 
     // 5. En lugar de eliminar físicamente la sección, la marcamos como eliminada
     // utilizando el campo 'deleted' con valor 1 para indicar que está eliminada
-    await prisma.sections.updateMany({
+    await prisma.sections.update({
       where: {
         section_id: parseInt(sectionId),
         client_id: user.client_id,
       },
       data: {
-        deleted: 1 as any,
+        deleted: 1,
         deleted_at: new Date().toISOString().substring(0, 19).replace('T', ' '),
         deleted_by: (session.user.email || '').substring(0, 50),
         deleted_ip: (request.headers.get('x-forwarded-for') || 'API').substring(0, 20),

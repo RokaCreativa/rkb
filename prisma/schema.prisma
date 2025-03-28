@@ -89,7 +89,7 @@ model clients {
   main_logo                 String?            @db.VarChar(100)
   app_name                  String?            @db.VarChar(50)
   email                     String             @db.VarChar(200)
-  confirmed                 Int?               @db.TinyInt
+  confirmed                 Boolean?
   activation_code           String?            @db.VarChar(200)
   photo1                    String?            @db.VarChar(200)
   photo2                    String?            @db.VarChar(200)
@@ -99,18 +99,18 @@ model clients {
   currency_id               Int?
   type_id                   Int?
   country_id                Int?
-  allergens                 Int?               @db.TinyInt
+  allergens                 Boolean?
   city                      String?            @db.VarChar(50)
   postal_code               String?            @db.VarChar(15)
   website                   String?            @db.VarChar(200)
   social_description        String?            @db.VarChar(200)
   whatsapp_number           String?            @db.VarChar(15)
   whatsapp_message          String?            @db.VarChar(500)
-  enable_whatsapp           Int?               @db.TinyInt
+  enable_whatsapp           Boolean?
   menu_background           String?            @db.VarChar(100)
   background_color          String?            @db.VarChar(6)
   footer_text               String?            @db.VarChar(1000)
-  show_purchase_link        Int?               @db.TinyInt
+  show_purchase_link        Boolean?
   purchase_clicks           Int?
   purchase_button_text      String?            @db.VarChar(20)
   primary_button_bg_color   String?            @db.VarChar(7)
@@ -129,11 +129,11 @@ model clients {
   saturday_schedule_end     String?            @db.VarChar(5)
   sunday_schedule_start     String?            @db.VarChar(5)
   sunday_schedule_end       String?            @db.VarChar(5)
-  show_schedule             Int?               @db.TinyInt
-  enable_stripe             Int?               @db.TinyInt
-  stripe_mode               Int?               @db.TinyInt
-  card_only_purchases       Int?               @db.TinyInt
-  enable_intro              Int?               @db.TinyInt
+  show_schedule             Boolean?
+  enable_stripe             Boolean?
+  stripe_mode               Boolean?
+  card_only_purchases       Boolean?
+  enable_intro              Boolean?
   intro_video               String?            @db.VarChar(100)
   remove_intro_button       String?            @db.VarChar(50)
   remove_intro_position     String?            @db.VarChar(10)
@@ -146,9 +146,9 @@ model clients {
   stripe_commission_percent Decimal?           @db.Decimal(5, 2)
   stripe_commission_amount  Decimal?           @db.Decimal(10, 2)
   expiration_date           DateTime?          @db.Date
-  allows_reservation        Int?               @db.TinyInt
-  delivery_service          Int?               @db.TinyInt
-  delivery_status           Int?               @db.TinyInt
+  allows_reservation        Boolean?
+  delivery_service          Boolean?
+  delivery_status           Boolean?
   facebook                  String?            @db.VarChar(150)
   twitter                   String?            @db.VarChar(150)
   instagram                 String?            @db.VarChar(150)
@@ -289,7 +289,7 @@ model products {
   duration_minutes             String?             @db.VarChar(2)
   free_pickup_hotel            String?             @db.VarChar(1)
   zone                         String?             @db.VarChar(100)
-  deleted                      Int?                @default(0) @db.TinyInt
+  deleted                      Boolean?
   deleted_at                   String?             @db.VarChar(20)
   deleted_by                   String?             @db.VarChar(50)
   deleted_ip                   String?             @db.VarChar(20)

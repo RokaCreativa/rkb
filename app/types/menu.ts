@@ -26,6 +26,7 @@ export interface Section {
   created_at?: string;
   updated_at?: string;
   products_count?: number;
+  visible_products_count?: number;
 }
 
 // Extensión de la interfaz para las operaciones que involucran archivos
