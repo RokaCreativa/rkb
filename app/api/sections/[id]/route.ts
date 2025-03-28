@@ -38,7 +38,7 @@ export async function PATCH(
     const section = await prisma.sections.findFirst({
       where: {
         section_id: sectionId,
-        deleted: { not: '1' },
+        deleted: { in: [0, null] as any },
       },
       include: {
         categories: true,
@@ -50,7 +50,7 @@ export async function PATCH(
     }
 
     // Verificar que la categoría de la sección pertenezca al cliente
-    if (section.categories?.client_id !== user.client_id) {
+    if (section.categories && section.categories.client_id !== user.client_id) {
       return NextResponse.json({ error: 'No tienes permiso para modificar esta sección' }, { status: 403 });
     }
 
@@ -119,7 +119,7 @@ export async function DELETE(
       where: {
         section_id: sectionId,
         client_id: user.client_id,
-        deleted: { not: '1' }, // Comprobamos que no esté ya eliminada
+        deleted: { in: [0, null] as any }, // Comprobamos que no esté ya eliminada
       },
     });
 
@@ -128,13 +128,13 @@ export async function DELETE(
     }
 
     // 5. En lugar de eliminar físicamente la sección, la marcamos como eliminada
-    // utilizando el campo 'deleted' con valor '1'
+    // utilizando el campo 'deleted' con valor 1 para indicar que está eliminada
     await prisma.sections.update({
       where: {
         section_id: sectionId,
       },
       data: {
-        deleted: '1',
+        deleted: 1 as any,
         deleted_at: new Date().toISOString().substring(0, 19).replace('T', ' '),
         deleted_by: (session.user.email || '').substring(0, 50),
         deleted_ip: (request.headers.get('x-forwarded-for') || 'API').substring(0, 20),

@@ -37,7 +37,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // 4. Verificar que todas las categorías pertenezcan al cliente
+    // 4. Obtener todas las categorías del cliente
+    const categories = await prisma.categories.findMany({
+      where: {
+        client_id: user.client_id,
+        OR: [
+          { deleted: 0 as any },
+          { deleted: null }
+        ]
+      },
+      orderBy: {
+        display_order: 'asc',
+      },
+    });
+
+    // 5. Verificar que todas las categorías pertenezcan al cliente
     const categoryIds = data.categories.map((cat: any) => cat.id);
     
     const existingCategories = await prisma.categories.findMany({
@@ -58,7 +72,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. Actualizar el orden de las categorías en una transacción
+    // 6. Actualizar el orden de las categorías en una transacción
     const updates = await prisma.$transaction(
       data.categories.map((cat: any) => 
         prisma.categories.update({
@@ -72,7 +86,7 @@ export async function POST(request: Request) {
       )
     );
 
-    // 6. Devolver respuesta de éxito
+    // 7. Devolver respuesta de éxito
     return NextResponse.json({
       success: true,
       message: 'Orden de categorías actualizado correctamente',
@@ -80,7 +94,7 @@ export async function POST(request: Request) {
     });
     
   } catch (error) {
-    // 7. Manejo centralizado de errores
+    // 8. Manejo centralizado de errores
     console.error('Error al reordenar categorías:', error);
     return NextResponse.json(
       { error: 'Error al actualizar el orden de las categorías' }, 

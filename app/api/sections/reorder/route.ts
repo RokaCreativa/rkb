@@ -44,7 +44,10 @@ export async function POST(request: Request) {
       where: {
         section_id: { in: sectionIds },
         client_id: user.client_id,
-        deleted: { not: 'Y' },
+        OR: [
+          { deleted: 0 as any },
+          { deleted: null }
+        ]
       },
       select: {
         section_id: true,

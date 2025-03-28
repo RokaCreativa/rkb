@@ -18,40 +18,47 @@ export async function GET(
     // Primero obtener las secciones asociadas a esta categoría
     const sections = await prisma.sections.findMany({
       where: {
-        category_id: categoryId,
-        status: true,
-        deleted: 'N'
+        category_id: parseInt(params.id),
+        deleted: 0 as any
       }
     });
 
-    const sectionIds = sections.map(section => section.id);
+    // Si no hay secciones, devolver array vacío
+    if (!sections.length) {
+      return NextResponse.json([]);
+    }
 
-    // Luego obtener los productos asociados a estas secciones
-    const products = await prisma.products.findMany({
+    // Extraer los IDs de las secciones
+    const sectionIds = sections.map(section => section.section_id);
+
+    // Consulta para obtener productos por sección
+    const products = await prisma.products_sections.findMany({
       where: {
-        status: true,
-        deleted: 'N',
-        products_sections: {
-          some: {
-            section_id: {
-              in: sectionIds
-            }
-          }
+        section_id: { in: sectionIds },
+        products: {
+          deleted: 0 as any,
         }
-      },
-      orderBy: {
-        display_order: 'asc'
       },
       include: {
-        products_sections: {
-          include: {
-            sections: true
-          }
-        }
+        sections: true,
+        products: true
       }
     });
 
-    return NextResponse.json(products);
+    // Obtener productos únicos y ordenarlos
+    const uniqueProducts = Array.from(
+      new Set(products.map(ps => ps.product_id))
+    ).map(productId => {
+      const productSection = products.find(ps => ps.product_id === productId);
+      return productSection?.products;
+    }).filter((product): product is NonNullable<typeof product> => product !== null && product !== undefined)
+    .sort((a, b) => {
+      const orderA = a.display_order || 0;
+      const orderB = b.display_order || 0;
+      return orderA - orderB;
+    });
+
+    return NextResponse.json(uniqueProducts);
   } catch (error) {
     console.error('Error al obtener productos:', error);
     return NextResponse.json(

@@ -64,7 +64,10 @@ export async function GET(request: Request) {
     // 4. Construir la consulta base
     const whereClause: any = {
       client_id: user.client_id,
-      deleted: { not: 'Y' },
+      OR: [
+        { deleted: 0 as any },
+        { deleted: null }
+      ]
     };
 
     // 5. Añadir filtro por categoría si se especifica
@@ -191,11 +194,11 @@ export async function POST(request: Request) {
       data: {
         name,
         image: imageUrl,
-        status,
+        status: true, // Por defecto activo
         display_order: maxOrder + 1,
-        client_id: user.client_id,
         category_id: categoryId,
-        deleted: 'N', // Mantener compatibilidad con el esquema actual
+        client_id: user.client_id,
+        deleted: 0 as any,
       },
     });
 

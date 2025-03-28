@@ -8,10 +8,10 @@ datasource db {
 }
 
 model allergens {
-  id    Int     @id @default(autoincrement())
-  name  String? @db.VarChar(255)
-  icon  String? @db.VarChar(255)
-  order Int?
+  allergen_id Int     @id @default(autoincrement())
+  name        String? @db.VarChar(255)
+  icon        String? @db.VarChar(255)
+  order       Int?
 }
 
 model allergens_product {
@@ -22,7 +22,7 @@ model allergens_product {
 }
 
 model allies {
-  id                   Int       @id @default(autoincrement())
+  ally_id              Int       @id @default(autoincrement())
   client_id            Int?
   name                 String?   @db.VarChar(50)
   type                 String?   @db.VarChar(3)
@@ -34,7 +34,7 @@ model allies {
 }
 
 model api_keys {
-  id             Int     @id @default(autoincrement())
+  api_key_id     Int     @id @default(autoincrement())
   api_key        String? @db.VarChar(40)
   level          Int
   ignore_limits  Boolean @default(false)
@@ -45,19 +45,19 @@ model api_keys {
 }
 
 model business_type {
-  id          Int     @id @default(autoincrement())
-  description String? @db.VarChar(50)
+  business_type_id Int     @id @default(autoincrement())
+  description      String? @db.VarChar(50)
 }
 
 model categories {
   category_id   Int        @id @default(autoincrement())
   name          String?    @db.VarChar(50)
   image         String?    @db.VarChar(45)
-  status        Boolean    @default(true)
+  status        Boolean?   @default(true)
   display_order Int?
   client_id     Int?
   registered_at DateTime?  @db.DateTime(0)
-  deleted       String?    @db.VarChar(1)
+  deleted       Int?       @default(0) @db.TinyInt
   deleted_at    String?    @db.VarChar(20)
   deleted_by    String?    @db.VarChar(50)
   deleted_ip    String?    @db.VarChar(20)
@@ -89,7 +89,7 @@ model clients {
   main_logo                 String?            @db.VarChar(100)
   app_name                  String?            @db.VarChar(50)
   email                     String             @db.VarChar(200)
-  confirmed                 String?            @db.VarChar(1)
+  confirmed                 Int?               @db.TinyInt
   activation_code           String?            @db.VarChar(200)
   photo1                    String?            @db.VarChar(200)
   photo2                    String?            @db.VarChar(200)
@@ -99,18 +99,18 @@ model clients {
   currency_id               Int?
   type_id                   Int?
   country_id                Int?
-  allergens                 String?            @db.VarChar(1)
+  allergens                 Int?               @db.TinyInt
   city                      String?            @db.VarChar(50)
   postal_code               String?            @db.VarChar(15)
   website                   String?            @db.VarChar(200)
   social_description        String?            @db.VarChar(200)
   whatsapp_number           String?            @db.VarChar(15)
   whatsapp_message          String?            @db.VarChar(500)
-  enable_whatsapp           String?            @db.VarChar(1)
+  enable_whatsapp           Int?               @db.TinyInt
   menu_background           String?            @db.VarChar(100)
   background_color          String?            @db.VarChar(6)
   footer_text               String?            @db.VarChar(1000)
-  show_purchase_link        String?            @db.VarChar(1)
+  show_purchase_link        Int?               @db.TinyInt
   purchase_clicks           Int?
   purchase_button_text      String?            @db.VarChar(20)
   primary_button_bg_color   String?            @db.VarChar(7)
@@ -129,11 +129,11 @@ model clients {
   saturday_schedule_end     String?            @db.VarChar(5)
   sunday_schedule_start     String?            @db.VarChar(5)
   sunday_schedule_end       String?            @db.VarChar(5)
-  show_schedule             String?            @db.VarChar(1)
-  enable_stripe             String?            @db.VarChar(1)
-  stripe_mode               String?            @db.VarChar(1)
-  card_only_purchases       String?            @db.VarChar(1)
-  enable_intro              String?            @db.VarChar(1)
+  show_schedule             Int?               @db.TinyInt
+  enable_stripe             Int?               @db.TinyInt
+  stripe_mode               Int?               @db.TinyInt
+  card_only_purchases       Int?               @db.TinyInt
+  enable_intro              Int?               @db.TinyInt
   intro_video               String?            @db.VarChar(100)
   remove_intro_button       String?            @db.VarChar(50)
   remove_intro_position     String?            @db.VarChar(10)
@@ -146,9 +146,9 @@ model clients {
   stripe_commission_percent Decimal?           @db.Decimal(5, 2)
   stripe_commission_amount  Decimal?           @db.Decimal(10, 2)
   expiration_date           DateTime?          @db.Date
-  allows_reservation        String?            @db.VarChar(1)
-  delivery_service          String?            @db.VarChar(1)
-  delivery_status           String?            @db.VarChar(1)
+  allows_reservation        Int?               @db.TinyInt
+  delivery_service          Int?               @db.TinyInt
+  delivery_status           Int?               @db.TinyInt
   facebook                  String?            @db.VarChar(150)
   twitter                   String?            @db.VarChar(150)
   instagram                 String?            @db.VarChar(150)
@@ -163,23 +163,23 @@ model clients {
 }
 
 model countries {
-  id          Int     @id
+  country_id  Int     @id @default(autoincrement())
   description String? @db.VarChar(50)
 }
 
 model currencies {
-  id          Int     @id @default(autoincrement())
+  currency_id Int     @id @default(autoincrement())
   description String? @db.VarChar(50)
   symbol      String? @db.VarChar(3)
   stripe_code String? @db.VarChar(5)
 }
 
 model establishment_areas {
-  id          Int     @id @default(autoincrement())
+  area_id     Int      @id @default(autoincrement())
   client_id   Int?
-  name        String? @db.VarChar(50)
-  description String? @db.VarChar(500)
-  status      String? @db.VarChar(1)
+  name        String?  @db.VarChar(50)
+  description String?  @db.VarChar(500)
+  status      Boolean?
 }
 
 model languages {
@@ -188,10 +188,10 @@ model languages {
 }
 
 model magazine {
-  id               Int       @id @default(autoincrement())
+  magazine_id      Int       @id @default(autoincrement())
   client_id        Int?
   publication_date DateTime? @db.Date
-  status           String?   @db.VarChar(1)
+  status           Boolean?
   title            String?   @db.VarChar(100)
   description      String?   @db.Text
   registered_at    DateTime? @db.DateTime(0)
@@ -209,11 +209,11 @@ model marketplace {
   image         String?  @db.VarChar(100)
   video         String?  @db.VarChar(100)
   quantity      Int?
-  status        String?  @db.VarChar(1)
+  status        Boolean?
   name          String?  @db.VarChar(50)
   description   String?  @db.Text
   sku           String?  @db.VarChar(50)
-  deleted       String?  @db.VarChar(1)
+  deleted       Boolean?
   deleted_at    String?  @db.VarChar(20)
   deleted_by    String?  @db.VarChar(20)
   deleted_ip    String?  @db.VarChar(20)
@@ -223,7 +223,7 @@ model marketplace {
 }
 
 model menu {
-  id                Int                 @id @default(autoincrement())
+  menu_id           Int                 @id @default(autoincrement())
   createdAt         DateTime            @default(now())
   updatedAt         DateTime
   menu_history      menu_history[]
@@ -232,7 +232,7 @@ model menu {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model menu_history {
-  id         BigInt   @id @unique(map: "id") @default(autoincrement()) @db.UnsignedBigInt
+  history_id Int      @id @unique(map: "id") @default(autoincrement())
   first_name String?  @db.VarChar(30)
   last_name  String?  @db.VarChar(30)
   url        String?  @db.VarChar(300)
@@ -242,18 +242,18 @@ model menu_history {
   delete_at  DateTime @db.DateTime(0)
   menu_id    Int
   client_id  Int?
-  menu       menu     @relation(fields: [menu_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_menu_history_menu")
+  menu       menu     @relation(fields: [menu_id], references: [menu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_menu_history_menu")
 
   @@index([client_id], map: "fk_historial_cliente")
   @@index([menu_id], map: "fk_menu_history_menu")
 }
 
 model menu_translations {
-  id       Int     @id @default(autoincrement())
-  menu_id  Int?
-  language String?
-  name     String?
-  menu     menu?   @relation(fields: [menu_id], references: [id], onDelete: Cascade, map: "TraduccionMenu_menuId_fkey")
+  translation_id Int     @id @default(autoincrement())
+  menu_id        Int?
+  language       String?
+  name           String?
+  menu           menu?   @relation(fields: [menu_id], references: [menu_id], onDelete: NoAction, onUpdate: NoAction, map: "TraduccionMenu_menuId_fkey")
 
   @@unique([menu_id, language], map: "TraduccionMenu_menuId_idioma_key")
 }
@@ -264,7 +264,7 @@ model products {
   name                         String?             @db.VarChar(100)
   display_order                Int?
   price                        Decimal?            @db.Decimal(10, 2)
-  status                       Boolean             @default(true)
+  status                       Boolean?            @default(true)
   description                  String?             @db.Text
   image                        String?             @db.VarChar(100)
   registered_at                DateTime?           @db.DateTime(0)
@@ -289,7 +289,7 @@ model products {
   duration_minutes             String?             @db.VarChar(2)
   free_pickup_hotel            String?             @db.VarChar(1)
   zone                         String?             @db.VarChar(100)
-  deleted                      String?             @db.VarChar(1)
+  deleted                      Int?                @default(0) @db.TinyInt
   deleted_at                   String?             @db.VarChar(20)
   deleted_by                   String?             @db.VarChar(50)
   deleted_ip                   String?             @db.VarChar(20)
@@ -312,7 +312,7 @@ model products_sections {
 }
 
 model purchase_statistics {
-  id                         Int       @id @default(autoincrement())
+  statistic_id               Int       @id @default(autoincrement())
   client_id                  Int?
   date                       DateTime? @db.DateTime(0)
   total_amount               Decimal?  @db.Decimal(14, 2)
@@ -324,7 +324,7 @@ model purchase_statistics {
 }
 
 model reservation_control {
-  id                Int       @id @default(autoincrement())
+  control_id        Int       @id @default(autoincrement())
   client_id         Int?
   request_date      DateTime? @db.DateTime(0)
   reservation_date  DateTime? @db.Date
@@ -335,7 +335,7 @@ model reservation_control {
   email             String?   @db.VarChar(200)
   notes             String?   @db.Text
   id_area           Int?
-  status            String?   @db.VarChar(1)
+  status            Boolean?
   confirmation_date DateTime? @db.DateTime(0)
   confirmed_by      String?   @db.VarChar(100)
   rejection_date    DateTime? @db.DateTime(0)
@@ -353,7 +353,7 @@ model reservation_details {
   name         String?       @db.VarChar(300)
   options      String?       @db.VarChar(500)
   booking_id   Int?
-  reservations reservations? @relation(fields: [booking_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reservation_details_booking")
+  reservations reservations? @relation(fields: [booking_id], references: [reservation_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reservation_details_booking")
 
   @@id([detail_id, row_id])
   @@index([booking_id], map: "fk_reservation_details_booking")
@@ -361,15 +361,15 @@ model reservation_details {
 }
 
 model reservations {
-  id                           Int                   @id @default(autoincrement())
+  reservation_id               Int                   @id @default(autoincrement())
   client_id                    Int?
   name                         String?               @db.VarChar(50)
   phone                        String?               @db.VarChar(15)
   address                      String?               @db.VarChar(500)
-  is_delivery                  String?               @db.VarChar(1)
+  is_delivery                  Boolean?
   delivery_cost                Decimal?              @db.Decimal(14, 2)
   booking_amount               Decimal?              @db.Decimal(14, 2)
-  status                       String?               @db.VarChar(1)
+  status                       Boolean?
   request_date                 String?               @db.VarChar(20)
   approval_date                String?               @db.VarChar(20)
   currency_id                  Int?
@@ -406,21 +406,21 @@ model reservations {
 }
 
 model roles {
-  id    Int     @id @default(autoincrement())
-  name  String? @db.VarChar(100)
-  users users[]
+  role_id Int     @id @default(autoincrement())
+  name    String? @db.VarChar(100)
+  users   users[]
 }
 
 model sections {
   section_id        Int                 @id @default(autoincrement())
   client_id         Int?
   name              String?             @db.VarChar(50)
-  status            Boolean             @default(true)
+  status            Boolean?            @default(true)
   display_order     Int?
   image             String?             @db.VarChar(100)
   registered_at     DateTime?           @db.DateTime(0)
   category_id       Int?
-  deleted           String?             @db.VarChar(1)
+  deleted           Int?                @default(0) @db.TinyInt
   deleted_at        String?             @db.VarChar(20)
   deleted_by        String?             @db.VarChar(50)
   deleted_ip        String?             @db.VarChar(20)
@@ -432,68 +432,68 @@ model sections {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model shipping_zones {
-  id            Int       @id @default(autoincrement())
-  client_id     Int?
-  name          String?   @db.VarChar(100)
-  status        String?   @db.VarChar(1)
-  is_free       String?   @db.VarChar(1)
-  cost          Decimal?  @db.Decimal(14, 2)
-  registered_at DateTime? @db.DateTime(0)
+  shipping_zone_id Int       @id @default(autoincrement())
+  client_id        Int?
+  name             String?   @db.VarChar(100)
+  status           Boolean?
+  is_free          Boolean?
+  cost             Decimal?  @db.Decimal(14, 2)
+  registered_at    DateTime? @db.DateTime(0)
 }
 
 model store_product_type {
-  id     Int     @id @default(autoincrement())
-  name   String? @db.VarChar(50)
-  status String? @db.VarChar(1)
+  product_type_id Int      @id @default(autoincrement())
+  name            String?  @db.VarChar(50)
+  status          Boolean?
 }
 
 model translations {
-  id          Int     @id @default(autoincrement())
-  language_id String? @db.VarChar(2)
-  table_name  String? @db.VarChar(50)
-  column_name String? @db.VarChar(50)
-  element_id  Int?
-  text_value  String? @db.Text
+  translation_id Int     @id @default(autoincrement())
+  language_id    String? @db.VarChar(2)
+  table_name     String? @db.VarChar(50)
+  column_name    String? @db.VarChar(50)
+  element_id     Int?
+  text_value     String? @db.Text
 }
 
 model users {
-  user_code      String  @id @db.VarChar(30)
-  password       String? @db.VarChar(30)
-  username       String? @db.VarChar(200)
-  profile        String? @db.VarChar(2)
-  email          String  @db.VarChar(255)
-  nationality    String? @db.VarChar(1)
-  identification String? @db.VarChar(11)
-  address        String? @db.VarChar(1000)
-  phone          String? @db.VarChar(200)
+  user_id        String   @id @db.VarChar(30)
+  password       String?  @db.VarChar(30)
+  username       String?  @db.VarChar(200)
+  profile        String?  @db.VarChar(2)
+  email          String   @db.VarChar(255)
+  nationality    String?  @db.VarChar(1)
+  identification String?  @db.VarChar(11)
+  address        String?  @db.VarChar(1000)
+  phone          String?  @db.VarChar(200)
   client_id      Int?
-  is_seller      String? @db.VarChar(1)
-  has_commission String? @db.VarChar(1)
-  status         String? @db.VarChar(1)
-  user_type      String? @db.VarChar(2)
-  job_title      String? @db.VarChar(50)
-  biography      String? @db.Text
-  avatar         String? @db.VarChar(100)
-  whatsapp       String? @db.VarChar(45)
-  first_name     String? @db.VarChar(45)
-  position       String? @db.VarChar(45)
-  skills         String? @db.VarChar(500)
-  website        String? @db.VarChar(200)
-  maps_link      String? @db.VarChar(200)
-  confirmed      String? @db.VarChar(1)
-  manifest       String? @db.VarChar(50)
+  is_seller      Boolean?
+  has_commission Boolean?
+  status         Boolean?
+  user_type      String?  @db.VarChar(2)
+  job_title      String?  @db.VarChar(50)
+  biography      String?  @db.Text
+  avatar         String?  @db.VarChar(100)
+  whatsapp       String?  @db.VarChar(45)
+  first_name     String?  @db.VarChar(45)
+  position       String?  @db.VarChar(45)
+  skills         String?  @db.VarChar(500)
+  website        String?  @db.VarChar(200)
+  maps_link      String?  @db.VarChar(200)
+  confirmed      Boolean?
+  manifest       String?  @db.VarChar(50)
   role_id        Int?
-  roles          roles?  @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_users_roles")
+  roles          roles?   @relation(fields: [role_id], references: [role_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_users_roles")
 
   @@index([role_id], map: "fk_usuarios_roles")
 }
 
 model zones {
-  id            Int       @id @default(autoincrement())
+  zone_id       Int       @id @default(autoincrement())
   client_id     Int?
   zone          String?   @db.VarChar(50)
-  free_pickup   String?   @db.VarChar(1)
-  status        String?   @db.VarChar(1)
+  free_pickup   Boolean?
+  status        Boolean?
   registered_at DateTime? @db.DateTime(0)
 }
 

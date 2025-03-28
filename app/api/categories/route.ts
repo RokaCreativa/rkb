@@ -81,7 +81,10 @@ export async function GET(request: Request) {
     const totalCategories = await prisma.categories.count({
       where: {
         client_id: user.client_id,
-        deleted: { not: 'Y' },
+        OR: [
+          { deleted: 0 as any },
+          { deleted: null }
+        ]
       },
     });
 
@@ -89,7 +92,10 @@ export async function GET(request: Request) {
     const categories = await prisma.categories.findMany({
       where: {
         client_id: user.client_id,
-        deleted: { not: 'Y' },
+        OR: [
+          { deleted: 0 as any },
+          { deleted: null }
+        ]
       },
       orderBy: {
         display_order: 'asc',
@@ -213,7 +219,7 @@ export async function POST(request: Request) {
         status: true, // Por defecto activo
         display_order: maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 1,
         client_id: user.client_id,
-        deleted: 'N', // Mantener compatibilidad con el esquema actual
+        deleted: 0 as unknown as string,
       },
     });
 
@@ -275,7 +281,10 @@ export async function PUT(request: Request) {
       where: {
         category_id: categoryId,
         client_id: user.client_id,
-        deleted: { not: 'Y' },
+        OR: [
+          { deleted: 0 as any },
+          { deleted: null }
+        ]
       },
     });
 

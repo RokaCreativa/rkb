@@ -59,7 +59,12 @@ export async function DELETE(
     
     console.log(`Producto encontrado: ${JSON.stringify(product)}`);
     
-    if (product.deleted === '1') {
+    // Convertir el valor deleted a número para hacer la comparación
+    const deletedValue = typeof product.deleted === 'string' 
+      ? parseInt(product.deleted) || 0
+      : (product.deleted ?? 0);
+      
+    if (deletedValue === 1) {
       console.log(`Advertencia: El producto ya está marcado como eliminado: ${productId}`);
       return NextResponse.json({ 
         success: true, 
@@ -84,7 +89,7 @@ export async function DELETE(
         product_id: productId,
       },
       data: {
-        deleted: '1',
+        deleted: 1 as any,
         deleted_at: new Date().toISOString().substring(0, 19).replace('T', ' '),
         deleted_by: (session.user.email || '').substring(0, 50),
         deleted_ip: (request.headers.get('x-forwarded-for') || 'API').substring(0, 20),
@@ -148,7 +153,7 @@ export async function GET(
       where: {
         product_id: parseInt(id),
         client_id: user.client_id,
-        deleted: '0',
+        deleted: 0 as any,
       },
     });
 
@@ -261,7 +266,7 @@ export async function PATCH(
       where: {
         product_id: productId,
         client_id: user.client_id,
-        deleted: '0'
+        deleted: 0 as any
       }
     });
     
