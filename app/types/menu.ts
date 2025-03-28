@@ -11,6 +11,7 @@ export interface Category {
   display_order: number;
   client_id: number;
   sections_count?: number;
+  visible_sections_count?: number;
 }
 
 // Sección

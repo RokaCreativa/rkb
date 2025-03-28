@@ -21,6 +21,8 @@ interface ProcessedCategory {
   display_order: number;
   client_id: number;
   products: number;
+  sections_count?: number;
+  visible_sections_count?: number;
 }
 
 /**
@@ -106,23 +108,53 @@ export async function GET(request: Request) {
       take,
     });
 
-    // 7. Procesar las categorías para el formato esperado por el frontend
-    const processedCategories = categories.map(category => ({
-      category_id: category.category_id,
-      name: category.name || '',
-      image: category.image ? `${IMAGE_BASE_PATH}${category.image}` : null,
-      status: category.status ? 1 : 0,
-      display_order: category.display_order || 0,
-      client_id: category.client_id || 0,
-      products: 0, // Simplificación temporal: no calculamos productos para evitar errores
-    }));
+    // 7. Obtener contadores de secciones para cada categoría
+    const categoriesWithCounts = await Promise.all(
+      categories.map(async (category) => {
+        console.log(`🔍 Contando secciones para categoría ID=${category.category_id}, nombre="${category.name || 'sin nombre'}"`);
+        
+        // 7.1 Contar total de secciones para esta categoría
+        const totalSections = await prisma.sections.count({
+          where: {
+            category_id: category.category_id,
+            deleted: { not: 1 } as any
+          },
+        });
 
+        // 7.2 Contar secciones visibles para esta categoría
+        const visibleSections = await prisma.sections.count({
+          where: {
+            category_id: category.category_id,
+            status: true,
+            deleted: { not: 1 } as any
+          },
+        });
+
+        console.log(`📊 Resultado para categoría ID=${category.category_id}: total=${totalSections}, visibles=${visibleSections}`);
+
+        // 7.3 Procesar la categoría con la información de contadores
+        return {
+          category_id: category.category_id,
+          name: category.name || '',
+          image: category.image ? `${IMAGE_BASE_PATH}${category.image}` : null,
+          status: category.status ? 1 : 0,
+          display_order: category.display_order || 0,
+          client_id: category.client_id || 0,
+          products: 0, // Simplificación temporal: no calculamos productos para evitar errores
+          sections_count: totalSections,
+          visible_sections_count: visibleSections
+        };
+      })
+    );
+
+    console.log(`✅ Categorías procesadas: ${categoriesWithCounts.length}`);
+    
     // 8. Devolver respuesta según si se solicitó paginación o no
     if (isPaginated) {
       // Respuesta paginada con metadatos
       const totalPages = Math.ceil(totalCategories / validLimit);
       const response: PaginatedCategoriesResponse = {
-        data: processedCategories,
+        data: categoriesWithCounts,
         meta: {
           total: totalCategories,
           page: validPage,
@@ -133,7 +165,7 @@ export async function GET(request: Request) {
       return NextResponse.json(response);
     } else {
       // Mantener el formato original de respuesta cuando no hay paginación
-      return NextResponse.json(processedCategories);
+      return NextResponse.json(categoriesWithCounts);
     }
   } catch (error) {
     // 9. Manejo centralizado de errores

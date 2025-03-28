@@ -418,8 +418,6 @@ async function updateProductVisibility(productId: number, newStatus: number) {
   }
 }
 
-// ... [resto de funciones API existentes]
-
 // ----- COMPONENTE PRINCIPAL -----
 
 /**
@@ -645,7 +643,8 @@ export default function DashboardPage() {
           // Continuar con otras operaciones aunque falle esta
         }
         
-        // PASO 2: Cargar categorías, con paginación si está habilitada
+        // PASO 2: Cargar categorías con paginación si está habilitada
+        // (Ahora las categorías ya incluyen los contadores de secciones)
         try {
           // Determinar si se usa paginación según el estado actual
           const options = categoryPagination.enabled 
@@ -653,8 +652,9 @@ export default function DashboardPage() {
             : undefined;
           
           // Solicitar categorías a la API
+          console.log("🔍 Solicitando categorías con opciones:", options);
           const result = await fetchCategories(options);
-          console.log("Categorías cargadas:", result);
+          console.log("📊 Categorías cargadas (RAW):", JSON.stringify(result).substring(0, 500) + "...");
           
           // Manejar la respuesta según su formato (paginado o array simple)
           let loadedCategories = [];
@@ -682,6 +682,33 @@ export default function DashboardPage() {
               setSelectedCategory(result[0]);
             }
           }
+          
+          // Verificar si las categorías tienen contadores
+          console.log("🔢 Revisando contadores de categorías:");
+          loadedCategories.forEach((cat: Category, index: number) => {
+            console.log(`Categoría ${index + 1} - ${cat.name}:`, {
+              sections_count: cat.sections_count,
+              visible_sections_count: cat.visible_sections_count
+            });
+          });
+          
+          // Asegurarnos de que todas las categorías tengan los contadores inicializados
+          // aunque no vengan desde el servidor (por compatibilidad)
+          loadedCategories = loadedCategories.map((category: Category) => {
+            const result = {
+              ...category,
+              sections_count: category.sections_count !== undefined ? category.sections_count : 0,
+              visible_sections_count: category.visible_sections_count !== undefined ? category.visible_sections_count : 0
+            };
+            return result;
+          });
+          
+          console.log("✅ Categorías procesadas con contadores:", loadedCategories.map((c: Category) => ({
+            id: c.category_id,
+            name: c.name,
+            sections_count: c.sections_count,
+            visible_sections_count: c.visible_sections_count
+          })));
           
           // Guardar las categorías en el estado
           setCategories(loadedCategories);
@@ -1462,10 +1489,7 @@ export default function DashboardPage() {
             <div className="w-full px-4">
               <CategoryActions onNewCategory={() => setIsNewCategoryModalOpen(true)} />
               <CategoryTable
-                categories={getCategoryTableData(
-                  getPaginatedCategories(categories, categoryPagination),
-                  sections
-                )}
+                categories={getPaginatedCategories(categories, categoryPagination)}
                 expandedCategories={expandedCategories}
                 onCategoryClick={handleCategoryClick}
                 onEditCategory={handleEditCategory}
