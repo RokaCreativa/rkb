@@ -13,7 +13,8 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
 3. [Fase 3: Extracción de Lógica del Dashboard](#fase-3-extracción-de-lógica-del-dashboard)
 4. [Fase 4: Optimización de Rendimiento](#fase-4-optimización-de-rendimiento)
 5. [Fase 5: Implementación de Paginación](#fase-5-implementación-de-paginación)
-6. [Testing y Validación](#testing-y-validación)
+6. [Fase 6: Corrección de Conversión de Tipos](#fase-6-corrección-de-conversión-de-tipos)
+7. [Testing y Validación](#testing-y-validación)
 
 ## Fase 1: Limpieza de Componentes Duplicados
 
@@ -321,9 +322,43 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
    }
    ```
 
+## Fase 6: Corrección de Conversión de Tipos
+
+### 6.1 Conversión de Tipos en API
+
+#### Tareas:
+
+1. **Corregir conversión de tipos en productos** ✅
+   - En `app/api/products/route.ts`:
+   - Convertir el campo `status` booleano a numérico (1/0)
+   - Código añadido: `status: product.status ? 1 : 0`
+   - Este cambio asegura que el frontend interprete correctamente la visibilidad
+
+2. **Corregir conversión de tipos en secciones** ✅
+   - En `app/api/sections/route.ts`:
+   - Convertir el campo `status` booleano a numérico (1/0)
+   - Código añadido: `status: section.status ? 1 : 0`
+   - Esto resuelve el problema de secciones que aparecen como "no visibles" aunque estén activas
+
+### 6.2 Manejo Consistente de Tipos
+
+#### Tareas:
+
+1. **Documentar estándar de tipos para visibilidad** 🔄
+   - Crear guía sobre uso consistente de tipos:
+   - En base de datos: booleano (true/false)
+   - En API: numérico (1/0)
+   - En frontend: numérico (1/0)
+
+2. **Revisar otras entidades** ⏳
+   - Verificar manejo de tipos en otras entidades:
+   - Categorías
+   - Clientes
+   - Usuarios
+
 ## Testing y Validación
 
-### 6.1 Pruebas de Componentes
+### 7.1 Pruebas de Componentes
 
 #### Tareas:
 
@@ -357,7 +392,7 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
    });
    ```
 
-### 6.2 Validación de Rendimiento
+### 7.2 Validación de Rendimiento
 
 #### Tareas:
 
@@ -374,18 +409,19 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
 
 Basado en el progreso actual, estas son las próximas tareas a abordar:
 
-1. **Limpieza de componentes duplicados y archivos innecesarios**
+1. **Finalizar conversión de tipos** 🔄
+   - Verificar que todas las entidades manejan tipos consistentemente
+   - Documentar estándar de tipos para futuros desarrollos
+
+2. **Limpieza de componentes duplicados y archivos innecesarios** ⏳
    - Eliminar archivos .bak y carpetas vacías
    - Unificar providers de sesión y CategoryForm
 
-2. **Implementar custom hooks para gestión de estado**
+3. **Implementar custom hooks para gestión de estado** ⏳
    - Comenzar con useCategories para extraer lógica del dashboard
 
-3. **Iniciar la optimización de rendimiento**
+4. **Iniciar la optimización de rendimiento** ⏳
    - Aplicar React.memo a componentes de tablas
-
-4. **Documentar cambios realizados en la implementación de paginación**
-   - Crear documentación técnica de la funcionalidad
 
 ## Implementación Paso a Paso
 
