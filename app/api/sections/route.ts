@@ -40,77 +40,136 @@ interface ProcessedSection {
 }
 
 // GET /api/sections?categoryId=X
-export async function GET(request: Request) {
+export async function GET(req: NextRequest) {
   try {
-    // 1. Verificación de autenticación
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
-
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-    }
-
-    // 3. Obtener parámetros de consulta (si existe category_id)
-    const url = new URL(request.url);
+    // Obtener los parámetros de la URL
+    const url = new URL(req.url);
     const categoryId = url.searchParams.get('category_id');
-
-    // 4. Construir la consulta base - evitando el uso de tipos incompatibles
-    const whereClause: {
-      client_id: number | undefined;
-      category_id?: number;
-      deleted?: any;
-    } = {
-      client_id: user.client_id,
-      deleted: { not: 1 }
-    };
-
-    // 5. Añadir filtro por categoría si se especifica
-    if (categoryId) {
-      whereClause.category_id = parseInt(categoryId);
+    
+    // Parámetros de paginación (opcionales)
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const limit = parseInt(url.searchParams.get('limit') || '0'); // 0 significa sin límite
+    
+    // Validar parámetros de paginación
+    const validPage = page < 1 ? 1 : page;
+    const validLimit = limit < 0 ? 0 : limit;
+    const isPaginated = validLimit > 0;
+    
+    if (!categoryId) {
+      return new Response(JSON.stringify({ error: 'Category ID is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // 6. Obtener las secciones con los filtros aplicados
-    const sections = await prisma.sections.findMany({
-      where: whereClause,
-      orderBy: {
-        display_order: 'asc',
-      },
+    // Verificar autenticación
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
+      return new Response(JSON.stringify({ error: 'Not authenticated' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Obtener el ID del cliente del usuario autenticado
+    const userEmail = session.user.email as string;
+    const user = await prisma.users.findFirst({
+      where: {
+        email: userEmail
+      }
     });
 
-    // 7. Procesar las secciones para el formato esperado por el frontend
-    const processedSections = await Promise.all(sections.map(async (section) => {
-      // Contar productos por sección
-      const productsCount = await prisma.products_sections.count({
-        where: {
-          section_id: section.section_id,
-        },
+    if (!user || !user.client_id) {
+      return new Response(JSON.stringify({ error: 'User not associated with a client' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
       });
+    }
 
-      return {
-        section_id: section.section_id,
-        name: section.name || '',
-        image: section.image ? `${IMAGE_BASE_PATH}${section.image}` : null,
-        status: section.status ? 1 : 0,
-        display_order: section.display_order || 0,
-        client_id: section.client_id || 0,
-        category_id: section.category_id || 0,
-        products_count: productsCount,
-      };
-    }));
+    const clientId = user.client_id;
+    
+    // Calcular parámetros de paginación para Prisma
+    const skip = isPaginated ? (validPage - 1) * validLimit : undefined;
+    const take = isPaginated ? validLimit : undefined;
 
-    // 8. Devolver las secciones procesadas
-    return NextResponse.json(processedSections);
+    // Buscar las secciones para la categoría especificada con paginación opcional
+    const sections = await prisma.sections.findMany({
+      where: {
+        client_id: clientId,
+        category_id: parseInt(categoryId),
+        deleted: 0
+      },
+      orderBy: {
+        display_order: 'asc'
+      },
+      skip,
+      take
+    });
+    
+    // Si se solicita paginación, obtener también el total de registros
+    let totalSections: number | undefined;
+    if (isPaginated) {
+      totalSections = await prisma.sections.count({
+        where: {
+          client_id: clientId,
+          category_id: parseInt(categoryId),
+          deleted: 0
+        }
+      });
+    }
+
+    // Para cada sección, obtener el conteo de productos
+    const sectionsWithProductCounts = await Promise.all(
+      sections.map(async (section) => {
+        // Contar todos los productos asociados a esta sección
+        const totalProductsCount = await prisma.products_sections.count({
+          where: {
+            section_id: section.section_id
+          }
+        });
+
+        // Contar solo los productos visibles
+        const visibleProductsCount = 0; // Implementar si es necesario
+
+        return {
+          ...section,
+          // Convertir el valor booleano de status a numérico (1 para true, 0 para false)
+          status: section.status ? 1 : 0,
+          products_count: totalProductsCount,
+          visible_products_count: visibleProductsCount
+        };
+      })
+    );
+
+    // Devolver la respuesta según sea paginada o no
+    if (isPaginated && totalSections !== undefined) {
+      const totalPages = Math.ceil(totalSections / validLimit);
+      
+      return new Response(JSON.stringify({
+        data: sectionsWithProductCounts,
+        meta: {
+          total: totalSections,
+          page: validPage,
+          limit: validLimit,
+          totalPages
+        }
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } else {
+      // Si no hay paginación, devolver directamente el array
+      return new Response(JSON.stringify(sectionsWithProductCounts), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
   } catch (error) {
-    // 9. Manejo centralizado de errores
-    console.error('Error al obtener secciones:', error);
-    return NextResponse.json({ error: 'Error al obtener secciones' }, { status: 500 });
+    console.error('Error getting sections:', error);
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 

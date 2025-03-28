@@ -4,6 +4,7 @@ import { PencilIcon, TrashIcon, ChevronRightIcon, ArrowLeftIcon, ViewColumnsIcon
 import { Bars3Icon } from '@heroicons/react/24/solid';
 import { getImagePath, handleImageError } from '@/lib/imageUtils';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import Pagination from '@/components/ui/Pagination';
 
 // Tipos para las propiedades
 export interface Product {
@@ -27,6 +28,14 @@ interface ProductTableProps {
   onToggleVisibility?: (productId: number, currentStatus: number) => void;
   isUpdatingVisibility?: number | null;
   onReorderProduct?: (sourceIndex: number, destinationIndex: number) => void;
+  // Propiedades de paginación
+  paginationEnabled?: boolean;
+  currentPage?: number;
+  itemsPerPage?: number;
+  totalProducts?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  onTogglePagination?: () => void;
 }
 
 /**
@@ -43,7 +52,15 @@ export default function ProductTable({
   onDeleteProduct,
   onToggleVisibility,
   isUpdatingVisibility,
-  onReorderProduct
+  onReorderProduct,
+  // Propiedades de paginación
+  paginationEnabled = false,
+  currentPage = 1,
+  itemsPerPage = 10,
+  totalProducts,
+  onPageChange,
+  onPageSizeChange,
+  onTogglePagination
 }: ProductTableProps) {
   const [showHiddenProducts, setShowHiddenProducts] = useState(false);
   
@@ -54,6 +71,10 @@ export default function ProductTable({
   // Filtrar productos por visibilidad
   const visibleProducts = products?.filter(product => product.status === 1) || [];
   const hiddenProducts = products?.filter(product => product.status !== 1) || [];
+  
+  // Determinar el total real de productos para paginación
+  const effectiveTotalProducts = paginationEnabled && totalProducts ? 
+    totalProducts : products.length;
   
   // Manejar el evento de drag and drop finalizado
   const handleDragEnd = (result: DropResult) => {
@@ -84,8 +105,24 @@ export default function ProductTable({
             {sectionName || 'Productos'}
           </h2>
         </div>
-        <div className="text-xs text-gray-500">
-          ({products.filter(prod => prod.status === 1).length}/{products.length} Visibles)
+        
+        <div className="flex items-center space-x-2">
+          <div className="text-xs text-gray-500">
+            ({products.filter(prod => prod.status === 1).length}/{products.length} Visibles)
+          </div>
+          
+          {onTogglePagination && (
+            <button
+              onClick={onTogglePagination}
+              className={`px-2 py-1 text-xs rounded-md flex items-center ${
+                paginationEnabled 
+                  ? 'bg-amber-100 text-amber-800' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {paginationEnabled ? 'Desactivar paginación' : 'Activar paginación'}
+            </button>
+          )}
         </div>
       </div>
       
@@ -310,6 +347,20 @@ export default function ProductTable({
           )}
         </Droppable>
       </DragDropContext>
+
+      {/* Componente de paginación */}
+      {onPageChange && paginationEnabled && (
+        <div className="border-t border-amber-100 bg-white">
+          <Pagination
+            totalItems={effectiveTotalProducts}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
+        </div>
+      )}
     </div>
   );
 } 

@@ -502,13 +502,39 @@ export default function DashboardPage() {
 
   // Estados para paginación de categorías
   const [categoryPagination, setCategoryPagination] = useState({
+    enabled: false,
     page: 1,
-    limit: 10,
-    enabled: false // Por defecto, cargar todas las categorías sin paginación
+    limit: 10
   });
   
-  // Estado para metadatos de paginación
+  // Estado para metadatos de paginación de categorías
   const [categoryPaginationMeta, setCategoryPaginationMeta] = useState<{
+    total: number;
+    totalPages: number;
+  } | null>(null);
+
+  // Estados para paginación de secciones
+  const [sectionPagination, setSectionPagination] = useState({
+    enabled: false,
+    page: 1,
+    limit: 10
+  });
+
+  // Estado para metadatos de paginación de secciones
+  const [sectionPaginationMeta, setSectionPaginationMeta] = useState<{
+    total: number;
+    totalPages: number;
+  } | null>(null);
+
+  // Estados para paginación de productos
+  const [productPagination, setProductPagination] = useState({
+    enabled: false,
+    page: 1,
+    limit: 10
+  });
+
+  // Estado para metadatos de paginación de productos
+  const [productPaginationMeta, setProductPaginationMeta] = useState<{
     total: number;
     totalPages: number;
   } | null>(null);
@@ -1414,16 +1440,113 @@ export default function DashboardPage() {
   };
   
   /**
-   * Obtiene las categorías de la página actual
-   * Con la implementación actual, simplemente devuelve todas las categorías
-   * ya que el filtrado se hace en la API cuando la paginación está habilitada
+   * Maneja el cambio de página en la lista de secciones
+   * Actualiza el estado de paginación y desencadena una nueva carga de datos
    * 
-   * @returns Array de categorías para mostrar en la UI
+   * @param page - Número de página a la que navegar (comienza en 1)
    */
-  const getCurrentPageCategories = () => {
-    // Ya sea con paginación habilitada (datos ya filtrados por API) o no (todos los datos),
-    // simplemente devolvemos el array de categorías actual
-    return categories;
+  const handleSectionPageChange = (page: number) => {
+    setSectionPagination(prev => ({
+      ...prev,
+      page
+    }));
+    
+    // Si hay una categoría seleccionada, recargar sus secciones
+    if (selectedCategory) {
+      handleCategoryClick(selectedCategory.category_id);
+    }
+  };
+  
+  /**
+   * Maneja el cambio de tamaño de página en secciones
+   * Actualiza el límite de elementos por página y reinicia a la primera página
+   * 
+   * @param limit - Nuevo número de elementos por página
+   */
+  const handleSectionPageSizeChange = (limit: number) => {
+    setSectionPagination(prev => ({
+      ...prev,
+      limit,
+      page: 1 // Resetear a primera página
+    }));
+    
+    // Si hay una categoría seleccionada, recargar sus secciones
+    if (selectedCategory) {
+      handleCategoryClick(selectedCategory.category_id);
+    }
+  };
+  
+  /**
+   * Activa o desactiva la paginación de secciones
+   * Cuando se activa, se cargan los datos con paginación desde la API
+   * Cuando se desactiva, se cargan todos los datos sin paginación
+   */
+  const toggleSectionPagination = () => {
+    setSectionPagination(prev => ({
+      ...prev,
+      enabled: !prev.enabled,
+      page: 1 // Resetear a primera página
+    }));
+    
+    // Si hay una categoría seleccionada, recargar sus secciones
+    if (selectedCategory) {
+      handleCategoryClick(selectedCategory.category_id);
+    }
+  };
+  
+  /**
+   * Maneja el cambio de página en la lista de productos
+   * Actualiza el estado de paginación y desencadena una nueva carga de datos
+   * 
+   * @param page - Número de página a la que navegar (comienza en 1)
+   */
+  const handleProductPageChange = (page: number) => {
+    setProductPagination(prev => ({
+      ...prev,
+      page
+    }));
+    
+    // Si hay una sección seleccionada, recargar sus productos
+    if (selectedSection) {
+      handleSectionClick(selectedSection.section_id);
+    }
+  };
+  
+  /**
+   * Maneja el cambio de tamaño de página en productos
+   * Actualiza el límite de elementos por página y reinicia a la primera página
+   * 
+   * @param limit - Nuevo número de elementos por página
+   */
+  const handleProductPageSizeChange = (limit: number) => {
+    setProductPagination(prev => ({
+      ...prev,
+      limit,
+      page: 1 // Resetear a primera página
+    }));
+    
+    // Si hay una sección seleccionada, recargar sus productos
+    if (selectedSection) {
+      handleSectionClick(selectedSection.section_id);
+    }
+  };
+  
+  /**
+   * Activa o desactiva la paginación de productos
+   * Cuando se activa, se cargan los datos con paginación desde la API
+   * Cuando se desactiva, se cargan todos los datos sin paginación
+   */
+  const toggleProductPagination = () => {
+    setProductPagination(prev => ({
+      ...prev,
+      enabled: !prev.enabled,
+      page: 1 // Resetear a primera página
+    }));
+    
+    // Si hay una sección seleccionada, recargar sus productos
+    if (selectedSection) {
+      handleSectionClick(selectedSection.section_id);
+    }
   };
 
   return (

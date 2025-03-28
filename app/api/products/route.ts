@@ -77,8 +77,32 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url);
     const sectionId = url.searchParams.get('section_id');
     
+    // Parámetros de paginación (opcionales)
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const limit = parseInt(url.searchParams.get('limit') || '0'); // 0 significa sin límite
+    
+    // Validar parámetros de paginación
+    const validPage = page < 1 ? 1 : page;
+    const validLimit = limit < 0 ? 0 : limit;
+    const isPaginated = validLimit > 0;
+    
+    // Si no se especifica una sección, devolver todos los productos del cliente
     if (!sectionId) {
-      // Si no se especifica una sección, devolver todos los productos del cliente
+      // Obtener el total de productos si hay paginación
+      let totalProducts: number | undefined;
+      if (isPaginated) {
+        totalProducts = await prisma.products.count({
+          where: {
+            client_id: clientId,
+            deleted: false
+          }
+        });
+      }
+      
+      // Calcular parámetros de paginación para Prisma
+      const skip = isPaginated ? (validPage - 1) * validLimit : undefined;
+      const take = isPaginated ? validLimit : undefined;
+      
       const allProducts = await prisma.products.findMany({
         where: {
           client_id: clientId,
@@ -86,7 +110,9 @@ export async function GET(req: NextRequest) {
         },
         orderBy: {
           display_order: 'asc'
-        }
+        },
+        skip,
+        take
       });
 
       // Procesar los productos para el formato requerido por el frontend
@@ -98,10 +124,28 @@ export async function GET(req: NextRequest) {
         };
       });
       
-      return new Response(JSON.stringify(processedProducts), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      // Devolver respuesta según sea paginada o no
+      if (isPaginated && totalProducts !== undefined) {
+        const totalPages = Math.ceil(totalProducts / validLimit);
+        
+        return new Response(JSON.stringify({
+          data: processedProducts,
+          meta: {
+            total: totalProducts,
+            page: validPage,
+            limit: validLimit,
+            totalPages
+          }
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } else {
+        return new Response(JSON.stringify(processedProducts), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
     }
     
     // Si se especifica una sección, buscar los productos de esa sección
@@ -118,16 +162,46 @@ export async function GET(req: NextRequest) {
     
     // Si no hay productos en esta sección, devolver un array vacío
     if (productIds.length === 0) {
-      return new Response(JSON.stringify([]), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      if (isPaginated) {
+        return new Response(JSON.stringify({
+          data: [],
+          meta: {
+            total: 0,
+            page: validPage,
+            limit: validLimit,
+            totalPages: 0
+          }
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } else {
+        return new Response(JSON.stringify([]), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
     }
+    
+    // Obtener el total de productos si hay paginación
+    let totalProducts: number | undefined;
+    if (isPaginated) {
+      totalProducts = productIds.length;
+    }
+    
+    // Calcular parámetros de paginación para Prisma
+    const skip = isPaginated ? (validPage - 1) * validLimit : undefined;
+    const take = isPaginated ? validLimit : undefined;
+    
+    // Filtrar los IDs de productos según la paginación
+    const paginatedProductIds = isPaginated 
+      ? productIds.slice(skip, skip! + take!) 
+      : productIds;
     
     // Obtener los detalles de los productos
     const products = await prisma.products.findMany({
       where: {
-        product_id: { in: productIds },
+        product_id: { in: paginatedProductIds },
         deleted: false
       },
       orderBy: {
@@ -144,10 +218,28 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return new Response(JSON.stringify(processedProducts), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    // Devolver respuesta según sea paginada o no
+    if (isPaginated && totalProducts !== undefined) {
+      const totalPages = Math.ceil(totalProducts / validLimit);
+      
+      return new Response(JSON.stringify({
+        data: processedProducts,
+        meta: {
+          total: totalProducts,
+          page: validPage,
+          limit: validLimit,
+          totalPages
+        }
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } else {
+      return new Response(JSON.stringify(processedProducts), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
   } catch (error) {
     console.error('Error getting products:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {

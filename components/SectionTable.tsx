@@ -4,6 +4,7 @@ import { PencilIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon, ArrowLeftIcon
 import { Bars3Icon } from '@heroicons/react/24/solid';
 import { getImagePath, handleImageError } from '@/lib/imageUtils';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import Pagination from '@/components/ui/Pagination';
 
 // Tipos para las propiedades
 export interface Section {
@@ -29,6 +30,14 @@ interface SectionTableProps {
   onBackClick?: () => void;
   categoryName?: string;
   onReorderSection?: (sourceIndex: number, destinationIndex: number) => void;
+  // Propiedades de paginación
+  paginationEnabled?: boolean;
+  currentPage?: number;
+  itemsPerPage?: number;
+  totalSections?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  onTogglePagination?: () => void;
 }
 
 /**
@@ -46,7 +55,15 @@ export default function SectionTable({
   isUpdatingVisibility,
   onBackClick,
   categoryName,
-  onReorderSection
+  onReorderSection,
+  // Propiedades de paginación
+  paginationEnabled = false,
+  currentPage = 1,
+  itemsPerPage = 10,
+  totalSections = 0,
+  onPageChange,
+  onPageSizeChange,
+  onTogglePagination
 }: SectionTableProps) {
   
   const [showHiddenSections, setShowHiddenSections] = useState(false);
@@ -54,6 +71,10 @@ export default function SectionTable({
   // Separar secciones visibles y no visibles
   const visibleSections = sections.filter(sec => sec.status === 1);
   const hiddenSections = sections.filter(sec => sec.status !== 1);
+  
+  // Determinar el total real de secciones para paginación
+  const effectiveTotalSections = paginationEnabled && totalSections ? 
+    totalSections : sections.length;
   
   // Manejar el evento de drag and drop finalizado
   const handleDragEnd = (result: DropResult) => {
@@ -84,8 +105,24 @@ export default function SectionTable({
             {categoryName || 'Secciones'}
           </h2>
         </div>
-        <div className="text-xs text-gray-500">
-          ({sections.filter(sec => sec.status === 1).length}/{sections.length} Visibles)
+        
+        <div className="flex items-center space-x-2">
+          <div className="text-xs text-gray-500">
+            ({sections.filter(sec => sec.status === 1).length}/{sections.length} Visibles)
+          </div>
+          
+          {onTogglePagination && (
+            <button
+              onClick={onTogglePagination}
+              className={`px-2 py-1 text-xs rounded-md flex items-center ${
+                paginationEnabled 
+                  ? 'bg-teal-100 text-teal-800' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {paginationEnabled ? 'Desactivar paginación' : 'Activar paginación'}
+            </button>
+          )}
         </div>
       </div>
       
@@ -372,6 +409,20 @@ export default function SectionTable({
           )}
         </Droppable>
       </DragDropContext>
+
+      {/* Componente de paginación */}
+      {onPageChange && paginationEnabled && (
+        <div className="border-t border-teal-100 bg-white">
+          <Pagination
+            totalItems={effectiveTotalSections}
+            itemsPerPage={itemsPerPage}
+            currentPage={currentPage}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+            pageSizeOptions={[10, 25, 50, 100]}
+          />
+        </div>
+      )}
     </div>
   );
 } 
