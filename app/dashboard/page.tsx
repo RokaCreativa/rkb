@@ -56,6 +56,9 @@ import {
   deleteProduct as deleteProductExtracted 
 } from '@/lib/handlers/productEventHandlers';
 
+// Importar el nuevo hook para conteo de elementos
+import { useDashboardWithCounts } from '@/lib/hooks/dashboard';
+
 // Interfaces para FloatingPhonePreview
 interface FloatingPhoneCategory {
   id: number;
