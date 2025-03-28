@@ -81,10 +81,6 @@ export async function GET(request: Request) {
     const totalCategories = await prisma.categories.count({
       where: {
         client_id: user.client_id,
-        OR: [
-          { deleted: 0 as any },
-          { deleted: null }
-        ]
       },
     });
 
@@ -92,10 +88,7 @@ export async function GET(request: Request) {
     const categories = await prisma.categories.findMany({
       where: {
         client_id: user.client_id,
-        OR: [
-          { deleted: 0 as any },
-          { deleted: null }
-        ]
+        deleted: { not: 1 } as any
       },
       orderBy: {
         display_order: 'asc',
@@ -219,7 +212,7 @@ export async function POST(request: Request) {
         status: true, // Por defecto activo
         display_order: maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 1,
         client_id: user.client_id,
-        deleted: 0 as unknown as string,
+        deleted: 0 as any,
       },
     });
 
@@ -279,12 +272,9 @@ export async function PUT(request: Request) {
     // 4. Verificar que la categoría existe y pertenece al cliente
     const existingCategory = await prisma.categories.findFirst({
       where: {
-        category_id: categoryId,
         client_id: user.client_id,
-        OR: [
-          { deleted: 0 as any },
-          { deleted: null }
-        ]
+        category_id: categoryId,
+        deleted: { not: 1 } as any
       },
     });
 
@@ -319,7 +309,7 @@ export async function PUT(request: Request) {
 
     const updatedCategory = await prisma.categories.update({
       where: {
-        category_id: categoryId,
+        category_id: categoryId
       },
       data: updateData,
     });

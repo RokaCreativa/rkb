@@ -15,6 +15,7 @@ export interface Section {
   category_id: number;
   client_id: number;
   products_count?: number;
+  visible_products_count?: number;
 }
 
 interface SectionTableProps {
@@ -162,7 +163,11 @@ export default function SectionTable({
                               {section.name}
                               {section.products_count !== undefined && (
                                 <span className="ml-2 text-xs text-gray-500">
-                                  ({section.products_count > 0 ? `${section.products_count}` : 'Sin'} productos)
+                                  ({section.visible_products_count !== undefined && section.products_count !== undefined
+                                    ? `${section.visible_products_count}/${section.products_count} Productos visibles`
+                                    : section.products_count > 0 
+                                      ? `${section.products_count} productos`
+                                      : 'Sin productos'})
                                 </span>
                               )}
                             </div>
@@ -295,7 +300,11 @@ export default function SectionTable({
                               {section.name}
                               {section.products_count !== undefined && (
                                 <span className="ml-2 text-xs text-gray-500">
-                                  ({section.products_count > 0 ? `${section.products_count}` : 'Sin'} productos)
+                                  ({section.visible_products_count !== undefined && section.products_count !== undefined
+                                    ? `${section.visible_products_count}/${section.products_count} Productos visibles`
+                                    : section.products_count > 0 
+                                      ? `${section.products_count} productos`
+                                      : 'Sin productos'})
                                 </span>
                               )}
                             </div>

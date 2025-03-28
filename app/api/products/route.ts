@@ -55,10 +55,7 @@ export async function GET(request: Request) {
     const products = await prisma.products.findMany({
       where: {
         client_id: user.client_id,
-        OR: [
-          { deleted: 0 as any },
-          { deleted: null }
-        ]
+        deleted: { not: 1 } as any
       },
       orderBy: {
         display_order: 'asc',
@@ -83,10 +80,7 @@ export async function GET(request: Request) {
     const sections = await prisma.sections.findMany({
       where: {
         client_id: user.client_id,
-        OR: [
-          { deleted: 0 as any },
-          { deleted: null }
-        ]
+        deleted: { not: 1 } as any
       },
       select: {
         section_id: true,
@@ -217,10 +211,7 @@ export async function POST(request: Request) {
       where: {
         section_id: { in: sectionIds },
         client_id: user.client_id,
-        OR: [
-          { deleted: 0 as any },
-          { deleted: null }
-        ]
+        deleted: { not: 1 } as any
       },
     });
 
@@ -264,7 +255,7 @@ export async function POST(request: Request) {
         price,
         description,
         image: imageUrl,
-        status: true,
+        status: status,
         display_order: maxOrder + 1,
         client_id: user.client_id,
         deleted: 0 as any,

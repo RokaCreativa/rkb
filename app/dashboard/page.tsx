@@ -614,48 +614,55 @@ export default function DashboardPage() {
 
   // Efecto para cargar datos iniciales al autenticarse
   /**
-   * Flujo de datos para paginación:
-   * 1. El estado categoryPagination controla cómo se cargan los datos
-   * 2. Cuando categoryPagination.enabled = true:
-   *   - Se envían parámetros page y limit a la API 
-   *   - API devuelve sólo los datos de la página actual y metadata
-   *   - Se actualizan los estados: categories y categoryPaginationMeta
-   * 3. Cuando categoryPagination.enabled = false:
-   *   - Se cargan todos los datos sin paginación
-   *   - Se almacenan en categories sin metadata de paginación
-   * 4. Los cambios en categoryPagination (por UI) desencadenan 
-   *    este efecto para recargar datos con la nueva configuración
+   * Función que carga todos los datos iniciales del dashboard
+   * 
+   * Esta función se ejecuta cuando cambia el estado de autenticación o la configuración de paginación
+   * Carga en secuencia:
+   * 1. Datos del cliente
+   * 2. Categorías (con o sin paginación según configuración)
+   * 3. Secciones para cada categoría
+   * 4. Productos para cada sección
+   * 
+   * Al completar la carga, actualiza todos los estados con los contadores correctos
+   * de elementos visibles y totales, lo que permite mostrar esta información en la UI
+   * sin necesidad de hacer clic en los elementos.
    */
   useEffect(() => {
     const loadData = async () => {
+      // Establecer estado de carga para mostrar indicadores visuales
       setIsLoading(true);
       
       try {
-        // Cargar datos del cliente primero
+        // PASO 1: Cargar datos del cliente primero
         let clientData;
         try {
           clientData = await fetchClientData();
           console.log("Datos del cliente cargados correctamente:", clientData);
-        setClient(clientData);
+          setClient(clientData);
         } catch (clientError) {
           console.error("Error específico al cargar cliente:", clientError);
           toast.error("No se pudieron cargar los datos del cliente");
-          // Continuar con otras operaciones
+          // Continuar con otras operaciones aunque falle esta
         }
         
-        // Cargar categorías, con paginación si está habilitada
+        // PASO 2: Cargar categorías, con paginación si está habilitada
         try {
+          // Determinar si se usa paginación según el estado actual
           const options = categoryPagination.enabled 
             ? { page: categoryPagination.page, limit: categoryPagination.limit } 
             : undefined;
           
+          // Solicitar categorías a la API
           const result = await fetchCategories(options);
           console.log("Categorías cargadas:", result);
           
-          // Manejar la respuesta según su formato
+          // Manejar la respuesta según su formato (paginado o array simple)
+          let loadedCategories = [];
+          
+          // Si la respuesta viene paginada (tiene data y meta)
           if (categoryPagination.enabled && result && typeof result === 'object' && 'data' in result && 'meta' in result) {
             // Respuesta paginada
-            setCategories(result.data);
+            loadedCategories = result.data;
             setCategoryPaginationMeta({
               total: result.meta.total,
               totalPages: result.meta.lastPage
@@ -667,7 +674,7 @@ export default function DashboardPage() {
             }
           } else {
             // Respuesta normal (array)
-            setCategories(result);
+            loadedCategories = result;
             setCategoryPaginationMeta(null);
             
             // Seleccionar la primera categoría si hay alguna
@@ -675,6 +682,93 @@ export default function DashboardPage() {
               setSelectedCategory(result[0]);
             }
           }
+          
+          // Guardar las categorías en el estado
+          setCategories(loadedCategories);
+          
+          // PASO 3: Precargar secciones y productos para todas las categorías
+          // Esto es clave para mostrar los contadores desde el principio
+          try {
+            console.log("Iniciando precarga de secciones y productos para todas las categorías...");
+            
+            // Usar Promise.all para procesar todas las categorías en paralelo
+            const categoriesWithSections = await Promise.all(
+              loadedCategories.map(async (category: Category) => {
+                try {
+                  // PASO 3.1: Cargar secciones para esta categoría
+                  const sectionsForCategory = await fetchSections(category.category_id);
+                  console.log(`Cargadas ${sectionsForCategory.length} secciones para categoría ${category.category_id}`);
+                  
+                  // PASO 3.2: Precargar productos para cada sección de esta categoría
+                  // Usar Promise.all para procesar todas las secciones en paralelo
+                  const sectionsWithProducts = await Promise.all(
+                    sectionsForCategory.map(async (section: Section) => {
+                      try {
+                        // PASO 3.2.1: Cargar productos para esta sección
+                        const productsForSection = await fetchProducts(section.section_id);
+                        console.log(`Cargados ${productsForSection.length} productos para sección ${section.section_id}`);
+                        
+                        // PASO 3.2.2: Almacenar los productos en el estado global
+                        // Esto permitirá acceder a ellos directamente sin tener que cargarlos nuevamente
+                        setProducts(prev => ({
+                          ...prev,
+                          [section.section_id]: productsForSection
+                        }));
+                        
+                        // PASO 3.2.3: Contar productos visibles para mostrar en la UI
+                        // Un producto es visible si su status = 1
+                        const visibleProductsCount = productsForSection.filter(
+                          (product: Product) => product.status === 1
+                        ).length;
+                        
+                        // PASO 3.2.4: Retornar la sección enriquecida con los contadores actualizados
+                        return {
+                          ...section,
+                          products_count: productsForSection.length,
+                          visible_products_count: visibleProductsCount
+                        };
+                      } catch (productError) {
+                        console.error(`Error al cargar productos para sección ${section.section_id}:`, productError);
+                        // Devolver la sección sin modificar si hay error
+                        return section;
+                      }
+                    })
+                  );
+                  
+                  // PASO 3.3: Almacenar las secciones con conteo de productos en el estado
+                  setSections(prev => ({
+                    ...prev,
+                    [category.category_id]: sectionsWithProducts
+                  }));
+                  
+                  // PASO 3.4: Contar secciones visibles para la categoría
+                  const visibleSectionsCount = sectionsWithProducts.filter(
+                    (section: Section) => section.status === 1
+                  ).length;
+                  
+                  // PASO 3.5: Retornar la categoría enriquecida con los contadores actualizados
+                  return {
+                    ...category,
+                    sections_count: sectionsWithProducts.length,
+                    visible_sections_count: visibleSectionsCount
+                  };
+                } catch (sectionError) {
+                  console.error(`Error al cargar secciones para categoría ${category.category_id}:`, sectionError);
+                  // Devolver la categoría sin modificar si hay error
+                  return category;
+                }
+              })
+            );
+            
+            // PASO 4: Actualizar las categorías con toda la información recopilada
+            setCategories(categoriesWithSections);
+            console.log("✅ Datos de categorías, secciones y productos precargados completamente");
+            
+          } catch (sectionsPreloadError) {
+            console.error("Error al precargar secciones y productos:", sectionsPreloadError);
+            // Continuar con el flujo normal, ya tenemos las categorías al menos
+          }
+          
         } catch (categoriesError) {
           console.error("Error específico al cargar categorías:", categoriesError);
           toast.error("No se pudieron cargar las categorías");
@@ -682,8 +776,8 @@ export default function DashboardPage() {
         }
         
         if (clientData && clientData.main_logo) {
-        console.log("Logo principal:", clientData.main_logo);
-        console.log("Logo URL completa:", `/images/main_logo/${clientData.main_logo}`);
+          console.log("Logo principal:", clientData.main_logo);
+          console.log("Logo URL completa:", `/images/main_logo/${clientData.main_logo}`);
         }
         
       } catch (err: any) {
@@ -729,39 +823,72 @@ export default function DashboardPage() {
         console.log(`Cargando secciones para categoría ${categoryId}...`);
         
         // Indicar que estamos cargando secciones para esta categoría
-      setLoadingSections(prev => ({
-        ...prev,
-        [categoryId]: true
-      }));
+        setLoadingSections(prev => ({
+          ...prev,
+          [categoryId]: true
+        }));
       
-      try {
+        try {
           // Cargar secciones desde la API
-        const sectionsData = await fetchSections(categoryId);
+          const sectionsData = await fetchSections(categoryId);
           console.log(`Secciones cargadas para categoría ${categoryId}:`, sectionsData);
         
           // Actualizar el estado con las secciones cargadas
-        setSections(prev => ({
-          ...prev,
-          [categoryId]: sectionsData
-        }));
+          setSections(prev => ({
+            ...prev,
+            [categoryId]: sectionsData
+          }));
+          
+          // Actualizar la categoría con el conteo de secciones
+          const visibleSectionsCount = sectionsData.filter((section: Section) => section.status === 1);
+          
+          // Actualizar la información de la categoría con los conteos
+          setCategories(prevCategories => 
+            prevCategories.map(category => 
+              category.category_id === categoryId 
+                ? {
+                    ...category,
+                    sections_count: sectionsData.length,
+                    visible_sections_count: visibleSectionsCount.length
+                  } 
+                : category
+            )
+          );
           
           // Opcionalmente, también seleccionar esta categoría para la navegación
           const category = categories.find(c => c.category_id === categoryId);
           if (category) {
             setSelectedCategory(category);
           }
-      } catch (error) {
+        } catch (error) {
           console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
-        toast.error('Error al cargar las secciones');
-      } finally {
+          toast.error('Error al cargar las secciones');
+        } finally {
           // Finalizar el estado de carga
-        setLoadingSections(prev => ({
-          ...prev,
-          [categoryId]: false
-        }));
-      }
+          setLoadingSections(prev => ({
+            ...prev,
+            [categoryId]: false
+          }));
+        }
       } else {
         console.log(`Ya tenemos secciones cargadas para categoría ${categoryId}:`, sections[categoryId]);
+        
+        // Actualizar la categoría con el conteo de secciones aunque ya estén cargadas
+        const sectionsData = sections[categoryId];
+        const cachedVisibleSections = sectionsData.filter((section: Section) => section.status === 1);
+        
+        // Actualizar la información de la categoría con los conteos
+        setCategories(prevCategories => 
+          prevCategories.map(category => 
+            category.category_id === categoryId 
+              ? {
+                  ...category,
+                  sections_count: sectionsData.length,
+                  visible_sections_count: cachedVisibleSections.length
+                } 
+              : category
+          )
+        );
       }
     } else {
       console.log(`Colapsando categoría ${categoryId}`);
@@ -773,30 +900,37 @@ export default function DashboardPage() {
    * Carga los productos para esa sección si no están ya cargados
    * y alterna el estado de expansión
    * 
+   * También actualiza la información de conteo de productos visibles/totales
+   * para mostrar en la interfaz cuántos productos están visibles del total
+   * 
    * @param sectionId - ID de la sección seleccionada
    */
   const handleSectionClick = async (sectionId: number) => {
+    // Registro en consola para depuración - indica el ID de sección en que se hizo clic
     console.log("Clic en sección:", sectionId);
     
-    // Verificar el estado actual de expansión
+    // Verificar el estado actual de expansión de esta sección específica
     const isExpanded = expandedSections[sectionId];
     console.log(`Sección ${sectionId} está ${isExpanded ? 'expandida' : 'colapsada'}`);
     
-    // 1. Actualizar el estado para reflejar inmediatamente en la UI
+    // 1. Primero, actualizar el estado para reflejar inmediatamente en la UI
+    // Esto cambia el estado de expansión de la sección (abierta/cerrada)
     setExpandedSections(prev => ({
       ...prev,
       [sectionId]: !isExpanded
     }));
 
-    // 2. Si estamos expandiendo y no tenemos productos, cargarlos
+    // 2. Si estamos expandiendo la sección, necesitamos cargar sus productos
     if (!isExpanded) {
       console.log(`Expandiendo sección ${sectionId}`);
       
-      // Buscar a qué categoría pertenece esta sección
+      // Buscar a qué categoría pertenece esta sección - necesitamos esta información
+      // para actualizar correctamente los estados anidados
       let foundCategoryId: number | null = null;
       let foundSection: Section | null = null;
       
       // Recorrer todas las categorías para encontrar la que contiene esta sección
+      // El objeto sections está organizado por ID de categoría
       Object.entries(sections).forEach(([categoryId, categorySections]) => {
         const section = categorySections.find(s => s.section_id === sectionId);
         if (section) {
@@ -805,46 +939,55 @@ export default function DashboardPage() {
         }
       });
       
-      // Si encontramos la sección y su categoría
+      // Si encontramos la sección y su categoría, continuamos
       if (foundCategoryId !== null && foundSection !== null) {
         console.log(`Sección ${sectionId} pertenece a categoría ${foundCategoryId}`);
         
-        // Marcar la sección como seleccionada
+        // Marcar la sección como seleccionada - esto actualiza otros elementos de la UI
         setSelectedSection(foundSection);
         
-        // Marcar la categoría como seleccionada
+        // Marcar la categoría como seleccionada - similar al punto anterior
         const category = categories.find(c => c.category_id === foundCategoryId);
         if (category) {
           setSelectedCategory(category);
         }
         
-        // Si no tenemos productos cargados para esta sección, cargarlos
+        // Si no tenemos productos cargados para esta sección, los cargamos
         if (!products[sectionId] || products[sectionId].length === 0) {
           console.log(`Cargando productos para sección ${sectionId}...`);
           
-          // Indicar que estamos cargando
-      setLoadingProducts(prev => ({
-        ...prev,
-        [sectionId]: true
-      }));
-      
-      try {
+          // Indicar que estamos cargando - esto puede activar indicadores de carga en la UI
+          setLoadingProducts(prev => ({
+            ...prev,
+            [sectionId]: true
+          }));
+          
+          try {
             // Cargar productos desde la API o hook
             const productsData = await fetchProductsHook(sectionId);
             console.log(`Productos cargados para sección ${sectionId}`);
             
-            // Importante: Actualizar la sección para incluir los productos
+            // IMPORTANTE: Contar productos visibles para mostrar esta información en la UI
+            // Un producto es visible si su campo status es igual a 1
+            const visibleProductsCount = productsData.filter((product: Product) => product.status === 1).length;
+            
+            // Importante: Actualizar la sección para incluir los productos y los contadores
+            // Esto es crucial para mostrar "X/Y productos visibles" en la interfaz
             setSections(prev => {
               const updated = { ...prev };
               // Encontrar la categoría que contiene la sección
               const categoryKey = foundCategoryId?.toString();
               if (categoryKey && updated[categoryKey]) {
-                // Actualizar la sección para incluir los productos
+                // Actualizar la sección para incluir los productos y los contadores
                 updated[categoryKey] = updated[categoryKey].map(s => {
                   if (s.section_id === sectionId) {
                     return {
                       ...s,
-                      products: productsData
+                      products: productsData,
+                      // Guardar el número total de productos
+                      products_count: productsData.length,
+                      // Guardar el número de productos visibles
+                      visible_products_count: visibleProductsCount
                     };
                   }
                   return s;
@@ -852,23 +995,61 @@ export default function DashboardPage() {
               }
               return updated;
             });
-      } catch (error) {
+            
+            // También actualizar el estado de productos para acceso directo
+            // Esto es útil para otras partes del componente que necesitan acceder a los productos
+            setProducts(prev => ({
+              ...prev,
+              [sectionId]: productsData
+            }));
+          } catch (error) {
             console.error(`Error al cargar productos para sección ${sectionId}:`, error);
             toast.error('Error al cargar los productos');
-      } finally {
-            // Finalizar el estado de carga
-        setLoadingProducts(prev => ({
-          ...prev,
-          [sectionId]: false
-        }));
+          } finally {
+            // Finalizar el estado de carga, independientemente del resultado
+            setLoadingProducts(prev => ({
+              ...prev,
+              [sectionId]: false
+            }));
           }
         } else {
+          // Si ya tenemos productos cargados, no necesitamos hacer otra llamada a la API
           console.log(`Ya tenemos productos cargados para sección ${sectionId}:`, products[sectionId]);
+          
+          // Aunque ya tengamos productos cargados, actualizar los contadores
+          // para garantizar que la información mostrada sea exacta
+          const productsData = products[sectionId];
+          // Contar productos visibles (status = 1)
+          const visibleProductsCount = productsData.filter((product: Product) => product.status === 1).length;
+          
+          // Actualizar la sección con los contadores
+          // Esto garantiza que la UI muestre información actualizada
+          setSections(prev => {
+            const updated = { ...prev };
+            const categoryKey = foundCategoryId?.toString();
+            if (categoryKey && updated[categoryKey]) {
+              updated[categoryKey] = updated[categoryKey].map(s => {
+                if (s.section_id === sectionId) {
+                  return {
+                    ...s,
+                    // Actualizar el contador total de productos
+                    products_count: productsData.length,
+                    // Actualizar el contador de productos visibles
+                    visible_products_count: visibleProductsCount
+                  };
+                }
+                return s;
+              });
+            }
+            return updated;
+          });
         }
       } else {
+        // Si no encontramos la categoría, mostrar un error
         console.error(`No se pudo encontrar a qué categoría pertenece la sección ${sectionId}`);
       }
     } else {
+      // Si estamos colapsando la sección, simplemente lo registramos
       console.log(`Colapsando sección ${sectionId}`);
     }
   };

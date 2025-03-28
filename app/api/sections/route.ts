@@ -61,13 +61,14 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const categoryId = url.searchParams.get('category_id');
 
-    // 4. Construir la consulta base
-    const whereClause: any = {
+    // 4. Construir la consulta base - evitando el uso de tipos incompatibles
+    const whereClause: {
+      client_id: number | undefined;
+      category_id?: number;
+      deleted?: any;
+    } = {
       client_id: user.client_id,
-      OR: [
-        { deleted: 0 as any },
-        { deleted: null }
-      ]
+      deleted: { not: 1 }
     };
 
     // 5. Añadir filtro por categoría si se especifica
@@ -151,7 +152,7 @@ export async function POST(request: Request) {
       where: {
         category_id: categoryId,
         client_id: user.client_id,
-        deleted: { not: 'Y' },
+        deleted: { not: 1 } as any,
       },
     });
 
