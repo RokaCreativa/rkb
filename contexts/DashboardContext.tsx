@@ -2,7 +2,9 @@
  * @fileoverview Contexto para gestionar el estado global del dashboard
  * @author RokaMenu Team
  * @version 1.0.0
- * @updated 2024-03-27
+ * @updated 2024-03-29
+ * @note IMPORTANTE: Este contexto se usa principalmente para pruebas.
+ * Para la implementación principal, ver app/dashboard/context/DashboardContext.tsx
  */
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';

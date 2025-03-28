@@ -87,6 +87,12 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({ children }
     const loadInitialData = async () => {
       if (status !== 'authenticated') return;
       
+      // Si ya tenemos datos del cliente y categorías, no recargamos
+      if (client && categories.length > 0) {
+        console.log('Datos ya cargados, evitando recarga duplicada');
+        return;
+      }
+      
       setIsLoading(true);
       try {
         // Cargar datos del cliente
@@ -113,8 +119,13 @@ export const DashboardProvider: React.FC<DashboardProviderProps> = ({ children }
       }
     };
     
-    loadInitialData();
-  }, [status]);
+    // Añadir un pequeño retraso para evitar colisiones con otros efectos
+    const timeoutId = setTimeout(() => {
+      loadInitialData();
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [status, client, categories.length]);
   
   // Funciones de navegación
   const navigateToCategory = (categoryId: number) => {
