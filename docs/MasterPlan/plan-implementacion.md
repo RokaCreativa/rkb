@@ -15,7 +15,8 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
 5. [Fase 5: Implementación de Paginación](#fase-5-implementación-de-paginación)
 6. [Fase 6: Corrección de Conversión de Tipos](#fase-6-corrección-de-conversión-de-tipos)
 7. [Fase 7: Limpieza de Componentes Duplicados y Archivos Innecesarios](#fase-7-limpieza-de-componentes-duplicados-y-archivos-innecesarios)
-8. [Testing y Validación](#testing-y-validación)
+8. [Fase 8: Integración de Custom Hooks y Refactorización del Dashboard](#fase-8-integración-de-custom-hooks-y-refactorización-del-dashboard)
+9. [Testing y Validación](#testing-y-validación)
 
 ## Fase 1: Limpieza de Componentes Duplicados
 
@@ -385,11 +386,42 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
    - ✅ Comparar `components/tables/ProductTable.tsx` vs. `components/ProductTable.tsx`
    - ✅ Confirmar que las versiones en la raíz de `components/` son las utilizadas en la aplicación
    - ✅ Las versiones en `components/tables/` no están siendo utilizadas
-   - ✅ Decisión: Mantener los componentes en `components/tables/` por ahora como referencia para futuras refactorizaciones
+   - ✅ Decisión: Mantener los componentes en `components/tables/` para futuras refactorizaciones
+
+6. ✅ Verificar hooks personalizados existentes:
+   - ✅ Descubrimiento de hooks completos en `app/hooks/`: `useCategories.tsx`, `useSections.tsx`, `useProducts.tsx`
+   - ✅ Verificación de estado actual: hooks existentes pero no integrados en el dashboard
+   - ✅ Decisión: Usar estos hooks en la próxima fase de refactorización (Fase 8)
+
+## Fase 8: Integración de Custom Hooks y Refactorización del Dashboard
+
+1. ⏳ Integrar useCategories en el Dashboard:
+   - ⏳ Implementar gestión de estado de categorías usando el hook existente
+   - ⏳ Reemplazar funciones y estados relacionados con categorías
+   - ⏳ Verificar funcionalidad y rendimiento
+
+2. ⏳ Integrar useSections en el Dashboard:
+   - ⏳ Implementar gestión de estado de secciones usando el hook existente
+   - ⏳ Reemplazar funciones y estados relacionados con secciones
+   - ⏳ Verificar funcionalidad y rendimiento
+
+3. ⏳ Integrar useProducts en el Dashboard:
+   - ⏳ Implementar gestión de estado de productos usando el hook existente
+   - ⏳ Reemplazar funciones y estados relacionados con productos
+   - ⏳ Verificar funcionalidad y rendimiento
+
+4. ⏳ Extraer componentes de Vistas:
+   - ⏳ Crear `CategoriesView` separado utilizando useCategories
+   - ⏳ Crear `SectionsView` separado utilizando useSections
+   - ⏳ Crear `ProductsView` separado utilizando useProducts
+
+5. ⏳ Refactorizar Dashboard Principal:
+   - ⏳ Simplificar archivo principal utilizando los components y hooks extraídos
+   - ⏳ Implementar sistema de navegación entre vistas
 
 ## Testing y Validación
 
-### 8.1 Pruebas de Componentes
+### 9.1 Pruebas de Componentes
 
 #### Tareas:
 
@@ -423,7 +455,7 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
    });
    ```
 
-### 8.2 Validación de Rendimiento
+### 9.2 Validación de Rendimiento
 
 #### Tareas:
 

@@ -11,8 +11,8 @@ Este documento maestro sirve como centro de control y coordinación para todos l
 | Corrección de Conversión de Tipos | ✅ 100% | Completado |
 | Implementación de Paginación | ✅ 100% | Completado |
 | Optimización de Carga Inicial | 🔄 30% | Alta |
-| Limpieza de Componentes Duplicados | 🔄 70% | Alta |
-| Extracción de Lógica del Dashboard | 🔄 15% | Media |
+| Limpieza de Componentes Duplicados | ✅ 90% | Completado |
+| Extracción de Lógica del Dashboard | 🔄 40% | Alta |
 | Reorganización de Modales | ⏳ 0% | Media |
 | Optimización de Rendimiento | ⏳ 0% | Baja |
 | Pruebas y Validación | ⏳ 0% | Baja |
@@ -128,42 +128,41 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 - ⏳ Implementación de lazy loading para componentes pesados
 - ⏳ Creación de componentes skeleton para mejorar UX
 
-### 4. Limpieza de Componentes Duplicados (🔄 En progreso)
+### 4. Limpieza de Componentes Duplicados (✅ 90%)
 
 - ✅ Consolidación del componente `ProductTable.tsx`
 - ✅ Eliminación de archivos de respaldo (.bak)
+- ✅ Eliminación de archivo adicional `components/modals/DeleteConfirmationModal.tsx.bak`
 - ✅ Eliminación de carpetas vacías (`components/previews`, `app/contexts`, `components/providers`)
 - ✅ Consolidación de providers de sesión (`components/SessionProvider.tsx`)
 - ✅ Consolidación del componente `CategoryForm` (`components/forms/CategoryForm.tsx`)
 - ✅ Verificación de componentes de tablas (se usan las versiones en la raíz de components/)
-- 🔄 Decisión sobre componentes de tablas duplicados
+- ✅ Decisión: Mantener componentes en `components/tables/` para futuras refactorizaciones
 - ⏳ Actualización del archivo de índice de tablas (si es necesario)
 
-### 5. Extracción de Lógica del Dashboard (🔄 En progreso)
+### 5. Extracción de Lógica del Dashboard (🔄 40%)
 
 - ✅ Extracción de controladores de eventos para categorías
 - ✅ Extracción de controladores de eventos para secciones
 - ✅ Extracción de controladores de eventos para productos
-- ⏳ Creación de custom hooks para gestión de estado
+- ✅ Creación de custom hooks para gestión de estado (useCategories, useSections, useProducts)
+- 🔄 Integración de hooks personalizados en el dashboard principal
 - ⏳ Separación de componentes de vistas
 - ⏳ Implementación de sistema de enrutamiento interno
 
 ### 6. Próximos Pasos Prioritarios
 
-1. **Limpieza de componentes duplicados (en progreso)**:
-   - ✅ Eliminar archivos .bak (Completado: 7 archivos eliminados)
-   - ✅ Eliminar carpetas vacías (Completado: `components/previews`, `app/contexts`, `components/providers`)
-   - ✅ Unificar providers de sesión (Completado: Se mantiene `components/SessionProvider.tsx`)
-   - ✅ Consolidar componentes CategoryForm (Completado: Se mantiene la versión en `components/forms/`)
-   - 🔄 Resolver duplicación de componentes de tablas (Decisión pendiente: ¿Eliminar los componentes en `components/tables/` o mantenerlos?)
+1. **Completar limpieza de componentes duplicados**:
+   - ⏳ Verificar otras áreas potenciales para limpieza
 
-2. **Continuar la extracción de lógica del dashboard**:
-   - Implementar hooks personalizados comenzando por useCategories
-   - Separar componentes de vistas siguiendo el REFACTOR_PLAN
+2. **Continuar la extracción de lógica del dashboard (prioridad alta)**:
+   - 🔄 Integrar hooks personalizados existentes (useCategories, useSections, useProducts) en el dashboard
+   - ⏳ Crear componentes de vistas separados siguiendo el REFACTOR_PLAN
+   - ⏳ Refactorizar página dashboard para usar los hooks y componentes nuevos
 
 3. **Optimización de rendimiento básica**:
-   - Aplicar React.memo a componentes de tablas
-   - Implementar lazy loading para modales
+   - ⏳ Aplicar React.memo a componentes de tablas
+   - ⏳ Implementar lazy loading para modales
 
 ## Notas de Implementación
 
@@ -175,11 +174,13 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 ## Registro de Cambios Recientes
 
 ### Abril 2024
-- Eliminación de 7 archivos de respaldo (.bak, .backup, etc.)
+- Eliminación de 8 archivos de respaldo (.bak, .backup, etc.)
 - Eliminación de carpetas vacías (`components/previews`, `app/contexts`, `components/providers`)
 - Consolidación de providers de sesión (eliminado `session-provider.tsx` duplicado)
 - Consolidación de CategoryForm (eliminada versión antigua en la raíz de components)
-- Verificación de componentes de tablas (se determinó que las versiones en uso están en la raíz de components/)
+- Verificación y decisión sobre componentes de tablas (mantener las versiones en `components/tables/` por ahora)
+- Verificación de funcionamiento de la aplicación después de los cambios
+- Descubrimiento de hooks personalizados existentes pero no utilizados (useCategories, useSections, useProducts)
 
 ---
 
