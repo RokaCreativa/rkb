@@ -28,7 +28,8 @@ export async function PATCH(
     }
 
     // 3. Obtener y validar el ID de la sección
-    const sectionId = parseInt(params.id);
+    const id = params.id;
+    const sectionId = parseInt(id);
     
     if (isNaN(sectionId)) {
       return NextResponse.json({ error: 'ID de sección inválido' }, { status: 400 });
@@ -38,7 +39,10 @@ export async function PATCH(
     const section = await prisma.sections.findFirst({
       where: {
         section_id: sectionId,
-        deleted: { in: [0, null] as any },
+        OR: [
+          { deleted: 0 },
+          { deleted: null }
+        ]
       },
       include: {
         categories: true,
@@ -108,7 +112,8 @@ export async function DELETE(
     }
 
     // 3. Obtener y validar el ID de la sección
-    const sectionId = parseInt(params.id);
+    const id = params.id;
+    const sectionId = parseInt(id);
     
     if (isNaN(sectionId)) {
       return NextResponse.json({ error: 'ID de sección inválido' }, { status: 400 });
@@ -119,7 +124,10 @@ export async function DELETE(
       where: {
         section_id: sectionId,
         client_id: user.client_id,
-        deleted: { in: [0, null] as any }, // Comprobamos que no esté ya eliminada
+        OR: [
+          { deleted: 0 },
+          { deleted: null }
+        ]
       },
     });
 
@@ -134,7 +142,7 @@ export async function DELETE(
         section_id: sectionId,
       },
       data: {
-        deleted: 1 as any,
+        deleted: 1,
         deleted_at: new Date().toISOString().substring(0, 19).replace('T', ' '),
         deleted_by: (session.user.email || '').substring(0, 50),
         deleted_ip: (request.headers.get('x-forwarded-for') || 'API').substring(0, 20),

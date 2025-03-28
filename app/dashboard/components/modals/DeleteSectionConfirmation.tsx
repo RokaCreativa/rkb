@@ -60,25 +60,28 @@ const DeleteSectionConfirmation: React.FC<DeleteSectionConfirmationProps> = ({
   
   /**
    * Función para eliminar la sección
+   * Solo ejecuta deleteSection y devuelve un booleano
+   * El manejo de onDeleted lo realizará el componente DeleteModal
    */
   const handleDeleteSection = useCallback(async (id: number) => {
     try {
+      // Ejecutar la función de eliminación del servicio
       const success = await deleteSection(id);
-      
-      if (success) {
-        if (onDeleted) {
-          onDeleted(id);
-        }
-        
-        return true;
-      } else {
-        return false;
-      }
+      return success;
     } catch (error) {
       console.error('Error al eliminar la sección:', error);
       return false;
     }
-  }, [sectionName, deleteSection, onDeleted]);
+  }, [deleteSection]);
+  
+  /**
+   * Función que se ejecuta cuando se completa la eliminación exitosamente
+   */
+  const handleDeleted = useCallback(() => {
+    if (onDeleted) {
+      onDeleted(sectionId);
+    }
+  }, [onDeleted, sectionId]);
   
   return (
     <DeleteModal
@@ -88,6 +91,7 @@ const DeleteSectionConfirmation: React.FC<DeleteSectionConfirmationProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       deleteFunction={handleDeleteSection}
+      onDeleted={handleDeleted}
     />
   );
 };

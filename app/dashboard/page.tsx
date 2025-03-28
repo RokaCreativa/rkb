@@ -1678,13 +1678,22 @@ export default function DashboardPage() {
         sectionName={sectionToDelete && selectedCategory ? 
           (sections[selectedCategory.category_id.toString()]?.find(s => s.section_id === sectionToDelete)?.name || '') : 
           ''}
-        onDeleted={async (sectionId: number) => {
+        onDeleted={(sectionId: number) => {
+          // Simplemente actualizar el estado local para reflejar la eliminación
+          // sin intentar eliminar la sección nuevamente
           if (selectedCategory) {
-            await deleteSectionExtracted(
-              sectionId,
-              setSections,
-              selectedCategory.category_id
-            );
+            setSections(prev => {
+              const updated = { ...prev };
+              const categoryId = selectedCategory.category_id.toString();
+              
+              if (updated[categoryId]) {
+                updated[categoryId] = updated[categoryId].filter(
+                  section => section.section_id !== sectionId
+                );
+              }
+              
+              return updated;
+            });
           }
         }}
       />

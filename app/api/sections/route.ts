@@ -384,22 +384,35 @@ export async function DELETE(request: Request) {
       where: {
         section_id: parseInt(sectionId),
         client_id: user.client_id,
+        deleted: { in: [0, null] as any }, // Verificar que no esté ya eliminada
       },
     });
 
     if (!section) {
-      return NextResponse.json({ error: 'Sección no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: 'Sección no encontrada o ya eliminada' }, { status: 404 });
     }
 
-    // 5. Eliminar la sección
-    await prisma.sections.delete({
+    // 5. En lugar de eliminar físicamente la sección, la marcamos como eliminada
+    // utilizando el campo 'deleted' con valor 1 para indicar que está eliminada
+    await prisma.sections.updateMany({
       where: {
         section_id: parseInt(sectionId),
+        client_id: user.client_id,
+      },
+      data: {
+        deleted: 1 as any,
+        deleted_at: new Date().toISOString().substring(0, 19).replace('T', ' '),
+        deleted_by: (session.user.email || '').substring(0, 50),
+        deleted_ip: (request.headers.get('x-forwarded-for') || 'API').substring(0, 20),
+        status: false, // Desactivamos también el estado
       },
     });
 
     // 6. Devolver respuesta de éxito
-    return NextResponse.json({ message: 'Sección eliminada correctamente' });
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Sección eliminada correctamente' 
+    });
   } catch (error) {
     // 7. Manejo centralizado de errores
     console.error('Error al eliminar la sección:', error);
