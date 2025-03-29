@@ -59,12 +59,8 @@ export async function DELETE(
     
     console.log(`Producto encontrado: ${JSON.stringify(product)}`);
     
-    // Convertir el valor deleted a número para hacer la comparación
-    const deletedValue = typeof product.deleted === 'string' 
-      ? parseInt(product.deleted) || 0
-      : (product.deleted ?? 0);
-      
-    if (deletedValue === 1) {
+    // Verificar si el producto ya está marcado como eliminado
+    if (product.deleted === true) {
       console.log(`Advertencia: El producto ya está marcado como eliminado: ${productId}`);
       return NextResponse.json({ 
         success: true, 
@@ -89,7 +85,7 @@ export async function DELETE(
         product_id: productId,
       },
       data: {
-        deleted: 1 as any,
+        deleted: true,
         deleted_at: new Date().toISOString().substring(0, 19).replace('T', ' '),
         deleted_by: (session.user.email || '').substring(0, 50),
         deleted_ip: (request.headers.get('x-forwarded-for') || 'API').substring(0, 20),
@@ -153,7 +149,7 @@ export async function GET(
       where: {
         product_id: parseInt(id),
         client_id: user.client_id,
-        deleted: 0 as any,
+        deleted: false,
       },
     });
 
@@ -226,102 +222,142 @@ export async function GET(
 }
 
 /**
- * @route PATCH /api/products/[id]
- * @description Actualiza parcialmente un producto (principalmente usado para visibilidad)
+ * Actualiza un producto existente
  */
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`[API] PATCH /api/products/${params.id} - Iniciando actualización parcial`);
-    
-    // 1. Verificación de autenticación
+    // Verificar autenticación
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      console.log(`[API] Error: No autorizado`);
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 401 }
+      );
     }
 
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    // Obtener usuario y verificar cliente
     const user = await prisma.users.findFirst({
       where: { email: session.user.email },
     });
 
     if (!user?.client_id) {
-      console.log(`[API] Error: Cliente no encontrado`);
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Cliente no encontrado' },
+        { status: 404 }
+      );
     }
 
-    // 3. Obtener y validar el ID del producto
+    // Obtener ID del producto
     const productId = parseInt(params.id);
-    
     if (isNaN(productId)) {
-      console.log(`[API] Error: ID de producto inválido: ${params.id}`);
-      return NextResponse.json({ error: 'ID de producto inválido' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'ID de producto inválido' },
+        { status: 400 }
+      );
     }
-    
-    // 4. Verificar que el producto existe y pertenece al cliente
-    const product = await prisma.products.findFirst({
+
+    // Verificar que el producto existe y pertenece al cliente
+    const existingProduct = await prisma.products.findFirst({
       where: {
         product_id: productId,
         client_id: user.client_id,
-        deleted: 0 as any
+        deleted: false,
       }
     });
-    
-    if (!product) {
-      console.log(`[API] Error: Producto no encontrado: ${productId}`);
-      return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
+
+    if (!existingProduct) {
+      return NextResponse.json(
+        { error: 'Producto no encontrado' },
+        { status: 404 }
+      );
     }
-    
-    // 5. Obtener los datos de la petición
-    const requestData = await request.json();
-    console.log(`[API] Datos recibidos:`, requestData);
-    
-    // 6. Extraer campos a actualizar
-    const fieldsToUpdate: any = {};
-    
-    // Actualización de la visibilidad (status)
-    if (requestData.status !== undefined) {
-      console.log(`[API] Actualizando visibilidad de ${product.status ? 'Visible' : 'Oculto'} a ${requestData.status ? 'Visible' : 'Oculto'}`);
-      fieldsToUpdate.status = Boolean(requestData.status);
-    }
-    
-    // Si no hay campos para actualizar, devolver error
-    if (Object.keys(fieldsToUpdate).length === 0) {
-      console.log(`[API] Error: No se proporcionaron datos para actualizar`);
-      return NextResponse.json({ error: 'No se proporcionaron datos para actualizar' }, { status: 400 });
-    }
-    
-    // 7. Actualizar el producto
-    console.log(`[API] Actualizando producto ${productId} con datos:`, fieldsToUpdate);
+
+    // Obtener los datos del body
+    const data = await request.json();
+    const { name, description, price, status, display_order, section_id } = data;
+
+    console.log('Actualizando producto:', {
+      productId,
+      name,
+      description,
+      price,
+      status,
+      display_order,
+      section_id
+    });
+
+    // Actualizar el producto
     const updatedProduct = await prisma.products.update({
+      where: { product_id: productId },
+      data: {
+        name: name || undefined,
+        description: description || undefined,
+        price: price ? parseFloat(price) : undefined,
+        status: status !== undefined ? status : undefined,
+        display_order: display_order !== undefined ? display_order : undefined,
+      },
+    });
+
+    // Si se proporciona un ID de sección, actualizar la relación
+    if (section_id) {
+      // Primero eliminar las relaciones existentes
+      await prisma.products_sections.deleteMany({
+        where: { product_id: productId }
+      });
+
+      // Luego crear la nueva relación
+      await prisma.products_sections.create({
+        data: {
+          product_id: productId,
+          section_id: parseInt(section_id)
+        }
+      });
+
+      console.log(`Relación actualizada: producto ${productId} -> sección ${section_id}`);
+    }
+
+    // Obtener el producto actualizado con sus relaciones
+    const productSections = await prisma.products_sections.findMany({
       where: {
         product_id: productId,
       },
-      data: fieldsToUpdate
+      include: {
+        sections: true,
+      },
     });
-    
-    console.log(`[API] Producto actualizado correctamente:`, updatedProduct);
-    
-    // 8. Devolver respuesta de éxito
+
+    // Formatear la imagen del producto para la respuesta
+    let productImage = updatedProduct.image;
+    if (productImage) {
+      if (!productImage.startsWith('/')) {
+        productImage = `/images/products/${productImage}`;
+      }
+    }
+
+    // Preparar el producto actualizado para la respuesta
+    const responseProduct = {
+      ...updatedProduct,
+      image: productImage,
+      section_id: productSections.length > 0 ? productSections[0].section_id : null,
+      section_name: productSections.length > 0 ? productSections[0].sections.name : null
+    };
+
+    // Retornar el producto actualizado
     return NextResponse.json({
       success: true,
-      message: 'Producto actualizado correctamente',
-      product: {
-        product_id: updatedProduct.product_id,
-        name: updatedProduct.name,
-        status: updatedProduct.status ? 1 : 0,
-        // Otros campos relevantes...
-      }
+      product: responseProduct,
     });
-    
   } catch (error) {
-    console.error('[API] Error al actualizar el producto:', error);
-    return NextResponse.json({
-      error: 'Error interno del servidor',
-      details: error instanceof Error ? error.message : 'Error desconocido'
-    }, { status: 500 });
+    console.error('Error al actualizar producto:', error);
+    return NextResponse.json(
+      { 
+        error: 'Error al procesar la solicitud',
+        details: error instanceof Error ? error.message : 'Error desconocido'
+      },
+      { status: 500 }
+    );
   }
 } 

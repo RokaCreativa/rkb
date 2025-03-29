@@ -100,10 +100,21 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     const fetchProductDetails = async () => {
       try {
         setIsUpdatingProduct(true); // Mostrar estado de carga
+        console.log('Intentando obtener detalles del producto:', { 
+          productId: productToEdit.id, 
+          productToEdit: productToEdit,
+          selectedSection: selectedSection
+        });
         console.time('fetchProductDetails');
         
-        const response = await fetch(`/api/products/${productToEdit.id}`);
-        if (!response.ok) throw new Error('Error al obtener detalles del producto');
+        // Usar explícitamente la ruta /api/products/[id]
+        const response = await fetch(`/api/products/${productToEdit.id}?_t=${Date.now()}`);
+        console.log('Respuesta API:', { status: response.status, ok: response.ok });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error de API:', errorText);
+          throw new Error('Error al obtener detalles del producto');
+        }
         const product = await response.json();
         
         console.log('Producto obtenido:', product);
