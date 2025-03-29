@@ -10,6 +10,8 @@ import React, { useState } from 'react';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import ConfirmationModal from './ConfirmationModal';
 import { toast } from 'react-hot-toast';
+import useCategories from '@/app/hooks/useCategories';
+import { adaptDeleteCategory } from '@/lib/adapters/category-functions-adapter';
 
 /**
  * Props para el componente DeleteCategoryConfirmation
@@ -40,6 +42,17 @@ interface DeleteCategoryConfirmationProps {
    * @param categoryId ID de la categoría eliminada
    */
   onDeleted: (categoryId: number) => void;
+
+  /**
+   * ID del cliente (opcional)
+   */
+  clientId: number | null;
+  
+  /**
+   * Función que maneja la confirmación de eliminación (opcional)
+   * Si se proporciona, reemplaza la implementación predeterminada
+   */
+  onDeleteConfirmed?: (categoryId: number) => Promise<boolean>;
 }
 
 /**
@@ -62,29 +75,69 @@ const DeleteCategoryConfirmation: React.FC<DeleteCategoryConfirmationProps> = ({
   onClose,
   categoryId,
   categoryName,
-  onDeleted
+  onDeleted,
+  clientId,
+  onDeleteConfirmed
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Integrar el hook useCategories
+  const { deleteCategory: hookDeleteCategory } = useCategories(clientId);
   
   const handleDelete = async () => {
     if (!categoryId) return;
     
     setIsDeleting(true);
+    
     try {
-      const response = await fetch(`/api/categories/${categoryId}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error al eliminar la categoría');
+      // Si se proporciona una función personalizada, usarla
+      if (onDeleteConfirmed) {
+        const success = await onDeleteConfirmed(categoryId);
+        if (success) {
+          onDeleted(categoryId);
+          onClose();
+        }
+      } else {
+        // Usar el adaptador para deleteCategory
+        const adaptedDeleteCategory = adaptDeleteCategory(hookDeleteCategory);
+        
+        // Llamar a la función adaptada
+        const success = await adaptedDeleteCategory(
+          categoryId,
+          (updater) => {
+            // Esta función será llamada por el adaptador para actualizar el estado local
+            // pero nosotros solo notificamos al padre que la categoría fue eliminada
+            onDeleted(categoryId);
+          }
+        );
+        
+        if (success) {
+          toast.success('Categoría eliminada correctamente');
+          onClose();
+        } else {
+          throw new Error('No se pudo eliminar la categoría');
+        }
       }
-      
-      toast.success('Categoría eliminada correctamente');
-      onDeleted(categoryId);
-      onClose();
     } catch (error) {
       console.error('Error al eliminar categoría:', error);
-      toast.error('No se pudo eliminar la categoría');
+      
+      // Intentar el método original como fallback
+      try {
+        const response = await fetch(`/api/categories/${categoryId}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          throw new Error('Error al eliminar la categoría');
+        }
+        
+        toast.success('Categoría eliminada correctamente');
+        onDeleted(categoryId);
+        onClose();
+      } catch (fallbackError) {
+        console.error('Error en el fallback al eliminar categoría:', fallbackError);
+        toast.error('No se pudo eliminar la categoría');
+      }
     } finally {
       setIsDeleting(false);
     }

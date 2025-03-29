@@ -560,7 +560,8 @@ export default function DashboardPage() {
     fetchCategories: hookFetchCategories,
     expandedCategories: hookExpandedCategories,
     reorderCategory: hookReorderCategory,
-    toggleCategoryVisibility: hookToggleCategoryVisibility
+    toggleCategoryVisibility: hookToggleCategoryVisibility,
+    deleteCategory: hookDeleteCategory
   } = useCategories(client?.id || null);
   
   // Sincronizar categorías desde el hook (solo lectura)
@@ -1313,6 +1314,32 @@ export default function DashboardPage() {
     setIsDeleteModalOpen(true);
   };
   
+  // Adaptador para eliminar una categoría
+  const handleDeleteCategoryConfirmed = async (categoryId: number): Promise<boolean> => {
+    try {
+      // Usar el adaptador para deleteCategory
+      const adaptedDeleteCategory = adaptDeleteCategory(hookDeleteCategory);
+      
+      // Llamar a la función adaptada
+      const success = await adaptedDeleteCategory(
+        categoryId,
+        setCategories
+      );
+      
+      if (success) {
+        toast.success('Categoría eliminada correctamente');
+        return true;
+      } else {
+        toast.error('No se pudo eliminar la categoría');
+        return false;
+      }
+    } catch (error) {
+      console.error('Error al eliminar categoría:', error);
+      toast.error('No se pudo eliminar la categoría');
+      return false;
+    }
+  };
+  
   // Generar items para el componente de breadcrumbs
   const getBreadcrumbItems = () => {
     const items = [
@@ -1835,9 +1862,11 @@ export default function DashboardPage() {
         categoryId={categoryToDelete || 0}
         categoryName={categories.find(c => c.category_id === categoryToDelete)?.name || ''}
         onDeleted={(categoryId) => {
-          // Actualizar el estado local para eliminar la categoría
-          setCategories(prev => prev.filter(cat => cat.category_id !== categoryId));
+          // La actualización del estado local ahora es manejada por handleDeleteCategoryConfirmed
+          // No necesitamos hacer nada adicional aquí
         }}
+        clientId={client?.id || null}
+        onDeleteConfirmed={handleDeleteCategoryConfirmed}
       />
       
       <EditCategoryModal
