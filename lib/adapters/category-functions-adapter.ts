@@ -59,6 +59,12 @@ export function adaptToggleCategoryVisibility(
       // pero necesitamos actualizar también el estado del dashboard
       await hookToggleVisibility(categoryId, currentVisibility);
       
+      // Actualizar explícitamente el estado del dashboard también
+      const newStatus = currentVisibility === 1 ? 0 : 1;
+      setCategories(categories.map((cat: Category) => 
+        cat.category_id === categoryId ? { ...cat, status: newStatus } : cat
+      ));
+      
       // El hook ya muestra notificaciones de éxito/error
       return true;
     } catch (error) {
