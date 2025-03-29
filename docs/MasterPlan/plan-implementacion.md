@@ -395,29 +395,37 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
 
 ## Fase 8: Integración de Custom Hooks y Refactorización del Dashboard
 
-1. ⏳ Integrar useCategories en el Dashboard:
-   - ⏳ Implementar gestión de estado de categorías usando el hook existente
-   - ⏳ Reemplazar funciones y estados relacionados con categorías
-   - ⏳ Verificar funcionalidad y rendimiento
+### 8.1 Integración del hook useCategories
 
-2. ⏳ Integrar useSections en el Dashboard:
-   - ⏳ Implementar gestión de estado de secciones usando el hook existente
-   - ⏳ Reemplazar funciones y estados relacionados con secciones
-   - ⏳ Verificar funcionalidad y rendimiento
+#### Tareas:
 
-3. ⏳ Integrar useProducts en el Dashboard:
-   - ⏳ Implementar gestión de estado de productos usando el hook existente
-   - ⏳ Reemplazar funciones y estados relacionados con productos
-   - ⏳ Verificar funcionalidad y rendimiento
+1. **Preparación y análisis de tipos y funciones** ✅
+   - Analizar diferencias entre los tipos en el hook y el dashboard
+   - Identificar las funciones a adaptar
+   - Crear adaptadores para tipos y funciones
 
-4. ⏳ Extraer componentes de Vistas:
-   - ⏳ Crear `CategoriesView` separado utilizando useCategories
-   - ⏳ Crear `SectionsView` separado utilizando useSections
-   - ⏳ Crear `ProductsView` separado utilizando useProducts
+2. **Integración parcial manteniendo estado local** 🔄
+   - Añadir hook useCategories en dashboard manteniendo el estado local
+   - Implementar adaptadores para reemplazo de funciones:
+     - [x] `adaptReorderCategory` para reordenar categorías
+     - [x] `adaptToggleCategoryVisibility` para cambiar visibilidad
+     - [ ] `adaptDeleteCategory` para eliminar categorías
 
-5. ⏳ Refactorizar Dashboard Principal:
-   - ⏳ Simplificar archivo principal utilizando los components y hooks extraídos
-   - ⏳ Implementar sistema de navegación entre vistas
+3. **Correcciones de rutas API** ✅
+   - Corregir rutas en hook useCategories:
+     - [x] Actualizar la ruta de `/api/clients/${clientId}/categories/${categoryId}` a `/api/categories/${categoryId}`
+     - [x] Actualizar la ruta de `/api/clients/${clientId}/categories` a `/api/categories`
+   - Verificar funcionamiento correcto y resolver errores 404/405
+
+4. **Migración completa y eliminación de estados duplicados** ⏳
+   - Reemplazar por completo el estado local de categorías
+   - Unificar indicadores de carga
+   - Adaptar componentes relacionados (modales, formularios)
+
+#### Estado Actual:
+- ✅ La fase 1 (preparación) está completada
+- 🔄 La fase 2 (integración parcial) está en progreso avanzado
+- ⏳ La fase 3 (migración completa) está pendiente
 
 ## Testing y Validación
 

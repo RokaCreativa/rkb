@@ -105,4 +105,56 @@ En la versión actual de la aplicación:
    deleted: { not: 1 } as any
    ```
 
-Estas inconsistencias deberían resolverse en futuras actualizaciones de la estructura de base de datos. 
+Estas inconsistencias deberían resolverse en futuras actualizaciones de la estructura de base de datos.
+
+## Integración del hook useCategories
+
+El hook `useCategories` (ubicado en `app/hooks/useCategories.tsx`) provee una gestión centralizada de las categorías del cliente. Al integrarlo con el dashboard, se deben tener en cuenta las siguientes consideraciones:
+
+### Discrepancia de tipos
+
+| Campo | En hook useCategories | En dashboard | Conversión necesaria |
+|-------|----------------------|--------------|----------------------|
+| status | boolean (true/false) | number (1/0) | status ? 1 : 0 (hook → dashboard) <br> status === 1 (dashboard → hook) |
+| deleted | boolean (true/false) | number (1/0) | deleted ? 1 : 0 (hook → dashboard) <br> deleted === 1 (dashboard → hook) |
+
+### Adaptadores implementados
+
+Para manejar estas diferencias, se han implementado adaptadores en `lib/adapters/`:
+
+1. **Adaptadores de tipos**:
+   ```typescript
+   // lib/adapters/category-adapter.ts
+   export function adaptHookCategoryToDashboard(category: HookCategory): DashboardCategory {
+     return {
+       ...category,
+       status: category.status ? 1 : 0
+     };
+   }
+   
+   export function adaptDashboardCategoryToHook(category: DashboardCategory): HookCategory {
+     return {
+       ...category,
+       status: category.status === 1
+     };
+   }
+   ```
+
+2. **Adaptadores de funciones**:
+   ```typescript
+   // lib/adapters/category-functions-adapter.ts
+   export function adaptToggleCategoryVisibility(
+     hookToggleVisibility: (id: number, currentStatus: number) => Promise<void>
+   ) {
+     return async (categoryId: number, currentVisibility: number, categories: Category[], setCategories: (categories: Category[]) => void) => {
+       // Lógica de adaptación
+     };
+   }
+   ```
+
+### Recomendaciones para la integración
+
+1. **Usar adaptadores**: Siempre utilizar los adaptadores para la conversión de tipos y funciones
+2. **Evitar conversiones directas**: No convertir tipos directamente en el código de componentes
+3. **Mantener sincronización**: Asegurar que los estados del hook y del dashboard se mantengan sincronizados
+4. **Documentar adaptaciones**: Documentar cualquier adaptación adicional que se realice 

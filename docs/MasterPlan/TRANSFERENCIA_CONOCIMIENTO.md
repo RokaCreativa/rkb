@@ -78,6 +78,22 @@ Al intentar integrar el hook useCategories en el dashboard, encontramos inconsis
 - **Referencias a componentes**:
   - Algunos componentes como `EditCategoryModal` están acoplados al estado actual
 
+### 3.3 Soluciones Implementadas
+
+- **Adaptadores de Funciones**:
+  - Se implementó exitosamente `adaptReorderCategory` para reordenar categorías
+  - Se implementó exitosamente `adaptToggleCategoryVisibility` para cambiar la visibilidad
+  - Los adaptadores gestionan correctamente las diferencias de tipos y parámetros
+
+- **Corrección de Rutas API**:
+  - Se corrigió la ruta utilizada en `toggleCategoryVisibility` (de `/api/clients/${clientId}/categories/${categoryId}` a `/api/categories/${categoryId}`)
+  - Se corrigió la ruta utilizada en `fetchCategories` (de `/api/clients/${clientId}/categories` a `/api/categories`)
+  - Estas correcciones resolvieron errores HTTP 405 (Method Not Allowed) y 404 (Not Found)
+
+- **Actualización en Tiempo Real**:
+  - Se mejoró el adaptador `adaptToggleCategoryVisibility` para actualizar explícitamente el estado del dashboard
+  - Esta mejora evita la necesidad de recargar la página para ver los cambios de visibilidad
+
 ## 4. PLAN DE INTEGRACIÓN DETALLADO
 
 ### Fase 1: Preparación y Análisis
@@ -365,17 +381,17 @@ Añadir una sección sobre la integración del hook:
 ```markdown
 ## Integración del hook useCategories
 
-### Fase 1: Preparación ⬜
-- [ ] Unificar tipos entre lib/types y app/types
-- [ ] Crear adaptadores para conversión de tipos
-- [ ] Desarrollar adaptadores para funciones
+### Fase 1: Preparación ✅
+- [x] Unificar tipos entre lib/types y app/types
+- [x] Crear adaptadores para conversión de tipos
+- [x] Desarrollar adaptadores para funciones
 
-### Fase 2: Integración parcial ⬜
-- [ ] Añadir hook manteniendo estados locales
-- [ ] Sincronizar estados con useEffect
-- [ ] Reemplazar fetchCategories
-- [ ] Reemplazar toggleCategoryVisibility
-- [ ] Reemplazar reorderCategory
+### Fase 2: Integración parcial 🟡
+- [x] Añadir hook manteniendo estados locales
+- [x] Sincronizar estados con useEffect
+- [x] Reemplazar fetchCategories
+- [x] Reemplazar toggleCategoryVisibility
+- [x] Reemplazar reorderCategory
 - [ ] Reemplazar deleteCategory
 
 ### Fase 3: Migración completa ⬜
@@ -468,6 +484,30 @@ Añadir una sección sobre la integración del hook:
 La integración del hook useCategories representa un paso importante hacia la modularidad del proyecto RokaMenu. Siguiendo este plan detallado, podemos lograr una integración exitosa que mejore la mantenibilidad y rendimiento de la aplicación.
 
 Recuerda que el enfoque debe ser gradual, priorizando la estabilidad y experiencia del usuario en todo momento. Con cada paso, nos acercamos a una arquitectura más robusta y sostenible para el proyecto.
+
+## 12. LECCIONES APRENDIDAS
+
+Durante el proceso de integración del hook useCategories, hemos identificado varias lecciones importantes:
+
+### 12.1 Importancia de Probar Durante el Desarrollo
+
+- **Pruebas Incrementales**: Probar cada funcionalidad inmediatamente después de implementarla fue crucial para detectar errores temprano
+- **Verificación Visual**: Confirmar que los cambios de UI funcionan correctamente desde la perspectiva del usuario
+- **Revisión de Consola**: Monitorear errores en la consola del navegador para identificar problemas no visibles en la UI
+
+### 12.2 Patrones de Adaptación Efectivos
+
+- **Adaptadores de Función**: El patrón adaptador demostró ser una solución elegante para manejar las diferencias de implementación
+- **Actualización de Estado Explícita**: Es necesario actualizar explícitamente ambos estados (hook y dashboard) para evitar inconsistencias
+- **Manejo de Errores con Fallback**: Implementar fallbacks para los casos donde los adaptadores fallen mejora la robustez
+
+### 12.3 Rutas de API y Consistencia
+
+- **Consistencia de Endpoints**: Identificamos inconsistencias en las rutas API que causaban errores 404 y 405
+- **Documentación de Rutas**: La falta de documentación de las rutas API causó confusión durante la integración
+- **Verificación de Respuestas**: Es crucial verificar las respuestas de la API para asegurar que los datos están en el formato esperado
+
+Estas lecciones serán valiosas para futuras fases de integración y refactorización del proyecto RokaMenu.
 
 ---
 
