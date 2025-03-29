@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Fragment, useRef, useCallback } from 'react';
+import { useState, useEffect, Fragment, useRef, useCallback, useMemo } from 'react';
 import { EyeIcon, PlusIcon, ChevronDownIcon, PencilIcon, XMarkIcon, TrashIcon, ArrowUpTrayIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -21,6 +21,8 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import TopNavbar from '@/components/layout/TopNavbar';
 import useSections from '@/app/hooks/useSections';
 import useProducts from '@/app/hooks/useProducts';
+// Importar el hook de categorías
+import useCategories from '@/app/hooks/useCategories';
 // Importar los tipos desde el archivo centralizado
 import { Category, Section, Product, Client } from '@/app/types/menu';
 import EditProductModal from './components/EditProductModal';
@@ -35,6 +37,15 @@ import { DeleteCategoryConfirmation, DeleteSectionConfirmation, DeleteProductCon
 // Importar los nuevos componentes de acción
 import { CategoryActions, SectionActions, ProductActions, BackButton } from './components/actions';
 import Pagination from '@/components/ui/Pagination';
+
+// Importar los adaptadores de categorías
+import { 
+  adaptHookCategoriesToDashboard, 
+  adaptFetchCategories,
+  adaptToggleCategoryVisibility,
+  adaptDeleteCategory,
+  adaptReorderCategory
+} from '@/lib/adapters';
 
 // Importar los controladores de eventos extraídos
 import { 
@@ -538,6 +549,34 @@ export default function DashboardPage() {
     total: number;
     totalPages: number;
   } | null>(null);
+
+  // Estado para rastrear el tipo de vista actual
+  const [view, setView] = useState<'categories' | 'sections' | 'products'>('categories');
+  
+  // Integración del hook useCategories (solo en modo lectura por ahora)
+  const {
+    categories: hookCategories,
+    isLoadingCategories,
+    fetchCategories: hookFetchCategories,
+    expandedCategories: hookExpandedCategories
+  } = useCategories(client?.id || null);
+  
+  // Sincronizar categorías desde el hook (solo lectura)
+  useEffect(() => {
+    if (hookCategories && hookCategories.length > 0) {
+      // Convertir las categorías del formato del hook al formato del dashboard
+      // Convertimos manualmente en lugar de usar el adaptador para evitar errores de tipo
+      const adaptedCategories = hookCategories.map(cat => ({
+        ...cat,
+        status: cat.status ? 1 : 0, // Convertir booleano a numérico
+      })) as unknown as Category[];
+      
+      setCategories(adaptedCategories);
+    }
+  }, [hookCategories]);
+  
+  // Combinar indicadores de carga
+  const isLoadingCategoriesAny = isLoading || isLoadingCategories;
 
   // ----- MANEJADORES DE EVENTOS -----
 
