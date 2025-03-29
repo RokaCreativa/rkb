@@ -42,7 +42,7 @@ export default function useCategories(clientId: number | null) {
     const newStatus = currentStatus === 1 ? 0 : 1;
     
     try {
-      await axios.patch(`/api/clients/${clientId}/categories/${categoryId}`, {
+      await axios.patch(`/api/categories/${categoryId}`, {
         status: newStatus
       });
       

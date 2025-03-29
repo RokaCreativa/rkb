@@ -558,7 +558,9 @@ export default function DashboardPage() {
     categories: hookCategories,
     isLoadingCategories,
     fetchCategories: hookFetchCategories,
-    expandedCategories: hookExpandedCategories
+    expandedCategories: hookExpandedCategories,
+    reorderCategory: hookReorderCategory,
+    toggleCategoryVisibility: hookToggleCategoryVisibility
   } = useCategories(client?.id || null);
   
   // Sincronizar categorías desde el hook (solo lectura)
@@ -580,18 +582,36 @@ export default function DashboardPage() {
 
   // ----- MANEJADORES DE EVENTOS -----
 
-  // Función para reordenar las categorías
+  // Función para reordenar las categorías (integrada con el hook)
   const handleCategoryReorder = useCallback(async (sourceIndex: number, destinationIndex: number) => {
     if (sourceIndex === destinationIndex) return;
     
-    await handleReorderCategory(
+    // Usar el adaptador para integrar con el hook (FASE 1)
+    const adaptedReorderCategory = adaptReorderCategory(
+      hookReorderCategory
+    );
+    
+    // Llamar a la función adaptada que maneja ambos estados
+    const success = await adaptedReorderCategory(
       categories,
       sourceIndex,
       destinationIndex,
-      (updatedCategories) => setCategories(updatedCategories),
-      (isLoading) => setIsLoading(isLoading)
+      setCategories,
+      setIsLoading
     );
-  }, [categories]);
+    
+    // Si no funciona el adaptador, caer de vuelta al método original
+    if (!success) {
+      console.log("Fallback al reordenamiento original");
+      await handleReorderCategory(
+        categories,
+        sourceIndex,
+        destinationIndex,
+        (updatedCategories) => setCategories(updatedCategories),
+        (isLoading) => setIsLoading(isLoading)
+      );
+    }
+  }, [categories, hookReorderCategory]);
   
   // Función para reordenar secciones (drag and drop)
   const handleReorderSectionAdapter = async (sourceIndex: number, destinationIndex: number) => {
@@ -1105,12 +1125,30 @@ export default function DashboardPage() {
   const handleToggleCategoryVisibility = (categoryId: number, currentStatus: number) => {
     console.log(`[DEBUG] Llamando a handleToggleCategoryVisibility para categoría ${categoryId} con estado actual ${currentStatus}`);
     
-    toggleCategoryVisibility(
-      categoryId,
-      currentStatus,
-      categories,
-      setCategories
-    );
+    // Usar el adaptador para integrar con el hook
+    try {
+      const adaptedToggleVisibility = adaptToggleCategoryVisibility(
+        hookToggleCategoryVisibility
+      );
+      
+      // Llamar a la función adaptada
+      adaptedToggleVisibility(
+        categoryId,
+        currentStatus,
+        categories,
+        setCategories
+      );
+    } catch (error) {
+      console.error('[ERROR] Error al adaptar toggleCategoryVisibility:', error);
+      
+      // Fallback al método original si el adaptador falla
+      toggleCategoryVisibility(
+        categoryId,
+        currentStatus,
+        categories,
+        setCategories
+      );
+    }
   };
 
   // Función para actualizar la visibilidad de una sección
