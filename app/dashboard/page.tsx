@@ -581,6 +581,17 @@ export default function DashboardPage() {
   // Combinar indicadores de carga
   const isLoadingCategoriesAny = isLoading || isLoadingCategories;
 
+  // Función helper para obtener categorías adaptadas directamente del hook
+  // FASE 3: Paso 1 - Crear función auxiliar para migrar gradualmente
+  const getAdaptedCategories = useCallback((): Category[] => {
+    if (!hookCategories) return categories;
+    
+    return hookCategories.map(cat => ({
+      ...cat,
+      status: cat.status ? 1 : 0, // Convertir booleano a numérico
+    })) as unknown as Category[];
+  }, [hookCategories, categories]);
+
   // ----- MANEJADORES DE EVENTOS -----
 
   // Función para reordenar las categorías (integrada con el hook)
@@ -594,7 +605,7 @@ export default function DashboardPage() {
     
     // Llamar a la función adaptada que maneja ambos estados
     const success = await adaptedReorderCategory(
-      categories,
+      getAdaptedCategories(),
       sourceIndex,
       destinationIndex,
       setCategories,
@@ -605,14 +616,14 @@ export default function DashboardPage() {
     if (!success) {
       console.log("Fallback al reordenamiento original");
       await handleReorderCategory(
-        categories,
+        getAdaptedCategories(),
         sourceIndex,
         destinationIndex,
         (updatedCategories) => setCategories(updatedCategories),
         (isLoading) => setIsLoading(isLoading)
       );
     }
-  }, [categories, hookReorderCategory]);
+  }, [getAdaptedCategories, hookReorderCategory]);
   
   // Función para reordenar secciones (drag and drop)
   const handleReorderSectionAdapter = async (sourceIndex: number, destinationIndex: number) => {
@@ -679,19 +690,20 @@ export default function DashboardPage() {
   
   // Efecto para precargar datos cuando se cargan las categorías
   useEffect(() => {
-    if (categories.length > 0 && !isLoading) {
+    const adaptedCategories = getAdaptedCategories();
+    if (adaptedCategories.length > 0 && !isLoadingCategoriesAny) {
       console.log("Optimizando la carga de datos para el dashboard...");
       
       // Seleccionar la primera categoría automáticamente si no hay ninguna seleccionada
-      if (!selectedCategory && categories.length > 0) {
-        setSelectedCategory(categories[0]);
+      if (!selectedCategory && adaptedCategories.length > 0) {
+        setSelectedCategory(adaptedCategories[0]);
       }
       
       // En lugar de precargar todo, cargamos solo lo necesario
       // Las secciones y productos se cargarán a demanda al hacer clic
       console.log("Configurado para carga bajo demanda de secciones y productos.");
     }
-  }, [categories, isLoading]);
+  }, [getAdaptedCategories, isLoadingCategoriesAny, selectedCategory]);
 
   // Efecto para cargar datos iniciales al autenticarse
   /**
@@ -1713,7 +1725,7 @@ export default function DashboardPage() {
             <div className="w-full px-4">
               <CategoryActions onNewCategory={() => setIsNewCategoryModalOpen(true)} />
               <CategoryTable
-                categories={getPaginatedCategories(categories, categoryPagination)}
+                categories={getPaginatedCategories(getAdaptedCategories(), categoryPagination)}
                 expandedCategories={expandedCategories}
                 onCategoryClick={handleCategoryClick}
                 onEditCategory={handleEditCategory}
@@ -1724,13 +1736,13 @@ export default function DashboardPage() {
                 paginationEnabled={categoryPagination.enabled}
                 currentPage={categoryPagination.page}
                 itemsPerPage={categoryPagination.limit}
-                totalCategories={categoryPaginationMeta?.total || categories.length}
+                totalCategories={categoryPaginationMeta?.total || getAdaptedCategories().length}
                 onPageChange={page => setCategoryPagination(prev => ({...prev, page}))}
                 onPageSizeChange={pageSize => setCategoryPagination(prev => ({...prev, limit: pageSize}))}
               />
 
               {/* Secciones expandidas para categorías (cuando está en vista de categorías) */}
-              {currentView === 'categories' && categories.map(category => {
+              {currentView === 'categories' && getAdaptedCategories().map(category => {
                 if (!expandedCategories[category.category_id]) return null;
                 
                 return (
@@ -1860,7 +1872,7 @@ export default function DashboardPage() {
           setCategoryToDelete(null);
         }}
         categoryId={categoryToDelete || 0}
-        categoryName={categories.find(c => c.category_id === categoryToDelete)?.name || ''}
+        categoryName={getAdaptedCategories().find(c => c.category_id === categoryToDelete)?.name || ''}
         onDeleted={(categoryId) => {
           // La actualización del estado local ahora es manejada por handleDeleteCategoryConfirmed
           // No necesitamos hacer nada adicional aquí
@@ -1875,7 +1887,7 @@ export default function DashboardPage() {
             setIsEditModalOpen(false);
             setEditingCategory(null);
         }}
-          categoryToEdit={editingCategory ? categories.find(c => c.category_id === editingCategory.id) || null : null}
+          categoryToEdit={editingCategory ? getAdaptedCategories().find(c => c.category_id === editingCategory.id) || null : null}
         client={client as any}
         setCategories={setCategories}
         onSuccess={() => {

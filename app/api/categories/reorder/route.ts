@@ -54,18 +54,26 @@ export async function POST(request: Request) {
     // 5. Verificar que todas las categorías pertenezcan al cliente
     const categoryIds = data.categories.map((cat: any) => cat.id);
     
+    console.log("[DEBUG] Reordenando categorías IDs:", categoryIds);
+    
     const existingCategories = await prisma.categories.findMany({
       where: {
         category_id: { in: categoryIds },
         client_id: user.client_id,
-        deleted: { not: 'Y' },
+        OR: [
+          { deleted: 0 as any },
+          { deleted: null }
+        ]
       },
       select: {
         category_id: true,
       },
     });
+    
+    console.log("[DEBUG] Categorías encontradas:", existingCategories.map(c => c.category_id));
 
     if (existingCategories.length !== categoryIds.length) {
+      console.warn(`[WARN] No se encontraron todas las categorías: esperadas=${categoryIds.length}, encontradas=${existingCategories.length}`);
       return NextResponse.json(
         { error: 'Una o más categorías no existen o no pertenecen a este cliente' }, 
         { status: 400 }
@@ -73,25 +81,37 @@ export async function POST(request: Request) {
     }
 
     // 6. Actualizar el orden de las categorías en una transacción
-    const updates = await prisma.$transaction(
-      data.categories.map((cat: any) => 
-        prisma.categories.update({
-          where: {
-            category_id: cat.id,
-          },
-          data: {
-            display_order: cat.display_order,
-          },
+    try {
+      console.log("[DEBUG] Iniciando transacción para actualizar orden");
+      const updates = await prisma.$transaction(
+        data.categories.map((cat: any) => {
+          console.log(`[DEBUG] Actualizando categoría ID=${cat.id} a display_order=${cat.display_order}`);
+          return prisma.categories.update({
+            where: {
+              category_id: cat.id,
+            },
+            data: {
+              display_order: cat.display_order,
+            },
+          });
         })
-      )
-    );
+      );
+      
+      console.log(`[DEBUG] Actualización exitosa: ${updates.length} categorías actualizadas`);
 
-    // 7. Devolver respuesta de éxito
-    return NextResponse.json({
-      success: true,
-      message: 'Orden de categorías actualizado correctamente',
-      updated: updates.length,
-    });
+      // 7. Devolver respuesta de éxito
+      return NextResponse.json({
+        success: true,
+        message: 'Orden de categorías actualizado correctamente',
+        updated: updates.length,
+      });
+    } catch (txError) {
+      console.error('[ERROR] Error en la transacción:', txError);
+      return NextResponse.json(
+        { error: 'Error al actualizar el orden de las categorías en la base de datos' }, 
+        { status: 500 }
+      );
+    }
     
   } catch (error) {
     // 8. Manejo centralizado de errores

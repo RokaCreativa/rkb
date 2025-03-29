@@ -166,6 +166,101 @@ onClose();
 
 Esta solución proporciona una experiencia de usuario más limpia al mostrar un único mensaje de confirmación cuando la operación es exitosa.
 
+### Error 6: Error interno del servidor (500) al reordenar categorías
+
+**Descripción:**
+Al intentar reordenar categorías mediante drag and drop, se produce un error HTTP 500 (Internal Server Error).
+
+**Detalles del error:**
+```
+AxiosError: Request failed with status code 500
+    at settle (http://localhost:3000/_next/static/chunks/node_modules_93211165._.js:20403:16)
+    at XMLHttpRequest.onloadend (http://localhost:3000/_next/static/chunks/node_modules_93211165._.js:20907:174)
+    at Axios.request (http://localhost:3000/_next/static/chunks/node_modules_93211165._.js:21632:49)
+    at async useCategories.useCallback[reorderCategory] (http://localhost:3000/_next/static/chunks/_b48c1f91._.js:5230:17)
+```
+
+**Causa:**
+Había una discrepancia entre la validación de datos en el endpoint `/api/categories/reorder`:
+
+1. En la validación se usaba `deleted: { not: 'Y' }` pero en la base de datos el campo `deleted` parece ser un valor numérico (0/1).
+2. La condición de verificación de categorías podía fallar pero el error no se registraba correctamente.
+3. No había un manejo específico de errores en la transacción de la base de datos.
+
+**Solución:**
+1. Corregir la condición de validación para usar una condición compatible con el tipo de datos de `deleted` en la base de datos:
+```typescript
+// Antes
+const existingCategories = await prisma.categories.findMany({
+  where: {
+    category_id: { in: categoryIds },
+    client_id: user.client_id,
+    deleted: { not: 'Y' },
+  },
+  //...
+});
+
+// Después
+const existingCategories = await prisma.categories.findMany({
+  where: {
+    category_id: { in: categoryIds },
+    client_id: user.client_id,
+    OR: [
+      { deleted: 0 as any },
+      { deleted: null }
+    ]
+  },
+  //...
+});
+```
+
+2. Mejorar el registro de logs y el manejo de errores:
+```typescript
+// Añadir logs detallados
+console.log("[DEBUG] Reordenando categorías IDs:", categoryIds);
+console.log("[DEBUG] Categorías encontradas:", existingCategories.map(c => c.category_id));
+
+// Mejorar el manejo de errores
+try {
+  // Código de la transacción
+} catch (txError) {
+  console.error('[ERROR] Error en la transacción:', txError);
+  return NextResponse.json(
+    { error: 'Error al actualizar el orden de las categorías en la base de datos' }, 
+    { status: 500 }
+  );
+}
+```
+
+3. Mejorar el manejo de errores en el cliente para mostrar información más específica:
+```typescript
+catch (error: any) {
+  console.error('Error al reordenar categorías:', error);
+  
+  // Mostrar mensaje de error más específico si está disponible
+  const errorMessage = error.response?.data?.error || 
+                       error.message || 
+                       'No se pudo actualizar el orden';
+  
+  // Registrar detalles técnicos para depuración
+  if (error.response) {
+    console.error('Detalles del error de respuesta:', {
+      status: error.response.status,
+      data: error.response.data,
+      headers: error.response.headers
+    });
+  }
+  
+  toast.error(errorMessage);
+}
+```
+
+Estas mejoras permiten:
+- Identificar el origen exacto del error 500
+- Proporcionar mensajes de error más descriptivos
+- Mejorar la capacidad de depuración mediante logs detallados
+- Ofrecer una mejor experiencia al usuario con mensajes de error específicos
+
 ## Problemas de Tipado
 
 ### Error 4: Error de tipo en el adaptador

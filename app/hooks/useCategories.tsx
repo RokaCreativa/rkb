@@ -263,17 +263,43 @@ export default function useCategories(clientId: number | null) {
     
     try {
       // Enviar orden actualizado al servidor
-      await axios.post(`/api/clients/${clientId}/categories/reorder`, {
-        categories: updatedCategories.map(cat => ({
-          category_id: cat.category_id,
+      console.log('[DEBUG] Enviando reordenamiento al servidor:', {
+        categoriesCount: updatedCategories.length,
+        sample: updatedCategories.slice(0, 2).map(cat => ({
+          id: cat.category_id,
           display_order: cat.display_order
         }))
       });
       
+      const response = await axios.post(`/api/categories/reorder`, {
+        categories: updatedCategories.map(cat => ({
+          id: cat.category_id,
+          display_order: cat.display_order
+        }))
+      });
+      
+      console.log('[DEBUG] Respuesta del servidor:', response.data);
       toast.success('Orden actualizado correctamente');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error al reordenar categorías:', error);
-      toast.error('No se pudo actualizar el orden');
+      
+      // Mostrar mensaje de error más específico si está disponible
+      const errorMessage = error.response?.data?.error || 
+                           error.message || 
+                           'No se pudo actualizar el orden';
+      
+      // Registrar detalles técnicos para depuración
+      if (error.response) {
+        console.error('Detalles del error de respuesta:', {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      } else if (error.request) {
+        console.error('Error de solicitud (no se recibió respuesta):', error.request);
+      }
+      
+      toast.error(errorMessage);
       
       // Restaurar el estado original en caso de error
       setCategories(categories);

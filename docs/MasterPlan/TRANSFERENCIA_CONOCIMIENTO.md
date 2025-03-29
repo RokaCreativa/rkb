@@ -89,6 +89,7 @@ Al intentar integrar el hook useCategories en el dashboard, encontramos inconsis
 - **Corrección de Rutas API**:
   - Se corrigió la ruta utilizada en `toggleCategoryVisibility` (de `/api/clients/${clientId}/categories/${categoryId}` a `/api/categories/${categoryId}`)
   - Se corrigió la ruta utilizada en `fetchCategories` (de `/api/clients/${clientId}/categories` a `/api/categories`)
+  - Se corrigió la ruta utilizada en `reorderCategory` (de `/api/clients/${clientId}/categories/reorder` a `/api/categories/reorder`)
   - Estas correcciones resolvieron errores HTTP 405 (Method Not Allowed) y 404 (Not Found)
 
 - **Actualización en Tiempo Real**:
@@ -98,6 +99,12 @@ Al intentar integrar el hook useCategories en el dashboard, encontramos inconsis
 - **Mejora de Experiencia de Usuario**:
   - Se eliminaron mensajes toast duplicados al eliminar categorías
   - Se implementó un mecanismo de fallback en los adaptadores para manejar errores graciosamente
+
+- **Manejo de Errores Mejorado**:
+  - Se corrigió la validación de datos en el endpoint `/api/categories/reorder` para resolver errores 500
+  - Se añadieron logs detallados en puntos críticos para facilitar la depuración
+  - Se implementó un manejo específico de errores en transacciones de base de datos
+  - Se mejoró el reporte de errores al usuario con mensajes más descriptivos
 
 ## 4. PLAN DE INTEGRACIÓN DETALLADO
 
@@ -512,6 +519,14 @@ Durante el proceso de integración del hook useCategories, hemos identificado va
 - **Consistencia de Endpoints**: Identificamos inconsistencias en las rutas API que causaban errores 404 y 405
 - **Documentación de Rutas**: La falta de documentación de las rutas API causó confusión durante la integración
 - **Verificación de Respuestas**: Es crucial verificar las respuestas de la API para asegurar que los datos están en el formato esperado
+
+### 12.4 Importancia del Manejo de Errores Detallado
+
+- **Logs Estratégicos**: Ubicar logs detallados en puntos estratégicos facilita enormemente la depuración de problemas
+- **Errores con Contexto**: Proporcionar detalles específicos de un error mejora la capacidad de análisis y resolución
+- **Tratamiento de Tipos**: Las discrepancias de tipos entre la API y la base de datos pueden causar errores difíciles de diagnosticar
+- **Manejo Estructurado**: Implementar un manejo de errores estructurado para distintos niveles (base de datos, API, presentación)
+- **Transacciones con Try/Catch**: Envolver las transacciones de base de datos en bloques try/catch específicos mejora la capacidad de recuperación
 
 Estas lecciones serán valiosas para futuras fases de integración y refactorización del proyecto RokaMenu.
 
