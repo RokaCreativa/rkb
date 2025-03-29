@@ -131,7 +131,7 @@ const DeleteCategoryConfirmation: React.FC<DeleteCategoryConfirmationProps> = ({
           throw new Error('Error al eliminar la categoría');
         }
         
-        toast.success('Categoría eliminada correctamente');
+        // El mensaje de éxito ya lo muestra el hook, no es necesario duplicarlo aquí
         onDeleted(categoryId);
         onClose();
       } catch (fallbackError) {

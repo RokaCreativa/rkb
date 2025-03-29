@@ -1327,7 +1327,7 @@ export default function DashboardPage() {
       );
       
       if (success) {
-        toast.success('Categoría eliminada correctamente');
+        // El hook ya muestra un mensaje de éxito, no es necesario duplicarlo
         return true;
       } else {
         toast.error('No se pudo eliminar la categoría');
