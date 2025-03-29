@@ -295,6 +295,90 @@ setCategories(categories.map((cat: Category) =>
 
 Esta solución proporciona tipos explícitos para todos los parámetros y elimina los errores de TypeScript.
 
+## Problemas Recientes Resueltos
+
+### Error 7: Tipo incorrecto en campo 'deleted' de productos
+
+**Descripción:**
+Al editar productos a través del modal de edición, se producía un error al cargar los detalles del producto.
+
+**Detalles del error:**
+```
+Error de API: "{\"error\":\"Error al obtener detalles del producto\"}"
+at createUnhandledError (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_c24f7707._.js:879:71)
+at handleClientError (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_c24f7707._.js:1052:56)
+at console.error (http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_c24f7707._.js:1191:56)
+at EditProductModal.useEffect.fetchProductDetails (http://localhost:3000/_next/static/chunks/_b48c1f91._.js:5401:37)
+```
+
+**Causa:**
+En la API de productos (`app/api/products/[id]/route.ts`), el campo `deleted` en las consultas de Prisma estaba usando un valor numérico (`0 as any`) en lugar de un booleano. El esquema de Prisma define el campo `deleted` como tipo `Boolean`, lo que causaba el siguiente error:
+
+```
+Argument 'deleted': Invalid value provided. Expected BoolNullableFilter, Boolean or Null, provided Int.
+```
+
+**Solución:**
+1. Modificar las consultas de Prisma para usar el tipo booleano correcto:
+
+```typescript
+// Antes
+const product = await prisma.products.findFirst({
+  where: {
+    product_id: parseInt(id),
+    client_id: user.client_id,
+    deleted: 0 as any,
+  },
+});
+
+// Después
+const product = await prisma.products.findFirst({
+  where: {
+    product_id: parseInt(id),
+    client_id: user.client_id,
+    deleted: false,
+  },
+});
+```
+
+2. Actualizar también la función `DELETE` para usar el tipo booleano:
+
+```typescript
+// Antes
+data: {
+  deleted: 1 as any,
+  // ...otros campos
+}
+
+// Después
+data: {
+  deleted: true,
+  // ...otros campos
+}
+```
+
+3. Actualizar la comparación de valores deleted:
+
+```typescript
+// Antes
+const deletedValue = typeof product.deleted === 'string' 
+  ? parseInt(product.deleted) || 0
+  : (product.deleted ?? 0);
+  
+if (deletedValue === 1) {
+  // Producto ya eliminado
+}
+
+// Después
+if (product.deleted === true) {
+  // Producto ya eliminado
+}
+```
+
+Este cambio resuelve la consistencia de tipos entre el esquema de Prisma y las consultas realizadas, permitiendo que la edición de productos funcione correctamente.
+
+**Nota**: Este tipo de inconsistencia también puede existir en otras entidades. Se recomienda revisar todos los endpoints API para asegurar que utilizan los tipos correctos según el esquema de Prisma.
+
 ## Recomendaciones para Futuras Integraciones
 
 1. **Verificar rutas API**: Antes de implementar una función que interactúa con la API, verificar que la ruta exista y acepte el método HTTP utilizado.

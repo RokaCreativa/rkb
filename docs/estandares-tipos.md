@@ -97,7 +97,7 @@ Al filtrar en consultas Prisma:
 En la versión actual de la aplicación:
 
 1. Hay inconsistencia en el tipo del campo `deleted` entre entidades:
-   - Productos: `Boolean`
+   - Productos: `Boolean` (corregido en Abril 2024)
    - Secciones y Categorías: `TINYINT(1)`
 
 2. Se usa el operador `as any` en algunos lugares para evitar errores de tipo:
@@ -106,6 +106,24 @@ En la versión actual de la aplicación:
    ```
 
 Estas inconsistencias deberían resolverse en futuras actualizaciones de la estructura de base de datos.
+
+## Correcciones recientes
+
+### Abril 2024: Corrección del tipo en Productos
+
+Se ha corregido el uso incorrecto del tipo numérico para el campo `deleted` en productos:
+
+```typescript
+// Antes (incorrecto)
+deleted: 0 as any
+
+// Después (corregido)
+deleted: false
+```
+
+Esta corrección permite que el endpoint `/api/products/[id]` funcione correctamente para editar productos.
+
+Las entidades restantes (Secciones y Categorías) aún necesitan ser corregidas para unificar el uso de tipos en toda la aplicación.
 
 ## Integración del hook useCategories
 

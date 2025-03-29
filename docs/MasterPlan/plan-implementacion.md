@@ -342,6 +342,19 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
    - Código añadido: `status: section.status ? 1 : 0`
    - Esto resuelve el problema de secciones que aparecen como "no visibles" aunque estén activas
 
+3. **Corregir tipo de deleted en productos** ✅ (Abril 2024)
+   - En `app/api/products/[id]/route.ts`:
+   - Corregir el tipo del campo `deleted` para usar booleano en lugar de numérico
+   - Cambiado de `deleted: 0 as any` a `deleted: false`
+   - Cambiado de `deleted: 1 as any` a `deleted: true`
+   - Modificado código de comparación para usar booleanos
+   - Esto resuelve los errores de carga en la edición de productos
+
+4. **Revisar otros endpoints API para inconsistencias de tipos** ⏳
+   - Identificar otros lugares donde se usen tipos incorrectos
+   - Priorizar APIs que estén causando problemas en producción
+   - Documentar los cambios para referencia futura
+
 ### 6.2 Manejo Consistente de Tipos
 
 #### Tareas:
@@ -358,6 +371,11 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
    - Categorías: Ya implementado correctamente
    - Clientes: No usan campo de status visible/no visible
    - Usuarios: No relevante para la UI actual
+   
+3. **Actualizar la documentación con correcciones recientes** ✅ (Abril 2024)
+   - ✓ Documentar corrección del campo `deleted` en productos
+   - ✓ Actualizar `docs/estandares-tipos.md` con el ejemplo corregido
+   - ✓ Añadir información sobre el caso a `docs/MasterPlan/errores-soluciones.md`
 
 ## Fase 7: Limpieza de Componentes Duplicados y Archivos Innecesarios
 

@@ -16,6 +16,7 @@ Este documento maestro sirve como centro de control y coordinación para todos l
 | Reorganización de Modales | ⏳ 0% | Media |
 | Optimización de Rendimiento | ⏳ 0% | Baja |
 | Pruebas y Validación | ⏳ 0% | Baja |
+| Corrección de Inconsistencias de Tipos en APIs | 🔄 50% | Alta |
 
 ## Documentación Principal
 
@@ -120,7 +121,15 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 - ✅ Verificación de tipos para categorías (ya implementado correctamente)
 - ✅ Documentación de estándares de tipos en `docs/estandares-tipos.md`
 
-### 3. Optimización de Carga Inicial (🔄 En progreso)
+### 3. Corrección de Inconsistencias de Tipos en APIs (🔄 En progreso)
+
+- ✅ Corrección de tipo para campo `deleted` en `app/api/products/[id]/route.ts`
+- ✅ Actualización de consultas Prisma para manejar correctamente el tipo booleano de `deleted`
+- ⏳ Revisar otros endpoints para detectar inconsistencias de tipos
+- ⏳ Estandarizar todos los tipos utilizados en consultas Prisma
+- ⏳ Documentar las correcciones para futuros desarrolladores
+
+### 4. Optimización de Carga Inicial (🔄 En progreso)
 
 - ✅ Eliminación de precarga agresiva de datos
 - ✅ Implementación de carga bajo demanda para secciones y productos
@@ -128,7 +137,7 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 - ⏳ Implementación de lazy loading para componentes pesados
 - ⏳ Creación de componentes skeleton para mejorar UX
 
-### 4. Limpieza de Componentes Duplicados (✅ 90%)
+### 5. Limpieza de Componentes Duplicados (✅ 90%)
 
 - ✅ Consolidación del componente `ProductTable.tsx`
 - ✅ Eliminación de archivos de respaldo (.bak)
@@ -140,7 +149,7 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 - ✅ Decisión: Mantener componentes en `components/tables/` para futuras refactorizaciones
 - ⏳ Actualización del archivo de índice de tablas (si es necesario)
 
-### 5. Extracción de Lógica del Dashboard (🔄 40%)
+### 6. Extracción de Lógica del Dashboard (🔄 40%)
 
 - ✅ Extracción de controladores de eventos para categorías
 - ✅ Extracción de controladores de eventos para secciones
@@ -150,7 +159,7 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 - ⏳ Separación de componentes de vistas
 - ⏳ Implementación de sistema de enrutamiento interno
 
-### 6. Próximos Pasos Prioritarios
+### 7. Próximos Pasos Prioritarios
 
 1. **Completar limpieza de componentes duplicados**:
    - ⏳ Verificar otras áreas potenciales para limpieza
@@ -181,6 +190,9 @@ Debe consultarse junto con `PROJECT_STRUCTURE2.md` para tener la visión más ac
 - Verificación y decisión sobre componentes de tablas (mantener las versiones en `components/tables/` por ahora)
 - Verificación de funcionamiento de la aplicación después de los cambios
 - Descubrimiento de hooks personalizados existentes pero no utilizados (useCategories, useSections, useProducts)
+- Corrección de inconsistencias de tipos en el endpoint de productos (`app/api/products/[id]/route.ts`)
+- Actualización del campo `deleted` para usar el tipo booleano correcto en consultas Prisma
+- Documentación del problema y solución en `errores-soluciones.md`
 
 ---
 
