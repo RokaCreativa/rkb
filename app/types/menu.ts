@@ -59,4 +59,5 @@ export interface Client {
   contact_phone?: string;
   business_type?: string;
   status: number;
+  logo?: string | null;
 } 

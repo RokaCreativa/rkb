@@ -30,6 +30,7 @@ interface SectionTableProps {
   onBackClick?: () => void;
   categoryName?: string;
   onReorderSection?: (sourceIndex: number, destinationIndex: number) => void;
+  isReorderModeActive?: boolean;
   // Propiedades de paginación
   paginationEnabled?: boolean;
   currentPage?: number;
@@ -56,6 +57,7 @@ export default function SectionTable({
   onBackClick,
   categoryName,
   onReorderSection,
+  isReorderModeActive,
   // Propiedades de paginación
   paginationEnabled = false,
   currentPage = 1,

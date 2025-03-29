@@ -28,6 +28,7 @@ interface ProductTableProps {
   onToggleVisibility?: (productId: number, currentStatus: number) => void;
   isUpdatingVisibility?: number | null;
   onReorderProduct?: (sourceIndex: number, destinationIndex: number) => void;
+  isReorderModeActive?: boolean;
   // Propiedades de paginación
   paginationEnabled?: boolean;
   currentPage?: number;
@@ -53,6 +54,7 @@ export default function ProductTable({
   onToggleVisibility,
   isUpdatingVisibility,
   onReorderProduct,
+  isReorderModeActive,
   // Propiedades de paginación
   paginationEnabled = false,
   currentPage = 1,

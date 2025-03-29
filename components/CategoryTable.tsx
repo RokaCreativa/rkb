@@ -27,6 +27,7 @@ export interface CategoryTableProps {
   onToggleVisibility?: (categoryId: number, currentStatus: number) => void;
   isUpdatingVisibility?: number | null;
   onReorderCategory?: (sourceIndex: number, destinationIndex: number) => void;
+  isReorderModeActive?: boolean;
   // Props de paginación (opcionales)
   paginationEnabled?: boolean;
   totalCategories?: number;
@@ -50,6 +51,7 @@ export default function CategoryTable({
   onToggleVisibility,
   isUpdatingVisibility,
   onReorderCategory,
+  isReorderModeActive,
   // Props de paginación
   paginationEnabled = false,
   totalCategories,

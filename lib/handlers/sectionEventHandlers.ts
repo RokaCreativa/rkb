@@ -9,7 +9,7 @@
  */
 
 import { toast } from 'react-hot-toast';
-import { Section } from '@/lib/types';
+import { Section } from '@/app/types/menu';
 import { Dispatch, SetStateAction } from 'react';
 
 /**
@@ -19,47 +19,43 @@ import { Dispatch, SetStateAction } from 'react';
  * @param reorderedSections - Las secciones con el nuevo orden
  * @returns Promise<void>
  */
-export const handleReorderSection = async (
+export async function handleReorderSection(
   sections: Section[],
-  setSections: React.Dispatch<React.SetStateAction<Section[]>>,
-  reorderedSections: Section[]
-): Promise<void> => {
+  setSections: (updatedSections: Section[]) => void,
+  updatedSections?: Section[]
+) {
+  if (!sections.length) return;
+  
+  // Si no se proporciona updatedSections, no hay cambios que hacer
+  if (!updatedSections) return;
+  
   try {
-    // Actualizar el estado localmente para una respuesta inmediata de la UI
-    setSections(reorderedSections);
-
-    // Preparar datos para enviar a la API
-    const sectionsForApi = reorderedSections.map((section, index) => ({
-      id: section.section_id,
-      display_order: index + 1,
-    }));
-
-    // Enviar los cambios al servidor
-    const response = await fetch('/api/sections/reorder', {
+    // Actualizar estado local primero para feedback inmediato
+    setSections(updatedSections);
+    
+    // Enviar actualización al servidor
+    await fetch('/api/sections/reorder', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ sections: sectionsForApi }),
+      body: JSON.stringify({
+        sections: updatedSections.map(section => ({
+          id: section.section_id,
+          display_order: section.display_order
+        }))
+      }),
     });
-
-    // Manejar respuesta con error
-    if (!response.ok) {
-      console.error('Error al reordenar secciones:', response.status);
-      // Revertir a los datos originales si hay un error
-      setSections(sections);
-      toast.error('Error al reordenar secciones. Por favor, inténtalo de nuevo.');
-      return;
-    }
-
-    toast.success('Secciones reordenadas correctamente');
+    
+    toast.success('Orden de secciones actualizado');
   } catch (error) {
     console.error('Error al reordenar secciones:', error);
-    // Revertir a los datos originales si hay un error
+    toast.error('Error al actualizar el orden');
+    
+    // Restaurar orden original
     setSections(sections);
-    toast.error('Error al reordenar secciones. Por favor, inténtalo de nuevo.');
   }
-};
+}
 
 /**
  * Actualiza la visibilidad de una sección
@@ -76,71 +72,45 @@ export async function toggleSectionVisibility(
   currentStatus: number,
   categoryId: number,
   sections: Record<string, Section[]>,
-  setSections: Dispatch<SetStateAction<Record<string, Section[]>>>
-): Promise<void> {
+  setSections: Dispatch<SetStateAction<Record<string, Section[]>>>,
+  setIsUpdatingVisibility?: Dispatch<SetStateAction<number | null>>
+) {
+  if (setIsUpdatingVisibility) setIsUpdatingVisibility(sectionId);
+  const newStatus = currentStatus === 1 ? 0 : 1;
+  
   try {
-    console.log(`[DEBUG] Cambiando visibilidad de sección ${sectionId} en categoría ${categoryId}: De ${currentStatus} a ${currentStatus === 1 ? 0 : 1}`);
-    
-    // Validar que la sección existe en la categoría
-    const categoryKey = categoryId.toString();
-    const sectionExists = sections[categoryKey]?.some(section => section.section_id === sectionId);
-    
-    if (!sectionExists) {
-      console.error(`[ERROR] Sección con ID ${sectionId} no encontrada en categoría ${categoryId}`);
-      toast.error(`No se encontró la sección con ID ${sectionId}`);
-      return;
-    }
-    
-    // Nuevo estado de visibilidad (invertir el actual)
-    const newVisibility = currentStatus === 1 ? 0 : 1;
-    console.log(`[DEBUG] Nuevo estado: ${newVisibility}`);
-    
-    // Actualización optimista en UI
-    setSections(prevSections => {
-      const updatedSections = { ...prevSections };
-      updatedSections[categoryKey] = prevSections[categoryKey].map(section =>
-        section.section_id === sectionId
-          ? { ...section, status: newVisibility }
-          : section
-      );
-      return updatedSections;
-    });
-
-    // Formatear el valor status para la API
-    console.log(`[DEBUG] Enviando PATCH a /api/sections/${sectionId} con status=${newVisibility}`);
-    
-    // Llamada a la API
     const response = await fetch(`/api/sections/${sectionId}`, {
-      method: "PATCH",
+      method: 'PATCH',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ status: newVisibility }),
+      body: JSON.stringify({ status: newStatus }),
     });
-
-    const data = await response.json();
-    console.log(`[DEBUG] Respuesta API:`, data);
-
+    
     if (!response.ok) {
-      throw new Error(data.error || "Error al cambiar la visibilidad");
+      throw new Error('Error al actualizar la visibilidad');
     }
-
-    toast.success(`La sección ahora está ${newVisibility === 1 ? "visible" : "oculta"}`);
-  } catch (error) {
-    console.error("[ERROR] Error en toggleSectionVisibility:", error);
     
-    // Revertir cambios en UI en caso de error
-    setSections(prevSections => {
-      const updatedSections = { ...prevSections };
-      updatedSections[categoryId.toString()] = prevSections[categoryId.toString()].map(section =>
-        section.section_id === sectionId
-          ? { ...section, status: currentStatus }
-          : section
-      );
-      return updatedSections;
+    // Actualizar la sección en el estado local
+    setSections(prev => {
+      const updated = { ...prev };
+      const categoryKey = categoryId.toString();
+      
+      if (updated[categoryKey]) {
+        updated[categoryKey] = updated[categoryKey].map(section => 
+          section.section_id === sectionId ? { ...section, status: newStatus } : section
+        );
+      }
+      
+      return updated;
     });
     
-    toast.error(`No se pudo cambiar la visibilidad: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    toast.success(newStatus === 1 ? 'Sección visible' : 'Sección oculta');
+  } catch (error) {
+    console.error('Error al cambiar visibilidad de sección:', error);
+    toast.error('No se pudo cambiar la visibilidad');
+  } finally {
+    if (setIsUpdatingVisibility) setIsUpdatingVisibility(null);
   }
 }
 
@@ -151,37 +121,45 @@ export async function toggleSectionVisibility(
  * @param categoryId - ID de la categoría a la que pertenece la sección
  * @returns Promise<void>
  */
-export const deleteSection = async (
+export async function deleteSection(
   sectionId: number,
-  setSections: (updater: (prev: Record<string | number, Section[]>) => Record<string | number, Section[]>) => void,
-  categoryId: number
-): Promise<void> => {
+  setSections: Dispatch<SetStateAction<Record<string, Section[]>>>,
+  categoryId: number,
+  setIsDeletingSection?: Dispatch<SetStateAction<boolean>>
+): Promise<boolean> {
+  if (setIsDeletingSection) setIsDeletingSection(true);
+  
   try {
-    // Actualizar optimistamente el UI
-    setSections(prev => ({
-      ...prev,
-      [categoryId]: prev[categoryId]?.filter((section) => section.section_id !== sectionId) || []
-    }));
-
-    // Enviar la eliminación al servidor
     const response = await fetch(`/api/sections/${sectionId}`, {
       method: 'DELETE',
     });
-
-    // Manejar respuesta con error
+    
     if (!response.ok) {
-      console.error('Error al eliminar la sección:', response.status);
-      // Si falla, revertir el cambio optimista
-      toast.error('Error al eliminar la sección. Por favor, inténtalo de nuevo.');
-      return;
+      throw new Error('Error al eliminar la sección');
     }
-
+    
+    // Actualizar el estado local
+    setSections(prev => {
+      const updated = { ...prev };
+      const categoryKey = categoryId.toString();
+      
+      if (updated[categoryKey]) {
+        updated[categoryKey] = updated[categoryKey].filter(section => section.section_id !== sectionId);
+      }
+      
+      return updated;
+    });
+    
     toast.success('Sección eliminada correctamente');
+    return true;
   } catch (error) {
-    console.error('Error al eliminar la sección:', error);
-    toast.error('Error al eliminar la sección. Por favor, inténtalo de nuevo.');
+    console.error('Error al eliminar sección:', error);
+    toast.error('No se pudo eliminar la sección');
+    return false;
+  } finally {
+    if (setIsDeletingSection) setIsDeletingSection(false);
   }
-};
+}
 
 /**
  * Recarga las secciones desde la API
