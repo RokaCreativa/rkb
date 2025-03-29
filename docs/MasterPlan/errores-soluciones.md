@@ -133,6 +133,39 @@ export function adaptToggleCategoryVisibility(
 
 Esta solución garantiza que tanto el estado interno del hook como el estado del dashboard se actualicen correctamente, manteniendo la interfaz sincronizada con los cambios.
 
+### Error 5: Mensajes de éxito duplicados
+
+**Descripción:**
+Al eliminar una categoría mediante el adaptador `adaptDeleteCategory`, aparecen dos mensajes toast de éxito duplicados.
+
+**Causa:**
+Tanto el hook `useCategories` como el componente `DeleteCategoryConfirmation` muestran mensajes de éxito. Además, en el dashboard también hay una función que muestra otro mensaje de éxito al completar la operación.
+
+**Solución:**
+Eliminar los mensajes toast redundantes, dejando solo uno controlado por el hook principal:
+
+```typescript
+// En la función handleDeleteCategoryConfirmed del dashboard:
+if (success) {
+  // El hook ya muestra un mensaje de éxito, no es necesario duplicarlo
+  return true;
+} else {
+  toast.error('No se pudo eliminar la categoría');
+  return false;
+}
+
+// En el método de fallback del componente DeleteCategoryConfirmation:
+if (!response.ok) {
+  throw new Error('Error al eliminar la categoría');
+}
+
+// El mensaje de éxito ya lo muestra el hook, no es necesario duplicarlo aquí
+onDeleted(categoryId);
+onClose();
+```
+
+Esta solución proporciona una experiencia de usuario más limpia al mostrar un único mensaje de confirmación cuando la operación es exitosa.
+
 ## Problemas de Tipado
 
 ### Error 4: Error de tipo en el adaptador

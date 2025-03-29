@@ -404,12 +404,12 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
    - Identificar las funciones a adaptar
    - Crear adaptadores para tipos y funciones
 
-2. **Integración parcial manteniendo estado local** 🔄
+2. **Integración parcial manteniendo estado local** ✅
    - Añadir hook useCategories en dashboard manteniendo el estado local
    - Implementar adaptadores para reemplazo de funciones:
      - [x] `adaptReorderCategory` para reordenar categorías
      - [x] `adaptToggleCategoryVisibility` para cambiar visibilidad
-     - [ ] `adaptDeleteCategory` para eliminar categorías
+     - [x] `adaptDeleteCategory` para eliminar categorías
 
 3. **Correcciones de rutas API** ✅
    - Corregir rutas en hook useCategories:
@@ -424,7 +424,7 @@ Este documento presenta un plan paso a paso para implementar las optimizaciones 
 
 #### Estado Actual:
 - ✅ La fase 1 (preparación) está completada
-- 🔄 La fase 2 (integración parcial) está en progreso avanzado
+- ✅ La fase 2 (integración parcial) está completada
 - ⏳ La fase 3 (migración completa) está pendiente
 
 ## Testing y Validación

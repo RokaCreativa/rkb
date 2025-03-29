@@ -83,6 +83,7 @@ Al intentar integrar el hook useCategories en el dashboard, encontramos inconsis
 - **Adaptadores de Funciones**:
   - Se implementó exitosamente `adaptReorderCategory` para reordenar categorías
   - Se implementó exitosamente `adaptToggleCategoryVisibility` para cambiar la visibilidad
+  - Se implementó exitosamente `adaptDeleteCategory` para eliminar categorías
   - Los adaptadores gestionan correctamente las diferencias de tipos y parámetros
 
 - **Corrección de Rutas API**:
@@ -93,6 +94,10 @@ Al intentar integrar el hook useCategories en el dashboard, encontramos inconsis
 - **Actualización en Tiempo Real**:
   - Se mejoró el adaptador `adaptToggleCategoryVisibility` para actualizar explícitamente el estado del dashboard
   - Esta mejora evita la necesidad de recargar la página para ver los cambios de visibilidad
+
+- **Mejora de Experiencia de Usuario**:
+  - Se eliminaron mensajes toast duplicados al eliminar categorías
+  - Se implementó un mecanismo de fallback en los adaptadores para manejar errores graciosamente
 
 ## 4. PLAN DE INTEGRACIÓN DETALLADO
 
@@ -386,13 +391,13 @@ Añadir una sección sobre la integración del hook:
 - [x] Crear adaptadores para conversión de tipos
 - [x] Desarrollar adaptadores para funciones
 
-### Fase 2: Integración parcial 🟡
+### Fase 2: Integración parcial ✅ 
 - [x] Añadir hook manteniendo estados locales
 - [x] Sincronizar estados con useEffect
 - [x] Reemplazar fetchCategories
 - [x] Reemplazar toggleCategoryVisibility
 - [x] Reemplazar reorderCategory
-- [ ] Reemplazar deleteCategory
+- [x] Reemplazar deleteCategory
 
 ### Fase 3: Migración completa ⬜
 - [ ] Eliminar estado local de categories
@@ -500,6 +505,7 @@ Durante el proceso de integración del hook useCategories, hemos identificado va
 - **Adaptadores de Función**: El patrón adaptador demostró ser una solución elegante para manejar las diferencias de implementación
 - **Actualización de Estado Explícita**: Es necesario actualizar explícitamente ambos estados (hook y dashboard) para evitar inconsistencias
 - **Manejo de Errores con Fallback**: Implementar fallbacks para los casos donde los adaptadores fallen mejora la robustez
+- **Control de Notificaciones**: Las notificaciones (toast) deben centralizarse, preferiblemente en una sola capa, para evitar duplicaciones
 
 ### 12.3 Rutas de API y Consistencia
 
