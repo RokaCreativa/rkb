@@ -17,7 +17,7 @@ export default function useCategories(clientId: number | null) {
     
     setIsLoadingCategories(true);
     try {
-      const response = await axios.get(`/api/clients/${clientId}/categories`);
+      const response = await axios.get(`/api/categories`);
       setCategories(response.data);
     } catch (error) {
       console.error('Error al cargar las categorías:', error);
