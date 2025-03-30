@@ -29,6 +29,7 @@ import NewSectionModal from './components/NewSectionModal';
 import EditSectionModal from './components/EditSectionModal';
 import NewProductModal from './components/NewProductModal';
 import EditProductModal from './components/EditProductModal';
+import { DeleteCategoryConfirmation, DeleteSectionConfirmation, DeleteProductConfirmation } from './components/modals';
 
 // Importar hooks personalizados
 import useViewState from './hooks/useViewState';
@@ -405,9 +406,9 @@ export default function DashboardPage() {
                 onCategoryClick={handleCategoryClick}
                 onEditCategory={openEditCategoryModal}
                 onDeleteCategory={(categoryId) => {
-                  const categoryName = categories.find(c => c.category_id === categoryId)?.name || '';
-                  if (confirm(`¿Estás seguro de que quieres eliminar la categoría "${categoryName}"? Esta acción eliminará también todas las secciones y productos asociados.`)) {
-                    deleteCategory(categoryId, setCategories);
+                  const category = categories.find(c => c.category_id === categoryId);
+                  if (category) {
+                    openDeleteCategoryModal(category);
                   }
                 }}
                 onToggleVisibility={toggleCategoryVisibility}
@@ -437,10 +438,9 @@ export default function DashboardPage() {
                       isUpdatingVisibility={isUpdatingVisibility}
                       onEditSection={openEditSectionModal}
                       onDeleteSection={(sectionId) => {
-                        const sectionName = sections[category.category_id]?.find(s => s.section_id === sectionId)?.name || '';
-                        if (confirm(`¿Estás seguro de que quieres eliminar la sección "${sectionName}"? Esta acción eliminará también todos los productos asociados.`)) {
-                          deleteSection(category.category_id, sectionId);
-                          toast.success('Sección eliminada correctamente');
+                        const section = sections[category.category_id]?.find(s => s.section_id === sectionId);
+                        if (section) {
+                          openDeleteSectionModal(section, category.category_id);
                         }
                       }}
                       onReorderSection={(sourceIndex, destIndex) => {
@@ -468,8 +468,10 @@ export default function DashboardPage() {
                             isUpdatingVisibility={isUpdatingVisibility}
                             onEditProduct={openEditProductModal}
                             onDeleteProduct={(productId) => {
-                              // Implementación temporal
-                              console.log(`Eliminar producto ${productId}`);
+                              const product = products[section.section_id]?.find(p => p.product_id === productId);
+                              if (product) {
+                                openDeleteProductModal(product);
+                              }
                               return Promise.resolve(true);
                             }}
                             isReorderModeActive={isReorderModeActive}
@@ -508,10 +510,9 @@ export default function DashboardPage() {
                   isUpdatingVisibility={isUpdatingVisibility}
                   onEditSection={openEditSectionModal}
                   onDeleteSection={(sectionId) => {
-                    const sectionName = sections[selectedCategory.category_id]?.find(s => s.section_id === sectionId)?.name || '';
-                    if (confirm(`¿Estás seguro de que quieres eliminar la sección "${sectionName}"? Esta acción eliminará también todos los productos asociados.`)) {
-                      deleteSection(selectedCategory.category_id, sectionId);
-                      toast.success('Sección eliminada correctamente');
+                    const section = sections[selectedCategory.category_id]?.find(s => s.section_id === sectionId);
+                    if (section) {
+                      openDeleteSectionModal(section, selectedCategory.category_id);
                     }
                   }}
                   onReorderSection={(sourceIndex, destIndex) => {
@@ -550,8 +551,10 @@ export default function DashboardPage() {
                     isUpdatingVisibility={isUpdatingVisibility}
                   onEditProduct={openEditProductModal}
                   onDeleteProduct={(productId) => {
-                    // Implementación temporal
-                    console.log(`Eliminar producto ${productId}`);
+                    const product = products[selectedSection.section_id]?.find(p => p.product_id === productId);
+                    if (product) {
+                      openDeleteProductModal(product);
+                    }
                     return Promise.resolve(true);
                   }}
                   isReorderModeActive={isReorderModeActive}
@@ -609,7 +612,48 @@ export default function DashboardPage() {
       />
       
       {/* Modales de confirmación de eliminación */}
-      {/* TODO: Agregar modales de confirmación de eliminación una vez se resuelvan los problemas de tipado */}
+      <DeleteCategoryConfirmation
+        isOpen={isDeleteCategoryModalOpen}
+        onClose={() => setIsDeleteCategoryModalOpen(false)}
+        categoryId={categoryToDelete?.id || 0}
+        categoryName={categoryToDelete?.name || ''}
+        clientId={client?.id || null}
+        onDeleted={(categoryId) => {
+          // Actualizar estado después de eliminar
+          setCategories(prev => prev.filter(c => c.category_id !== categoryId));
+          toast.success('Categoría eliminada correctamente');
+        }}
+      />
+      
+      <DeleteSectionConfirmation
+        isOpen={isDeleteSectionModalOpen}
+        onClose={() => setIsDeleteSectionModalOpen(false)}
+        sectionId={sectionToDelete?.id || 0}
+        sectionName={sectionToDelete?.name || ''}
+        categoryId={sectionToDelete?.categoryId || 0}
+        onDeleted={(sectionId) => {
+          // Actualizar estado después de eliminar
+          if (sectionToDelete?.categoryId) {
+            const categoryId = sectionToDelete.categoryId;
+            deleteSection(categoryId, sectionId);
+            toast.success('Sección eliminada correctamente');
+          }
+        }}
+      />
+      
+      <DeleteProductConfirmation
+        isOpen={isDeleteProductModalOpen}
+        onClose={() => setIsDeleteProductModalOpen(false)}
+        productId={productToDelete?.id || 0}
+        productName={productToDelete?.name || ''}
+        onDeleted={(productId) => {
+          // Actualizar estado después de eliminar
+          if (selectedSection) {
+            deleteProduct(productId, selectedSection.section_id);
+            toast.success('Producto eliminado correctamente');
+          }
+        }}
+      />
     </>
   );
 }

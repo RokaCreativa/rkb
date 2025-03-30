@@ -13,7 +13,7 @@ export default function useModalState() {
   const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
   const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<{ id: number, name: string } | null>(null);
-  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<{ id: number, name: string } | null>(null);
   
   // Campos para edición de categoría
   const [editCategoryName, setEditCategoryName] = useState('');
@@ -25,14 +25,14 @@ export default function useModalState() {
   const [isEditSectionModalOpen, setIsEditSectionModalOpen] = useState(false);
   const [isDeleteSectionModalOpen, setIsDeleteSectionModalOpen] = useState(false);
   const [editingSection, setEditingSection] = useState<{ id: number, name: string } | null>(null);
-  const [sectionToDelete, setSectionToDelete] = useState<number | null>(null);
+  const [sectionToDelete, setSectionToDelete] = useState<{ id: number, name: string, categoryId: number } | null>(null);
   
   // Modales de productos
   const [isNewProductModalOpen, setIsNewProductModalOpen] = useState(false);
   const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
   const [isDeleteProductModalOpen, setIsDeleteProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<{ id: number, name: string } | null>(null);
-  const [productToDelete, setProductToDelete] = useState<number | null>(null);
+  const [productToDelete, setProductToDelete] = useState<{ id: number, name: string } | null>(null);
   
   // Función para abrir el modal de nueva categoría
   const openNewCategoryModal = useCallback(() => {
@@ -51,8 +51,11 @@ export default function useModalState() {
   }, []);
   
   // Función para abrir el modal de confirmación de eliminación de categoría
-  const openDeleteCategoryModal = useCallback((categoryId: number) => {
-    setCategoryToDelete(categoryId);
+  const openDeleteCategoryModal = useCallback((category: Category) => {
+    setCategoryToDelete({
+      id: category.category_id,
+      name: category.name
+    });
     setIsDeleteCategoryModalOpen(true);
   }, []);
   
@@ -71,8 +74,12 @@ export default function useModalState() {
   }, []);
   
   // Función para abrir el modal de confirmación de eliminación de sección
-  const openDeleteSectionModal = useCallback((sectionId: number) => {
-    setSectionToDelete(sectionId);
+  const openDeleteSectionModal = useCallback((section: Section, categoryId: number) => {
+    setSectionToDelete({
+      id: section.section_id,
+      name: section.name,
+      categoryId
+    });
     setIsDeleteSectionModalOpen(true);
   }, []);
   
@@ -91,8 +98,11 @@ export default function useModalState() {
   }, []);
   
   // Función para abrir el modal de confirmación de eliminación de producto
-  const openDeleteProductModal = useCallback((productId: number) => {
-    setProductToDelete(productId);
+  const openDeleteProductModal = useCallback((product: Product) => {
+    setProductToDelete({
+      id: product.product_id,
+      name: product.name
+    });
     setIsDeleteProductModalOpen(true);
   }, []);
   
