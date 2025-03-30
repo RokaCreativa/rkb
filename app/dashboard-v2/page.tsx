@@ -29,8 +29,6 @@ import NewSectionModal from './components/NewSectionModal';
 import EditSectionModal from './components/EditSectionModal';
 import NewProductModal from './components/NewProductModal';
 import EditProductModal from './components/EditProductModal';
-// Importaremos los componentes de confirmación cuando existan
-// import { DeleteCategoryConfirmation, DeleteSectionConfirmation, DeleteProductConfirmation } from './components/modals';
 
 // Importar hooks personalizados
 import useViewState from './hooks/useViewState';
@@ -40,6 +38,9 @@ import useDataState from './hooks/useDataState';
 
 // Importar utilidades
 import { getBreadcrumbItems, getCategoryTableData, getPaginatedCategories } from './utils/dashboardHelpers';
+
+// Importar manejadores
+import { deleteCategory } from '@/lib/handlers/categoryEventHandlers';
 
 /**
  * Página principal del dashboard
@@ -133,13 +134,12 @@ export default function DashboardPage() {
     fetchSectionsByCategory,
     fetchProductsBySection,
     toggleCategoryVisibility,
-    deleteCategory,
     reorderCategory,
-    deleteSection,
     updateSection,
     toggleProductVisibility,
     deleteProduct,
-    updateProduct
+    updateProduct,
+    deleteSection
   } = useDataState();
   
   // Estado para modo de reordenamiento
@@ -404,7 +404,12 @@ export default function DashboardPage() {
                 expandedCategories={expandedCategories}
                 onCategoryClick={handleCategoryClick}
                 onEditCategory={openEditCategoryModal}
-                onDeleteCategory={openDeleteCategoryModal}
+                onDeleteCategory={(categoryId) => {
+                  const categoryName = categories.find(c => c.category_id === categoryId)?.name || '';
+                  if (confirm(`¿Estás seguro de que quieres eliminar la categoría "${categoryName}"? Esta acción eliminará también todas las secciones y productos asociados.`)) {
+                    deleteCategory(categoryId, setCategories);
+                  }
+                }}
                 onToggleVisibility={toggleCategoryVisibility}
                 isUpdatingVisibility={isUpdatingVisibility}
                 onReorderCategory={reorderCategory}
@@ -431,7 +436,13 @@ export default function DashboardPage() {
                       }}
                       isUpdatingVisibility={isUpdatingVisibility}
                       onEditSection={openEditSectionModal}
-                      onDeleteSection={openDeleteSectionModal}
+                      onDeleteSection={(sectionId) => {
+                        const sectionName = sections[category.category_id]?.find(s => s.section_id === sectionId)?.name || '';
+                        if (confirm(`¿Estás seguro de que quieres eliminar la sección "${sectionName}"? Esta acción eliminará también todos los productos asociados.`)) {
+                          deleteSection(sectionId);
+                          toast.success('Sección eliminada correctamente');
+                        }
+                      }}
                       onReorderSection={(sourceIndex, destIndex) => {
                         console.log(`Reordenar sección de ${sourceIndex} a ${destIndex}`);
                       }}
@@ -496,7 +507,13 @@ export default function DashboardPage() {
                   }}
                   isUpdatingVisibility={isUpdatingVisibility}
                   onEditSection={openEditSectionModal}
-                  onDeleteSection={openDeleteSectionModal}
+                  onDeleteSection={(sectionId) => {
+                    const sectionName = sections[selectedCategory.category_id]?.find(s => s.section_id === sectionId)?.name || '';
+                    if (confirm(`¿Estás seguro de que quieres eliminar la sección "${sectionName}"? Esta acción eliminará también todos los productos asociados.`)) {
+                      deleteSection(sectionId);
+                      toast.success('Sección eliminada correctamente');
+                    }
+                  }}
                   onReorderSection={(sourceIndex, destIndex) => {
                     console.log(`Reordenar sección de ${sourceIndex} a ${destIndex}`);
                   }}
@@ -590,8 +607,6 @@ export default function DashboardPage() {
           console.log("Categoría editada con éxito");
         }}
       />
-      
-      {/* Otros modales se implementarán cuando tengamos los componentes */}
     </>
   );
 }

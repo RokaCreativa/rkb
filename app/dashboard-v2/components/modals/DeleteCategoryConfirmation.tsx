@@ -6,12 +6,12 @@
  * @updated 2024-03-27
  */
 
+"use client";
+
 import React, { useState } from 'react';
+import { Dialog, Transition } from '@headlessui/react';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import ConfirmationModal from './ConfirmationModal';
-import { toast } from 'react-hot-toast';
-import useCategories from '@/app/hooks/useCategories';
-import { adaptDeleteCategory } from '@/lib/adapters/category-functions-adapter';
+import { deleteCategory } from '@/lib/handlers/categoryEventHandlers';
 
 /**
  * Props para el componente DeleteCategoryConfirmation
@@ -47,12 +47,6 @@ interface DeleteCategoryConfirmationProps {
    * ID del cliente (opcional)
    */
   clientId: number | null;
-  
-  /**
-   * Función que maneja la confirmación de eliminación (opcional)
-   * Si se proporciona, reemplaza la implementación predeterminada
-   */
-  onDeleteConfirmed?: (categoryId: number) => Promise<boolean>;
 }
 
 /**
@@ -70,93 +64,121 @@ interface DeleteCategoryConfirmationProps {
  *   onDeleted={(id) => console.log(`Categoría ${id} eliminada`)}
  * />
  */
-const DeleteCategoryConfirmation: React.FC<DeleteCategoryConfirmationProps> = ({
+export default function DeleteCategoryConfirmation({
   isOpen,
   onClose,
   categoryId,
   categoryName,
   onDeleted,
-  clientId,
-  onDeleteConfirmed
-}) => {
+  clientId
+}: DeleteCategoryConfirmationProps) {
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  // Integrar el hook useCategories
-  const { deleteCategory: hookDeleteCategory } = useCategories(clientId);
-  
-  const handleDelete = async () => {
-    if (!categoryId) return;
-    
+
+  const handleDeleteConfirmed = async () => {
     setIsDeleting(true);
     
     try {
-      // Si se proporciona una función personalizada, usarla
-      if (onDeleteConfirmed) {
-        const success = await onDeleteConfirmed(categoryId);
-        if (success) {
-          onDeleted(categoryId);
-          onClose();
-        }
-      } else {
-        // Usar el adaptador para deleteCategory
-        const adaptedDeleteCategory = adaptDeleteCategory(hookDeleteCategory);
-        
-        // Llamar a la función adaptada
-        const success = await adaptedDeleteCategory(
-          categoryId,
-          (updater) => {
-            // Esta función será llamada por el adaptador para actualizar el estado local
-            // pero nosotros solo notificamos al padre que la categoría fue eliminada
-            onDeleted(categoryId);
-          }
-        );
-        
-        if (success) {
-          toast.success('Categoría eliminada correctamente');
-          onClose();
-        } else {
-          throw new Error('No se pudo eliminar la categoría');
-        }
-      }
-    } catch (error) {
-      console.error('Error al eliminar categoría:', error);
+      // Llamada a la API para eliminar la categoría
+      const response = await fetch(`/api/categories/${categoryId}`, {
+        method: 'DELETE',
+      });
       
-      // Intentar el método original como fallback
-      try {
-        const response = await fetch(`/api/categories/${categoryId}`, {
-          method: 'DELETE',
-        });
-        
-        if (!response.ok) {
-          throw new Error('Error al eliminar la categoría');
-        }
-        
-        // El mensaje de éxito ya lo muestra el hook, no es necesario duplicarlo aquí
-        onDeleted(categoryId);
-        onClose();
-      } catch (fallbackError) {
-        console.error('Error en el fallback al eliminar categoría:', fallbackError);
-        toast.error('No se pudo eliminar la categoría');
+      if (!response.ok) {
+        throw new Error('No se pudo eliminar la categoría');
       }
+      
+      // Llamar al callback onDeleted
+      onDeleted(categoryId);
+      onClose();
+    } catch (error) {
+      console.error('Error al eliminar la categoría:', error);
     } finally {
       setIsDeleting(false);
     }
   };
-  
-  return (
-    <ConfirmationModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Eliminar categoría"
-      message={`¿Estás seguro de que deseas eliminar la categoría "${categoryName}"? Esta acción no se puede deshacer. Se eliminarán todas las secciones y productos asociados a esta categoría.`}
-      itemName={categoryName}
-      confirmText="Eliminar"
-      variant="danger"
-      cancelText="Cancelar"
-      isProcessing={isDeleting}
-      onConfirm={handleDelete}
-    />
-  );
-};
 
-export default DeleteCategoryConfirmation; 
+  return (
+    <Transition appear show={isOpen} as={React.Fragment}>
+      <Dialog as="div" className="relative z-10" onClose={onClose}>
+        <Transition.Child
+          as={React.Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-black bg-opacity-25" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <Transition.Child
+              as={React.Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-lg bg-white p-6 text-left align-middle shadow-xl transition-all">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 text-red-500">
+                    <ExclamationTriangleIcon className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                  <div className="ml-3">
+                    <Dialog.Title
+                      as="h3"
+                      className="text-lg font-medium leading-6 text-gray-900"
+                    >
+                      Eliminar categoría
+                    </Dialog.Title>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        ¿Estás seguro de que quieres eliminar la categoría <span className="font-semibold">{categoryName}</span>?
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Esta acción eliminará también todas las secciones y productos asociados.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                    onClick={onClose}
+                    disabled={isDeleting}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                    onClick={handleDeleteConfirmed}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Eliminando...
+                      </>
+                    ) : (
+                      'Eliminar'
+                    )}
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+  );
+} 
