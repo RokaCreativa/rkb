@@ -107,7 +107,7 @@ export default function DashboardPage() {
   } = useModalState();
   
   // Hook para gestionar estados de expansión
-  const {
+  const { 
     expandedCategories,
     expandedSections,
     loadingSections,
@@ -119,7 +119,7 @@ export default function DashboardPage() {
   } = useExpansionState();
   
   // Hook para gestionar datos y operaciones
-  const {
+  const { 
     client,
     categories,
     sections,
@@ -137,7 +137,7 @@ export default function DashboardPage() {
     reorderCategory,
     updateSection,
     toggleProductVisibility,
-    deleteProduct,
+    deleteProduct, 
     updateProduct,
     deleteSection
   } = useDataState();
@@ -308,19 +308,19 @@ export default function DashboardPage() {
     return (
       <div className="flex justify-center items-center h-full py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-      </div>
+        </div>
     );
   }
-  
+
   if (error) {
-    return (
+  return (
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
         <strong className="font-bold">Error:</strong>
         <span className="block sm:inline"> {error}</span>
       </div>
     );
   }
-  
+
   return (
     <>
       <TopNavbar 
@@ -348,42 +348,42 @@ export default function DashboardPage() {
           {/* Botón de acción según la vista */}
           <div>
             {currentView === 'categories' && (
-              <div className="flex items-center">
-                <button
-                  onClick={() => {
+            <div className="flex items-center">
+              <button
+                onClick={() => {
                     // Activar la vista previa
-                    const event = new CustomEvent('toggle-preview');
-                    window.dispatchEvent(event);
-                  }}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  <DevicePhoneMobileIcon className="h-4 w-4 mr-1" />
-                  Live Preview
-                </button>
-              </div>
+                  const event = new CustomEvent('toggle-preview');
+                  window.dispatchEvent(event);
+                }}
+                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                <DevicePhoneMobileIcon className="h-4 w-4 mr-1" />
+                Live Preview
+              </button>
+            </div>
             )}
             
             {currentView === 'sections' && selectedCategory && (
-              <button
+            <button
                 onClick={() => setIsNewSectionModalOpen(true)}
                 className="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm leading-4 font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
-              >
+            >
                 <PlusIcon className="h-4 w-4 mr-1" />
                 Nueva Sección
-              </button>
+            </button>
             )}
             
             {currentView === 'products' && selectedSection && (
-              <button
+                            <button
                 onClick={() => setIsNewProductModalOpen(true)}
                 className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 <PlusIcon className="h-4 w-4 mr-1" />
                 Nuevo Producto
-              </button>
-            )}
+                            </button>
+                )}
+                        </div>
           </div>
-        </div>
           
         {/* Contenido principal según la vista */}
         <div className="space-y-3" ref={sectionListRef}>
@@ -439,7 +439,7 @@ export default function DashboardPage() {
                       onDeleteSection={(sectionId) => {
                         const sectionName = sections[category.category_id]?.find(s => s.section_id === sectionId)?.name || '';
                         if (confirm(`¿Estás seguro de que quieres eliminar la sección "${sectionName}"? Esta acción eliminará también todos los productos asociados.`)) {
-                          deleteSection(sectionId);
+                          deleteSection(category.category_id, sectionId);
                           toast.success('Sección eliminada correctamente');
                         }
                       }}
@@ -495,12 +495,12 @@ export default function DashboardPage() {
                 </button>
               </div>
               
-              {sections[selectedCategory.category_id] ? (
-                <SectionTable 
+                {sections[selectedCategory.category_id] ? (
+                  <SectionTable 
                   sections={sections[selectedCategory.category_id] || []}
-                  expandedSections={expandedSections}
-                  onSectionClick={handleSectionClick}
-                  categoryName={selectedCategory.name}
+                    expandedSections={expandedSections}
+                    onSectionClick={handleSectionClick}
+                    categoryName={selectedCategory.name}
                   onToggleVisibility={(sectionId, status) => {
                     // Implementación temporal
                     console.log(`Toggle visibilidad sección ${sectionId} a ${status ? 'visible' : 'oculta'}`);
@@ -510,7 +510,7 @@ export default function DashboardPage() {
                   onDeleteSection={(sectionId) => {
                     const sectionName = sections[selectedCategory.category_id]?.find(s => s.section_id === sectionId)?.name || '';
                     if (confirm(`¿Estás seguro de que quieres eliminar la sección "${sectionName}"? Esta acción eliminará también todos los productos asociados.`)) {
-                      deleteSection(sectionId);
+                      deleteSection(selectedCategory.category_id, sectionId);
                       toast.success('Sección eliminada correctamente');
                     }
                   }}
@@ -518,16 +518,16 @@ export default function DashboardPage() {
                     console.log(`Reordenar sección de ${sourceIndex} a ${destIndex}`);
                   }}
                   isReorderModeActive={isReorderModeActive}
-                />
-              ) : (
-                <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-                </div>
-              )}
+                  />
+                ) : (
+                  <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                  </div>
+                )}
             </div>
           )}
           
-          {currentView === 'products' && selectedCategory && selectedSection && (
+      {currentView === 'products' && selectedCategory && selectedSection && (
             <div className="w-full px-4">
               <div className="mb-4">
                 <button
@@ -540,14 +540,14 @@ export default function DashboardPage() {
               </div>
               
               {products[selectedSection.section_id] ? (
-                <ProductTable 
+                  <ProductTable 
                   products={products[selectedSection.section_id]}
-                  sectionName={selectedSection.name}
+                    sectionName={selectedSection.name}
                   onToggleVisibility={(productId, status) => {
                     // Implementación temporal
                     console.log(`Toggle visibilidad producto ${productId} a ${status ? 'visible' : 'oculto'}`);
-                  }}
-                  isUpdatingVisibility={isUpdatingVisibility}
+                    }}
+                    isUpdatingVisibility={isUpdatingVisibility}
                   onEditProduct={openEditProductModal}
                   onDeleteProduct={(productId) => {
                     // Implementación temporal
@@ -555,15 +555,15 @@ export default function DashboardPage() {
                     return Promise.resolve(true);
                   }}
                   isReorderModeActive={isReorderModeActive}
-                />
-              ) : (
-                <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-                </div>
-              )}
+                  />
+                ) : (
+                  <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+                  </div>
+                )}
             </div>
           )}
-        </div>
+      </div>
       </div>
       
       {/* Componente de vista previa móvil flotante */}
@@ -607,6 +607,9 @@ export default function DashboardPage() {
           console.log("Categoría editada con éxito");
         }}
       />
+      
+      {/* Modales de confirmación de eliminación */}
+      {/* TODO: Agregar modales de confirmación de eliminación una vez se resuelvan los problemas de tipado */}
     </>
   );
 }
