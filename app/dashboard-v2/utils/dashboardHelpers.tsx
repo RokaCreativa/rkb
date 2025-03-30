@@ -109,4 +109,33 @@ export function getBreadcrumbItems(
   }
   
   return items;
+}
+
+/**
+ * Genera una representación legible de la estructura de categorías, secciones y productos
+ * para facilitar la depuración
+ */
+export function getDataStructureDebugInfo(
+  categories: any[],
+  sections: Record<string | number, any[]>,
+  products: Record<string | number, any[]>,
+  expandedCategories: Record<number, boolean>,
+  expandedSections: Record<number, boolean>
+) {
+  const structureInfo = {
+    categoriesCount: categories.length,
+    categoriesExpanded: Object.keys(expandedCategories).filter(id => expandedCategories[parseInt(id)]).length,
+    categoriesData: categories.map(cat => ({
+      id: cat.category_id,
+      name: cat.name,
+      isExpanded: expandedCategories[cat.category_id] || false,
+      sectionsCount: sections[cat.category_id]?.length || 0,
+      sectionIds: sections[cat.category_id]?.map(s => s.section_id) || []
+    })),
+    sectionsCount: Object.values(sections).reduce((acc, arr) => acc + arr.length, 0),
+    sectionsExpanded: Object.keys(expandedSections).filter(id => expandedSections[parseInt(id)]).length,
+    productsCount: Object.values(products).reduce((acc, arr) => acc + arr.length, 0)
+  };
+  
+  return structureInfo;
 } 

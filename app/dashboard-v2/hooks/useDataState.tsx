@@ -114,19 +114,26 @@ export default function useDataState(clientId: number | null = null) {
   
   // Cargar secciones para una categoría específica
   const fetchSectionsByCategory = useCallback(async (categoryId: number) => {
-    // Si la categoría no existe o ya tenemos cargadas sus secciones, evitar carga duplicada
-    if (!categoryId || (sections[categoryId] && sections[categoryId].length > 0)) {
-      return sections[categoryId] || [];
+    // Validación básica
+    if (!categoryId) {
+      console.warn("fetchSectionsByCategory: Se llamó sin categoryId válido");
+      return [];
     }
+    
+    // Siempre mostramos log para depuración
+    console.log(`Cargando secciones para categoría ${categoryId}...`);
     
     try {
       setIsSectionsLoading(true);
       const response = await fetch(`/api/sections?category_id=${categoryId}`);
       if (!response.ok) {
-        throw new Error('Error al cargar secciones');
+        throw new Error(`Error al cargar secciones: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
+      console.log(`Secciones cargadas para categoría ${categoryId}:`, data.length);
+      
+      // Actualizar el estado global
       setSections(prev => ({
         ...prev,
         [categoryId]: data
@@ -141,7 +148,7 @@ export default function useDataState(clientId: number | null = null) {
     } finally {
       setIsSectionsLoading(false);
     }
-  }, [sections]);
+  }, []);
   
   // Cargar productos para una sección específica
   const fetchProductsBySection = useCallback(async (sectionId: number) => {

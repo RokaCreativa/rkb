@@ -38,7 +38,7 @@ import useExpansionState from './hooks/useExpansionState';
 import useDataState from './hooks/useDataState';
 
 // Importar utilidades
-import { getBreadcrumbItems, getCategoryTableData, getPaginatedCategories } from './utils/dashboardHelpers';
+import { getBreadcrumbItems, getCategoryTableData, getPaginatedCategories, getDataStructureDebugInfo } from './utils/dashboardHelpers';
 
 // Importar manejadores
 import { deleteCategory } from '@/lib/handlers/categoryEventHandlers';
@@ -107,12 +107,17 @@ export default function DashboardPage() {
     openDeleteProductModal
   } = useModalState();
   
-  // Hook para gestionar estados de expansión
-  const { 
+  // Extraer las acciones que necesitamos del hook useExpansionState
+  const {
+    // Estados
     expandedCategories,
     expandedSections,
     loadingSections,
     loadingProducts,
+    
+    // Acciones
+    setExpandedCategories,
+    setExpandedSections,
     toggleCategoryExpansion,
     toggleSectionExpansion,
     setLoadingSectionsForCategory,
@@ -120,7 +125,7 @@ export default function DashboardPage() {
   } = useExpansionState();
   
   // Hook para gestionar datos y operaciones
-  const { 
+  const {
     client,
     categories,
     sections,
@@ -130,17 +135,20 @@ export default function DashboardPage() {
     isUpdatingVisibility,
     error,
     setCategories,
+    setSections,
+    setProducts,
     fetchClientData,
     fetchCategories,
     fetchSectionsByCategory,
     fetchProductsBySection,
     toggleCategoryVisibility,
+    deleteCategory,
     reorderCategory,
+    deleteSection,
     updateSection,
     toggleProductVisibility,
-    deleteProduct, 
-    updateProduct,
-    deleteSection
+    deleteProduct,
+    updateProduct
   } = useDataState();
   
   // Estado para modo de reordenamiento
@@ -232,20 +240,19 @@ export default function DashboardPage() {
     // 1. Primero, actualizar el estado para reflejar inmediatamente en la UI
     toggleCategoryExpansion(categoryId);
     
-    // 2. Si estamos expandiendo y no tenemos secciones, cargarlas
+    // 2. Si estamos expandiendo, cargar las secciones
     if (!isExpanded) {
       console.log(`Expandiendo categoría ${categoryId}`);
       
-      // Si no tenemos secciones cargadas para esta categoría, cargarlas
-      if (!sections[categoryId] || sections[categoryId].length === 0) {
-        console.log(`Cargando secciones para categoría ${categoryId}...`);
-        
-        try {
-          await fetchSectionsByCategory(categoryId);
-        } catch (error) {
-          console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
-          toast.error('Error al cargar las secciones');
-        }
+      try {
+        setLoadingSectionsForCategory(categoryId, true);
+        const sectionData = await fetchSectionsByCategory(categoryId);
+        console.log(`Categoría ${categoryId}: cargadas ${sectionData.length} secciones`);
+      } catch (error) {
+        console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
+        toast.error('Error al cargar las secciones');
+      } finally {
+        setLoadingSectionsForCategory(categoryId, false);
       }
     }
   };
@@ -398,6 +405,50 @@ export default function DashboardPage() {
                   <PlusIcon className="h-4 w-4 mr-1" />
                   Nueva Categoría
                 </button>
+                {/* Botón de depuración - Solo visible en desarrollo */}
+                {process.env.NODE_ENV === 'development' && (
+                  <>
+                    <button
+                      onClick={() => {
+                        console.log("Estructura actual de datos:", 
+                          getDataStructureDebugInfo(
+                            categories,
+                            sections,
+                            products,
+                            expandedCategories,
+                            expandedSections
+                          )
+                        );
+                      }}
+                      className="ml-2 inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                    >
+                      Debug
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          // Recargar las categorías primero
+                          const categoriesData = await fetchCategories();
+                          
+                          // Para cada categoría expandida, recargar sus secciones
+                          for (const categoryId of Object.keys(expandedCategories)) {
+                            if (expandedCategories[parseInt(categoryId)]) {
+                              await fetchSectionsByCategory(parseInt(categoryId));
+                            }
+                          }
+                          
+                          toast.success('Datos recargados correctamente');
+                        } catch (error) {
+                          console.error('Error al recargar datos:', error);
+                          toast.error('Error al recargar datos');
+                        }
+                      }}
+                      className="ml-2 inline-flex items-center px-3 py-2 border border-red-300 text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                      Recargar
+                    </button>
+                  </>
+                )}
               </div>
               
               <CategoryTable
@@ -419,63 +470,116 @@ export default function DashboardPage() {
               
               {/* Secciones expandidas para categorías */}
               {categories.map(category => {
-                if (!expandedCategories[category.category_id]) return null;
+                const isCategoryExpanded = expandedCategories[category.category_id] || false;
+                
+                // No renderizar nada si la categoría no está expandida
+                if (!isCategoryExpanded) return null;
+                
+                // Log para depuración
+                console.log(`Renderizando secciones expandidas para categoría ${category.name} (${category.category_id})`, {
+                  secciones: sections[category.category_id] || [],
+                  expandida: isCategoryExpanded
+                });
+                
+                // Obtener las secciones de esta categoría, con fallback a array vacío
+                const categorySections = sections[category.category_id] || [];
                 
                 return (
                   <div 
                     key={`expanded-category-${category.category_id}`}
                     className="mt-4 w-full pl-4 border-l-2 border-indigo-100"
                   >
-                    <SectionTable 
-                      sections={sections[category.category_id] || []}
-                      expandedSections={expandedSections}
-                      onSectionClick={handleSectionClick}
-                      categoryName={category.name}
-                      onToggleVisibility={(sectionId, status) => {
-                        // Implementación temporal
-                        console.log(`Toggle visibilidad sección ${sectionId} a ${status ? 'visible' : 'oculta'}`);
-                      }}
-                      isUpdatingVisibility={isUpdatingVisibility}
-                      onEditSection={openEditSectionModal}
-                      onDeleteSection={(sectionId) => {
-                        const section = sections[category.category_id]?.find(s => s.section_id === sectionId);
-                        if (section) {
-                          openDeleteSectionModal(section, category.category_id);
-                        }
-                      }}
-                      onReorderSection={(sourceIndex, destIndex) => {
-                        console.log(`Reordenar sección de ${sourceIndex} a ${destIndex}`);
-                      }}
-                      isReorderModeActive={isReorderModeActive}
-                    />
+                    {/* Si no hay secciones, mostrar mensaje */}
+                    {categorySections.length === 0 && (
+                      <div className="bg-gray-50 p-4 rounded-lg text-center text-sm text-gray-500">
+                        No hay secciones para esta categoría.
+                        <button
+                          onClick={openNewSectionModal}
+                          className="ml-2 text-indigo-600 hover:text-indigo-800"
+                        >
+                          Crear sección
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Si hay secciones, mostrar la tabla */}
+                    {categorySections.length > 0 && (
+                      <SectionTable 
+                        sections={categorySections}
+                        expandedSections={expandedSections}
+                        onSectionClick={handleSectionClick}
+                        categoryName={category.name}
+                        onToggleVisibility={(sectionId, status) => {
+                          // Implementación temporal
+                          console.log(`Toggle visibilidad sección ${sectionId} a ${status ? 'visible' : 'oculta'}`);
+                        }}
+                        isUpdatingVisibility={isUpdatingVisibility}
+                        onEditSection={openEditSectionModal}
+                        onDeleteSection={(sectionId) => {
+                          const section = sections[category.category_id]?.find(s => s.section_id === sectionId);
+                          if (section) {
+                            openDeleteSectionModal(section, category.category_id);
+                          }
+                        }}
+                        onReorderSection={(sourceIndex, destIndex) => {
+                          console.log(`Reordenar sección de ${sourceIndex} a ${destIndex}`);
+                        }}
+                        isReorderModeActive={isReorderModeActive}
+                      />
+                    )}
                     
                     {/* Productos expandidos para secciones */}
-                    {sections[category.category_id]?.map(section => {
-                      if (!expandedSections[section.section_id]) return null;
+                    {categorySections.map(section => {
+                      const isSectionExpanded = expandedSections[section.section_id] || false;
+                      
+                      // No renderizar nada si la sección no está expandida
+                      if (!isSectionExpanded) return null;
+                      
+                      // Obtener los productos de esta sección, con fallback a array vacío
+                      const sectionProducts = products[section.section_id] || [];
                       
                       return (
                         <div 
                           key={`expanded-section-${section.section_id}`}
                           className="mt-4 pl-4 border-l-2 border-teal-100"
                         >
-                          <ProductTable 
-                            products={products[section.section_id] || []}
-                            sectionName={section.name}
-                            onToggleVisibility={(productId, status) => {
-                              // Implementación temporal
-                              console.log(`Toggle visibilidad producto ${productId} a ${status ? 'visible' : 'oculto'}`);
-                            }}
-                            isUpdatingVisibility={isUpdatingVisibility}
-                            onEditProduct={openEditProductModal}
-                            onDeleteProduct={(productId) => {
-                              const product = products[section.section_id]?.find(p => p.product_id === productId);
-                              if (product) {
-                                openDeleteProductModal(product);
-                              }
-                              return Promise.resolve(true);
-                            }}
-                            isReorderModeActive={isReorderModeActive}
-                          />
+                          {/* Si no hay productos, mostrar mensaje */}
+                          {sectionProducts.length === 0 && (
+                            <div className="bg-gray-50 p-4 rounded-lg text-center text-sm text-gray-500">
+                              No hay productos para esta sección.
+                              <button
+                                onClick={() => {
+                                  setSelectedSection(section);
+                                  openNewProductModal();
+                                }}
+                                className="ml-2 text-indigo-600 hover:text-indigo-800"
+                              >
+                                Crear producto
+                              </button>
+                            </div>
+                          )}
+                          
+                          {/* Si hay productos, mostrar la tabla */}
+                          {sectionProducts.length > 0 && (
+                            <ProductTable 
+                              products={sectionProducts}
+                              sectionName={section.name}
+                              onToggleVisibility={(productId, status) => {
+                                // Implementación temporal
+                                console.log(`Toggle visibilidad producto ${productId} a ${status ? 'visible' : 'oculto'}`);
+                              }}
+                              isUpdatingVisibility={isUpdatingVisibility}
+                              onEditProduct={openEditProductModal}
+                              onDeleteProduct={(productId) => {
+                                const product = products[section.section_id]?.find(p => p.product_id === productId);
+                                if (product) {
+                                  openDeleteProductModal(product);
+                                }
+                                return Promise.resolve(true);
+                              }}
+                              isReorderModeActive={isReorderModeActive}
+                            />
+                          )}
                         </div>
                       );
                     })}
@@ -620,8 +724,29 @@ export default function DashboardPage() {
         clientId={client?.id || null}
         onDeleted={(categoryId) => {
           // Actualizar estado después de eliminar
+          console.log(`Eliminada categoría ${categoryId}, actualizando UI...`);
+          
+          // 1. Actualizar el estado de categorías
           setCategories(prev => prev.filter(c => c.category_id !== categoryId));
+          
+          // 2. Limpiar el estado de expansión para esta categoría
+          setExpandedCategories(prev => {
+            const updated = { ...prev };
+            delete updated[categoryId];
+            return updated;
+          });
+          
+          // 3. Limpiar las secciones asociadas a esta categoría
+          setSections(prev => {
+            const updated = { ...prev };
+            delete updated[categoryId];
+            return updated;
+          });
+          
           toast.success('Categoría eliminada correctamente');
+          
+          // Cerrar el modal
+          setIsDeleteCategoryModalOpen(false);
         }}
       />
       
@@ -635,9 +760,39 @@ export default function DashboardPage() {
           // Actualizar estado después de eliminar
           if (sectionToDelete?.categoryId) {
             const categoryId = sectionToDelete.categoryId;
+            console.log(`Eliminando sección ${sectionId} de categoría ${categoryId}...`);
+            
+            // 1. Eliminar la sección del servidor
             deleteSection(categoryId, sectionId);
+            
+            // 2. Actualizar el estado local de secciones
+            setSections(prev => {
+              const updated = { ...prev };
+              if (updated[categoryId]) {
+                updated[categoryId] = updated[categoryId].filter(s => s.section_id !== sectionId);
+              }
+              return updated;
+            });
+            
+            // 3. Limpiar el estado de expansión para esta sección
+            setExpandedSections(prev => {
+              const updated = { ...prev };
+              delete updated[sectionId];
+              return updated;
+            });
+            
+            // 4. Limpiar los productos asociados a esta sección
+            setProducts(prev => {
+              const updated = { ...prev };
+              delete updated[sectionId];
+              return updated;
+            });
+            
             toast.success('Sección eliminada correctamente');
           }
+          
+          // Cerrar el modal
+          setIsDeleteSectionModalOpen(false);
         }}
       />
       
@@ -649,9 +804,28 @@ export default function DashboardPage() {
         onDeleted={(productId) => {
           // Actualizar estado después de eliminar
           if (selectedSection) {
+            console.log(`Eliminando producto ${productId} de sección ${selectedSection.section_id}...`);
+            
+            // 1. Eliminar el producto del servidor
             deleteProduct(productId, selectedSection.section_id);
+            
+            // 2. Actualizar el estado local de productos
+            setProducts(prev => {
+              const updated = { ...prev };
+              const sectionKey = selectedSection.section_id.toString();
+              
+              if (updated[sectionKey]) {
+                updated[sectionKey] = updated[sectionKey].filter(p => p.product_id !== productId);
+              }
+              
+              return updated;
+            });
+            
             toast.success('Producto eliminado correctamente');
           }
+          
+          // Cerrar el modal
+          setIsDeleteProductModalOpen(false);
         }}
       />
     </>
