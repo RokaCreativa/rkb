@@ -1,0 +1,143 @@
+/**
+ * Archivo de animaciones CSS para el dashboard v2
+ * 
+ * Este archivo contiene todas las animaciones utilizadas en el dashboard,
+ * como transiciones entre vistas, efectos de aparición y desaparición,
+ * y otras animaciones útiles.
+ */
+
+/* Animación de aparecer con fade */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Animación de desaparecer con fade */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+/* Clase para aplicar animación de aparecer */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+/* Clase para aplicar animación de desaparecer */
+.animate-fade-out {
+  animation: fadeOut 0.3s ease-in-out forwards;
+}
+
+/* Animación de slide desde la derecha */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Animación de slide desde la izquierda */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Clases para aplicar animaciones de slide */
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-in-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.3s ease-in-out forwards;
+}
+
+/* Animación de pulse para enfatizar elementos */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 0.5s ease-in-out;
+}
+
+/* Animación de aparecer para breadcrumbs */
+@keyframes breadcrumbAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.breadcrumb-item-appear {
+  animation: breadcrumbAppear 0.2s ease-in-out forwards;
+}
+
+/* Animación de rebote suave para botones de acción */
+@keyframes softBounce {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-soft-bounce {
+  animation: softBounce 0.5s ease-in-out;
+}
+
+/* Transiciones para todos los elementos interactivos */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+.transition-opacity {
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+.transition-transform {
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+} 

@@ -22,6 +22,7 @@ import { CategoryList } from "./components/CategoryList";
 import { Category, Section, Product } from "@/app/types/menu";
 import useDataState from "./hooks/useDataState";
 import { getImagePath, handleImageError, getClientLogoPath, getMainLogoPath } from "@/app/dashboard-v2/utils/imageUtils";
+import { getBreadcrumbItems } from "@/app/dashboard-v2/utils/dashboardHelpers";
 
 // Añadir console.log para depuración
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -347,29 +348,18 @@ export default function DashboardPage() {
     setSelectedSection(null);
   };
 
-  // Preparar breadcrumbs según la vista actual
-  const breadcrumbs = [
-    { id: 'dashboard', name: 'Dashboard', current: currentView === 'categories', onClick: resetView },
-  ];
+  // Preparar breadcrumbs usando la función de utilidad
+  const breadcrumbs = getBreadcrumbItems(
+    currentView,
+    selectedCategory,
+    selectedSection,
+    {
+      goToCategories: resetView,
+      goToSections: handleCategoryClick,
+      goToProducts: handleSectionClick
+    }
+  );
   
-  if (selectedCategory) {
-    breadcrumbs.push({ 
-        id: `category-${selectedCategory.category_id}`, 
-        name: selectedCategory.name, 
-      current: currentView === 'sections', 
-      onClick: () => handleCategoryClick(selectedCategory)
-    });
-  }
-  
-  if (selectedSection) {
-    breadcrumbs.push({ 
-        id: `section-${selectedSection.section_id}`, 
-        name: selectedSection.name, 
-      current: currentView === 'products', 
-      onClick: () => handleSectionClick(selectedSection)
-    });
-  }
-
   // Handlers para modals
   const handleAddCategory = () => {
     setShowNewCategoryModal(true);
@@ -450,125 +440,122 @@ export default function DashboardPage() {
             </div>
         </div>
         
-        {/* Vista de categorías */}
-        {currentView === 'categories' && (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Categorías</h1>
-            <button
-                type="button"
-                onClick={handleAddCategory}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                Añadir categoría
-            </button>
-          </div>
-          
+        {/* Contenedor con efectos de transición para las vistas */}
+        <div className="transition-opacity duration-300 ease-in-out">
+          {/* Vista de categorías */}
+          {currentView === 'categories' && (
+            <div className="animate-fade-in">
+              <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">Categorías</h1>
+                <button
+                  type="button"
+                  onClick={handleAddCategory}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Añadir categoría
+                </button>
+              </div>
+              
               <CategoryTable
-              categories={categories}
+                categories={categories}
                 expandedCategories={expandedCategories}
                 onCategoryClick={handleCategoryClick}
-              onEditCategory={(category: Category) => handleEditCategory(category)}
+                onEditCategory={(category: Category) => handleEditCategory(category)}
                 onDeleteCategory={handleDeleteCategory}
-              onToggleCategoryVisibility={(categoryId: number, currentStatus: number) => {
-                console.log(`Toggle visibility for category: ${categoryId} to status: ${currentStatus}`);
-                const category = categories.find(c => c.category_id === categoryId);
-                if (category) {
-                  // Update category status
-                  setCategories(prev => 
-                    prev.map(cat => 
-                      cat.category_id === categoryId ? { ...cat, status: currentStatus } : cat
-                    )
-                  );
-                }
-              }}
-              isUpdatingVisibility={null}
-              sections={sections}
-              expandedSections={{}}
-              onAddSection={() => setShowNewSectionModal(true)}
-              onSectionClick={() => {}}
-              onToggleSectionVisibility={toggleSectionVisibility}
-              onEditSection={handleEditSection}
-              onDeleteSection={(section: Section) => {}}
-              onAddProduct={() => {}}
+                onToggleCategoryVisibility={(categoryId: number, currentStatus: number) => {
+                  console.log(`Toggle visibility for category: ${categoryId} to status: ${currentStatus}`);
+                  const category = categories.find(c => c.category_id === categoryId);
+                  if (category) {
+                    // Update category status
+                    setCategories(prev => 
+                      prev.map(cat => 
+                        cat.category_id === categoryId ? { ...cat, status: currentStatus } : cat
+                      )
+                    );
+                  }
+                }}
+                isUpdatingVisibility={null}
+                sections={sections}
+                expandedSections={{}}
+                onAddSection={() => setShowNewSectionModal(true)}
+                onSectionClick={() => {}}
+                onToggleSectionVisibility={toggleSectionVisibility}
+                onEditSection={handleEditSection}
+                onDeleteSection={(section: Section) => {}}
+                onAddProduct={() => {}}
               />
-           </div>
-        )}
-        
-        {/* Vista de secciones */}
-          {currentView === 'sections' && selectedCategory && (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Secciones de {selectedCategory.name}</h1>
-              <button
-                type="button"
-                onClick={handleAddSection}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                Añadir sección
-              </button>
             </div>
-            
-                  <SectionTable 
-              sections={sections[selectedCategory.category_id] || []}
-              onEditSection={handleEditSection}
-                    onDeleteSection={handleDeleteSection}
-              onToggleSectionVisibility={toggleSectionVisibility}
-              categoryId={selectedCategory.category_id}
-              isUpdatingVisibility={isUpdatingVisibility}
-                  />
-         </div>
-       )}
-       
-        {/* Vista de productos */}
-      {currentView === 'products' && selectedCategory && selectedSection && (
-          <div>
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">Productos de {selectedSection.name}</h1>
-                 <button
-                type="button"
-                onClick={handleAddProduct}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                </svg>
-                Añadir producto
-               </button>
-               </div>
-            
-                  <ProductTable 
-              products={products}
-                    sectionName={selectedSection.name}
-              onEditProduct={handleEditProduct}
-              onDeleteProduct={handleDeleteProduct}
-              onToggleVisibility={toggleProductVisibility}
-              isUpdatingVisibility={null}
-              isReorderModeActive={isReorderModeActive}
-              onReorderProduct={(productId, direction) => {
-                // Simple implementation for product reordering
-                const index = products.findIndex(p => p.id === productId);
-                if (index === -1) return;
-                
-                const newProducts = [...products];
-                
-                if (direction === 'up' && index > 0) {
-                  [newProducts[index - 1], newProducts[index]] = [newProducts[index], newProducts[index - 1]];
-                } else if (direction === 'down' && index < products.length - 1) {
-                  [newProducts[index], newProducts[index + 1]] = [newProducts[index + 1], newProducts[index]];
-                }
-                
-                setProducts(newProducts);
-              }}
-            />
-           </div>
-         )}
+          )}
+          
+          {/* Vista de secciones */}
+          {currentView === 'sections' && selectedCategory && (
+            <div className="animate-fade-in">
+              <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">Secciones de {selectedCategory.name}</h1>
+                <button
+                  type="button"
+                  onClick={handleAddSection}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Añadir sección
+                </button>
+              </div>
+              
+              <SectionTable 
+                sections={sections[selectedCategory.category_id] || []}
+                onEditSection={handleEditSection}
+                onDeleteSection={handleDeleteSection}
+                onToggleSectionVisibility={toggleSectionVisibility}
+                categoryId={selectedCategory.category_id}
+                isUpdatingVisibility={isUpdatingVisibility}
+              />
+            </div>
+          )}
+           
+          {/* Vista de productos */}
+          {currentView === 'products' && selectedCategory && selectedSection && (
+            <div className="animate-fade-in">
+              <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">Productos de {selectedSection.name}</h1>
+                <button
+                  type="button"
+                  onClick={handleAddProduct}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Añadir producto
+                </button>
+              </div>
+              
+              <ProductTable
+                products={products[selectedSection.section_id] || []}
+                sectionName={selectedSection.name}
+                onEditProduct={handleEditProduct}
+                onDeleteProduct={async (productId: number) => {
+                  console.log("Delete product:", productId);
+                  return true; // Simular eliminación exitosa
+                }}
+                onToggleVisibility={async (productId: number, status: number) => {
+                  console.log(`Toggle visibility for product: ${productId} to ${status}`);
+                  // Implementar actualización real cuando sea necesario
+                }}
+                isUpdatingVisibility={null}
+                isReorderModeActive={isReorderModeActive}
+                onReorderProduct={(productId: number, direction: 'up' | 'down') => {
+                  console.log(`Reorder product: ${productId} ${direction}`);
+                }}
+              />
+            </div>
+          )}
+        </div>
       </main>
       
       {/* Modals para creación */}

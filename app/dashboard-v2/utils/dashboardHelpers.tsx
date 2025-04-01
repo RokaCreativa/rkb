@@ -62,44 +62,49 @@ export function getPaginatedCategories(allCategories: Category[], pagination: { 
  * @param currentView - Vista actual ('categories', 'sections', 'products')
  * @param selectedCategory - Categoría seleccionada (si aplica)
  * @param selectedSection - Sección seleccionada (si aplica)
+ * @param handlers - Funciones para manejar la navegación
  * @returns Array de elementos para el componente de breadcrumbs
  */
 export function getBreadcrumbItems(
   currentView: 'categories' | 'sections' | 'products',
   selectedCategory: Category | null,
-  selectedSection: Section | null
+  selectedSection: Section | null,
+  handlers: {
+    goToCategories: () => void;
+    goToSections: (category: Category) => void;
+    goToProducts: (section: Section) => void;
+  }
 ) {
   const items = [
     { 
       id: 'categories', 
       name: 'Categorías', 
       key: 'categories',
-      current: currentView === 'categories' 
+      current: currentView === 'categories',
+      onClick: handlers.goToCategories
     }
   ];
   
-  if (currentView === 'sections' && selectedCategory) {
+  if (selectedCategory) {
     items.push({ 
       id: `category-${selectedCategory.category_id}`, 
       name: selectedCategory.name, 
       key: 'sections',
-      current: true 
+      current: currentView === 'sections',
+      onClick: () => handlers.goToSections(selectedCategory)
     });
   }
   
   if (currentView === 'products' && selectedCategory && selectedSection) {
-    items.push({ 
-      id: `category-${selectedCategory.category_id}`, 
-      name: selectedCategory.name, 
-      key: 'sections',
-      current: false 
-    });
+    // Asegurarse de que el item de categoría no esté marcado como actual
+    items[1].current = false;
     
     items.push({ 
       id: `section-${selectedSection.section_id}`, 
       name: selectedSection.name, 
       key: 'products',
-      current: true 
+      current: true,
+      onClick: () => handlers.goToProducts(selectedSection)
     });
   }
   
