@@ -4,7 +4,7 @@
 
 Este índice maestro sirve como punto de entrada centralizado para toda la documentación relacionada con la refactorización del Dashboard v2 de RokaMenu. **El objetivo fundamental de esta refactorización es aplicar buenas prácticas al código existente, NO crear nuevas funcionalidades ni inventar soluciones diferentes**. Se trata de mejorar la calidad, mantenibilidad y rendimiento del código, preservando exactamente la misma experiencia de usuario y capacidades.
 
-> 🚨 **IMPORTANTE**: Refactorizar significa reorganizar y mejorar el código existente, no reimaginarlo. Siempre debes verificar que cada componente refactorizado cumpla exactamente la misma función que su versión original.
+> 🚨 **IMPORTANTE**: Refactorizar significa reorganizar y mejorar el código existente (dash original), no reimaginarlo. Siempre debes verificar que cada componente refactorizado cumpla exactamente la misma función que su versión original.
 
 ## Guías de Refactorización del Dashboard v2
 
