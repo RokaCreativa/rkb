@@ -3,92 +3,95 @@
 import React from 'react';
 import { PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { Section } from '@/app/types/menu';
-import { getImagePath, handleImageError } from '@/app/dashboard-v2/core/utils/imageUtils';
+import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 
 interface SectionTableProps {
   sections: Section[];
-  isUpdatingVisibility?: number | null;
-  onToggleSectionVisibility?: (sectionId: number, currentStatus: number) => void;
+  isUpdatingVisibility: number | null;
+  onToggleSectionVisibility: (sectionId: number, status: number) => void;
   onEditSection: (section: Section) => void;
-  onDeleteSection: (section: Section, categoryId: number) => void;
+  onDeleteSection: (section: Section) => void;
   categoryId: number;
 }
 
-export function SectionTable({
+export const SectionTable: React.FC<SectionTableProps> = ({
   sections,
   isUpdatingVisibility,
   onToggleSectionVisibility,
   onEditSection,
   onDeleteSection,
   categoryId
-}: SectionTableProps) {
+}) => {
   if (!sections || sections.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        No hay secciones para esta categoría.
+      <div className="text-center py-4 text-gray-500">
+        No hay secciones disponibles
       </div>
     );
   }
 
   return (
-    <table className="min-w-full divide-y divide-gray-200">
-      <thead className="bg-gray-50">
-        <tr>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            NOMBRE
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            ORDEN
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            FOTO
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            VISIBLE
-          </th>
-          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            ACCIONES
-          </th>
-        </tr>
-      </thead>
-      <tbody className="bg-white divide-y divide-gray-200">
-        {sections.map((section) => (
-          <tr key={section.section_id} className="hover:bg-gray-50">
-            <td className="px-6 py-4 whitespace-nowrap">
-              <div className="text-sm font-medium text-gray-900">{section.name}</div>
-              {section.products_count !== undefined && (
-                <div className="text-xs text-gray-500">
-                  {section.products_count} productos
-                  {section.visible_products_count !== undefined && ` (${section.visible_products_count} visibles)`}
-                </div>
-              )}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {section.display_order}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              <div className="h-10 w-10 rounded-full overflow-hidden">
-                {section.image ? (
-                  <img 
-                    src={getImagePath(section.image, 'sections')} 
-                    alt={section.name} 
-                    className="h-full w-full object-cover"
-                    onError={handleImageError}
-                  />
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-gray-200">
-                    <span className="text-xs text-gray-500">Sin imagen</span>
+    <div className="overflow-hidden border border-gray-200 rounded-md">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              NOMBRE
+            </th>
+            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+              ORDEN
+            </th>
+            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
+              FOTO
+            </th>
+            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
+              VISIBLE
+            </th>
+            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+              ACCIONES
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {sections.map((section, index) => (
+            <tr key={section.section_id} className="hover:bg-gray-50">
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center">
+                  <div>
+                    <div className="text-sm font-medium text-gray-900">{section.name}</div>
+                    <div className="text-xs text-gray-500">
+                      {section.products_count || 0} Productos ({section.visible_products_count || 0} visibles)
+                    </div>
                   </div>
-                )}
-              </div>
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap">
-              {onToggleSectionVisibility && (
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                {section.display_order || index + 1}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-center">
+                <div className="h-10 w-10 rounded-full overflow-hidden mx-auto">
+                  {section.image ? (
+                    <img 
+                      src={getImagePath(section.image, 'sections')} 
+                      alt={section.name} 
+                      className="h-full w-full object-cover"
+                      onError={handleImageError}
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-gray-200">
+                      <span className="text-xs text-gray-500">Sin imagen</span>
+                    </div>
+                  )}
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-center">
                 <button 
                   className={`${
-                    section.status === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    section.status === 1 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
                   } px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full`}
-                  onClick={() => onToggleSectionVisibility(section.section_id, section.status)}
+                  onClick={() => onToggleSectionVisibility(section.section_id, section.status === 1 ? 0 : 1)}
                   disabled={isUpdatingVisibility === section.section_id}
                 >
                   {isUpdatingVisibility === section.section_id ? (
@@ -100,30 +103,32 @@ export function SectionTable({
                       Actualizando...
                     </span>
                   ) : (
-                    section.status === 1 ? 'Visible' : 'Oculto'
+                    <span>Visible</span>
                   )}
                 </button>
-              )}
-            </td>
-            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              <div className="flex space-x-3">
-                <button 
-                  onClick={() => onEditSection(section)}
-                  aria-label="Editar sección"
-                >
-                  <PencilIcon className="h-5 w-5 text-blue-600 hover:text-blue-800" />
-                </button>
-                <button 
-                  onClick={() => onDeleteSection(section, categoryId)}
-                  aria-label="Eliminar sección"
-                >
-                  <TrashIcon className="h-5 w-5 text-red-600 hover:text-red-800" />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-center">
+                <div className="flex space-x-3 justify-center">
+                  <button 
+                    onClick={() => onEditSection(section)}
+                    className="text-blue-600 hover:text-blue-800"
+                    aria-label="Editar sección"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </button>
+                  <button 
+                    onClick={() => onDeleteSection(section)}
+                    className="text-red-600 hover:text-red-800"
+                    aria-label="Eliminar sección"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
-} 
+}; 

@@ -146,6 +146,7 @@ export default function DashboardPage() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [selectedSection, setSelectedSection] = useState<DashboardSection | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<{ [key: number]: boolean }>({});
+  const [expandedSections, setExpandedSections] = useState<{ [key: number]: boolean }>({});
   const [showRedirectMessage, setShowRedirectMessage] = useState(true);
   const [loadingSections, setLoadingSections] = useState<{ [key: number]: boolean }>({});
   const togglePreview = useTogglePreview();
@@ -480,15 +481,56 @@ export default function DashboardPage() {
                     );
                   }
                 }}
-                isUpdatingVisibility={null}
+                isUpdatingVisibility={isUpdatingVisibility}
                 sections={sections}
-                expandedSections={{}}
-                onAddSection={() => setShowNewSectionModal(true)}
-                onSectionClick={() => {}}
+                expandedSections={expandedSections}
+                onAddSection={(categoryId: number) => {
+                  const category = categories.find(c => c.category_id === categoryId);
+                  if (category) {
+                    setSelectedCategory(category);
+                    setShowNewSectionModal(true);
+                  }
+                }}
+                onSectionClick={(sectionId: number) => {
+                  // Buscar la sección con este ID
+                  let section = null;
+                  let foundCategory = null;
+                  
+                  Object.entries(sections).forEach(([categoryId, sectionList]) => {
+                    const foundSection = sectionList.find(s => s.section_id === sectionId);
+                    if (foundSection) {
+                      section = foundSection;
+                      foundCategory = categories.find(c => c.category_id === parseInt(categoryId));
+                    }
+                  });
+                  
+                  if (section && foundCategory) {
+                    setSelectedCategory(foundCategory);
+                    setSelectedSection(section);
+                    handleSectionClick(section);
+                  }
+                }}
                 onToggleSectionVisibility={toggleSectionVisibility}
                 onEditSection={handleEditSection}
-                onDeleteSection={(section: Section) => {}}
-                onAddProduct={() => {}}
+                onDeleteSection={(section: Section) => handleDeleteSection(section, section.category_id || 0)}
+                onAddProduct={(sectionId: number) => {
+                  // Buscar la sección con este ID
+                  let section = null;
+                  let foundCategory = null;
+                  
+                  Object.entries(sections).forEach(([categoryId, sectionList]) => {
+                    const foundSection = sectionList.find(s => s.section_id === sectionId);
+                    if (foundSection) {
+                      section = foundSection;
+                      foundCategory = categories.find(c => c.category_id === parseInt(categoryId));
+                    }
+                  });
+                  
+                  if (section) {
+                    setSelectedSection(section);
+                    setShowNewProductModal(true);
+                  }
+                }}
               />
             </div>
           )}
@@ -510,14 +552,37 @@ export default function DashboardPage() {
                 </button>
               </div>
               
-              <SectionTable 
-                sections={sections[selectedCategory.category_id] || []}
-                onEditSection={handleEditSection}
-                onDeleteSection={handleDeleteSection}
-                onToggleSectionVisibility={toggleSectionVisibility}
-                categoryId={selectedCategory.category_id}
-                isUpdatingVisibility={isUpdatingVisibility}
-              />
+              {loadingSections[selectedCategory.category_id] ? (
+                <div className="flex justify-center items-center py-8">
+                  <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              ) : sections && sections[selectedCategory.category_id] && sections[selectedCategory.category_id].length > 0 ? (
+                <SectionTable 
+                  sections={sections[selectedCategory.category_id] || []}
+                  onEditSection={handleEditSection}
+                  onDeleteSection={(section) => handleDeleteSection(section, selectedCategory.category_id)}
+                  onToggleSectionVisibility={toggleSectionVisibility}
+                  categoryId={selectedCategory.category_id}
+                  isUpdatingVisibility={isUpdatingVisibility}
+                />
+              ) : (
+                <div className="bg-white shadow rounded-md p-6 text-center">
+                  <p className="text-gray-500">No hay secciones disponibles para esta categoría.</p>
+                  <button
+                    type="button"
+                    onClick={handleAddSection}
+                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                    </svg>
+                    Añadir primera sección
+                  </button>
+                </div>
+              )}
             </div>
           )}
            

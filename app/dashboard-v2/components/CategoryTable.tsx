@@ -3,7 +3,7 @@
 import React from 'react';
 import { PencilIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { Category, Section } from '@/app/types/menu';
-import { getImagePath, handleImageError } from '@/app/dashboard-v2/core/utils/imageUtils';
+import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 import { SectionTable } from './SectionTable';
 
 interface CategoryTableProps {
@@ -41,24 +41,27 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
   onDeleteSection,
   onAddProduct
 }) => {
+  // Obtener las categorías visibles
+  const visibleCategories = categories.filter(cat => cat.status === 1);
+  
   return (
-    <div className="bg-white shadow overflow-hidden rounded-md mb-4">
+    <div className="bg-white shadow overflow-hidden sm:rounded-md mb-4">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               NOMBRE
             </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
               ORDEN
             </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
               FOTO
             </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
               VISIBLE
             </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
               ACCIONES
             </th>
           </tr>
@@ -83,14 +86,14 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                       <div>
                         <div className="text-sm font-medium text-gray-900">{category.name}</div>
                         <div className="text-xs text-gray-500">
-                          {category.sections_count || 0} Secciones ({category.visible_sections_count || 0} visibles)
+                          {(sections[category.category_id]?.length || 0)} Secciones ({(sections[category.category_id]?.filter(s => s.status === 1).length || 0)} visibles)
                         </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-10 w-10 rounded-full overflow-hidden">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{category.display_order || index + 1}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="h-10 w-10 rounded-full overflow-hidden mx-auto">
                       {category.image ? (
                         <img 
                           src={getImagePath(category.image, 'categories')} 
@@ -105,14 +108,16 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
                     <button 
                       className={`${
-                        category.status === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        category.status === 1 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
                       } px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full`}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onToggleCategoryVisibility(category.category_id, category.status);
+                        onToggleCategoryVisibility(category.category_id, category.status === 1 ? 0 : 1);
                       }}
                       disabled={isUpdatingVisibility === category.category_id}
                     >
@@ -125,29 +130,31 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                           Actualizando...
                         </span>
                       ) : (
-                        category.status === 1 ? 'Visible' : 'Oculto'
+                        <span>Visible</span>
                       )}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div className="flex space-x-3">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
+                    <div className="flex space-x-3 justify-center">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
                           onEditCategory(category);
                         }}
+                        className="text-blue-600 hover:text-blue-800"
                         aria-label="Editar categoría"
                       >
-                        <PencilIcon className="h-5 w-5 text-blue-600 hover:text-blue-800" />
+                        <PencilIcon className="h-5 w-5" />
                       </button>
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
                           onDeleteCategory(category.category_id);
                         }}
+                        className="text-red-600 hover:text-red-800"
                         aria-label="Eliminar categoría"
                       >
-                        <TrashIcon className="h-5 w-5 text-red-600 hover:text-red-800" />
+                        <TrashIcon className="h-5 w-5" />
                       </button>
                     </div>
                   </td>
@@ -159,7 +166,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                     <td colSpan={5} className="px-0 py-0 border-0">
                       <div className="bg-gray-50 py-4">
                         <div className="px-6 py-2 border-l-4 border-indigo-500 ml-4">
-                          <h3 className="text-lg font-medium">{category.name}</h3>
+                          <h3 className="text-lg font-medium text-gray-900">{category.name}</h3>
                           <div className="text-xs text-gray-500">
                             {sections[category.category_id]?.length || 0} Secciones
                             ({sections[category.category_id]?.filter(s => s.status === 1).length || 0} visibles)
@@ -168,20 +175,29 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         
                         {/* Tabla de secciones */}
                         <div className="mt-4 px-10">
-                          <SectionTable 
-                            sections={sections[category.category_id] || []}
-                            isUpdatingVisibility={isUpdatingVisibility}
-                            onToggleSectionVisibility={onToggleSectionVisibility}
-                            onEditSection={onEditSection}
-                            onDeleteSection={(section) => onDeleteSection(section)}
-                            categoryId={category.category_id}
-                          />
+                          {sections[category.category_id] && sections[category.category_id].length > 0 ? (
+                            <SectionTable 
+                              sections={sections[category.category_id] || []}
+                              isUpdatingVisibility={isUpdatingVisibility}
+                              onToggleSectionVisibility={onToggleSectionVisibility}
+                              onEditSection={onEditSection}
+                              onDeleteSection={(section) => onDeleteSection(section)}
+                              categoryId={category.category_id}
+                            />
+                          ) : (
+                            <div className="text-center py-4 text-gray-500">
+                              No hay secciones disponibles para esta categoría
+                            </div>
+                          )}
                         </div>
                         
                         {/* Botón para agregar nueva sección */}
                         <div className="mt-4 px-10 flex justify-end">
                           <button
-                            onClick={() => onAddSection(category.category_id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onAddSection(category.category_id);
+                            }}
                             className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                           >
                             <PlusIcon className="h-4 w-4 mr-1" />
