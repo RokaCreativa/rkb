@@ -21,7 +21,7 @@ import { PhonePreview } from "./components/PhonePreview";
 import { CategoryList } from "./components/CategoryList";
 import { Category, Section, Product } from "@/app/types/menu";
 import useDataState from "./hooks/useDataState";
-import { getImagePath, handleImageError } from "@/app/dashboard-v2/core/utils/imageUtils";
+import { getImagePath, handleImageError, getClientLogoPath, getMainLogoPath } from "@/app/dashboard-v2/utils/imageUtils";
 
 // Añadir console.log para depuración
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -639,8 +639,8 @@ export default function DashboardPage() {
       {/* Componente de vista previa flotante */}
       <FloatingPhonePreview 
         clientName={client?.name} 
-        clientLogo={client?.logo ? `/images/clientes/${client.logo}` : undefined}
-        clientMainLogo={client?.main_logo ? `/images/main_logo/${client.main_logo}` : undefined}
+        clientLogo={client?.logo ? getClientLogoPath(client.logo) : undefined}
+        clientMainLogo={client?.main_logo ? getMainLogoPath(client.main_logo) : undefined}
         categories={categories
           .filter(cat => cat.status === 1)
           .map(cat => ({
