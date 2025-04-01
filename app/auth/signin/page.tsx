@@ -18,6 +18,12 @@ export default function SignInPage() {
     setError("");
 
     try {
+      // Obtener la URL de retorno si existe en los parámetros
+      const searchParams = new URLSearchParams(window.location.search);
+      const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+
+      console.log(`Iniciando sesión con redirección a: ${callbackUrl}`);
+      
       const result = await signIn("credentials", {
         email,
         password,
@@ -27,8 +33,9 @@ export default function SignInPage() {
       if (result?.error) {
         setError("Usuario o contraseña incorrectos");
       } else {
-        // Si la autenticación es exitosa, redirige al dashboard
-        router.push("/dashboard");
+        // Si la autenticación es exitosa, redirige a la URL de retorno o al dashboard por defecto
+        console.log(`Redirigiendo a: ${callbackUrl}`);
+        router.push(callbackUrl);
       }
     } catch (error) {
       setError("Error al iniciar sesión. Inténtalo de nuevo.");

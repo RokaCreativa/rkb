@@ -18,6 +18,7 @@ import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { Category, Section } from '@/app/types/menu';
 import { PrismaClient } from '@prisma/client';
+import eventBus, { Events } from '@/app/lib/eventBus';
 
 /**
  * Props para el componente NewSectionModal
@@ -27,13 +28,15 @@ import { PrismaClient } from '@prisma/client';
  * @property {PrismaClient} client - Cliente de Prisma para realizar operaciones en la base de datos
  * @property {Category | null} selectedCategory - Categoría seleccionada donde se añadirá la nueva sección
  * @property {Function} setSections - Función para actualizar el estado global de secciones después de la creación
+ * @property {number} categoryId - ID de la categoría seleccionada
  */
 interface NewSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  client: PrismaClient;
-  selectedCategory: Category | null;
-  setSections: React.Dispatch<React.SetStateAction<Record<string, Section[]>>>;
+  client?: PrismaClient;
+  selectedCategory?: Category | null;
+  setSections?: React.Dispatch<React.SetStateAction<Record<string, Section[]>>>;
+  categoryId: number;
 }
 
 /**
@@ -60,7 +63,8 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
   onClose,
   client,
   selectedCategory,
-  setSections
+  setSections,
+  categoryId
 }) => {
   /**
    * Estados del formulario para la creación de secciones
@@ -139,32 +143,25 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
    * 
    * @param {React.FormEvent} e - Evento de envío del formulario
    */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedCategory) {
-      toast.error('Por favor, selecciona una categoría primero');
-      return;
-    }
-    
+  const handleSubmit = async () => {
     if (!sectionName.trim()) {
-      toast.error('Por favor, ingresa un nombre para la sección');
+      toast.error('El nombre de la sección es obligatorio');
       return;
     }
-    
+
     setIsCreating(true);
-    
+
+    // Crear FormData para enviar la imagen si existe
+    const formData = new FormData();
+    formData.append('name', sectionName);
+    formData.append('category_id', categoryId.toString());
+
+    if (sectionImage) {
+      formData.append('image', sectionImage);
+    }
+
     try {
-      // Preparar los datos de la nueva sección
-      const formData = new FormData();
-      formData.append('name', sectionName);
-      formData.append('category_id', selectedCategory.category_id.toString());
-      
-      if (sectionImage) {
-        formData.append('image', sectionImage);
-      }
-      
-      // Crear la sección en la base de datos
+      // Verificar si la API está disponible
       const response = await fetch('/api/sections', {
         method: 'POST',
         body: formData,
@@ -176,22 +173,47 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
       
       const newSection: Section = await response.json();
       
-      // Actualizar el estado local con la nueva sección
-      setSections(prevSections => ({
-        ...prevSections,
-        [selectedCategory.category_id]: [...(prevSections[selectedCategory.category_id] || []), newSection]
-      }));
+      // Actualizar el estado local con la nueva sección si setSections está disponible
+      if (setSections && selectedCategory) {
+        setSections(prevSections => ({
+          ...prevSections,
+          [selectedCategory.category_id]: [...(prevSections[selectedCategory.category_id] || []), newSection]
+        }));
+      }
       
-      // Mostrar mensaje de éxito
+      // Emisión de evento para notificar que se creó una sección
+      console.log("Emitiendo evento de sección creada");
+      if (selectedCategory) {
+        eventBus.emit(Events.SECTION_CREATED, {
+          section: newSection,
+          categoryId: selectedCategory.category_id
+        });
+      } else {
+        eventBus.emit(Events.SECTION_CREATED, {
+          section: newSection,
+          categoryId: categoryId
+        });
+      }
+      
+      // Mostrar notificación de éxito
       toast.success('Sección creada correctamente');
-      
-      // Reiniciar el formulario
-      setSectionName('');
-      setSectionImage(null);
-      setImagePreview(null);
       
       // Cerrar el modal
       onClose();
+      
+      // SOLUCIÓN HÍBRIDA: Mantener la recarga como fallback, pero con más tiempo
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          console.log("Programando recarga completa como fallback...");
+          try {
+            window.location.href = window.location.href;
+          } catch (reloadError) {
+            console.error("Error al recargar:", reloadError);
+            window.location.reload();
+          }
+        }, 2000); // Tiempo mayor para dar oportunidad al EventBus
+      }
+      
     } catch (error) {
       console.error('Error al crear la sección:', error);
       toast.error('Error al crear la sección');

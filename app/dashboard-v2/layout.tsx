@@ -6,17 +6,23 @@
  */
 
 import { ReactNode } from 'react';
+import { DashboardProvider } from './components/DashboardProvider';
+import AuthDebugLayout from './AuthDebugLayout';
 
-interface DashboardLayoutProps {
-  children: ReactNode;
-}
-
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="pb-8">
-        {children}
-      </main>
+      <DashboardProvider>
+        <AuthDebugLayout>
+          <main className="container mx-auto px-4 py-8">
+            {children}
+          </main>
+        </AuthDebugLayout>
+      </DashboardProvider>
     </div>
   );
 } 

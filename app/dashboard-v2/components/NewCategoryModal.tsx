@@ -17,6 +17,9 @@ import { toast } from 'react-hot-toast';
 import Image from 'next/image';
 import { Category } from '@/app/types/menu';
 import { PrismaClient } from '@prisma/client';
+import eventBus, { Events } from '@/app/lib/eventBus';
+import { CheckIcon } from '@heroicons/react/24/outline';
+import SuccessMessage from './ui/SuccessMessage';
 
 /**
  * Props para el componente NewCategoryModal
@@ -25,12 +28,14 @@ import { PrismaClient } from '@prisma/client';
  * @property {Function} onClose - Función para cerrar el modal y limpiar el estado
  * @property {PrismaClient} client - Cliente de Prisma para realizar operaciones en la base de datos
  * @property {Function} setCategories - Función para actualizar el estado global de categorías
+ * @property {Function} onSuccess - Función opcional para ejecutar después de crear exitosamente
  */
 interface NewCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   client: PrismaClient;
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
+  onSuccess?: () => void;
 }
 
 /**
@@ -55,7 +60,8 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
   isOpen,
   onClose,
   client,
-  setCategories
+  setCategories,
+  onSuccess
 }) => {
   /**
    * Estados del formulario y gestión de categorías
@@ -67,6 +73,7 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
   
   // Estado para controlar el proceso de creación
   const [isCreating, setIsCreating] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Referencia para el input de archivos oculto
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,7 +132,7 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
     e.preventDefault();
     
     if (!categoryName.trim()) {
-      toast.error('Por favor, ingresa un nombre para la categoría');
+      toast.error('El nombre de la categoría es obligatorio');
       return;
     }
     
@@ -155,16 +162,24 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
       // Actualizar el estado local con la nueva categoría
       setCategories(prevCategories => [...prevCategories, newCategory]);
       
-      // Mostrar mensaje de éxito
-      toast.success('Categoría creada correctamente');
+      // Emisión de evento para notificar que se creó una categoría
+      console.log("Emitiendo evento de categoría creada");
+      eventBus.emit(Events.CATEGORY_CREATED, newCategory);
       
-      // Reiniciar el formulario
-      setCategoryName('');
-      setCategoryImage(null);
-      setImagePreview(null);
+      // Mostrar mensaje de éxito con secuencia de recarga
+      // Primer mensaje de éxito
+      setSuccessMessage(`Categoría "${categoryName}" creada correctamente.`);
       
-      // Cerrar el modal
-      onClose();
+      // Después de un momento, avisar que vamos a recargar
+      setTimeout(() => {
+        setSuccessMessage(`Categoría "${categoryName}" creada correctamente. Recargando...`);
+        
+        // Finalmente recargar después de un tiempo para que se vea el mensaje
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }, 800);
+      
     } catch (error) {
       console.error('Error al crear la categoría:', error);
       toast.error('Error al crear la categoría');
@@ -221,132 +236,141 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
             <Dialog.Panel className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-              <div>
-                <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                  Crear nueva categoría
-                </Dialog.Title>
-                
-                <form onSubmit={handleSubmit} className="mt-4">
-                  {/* Campo de nombre de categoría */}
-                  <div className="mb-4">
-                    <label htmlFor="category-name" className="block text-sm font-medium text-gray-700">
-                      Nombre de la categoría
-                    </label>
-                    <input
-                      type="text"
-                      id="category-name"
-                      name="category-name"
-                      value={categoryName}
-                      onChange={(e) => setCategoryName(e.target.value)}
-                      className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                      placeholder="Escribe el nombre de la categoría"
-                      required
-                    />
-                  </div>
+              {successMessage ? (
+                <SuccessMessage 
+                  title="¡Categoría creada con éxito!"
+                  message={successMessage} 
+                  color="green" 
+                  progressDuration={2.3} 
+                />
+              ) : (
+                <div>
+                  <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                    Crear nueva categoría
+                  </Dialog.Title>
                   
-                  {/* Campo de imagen de categoría */}
-                  <div className="mb-4">
-                    <label htmlFor="category-image" className="block text-sm font-medium text-gray-700">
-                      Imagen de la categoría (opcional)
-                    </label>
+                  <form onSubmit={handleSubmit} className="mt-4">
+                    {/* Campo de nombre de categoría */}
+                    <div className="mb-4">
+                      <label htmlFor="category-name" className="block text-sm font-medium text-gray-700">
+                        Nombre de la categoría
+                      </label>
+                      <input
+                        type="text"
+                        id="category-name"
+                        name="category-name"
+                        value={categoryName}
+                        onChange={(e) => setCategoryName(e.target.value)}
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        placeholder="Escribe el nombre de la categoría"
+                        required
+                      />
+                    </div>
                     
-                    <input
-                      type="file"
-                      id="category-image"
-                      name="category-image"
-                      ref={fileInputRef}
-                      onChange={handleCategoryImageChange}
-                      className="hidden"
-                      accept="image/*"
-                    />
-                    
-                    <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                      <div className="space-y-1 text-center">
-                        {imagePreview ? (
-                          <div className="mb-3">
-                            <Image
-                              src={imagePreview}
-                              alt="Vista previa"
-                              width={200}
-                              height={200}
-                              className="mx-auto object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCategoryImage(null);
-                                setImagePreview(null);
-                              }}
-                              className="mt-2 text-sm text-red-600 hover:text-red-900"
-                            >
-                              Eliminar imagen
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <svg
-                              className="mx-auto h-12 w-12 text-gray-400"
-                              stroke="currentColor"
-                              fill="none"
-                              viewBox="0 0 48 48"
-                              aria-hidden="true"
-                            >
-                              <path
-                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                                strokeWidth={2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
+                    {/* Campo de imagen de categoría */}
+                    <div className="mb-4">
+                      <label htmlFor="category-image" className="block text-sm font-medium text-gray-700">
+                        Imagen de la categoría (opcional)
+                      </label>
+                      
+                      <input
+                        type="file"
+                        id="category-image"
+                        name="category-image"
+                        ref={fileInputRef}
+                        onChange={handleCategoryImageChange}
+                        className="hidden"
+                        accept="image/*"
+                      />
+                      
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div className="space-y-1 text-center">
+                          {imagePreview ? (
+                            <div className="mb-3">
+                              <Image
+                                src={imagePreview}
+                                alt="Vista previa"
+                                width={200}
+                                height={200}
+                                className="mx-auto object-cover"
                               />
-                            </svg>
-                            <div className="flex text-sm text-gray-600">
                               <button
                                 type="button"
-                                onClick={triggerFileInput}
-                                className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                                onClick={() => {
+                                  setCategoryImage(null);
+                                  setImagePreview(null);
+                                }}
+                                className="mt-2 text-sm text-red-600 hover:text-red-900"
                               >
-                                Subir una imagen
+                                Eliminar imagen
                               </button>
-                              <p className="pl-1">o arrastra y suelta</p>
                             </div>
-                            <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
-                          </>
-                        )}
+                          ) : (
+                            <>
+                              <svg
+                                className="mx-auto h-12 w-12 text-gray-400"
+                                stroke="currentColor"
+                                fill="none"
+                                viewBox="0 0 48 48"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                  strokeWidth={2}
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                              <div className="flex text-sm text-gray-600">
+                                <button
+                                  type="button"
+                                  onClick={triggerFileInput}
+                                  className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                                >
+                                  Subir una imagen
+                                </button>
+                                <p className="pl-1">o arrastra y suelta</p>
+                              </div>
+                              <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Botones de acción */}
-                  <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                    <button
-                      type="submit"
-                      className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm ${
-                        isCreating ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                      disabled={isCreating}
-                    >
-                      {isCreating ? (
-                        <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Creando...
-                        </>
-                      ) : (
-                        'Crear categoría'
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
-                      onClick={handleCancel}
-                      disabled={isCreating}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
-              </div>
+                    
+                    {/* Botones de acción */}
+                    <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                      <button
+                        type="submit"
+                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm ${
+                          isCreating ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        disabled={isCreating}
+                      >
+                        {isCreating ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Creando...
+                          </>
+                        ) : (
+                          'Crear categoría'
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                        onClick={handleCancel}
+                        disabled={isCreating}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </Dialog.Panel>
           </Transition.Child>
         </div>

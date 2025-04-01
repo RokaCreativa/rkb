@@ -14,8 +14,8 @@ export default function useDataState(clientId: number | null = null) {
   // Estados de datos principales
   const [client, setClient] = useState<Client | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [sections, setSections] = useState<Record<string, Section[]>>({});
-  const [products, setProducts] = useState<Record<string, Product[]>>({});
+  const [sections, setSections] = useState<{ [key: string]: Section[] }>({});
+  const [products, setProducts] = useState<{ [key: string]: Product[] }>({});
   
   // Estados de carga
   const [isLoading, setIsLoading] = useState(true);
@@ -120,50 +120,141 @@ export default function useDataState(clientId: number | null = null) {
       return [];
     }
     
-    // Siempre mostramos log para depuración
-    console.log(`Cargando secciones para categoría ${categoryId}...`);
+    // Log para depuración
+    console.log(`⏳ INICIANDO CARGA: Secciones para categoría ${categoryId}...`);
     
     try {
+      // Indicar que estamos cargando
       setIsSectionsLoading(true);
-      const response = await fetch(`/api/sections?category_id=${categoryId}`);
+      
+      // Realizar petición a la API con credenciales
+      const timestamp = new Date().getTime();
+      const response = await fetch(`/api/sections?category_id=${categoryId}&_t=${timestamp}`, {
+        credentials: 'include', // Importante: incluir credenciales
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
         throw new Error(`Error al cargar secciones: ${response.status} ${response.statusText}`);
       }
       
+      // Obtener los datos de la respuesta
       const data = await response.json();
-      console.log(`Secciones cargadas para categoría ${categoryId}:`, data.length);
+      console.log(`✅ DATOS RECIBIDOS para categoría ${categoryId}:`, {
+        count: data.length,
+        sample: data.slice(0, 2).map((s: Section) => s.name)
+      });
       
-      // Actualizar el estado global
-      setSections(prev => ({
-        ...prev,
-        [categoryId]: data
+      if (!Array.isArray(data)) {
+        console.error('Los datos recibidos no son un array:', data);
+        throw new Error('Formato de datos inválido');
+      }
+      
+      // Normalizar los valores de status para cada sección
+      const normalizedData = data.map((section: Section) => ({
+        ...section,
+        status: typeof section.status === 'boolean' ? (section.status ? 1 : 0) : (section.status === 1 ? 1 : 0)
       }));
       
-      return data;
+      // Clave para almacenar las secciones en el objeto de estado
+      const key = String(categoryId);
+      
+      // Actualizar el estado con las secciones cargadas usando actualización funcional
+      // para tener la versión más reciente del estado
+      setSections(prev => {
+        const newState = {
+          ...prev,
+          [key]: normalizedData
+        };
+        console.log(`🔄 ACTUALIZANDO secciones para categoría ${categoryId}:`, 
+          `Total=${normalizedData.length}, ` +
+          `Ejemplos=[${normalizedData.slice(0, 2).map((s: Section) => s.name).join(', ')}...]`);
+        
+        return newState;
+      });
+      
+      // Crear un timeout para verificar que las secciones se guardaron correctamente
+      setTimeout(() => {
+        // Obtener el estado actual (después de la actualización)
+        const currentSections = sections[key];
+        
+        if (currentSections && currentSections.length > 0) {
+          console.log(`✅ VERIFICACIÓN: Secciones guardadas correctamente para categoría ${categoryId} (${currentSections.length})`);
+        } else {
+          console.warn(`⚠️ VERIFICACIÓN: Posible problema al guardar secciones para categoría ${categoryId}`);
+          
+          // Intentar forzar una segunda actualización si fallá la primera
+          setSections(current => {
+            // Solo actualizar si aún no están las secciones
+            if (!current[key] || current[key].length === 0) {
+              console.log(`🔄 REINTENTANDO guardar secciones para categoría ${categoryId}`);
+              return {
+                ...current,
+                [key]: normalizedData
+              };
+            }
+            return current;
+          });
+        }
+      }, 50);
+      
+      // Actualizar el conteo de secciones en la categoría
+      if (normalizedData && normalizedData.length >= 0) {
+        const visibleSections = normalizedData.filter((section: Section) => 
+          typeof section.status === 'boolean' ? section.status : section.status === 1
+        );
+        
+        setCategories(prevCategories => 
+          prevCategories.map(category => 
+            category.category_id === categoryId 
+              ? {
+                  ...category,
+                  sections_count: normalizedData.length,
+                  visible_sections_count: visibleSections.length
+                } 
+              : category
+          )
+        );
+      }
+
+      return normalizedData;
     } catch (error) {
-      console.error('Error en fetchSectionsByCategory:', error);
+      console.error('❌ Error en fetchSectionsByCategory:', error);
       setError('Error al cargar secciones');
       toast.error('No se pudieron cargar las secciones');
       throw error;
     } finally {
       setIsSectionsLoading(false);
     }
-  }, []);
+  }, [setIsSectionsLoading, setError, setSections, setCategories, sections]);
   
   // Cargar productos para una sección específica
   const fetchProductsBySection = useCallback(async (sectionId: number) => {
-    // Si la sección no existe o ya tenemos cargados sus productos, evitar carga duplicada
-    if (!sectionId || (products[sectionId] && products[sectionId].length > 0)) {
-      return products[sectionId] || [];
+    // Si la sección no existe, salir
+    if (!sectionId) {
+      return [];
     }
     
     try {
+      // Petición simple a la API
       const response = await fetch(`/api/products?section_id=${sectionId}`);
+      
       if (!response.ok) {
         throw new Error('Error al cargar productos');
       }
       
       const data = await response.json();
+      
+      // Actualizar el estado con los productos
       setProducts(prev => ({
         ...prev,
         [sectionId]: data
@@ -176,7 +267,7 @@ export default function useDataState(clientId: number | null = null) {
       toast.error('No se pudieron cargar los productos');
       throw error;
     }
-  }, [products]);
+  }, []);
   
   // Alternar visibilidad de una categoría
   const toggleCategoryVisibility = useCallback(async (categoryId: number, currentStatus: number) => {
@@ -218,6 +309,54 @@ export default function useDataState(clientId: number | null = null) {
       setIsUpdatingVisibility(null);
     }
   }, [client?.id, toggleCategoryVisibilityHook]);
+  
+  // Toggle section visibility
+  const toggleSectionVisibility = useCallback(async (sectionId: number, currentStatus: number) => {
+    if (!client?.id) return;
+    
+    setIsUpdatingVisibility(sectionId);
+    // Invert status - if 1 (visible) make it 0 (hidden), if 0 (hidden) make it 1 (visible)
+    const newStatus = currentStatus === 1 ? 0 : 1;
+    
+    try {
+      // Make API request to update section visibility
+      const response = await fetch(`/api/sections/${sectionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al actualizar la visibilidad de la sección');
+      }
+      
+      // Update local state - we need to find which category the section belongs to
+      setSections(prev => {
+        const updatedSections = { ...prev };
+        
+        // Look for the section in all categories and update it
+        Object.keys(updatedSections).forEach(categoryIdStr => {
+          const categoryId = Number(categoryIdStr);
+          if (updatedSections[categoryId]) {
+            updatedSections[categoryId] = updatedSections[categoryId].map(section => 
+              section.section_id === sectionId ? { ...section, status: newStatus } : section
+            );
+          }
+        });
+        
+        return updatedSections;
+      });
+      
+      toast.success(newStatus === 1 ? 'Sección visible' : 'Sección oculta');
+    } catch (error) {
+      console.error('Error al cambiar visibilidad de sección:', error);
+      toast.error('No se pudo cambiar la visibilidad de la sección');
+    } finally {
+      setIsUpdatingVisibility(null);
+    }
+  }, [client?.id]);
   
   // Función para eliminar una categoría
   const handleDeleteCategory = useCallback(async (categoryId: number): Promise<boolean> => {
@@ -335,6 +474,7 @@ export default function useDataState(clientId: number | null = null) {
     
     // Funciones de actualización
     toggleCategoryVisibility,
+    toggleSectionVisibility,
     deleteCategory: handleDeleteCategory,
     reorderCategory,
     deleteSection: deleteSectionHook,

@@ -31,13 +31,10 @@ import { getImagePath } from '@/lib/imageUtils';
  * @property {Category | null} selectedCategory - Categoría a la que pertenece la sección
  * @property {Function} [onSuccess] - Callback opcional que se ejecuta tras una edición exitosa
  */
-interface EditSectionModalProps {
+export interface EditSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  sectionToEdit: Section | null;
-  clientId: number | null;
-  selectedCategory: Category | null;
-  onSuccess?: () => void;
+  section: any; // Accept a Section object
 }
 
 /**
@@ -62,10 +59,7 @@ interface EditSectionModalProps {
 const EditSectionModal: React.FC<EditSectionModalProps> = ({
   isOpen,
   onClose,
-  sectionToEdit,
-  clientId,
-  selectedCategory,
-  onSuccess
+  section
 }) => {
   /**
    * Estados del formulario y gestión de la sección
@@ -82,24 +76,24 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
    * Hook personalizado para operaciones CRUD de secciones
    * Proporciona métodos optimizados y manejo de estado/notificaciones
    */
-  const { updateSection } = useSections(clientId);
+  const { updateSection } = useSections(section?.client_id || 0);
 
   /**
    * Efectos para cargar y establecer valores iniciales
    */
   useEffect(() => {
-    if (isOpen && sectionToEdit) {
+    if (isOpen && section) {
       // Solo establecer valores cuando el modal esté abierto y tengamos datos de sección
-      setEditSectionName(sectionToEdit.name || '');
-      setEditSectionImagePreview(sectionToEdit.image ? getImagePath(sectionToEdit.image, 'sections') : null);
+      setEditSectionName(section.name || '');
+      setEditSectionImagePreview(section.image ? getImagePath(section.image, 'sections') : null);
       console.log("Datos cargados para edición:", {
-        id: sectionToEdit.section_id,
-        name: sectionToEdit.name,
-        image: sectionToEdit.image,
-        previewUrl: sectionToEdit.image ? getImagePath(sectionToEdit.image, 'sections') : null
+        id: section.section_id,
+        name: section.name,
+        image: section.image,
+        previewUrl: section.image ? getImagePath(section.image, 'sections') : null
       });
     }
-  }, [isOpen, sectionToEdit]);
+  }, [isOpen, section]);
 
   /**
    * Maneja el envío del formulario de edición
@@ -113,58 +107,57 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
    * - Ejecución del callback onSuccess si la operación es exitosa
    */
   const handleSubmit = async () => {
-    if (!sectionToEdit || !selectedCategory) return;
-    
-    // Prevenir múltiples envíos
-    if (isUpdatingSectionName) return;
-    
+    if (!editSectionName.trim()) {
+      toast.error('El nombre de la sección es obligatorio');
+      return;
+    }
+
+    if (!section) {
+      toast.error('No se ha seleccionado ninguna sección para editar');
+      return;
+    }
+
+    // Comenzar actualización
     setIsUpdatingSectionName(true);
-    
+
+    // Crear FormData para enviar la imagen si existe
+    const formData = new FormData();
+    formData.append('name', editSectionName);
+    formData.append('section_id', section.section_id.toString());
+    if (editSectionImage) {
+      formData.append('image', editSectionImage);
+    }
+
     try {
-      console.log('Enviando actualización de sección:', {
-        name: editSectionName,
-        hasNewImage: !!editSectionImage
-      });
-      
-      // Crear objeto de actualización con los datos modificados
-      const updateData: Partial<SectionWithFileUpload> = {
-        name: editSectionName
-      };
-      
-      // Solo incluir la imagen si se ha seleccionado una nueva
-      if (editSectionImage) {
-        // TypeScript infiere este tipo como File, que es compatible con SectionWithFileUpload
-        updateData.image = editSectionImage;
-      }
-      
-      // Usar la función updateSection del hook useSections
-      const success = await updateSection(
-        selectedCategory.category_id,
-        sectionToEdit.section_id,
-        updateData
-      );
+      // Actualizar la sección utilizando la función de updateSection del hook
+      // que ahora acepta FormData como primer argumento
+      const success = await updateSection(formData, section.section_id, section.category_id);
       
       if (success) {
-        // NO añadir aquí toast.success - ya se muestra desde el hook
-        console.log("Actualización exitosa, llamando a onSuccess si existe");
+        // Mostrar notificación de éxito
+        toast.success('Sección actualizada correctamente');
         
-        // Llamar a la función onSuccess si existe para forzar actualización en el componente padre
-        if (onSuccess) {
-          console.log("onSuccess existe, ejecutando...");
-          onSuccess(); // Llamar inmediatamente al callback
-        }
+        // Cerrar el modal
+        onClose();
         
-        // Limpiar formulario y cerrar modal después de asegurar que se ejecutó onSuccess
+        // Solución drástica: Recargar la página completa para asegurar una vista actualizada
+        console.log("Programando recarga completa después de editar sección...");
         setTimeout(() => {
-          handleCloseModal();
-        }, 200);
+          try {
+            console.log("Ejecutando recarga de página...");
+            window.location.href = window.location.href;
+          } catch (reloadError) {
+            console.error("Error al recargar con location.href, intentando reload():", reloadError);
+            window.location.reload();
+          }
+        }, 1000);
       } else {
         // toast.error se muestra desde el hook, evitar duplicación aquí
-        console.error('No se pudo actualizar la sección');
+        console.error("La actualización de la sección no tuvo éxito");
       }
     } catch (error) {
-      console.error('Error al actualizar la sección:', error);
-      // Solo mostrar error aquí si es un error no esperado que no se captura en el hook
+      console.error("Error al actualizar sección:", error);
+      toast.error('Error al actualizar la sección');
     } finally {
       setIsUpdatingSectionName(false);
     }

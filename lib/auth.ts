@@ -11,6 +11,7 @@ declare module "next-auth" {
     name: string;
     email: string;
     role: string;
+    client_id?: number;
   }
   interface Session {
     user: User;
@@ -22,6 +23,7 @@ declare module "next-auth/jwt" {
     id: string;
     email: string;
     role: string;
+    client_id?: number;
   }
 }
 
@@ -31,6 +33,7 @@ type CustomUser = {
   name: string;
   email: string;
   role: string;
+  client_id?: number;
 };
 
 export const authOptions: NextAuthOptions = {
@@ -63,10 +66,11 @@ export const authOptions: NextAuthOptions = {
         }
 
         return {
-          id: user.user_code,
+          id: user.user_id,
           name: user.username ?? "",
           email: user.email ?? "",
           role: user.profile ?? "user",
+          client_id: user.client_id ?? undefined,
         };
       },
     }),
@@ -77,6 +81,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.email = user.email;
         token.role = user.role;
+        token.client_id = user.client_id;
       }
       return token;
     },
@@ -86,6 +91,7 @@ export const authOptions: NextAuthOptions = {
         name: session.user.name ?? "",
         email: token.email,
         role: token.role,
+        client_id: token.client_id,
       };
       return session;
     },

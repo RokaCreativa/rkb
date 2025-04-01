@@ -11,7 +11,7 @@
  * e imagen del producto.
  */
 
-import React, { Fragment, useState, useRef, useEffect } from 'react';
+import React, { Fragment, useState, useRef, useEffect, FormEvent } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
@@ -24,19 +24,19 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
  * 
  * @property {boolean} isOpen - Controla si el modal está abierto o cerrado
  * @property {Function} onClose - Función para cerrar el modal y limpiar el estado
- * @property {object} productToEdit - Datos básicos del producto a editar (id y nombre)
+ * @property {object} product - Datos básicos del producto a editar (id y nombre)
  * @property {Client | null} client - Cliente propietario del menú y productos
  * @property {Section | null} selectedSection - Sección a la que pertenece el producto
  * @property {Function} setProducts - Función para actualizar el estado global de productos
  * @property {Function} [onSuccess] - Callback opcional ejecutado tras una edición exitosa
  */
-interface EditProductModalProps {
+export interface EditProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  productToEdit: { id: number; name: string } | null;
+  product: any; // Accept a Product object
   client: Client | null;
   selectedSection: Section | null;
-  setProducts: React.Dispatch<React.SetStateAction<Record<string, Product[]>>>;
+  setProducts: React.Dispatch<React.SetStateAction<Record<string, Product[]> | any[]>>;
   onSuccess?: () => void;
 }
 
@@ -62,7 +62,7 @@ interface EditProductModalProps {
 const EditProductModal: React.FC<EditProductModalProps> = ({
   isOpen,
   onClose,
-  productToEdit,
+  product,
   client,
   selectedSection,
   setProducts,
@@ -94,41 +94,42 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
    * o cuando cambia el producto a editar
    */
   useEffect(() => {
-    if (!productToEdit || !selectedSection) return;
+    if (!product || !selectedSection) return;
     
     // Obtener el producto completo del estado de productos
     const fetchProductDetails = async () => {
       try {
         setIsUpdatingProduct(true); // Mostrar estado de carga
+        const productId = product.id;
         console.log('Intentando obtener detalles del producto:', { 
-          productId: productToEdit.id, 
-          productToEdit: productToEdit,
+          productId, 
+          productToEdit: product,
           selectedSection: selectedSection
         });
         console.time('fetchProductDetails');
         
         // Usar explícitamente la ruta /api/products/[id]
-        const response = await fetch(`/api/products/${productToEdit.id}?_t=${Date.now()}`);
+        const response: Response = await fetch(`/api/products/${productId}?_t=${Date.now()}`);
         console.log('Respuesta API:', { status: response.status, ok: response.ok });
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Error de API:', errorText);
           throw new Error('Error al obtener detalles del producto');
         }
-        const product = await response.json();
+        const productData: Product = await response.json();
         
-        console.log('Producto obtenido:', product);
-        setCurrentProduct(product);
+        console.log('Producto obtenido:', productData);
+        setCurrentProduct(productData);
         
         // Establecer valores iniciales
-        setEditProductName(product.name || '');
-        setEditProductPrice(product.price ? product.price.toString() : '');
-        setEditProductDescription(product.description || '');
+        setEditProductName(productData.name || '');
+        setEditProductPrice(productData.price ? productData.price.toString() : '');
+        setEditProductDescription(productData.description || '');
         
-        if (product.image) {
-          console.log('Imagen del producto:', product.image);
+        if (productData.image) {
+          console.log('Imagen del producto:', productData.image);
           // La imagen ya incluye la ruta completa desde la API
-          setEditImagePreview(product.image);
+          setEditImagePreview(productData.image);
         } else {
           setEditImagePreview(null);
         }
@@ -142,7 +143,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     };
     
     fetchProductDetails();
-  }, [productToEdit, selectedSection, isOpen]);
+  }, [product, selectedSection, isOpen]);
 
   /**
    * Maneja el cambio de la imagen del producto
@@ -174,23 +175,35 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   /**
    * Maneja el envío del formulario para actualizar un producto
    */
-  const handleSubmit = async () => {
-    if (!productToEdit || !selectedSection || !client) return;
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
     
-    // Prevenir múltiples envíos
-    if (isUpdatingProduct) return;
+    if (!selectedSection) {
+      toast.error('No se ha seleccionado ninguna sección');
+      return;
+    }
+    
+    if (!product) {
+      toast.error('No se ha seleccionado ningún producto para editar');
+      return;
+    }
+    
+    if (!editProductName.trim()) {
+      toast.error('El nombre del producto es obligatorio');
+      return;
+    }
     
     setIsUpdatingProduct(true);
-
+    
     try {
       // Crear un objeto FormData para enviar datos e imagen
       const formData = new FormData();
-      formData.append('product_id', productToEdit.id.toString());
+      formData.append('product_id', product.id.toString());
       formData.append('name', editProductName);
       formData.append('price', editProductPrice);
       formData.append('description', editProductDescription || '');
       formData.append('section_id', selectedSection.section_id.toString());
-      formData.append('client_id', client.id.toString());
+      formData.append('client_id', client?.id.toString() || '');
       
       // Solo agregar la imagen si se ha seleccionado una nueva
       if (editProductImage) {
@@ -203,19 +216,26 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       // Usar la función updateProduct del hook
       await updateProduct(formData);
       
-      // Forzar actualización manual si onSuccess está disponible
-      if (onSuccess) {
-        console.log("Ejecutando onSuccess desde handleSubmit...");
-        setTimeout(() => {
-          onSuccess();
-        }, 100); // Pequeño retraso para asegurar que la API se ha actualizado
-      }
+      // Mostrar notificación de éxito
+      toast.success('Producto actualizado correctamente');
       
-      // Cerrar el modal (el mensaje de éxito lo muestra el hook)
-      handleCloseModal();
+      // Cerrar el modal
+      onClose();
+      
+      // Solución drástica: Recargar la página completa para asegurar una vista actualizada
+      console.log("Programando recarga completa después de editar producto...");
+      setTimeout(() => {
+        try {
+          console.log("Ejecutando recarga de página...");
+          window.location.href = window.location.href;
+        } catch (reloadError) {
+          console.error("Error al recargar con location.href, intentando reload():", reloadError);
+          window.location.reload();
+        }
+      }, 1000);
     } catch (error) {
       console.error('Error al actualizar el producto:', error);
-      // El mensaje de error lo muestra el hook
+      toast.error('Error al actualizar el producto');
     } finally {
       setIsUpdatingProduct(false);
     }

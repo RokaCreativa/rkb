@@ -160,3 +160,10 @@ export async function deleteProduct(
     if (setIsDeleting) setIsDeleting(false);
   }
 }
+
+
+
+
+
+
+

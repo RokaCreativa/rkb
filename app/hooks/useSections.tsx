@@ -99,85 +99,106 @@ export default function useSections(clientId: number | null) {
   }, [clientId]);
 
   // Actualizar una sección existente
-  const updateSection = useCallback(async (categoryId: number, sectionId: number, sectionData: Partial<SectionWithFileUpload>) => {
+  const updateSection = useCallback(async (formData: FormData | Partial<SectionWithFileUpload>, sectionId?: number, categoryId?: number) => {
     if (!clientId) return false;
     
     try {
       console.log("[useSections] Iniciando actualización de sección:", {
         categoryId,
         sectionId,
-        data: sectionData
+        data: formData instanceof FormData ? 'FormData object' : formData
       });
       
-      // Verificar si hay una imagen para subir (es un archivo)
-      const hasImageFile = sectionData.image && typeof sectionData.image !== 'string';
-      let updatedImageUrl = null;
+      let response;
       
-      // Si hay un archivo de imagen, usamos FormData
-      if (hasImageFile) {
-        console.log("[useSections] Actualizando sección con nueva imagen");
-        const formData = new FormData();
-        formData.append('section_id', sectionId.toString());
+      // Si es un FormData, enviarlo directamente
+      if (formData instanceof FormData) {
+        // Verificar que el FormData tiene los campos necesarios
+        console.log("[useSections] Actualizando sección con FormData");
         
-        if (sectionData.name !== undefined) {
-          formData.append('name', sectionData.name);
-        }
-        
-        // Agregar la imagen al FormData
-        formData.append('image', sectionData.image as File);
-        
-        // Enviar todo en una sola solicitud con el tipo de contenido correcto
-        const response = await axios.put(`/api/sections`, formData, {
+        // Enviar como FormData con tipo de contenido correcto
+        response = await axios.put(`/api/sections`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
         });
         
-        console.log("[useSections] Respuesta de la API (con imagen):", response.data);
-        
-        // Obtener la URL de la imagen actualizada desde la respuesta
-        updatedImageUrl = response.data.image;
+        console.log("[useSections] Respuesta de la API (con FormData):", response.data);
       } else {
-        // Si no hay imagen nueva, enviar como JSON normal
-        console.log("[useSections] Actualizando sólo datos básicos de la sección");
-        const requestData = {
-          section_id: sectionId,
-          name: sectionData.name,
-        };
+        // Verificar si hay una imagen para subir (es un archivo)
+        const hasImageFile = formData.image && typeof formData.image !== 'string';
+        let updatedImageUrl = null;
         
-        const response = await axios.put(`/api/sections`, requestData);
-        console.log("[useSections] Respuesta de la API (sin imagen):", response.data);
-        
-        // Mantener la URL de imagen existente
-        updatedImageUrl = response.data.image;
+        // Si hay un archivo de imagen, usamos FormData
+        if (hasImageFile) {
+          console.log("[useSections] Actualizando sección con nueva imagen");
+          const formDataObj = new FormData();
+          if (sectionId) {
+            formDataObj.append('section_id', sectionId.toString());
+          }
+          
+          if (formData.name !== undefined) {
+            formDataObj.append('name', formData.name);
+          }
+          
+          // Agregar la imagen al FormData
+          formDataObj.append('image', formData.image as File);
+          
+          // Enviar todo en una sola solicitud con el tipo de contenido correcto
+          response = await axios.put(`/api/sections`, formDataObj, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+          
+          console.log("[useSections] Respuesta de la API (con imagen):", response.data);
+          
+          // Obtener la URL de la imagen actualizada desde la respuesta
+          updatedImageUrl = response.data.image;
+        } else {
+          // Si no hay imagen nueva, enviar como JSON normal
+          console.log("[useSections] Actualizando sólo datos básicos de la sección");
+          const requestData = {
+            section_id: sectionId,
+            name: formData.name,
+          };
+          
+          response = await axios.put(`/api/sections`, requestData);
+          console.log("[useSections] Respuesta de la API (sin imagen):", response.data);
+          
+          // Mantener la URL de imagen existente
+          updatedImageUrl = response.data.image;
+        }
       }
       
-      // Actualizar estado local con datos precisos de la respuesta
-      setSections(prev => {
-        const updated = { ...prev };
-        
-        // Verificar que la categoría existe en el estado antes de intentar actualizar
-        if (updated[categoryId] && Array.isArray(updated[categoryId])) {
-          updated[categoryId] = updated[categoryId].map(sec => {
-            if (sec.section_id === sectionId) {
-              // Crear una sección actualizada con el tipo correcto y la nueva URL de imagen
-              const updatedSection: Section = {
-                ...sec,
-                name: sectionData.name !== undefined ? sectionData.name : sec.name,
-                image: updatedImageUrl // Usar la URL recibida de la API
-              };
-              
-              console.log("[useSections] Sección actualizada en estado local:", updatedSection);
-              return updatedSection;
-            }
-            return sec;
-          });
-        } else {
-          console.log(`[useSections] La categoría ${categoryId} no existe en el estado o no es un array`);
-        }
-        
-        return updated;
-      });
+      // Si tenemos categoryId y sectionId, actualizamos el estado local
+      if (categoryId !== undefined && sectionId !== undefined) {
+        // Actualizar estado local con datos precisos de la respuesta
+        setSections(prev => {
+          const updated = { ...prev };
+          
+          // Verificar que la categoría existe en el estado antes de intentar actualizar
+          if (updated[categoryId] && Array.isArray(updated[categoryId])) {
+            updated[categoryId] = updated[categoryId].map(sec => {
+              if (sec.section_id === sectionId) {
+                // Usar la respuesta de la API para actualizar todos los campos
+                const updatedSection: Section = {
+                  ...sec,
+                  ...response.data
+                };
+                
+                console.log("[useSections] Sección actualizada en estado local:", updatedSection);
+                return updatedSection;
+              }
+              return sec;
+            });
+          } else {
+            console.log(`[useSections] La categoría ${categoryId} no existe en el estado o no es un array`);
+          }
+          
+          return updated;
+        });
+      }
       
       toast.success('Sección actualizada correctamente');
       return true;

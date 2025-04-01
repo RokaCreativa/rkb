@@ -20,8 +20,10 @@ export function getCategoryTableData(categories: Category[], sections: Record<st
     // Obtener las secciones para esta categoría (o un array vacío si no hay ninguna)
     const categorySections = sections[category.category_id] || [];
     
-    // Contar cuántas secciones están visibles (status = 1)
-    const visibleSections = categorySections.filter(section => section.status === 1);
+    // Contar cuántas secciones están visibles (status = 1 o status = true)
+    const visibleSections = categorySections.filter(section => 
+      section.status === 1 || Boolean(section.status) === true
+    );
     
     // Devolver la categoría con información adicional
     return {
@@ -60,25 +62,18 @@ export function getPaginatedCategories(allCategories: Category[], pagination: { 
  * @param currentView - Vista actual ('categories', 'sections', 'products')
  * @param selectedCategory - Categoría seleccionada (si aplica)
  * @param selectedSection - Sección seleccionada (si aplica)
- * @param onNavigate - Función de callback para navegar entre vistas
  * @returns Array de elementos para el componente de breadcrumbs
  */
 export function getBreadcrumbItems(
   currentView: 'categories' | 'sections' | 'products',
   selectedCategory: Category | null,
-  selectedSection: Section | null,
-  onNavigate: {
-    toCategories: () => void,
-    toSections: (category: Category) => void,
-    toProducts: (section: Section) => void,
-    back: () => void
-  }
+  selectedSection: Section | null
 ) {
   const items = [
     { 
       id: 'categories', 
       name: 'Categorías', 
-      onClick: onNavigate.toCategories, 
+      key: 'categories',
       current: currentView === 'categories' 
     }
   ];
@@ -87,7 +82,7 @@ export function getBreadcrumbItems(
     items.push({ 
       id: `category-${selectedCategory.category_id}`, 
       name: selectedCategory.name, 
-      onClick: () => {}, 
+      key: 'sections',
       current: true 
     });
   }
@@ -96,14 +91,14 @@ export function getBreadcrumbItems(
     items.push({ 
       id: `category-${selectedCategory.category_id}`, 
       name: selectedCategory.name, 
-      onClick: onNavigate.back, 
+      key: 'sections',
       current: false 
     });
     
     items.push({ 
       id: `section-${selectedSection.section_id}`, 
       name: selectedSection.name, 
-      onClick: () => {}, 
+      key: 'products',
       current: true 
     });
   }

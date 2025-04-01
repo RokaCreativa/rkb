@@ -18,6 +18,8 @@ import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { Section, Product } from '@/app/types/menu';
 import { PrismaClient } from '@prisma/client';
+import eventBus from '@/app/lib/eventBus';
+import { Events } from '@/app/lib/eventBus';
 
 /**
  * Props para el componente NewProductModal
@@ -27,13 +29,15 @@ import { PrismaClient } from '@prisma/client';
  * @property {PrismaClient} client - Cliente de Prisma para realizar operaciones en la base de datos
  * @property {Section | null} selectedSection - Sección seleccionada donde se añadirá el nuevo producto
  * @property {Function} setProducts - Función para actualizar el estado global de productos después de la creación
+ * @property {number} sectionId - Identificador de la sección seleccionada
  */
 interface NewProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  client: PrismaClient;
-  selectedSection: Section | null;
-  setProducts: React.Dispatch<React.SetStateAction<Record<string, Product[]>>>;
+  client?: PrismaClient;
+  selectedSection?: Section | null;
+  setProducts?: React.Dispatch<React.SetStateAction<Record<string, Product[]>>>;
+  sectionId: number;
 }
 
 /**
@@ -60,7 +64,8 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
   onClose,
   client,
   selectedSection,
-  setProducts
+  setProducts,
+  sectionId
 }) => {
   /**
    * Estados del formulario para la creación de productos
@@ -143,68 +148,65 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
    * 
    * @param {React.FormEvent} e - Evento de envío del formulario
    */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedSection) {
-      toast.error('Por favor, selecciona una sección primero');
-      return;
-    }
-    
+  const handleSubmit = async () => {
     if (!productName.trim()) {
-      toast.error('Por favor, ingresa un nombre para el producto');
+      toast.error('El nombre del producto es obligatorio');
       return;
     }
-    
-    if (!productPrice || isNaN(parseFloat(productPrice))) {
-      toast.error('Por favor, ingresa un precio válido');
+
+    if (!productPrice.trim()) {
+      toast.error('El precio del producto es obligatorio');
       return;
     }
-    
+
     setIsCreating(true);
-    
+
+    const formData = new FormData();
+    formData.append('name', productName);
+    formData.append('price', productPrice);
+    formData.append('description', productDescription || '');
+    formData.append('section_id', sectionId.toString());
+
+    if (productImage) {
+      formData.append('image', productImage);
+    }
+
     try {
-      // Preparar los datos del nuevo producto
-      const formData = new FormData();
-      formData.append('name', productName);
-      formData.append('price', productPrice);
-      formData.append('description', productDescription);
-      formData.append('section_id', selectedSection.section_id.toString());
-      
-      if (productImage) {
-        formData.append('image', productImage);
-      }
-      
-      // Crear el producto en la base de datos
       const response = await fetch('/api/products', {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al crear el producto');
       }
-      
-      const newProduct: Product = await response.json();
-      
-      // Actualizar el estado local con el nuevo producto
-      setProducts(prevProducts => ({
-        ...prevProducts,
-        [selectedSection.section_id]: [...(prevProducts[selectedSection.section_id] || []), newProduct]
-      }));
-      
-      // Mostrar mensaje de éxito
+
+      const newProduct = await response.json();
+
+      // Actualizar el estado local con el nuevo producto, verificando que setProducts existe
+      if (setProducts) {
+        setProducts(prev => ({
+          ...prev,
+          [sectionId]: [...(prev[sectionId] || []), newProduct]
+        }));
+      }
+
+      // Emisión de evento para notificar que se creó un producto
+      eventBus.emit(Events.PRODUCT_CREATED, {
+        product: newProduct,
+        sectionId: sectionId
+      });
+
       toast.success('Producto creado correctamente');
-      
-      // Reiniciar el formulario
-      setProductName('');
-      setProductPrice('');
-      setProductDescription('');
-      setProductImage(null);
-      setImagePreview(null);
-      
-      // Cerrar el modal
       onClose();
+
+      // Solución híbrida: Mantener recarga como fallback
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          console.log("Programando recarga completa como fallback...");
+          window.location.reload();
+        }, 2000);
+      }
     } catch (error) {
       console.error('Error al crear el producto:', error);
       toast.error('Error al crear el producto');

@@ -71,8 +71,13 @@ export default function SectionTable({
   const [showHiddenSections, setShowHiddenSections] = useState(false);
   
   // Separar secciones visibles y no visibles
-  const visibleSections = sections.filter(sec => sec.status === 1);
-  const hiddenSections = sections.filter(sec => sec.status !== 1);
+  // Usar conversión de tipos para manejar tanto booleanos como números
+  const visibleSections = sections.filter(sec => 
+    sec.status === 1 || Boolean(sec.status) === true
+  );
+  const hiddenSections = sections.filter(sec => 
+    sec.status !== 1 && Boolean(sec.status) !== true
+  );
   
   // Determinar el total real de secciones para paginación
   const effectiveTotalSections = paginationEnabled && totalSections ? 
@@ -110,7 +115,7 @@ export default function SectionTable({
         
         <div className="flex items-center space-x-2">
           <div className="text-xs text-gray-500">
-            ({sections.filter(sec => sec.status === 1).length}/{sections.length} Visibles)
+            ({sections.filter(sec => sec.status === 1 || Boolean(sec.status) === true).length}/{sections.length} Visibles)
           </div>
           
           {onTogglePagination && (
@@ -235,17 +240,17 @@ export default function SectionTable({
                               onClick={() => onToggleVisibility && onToggleVisibility(section.section_id, section.status)}
                               disabled={isUpdatingVisibility === section.section_id}
                               className={`p-1.5 rounded-full transition-colors ${
-                                section.status === 1 
+                                section.status === 1 || Boolean(section.status) === true
                                   ? 'text-teal-600 bg-teal-50 hover:bg-teal-100' 
                                   : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
                               }`}
-                              title={section.status === 1 ? "Visible" : "No visible"}
+                              title={section.status === 1 || Boolean(section.status) === true ? "Visible" : "No visible"}
                             >
                               {isUpdatingVisibility === section.section_id ? (
                                 <div className="w-5 h-5 flex items-center justify-center">
                                   <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
                                 </div>
-                              ) : section.status === 1 ? (
+                              ) : section.status === 1 || Boolean(section.status) === true ? (
                                 <EyeIcon className="w-5 h-5" />
                               ) : (
                                 <EyeSlashIcon className="w-5 h-5" />

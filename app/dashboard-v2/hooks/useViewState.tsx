@@ -29,6 +29,8 @@ export default function useViewState() {
     setSelectedCategoryId(category.category_id);
     setCurrentView('sections');
     setSelectedSection(null);
+    // Log para depuración
+    console.log('Navegando a secciones para categoría:', category.name);
   }, []);
   
   // Función para navegar a la vista de productos de una sección

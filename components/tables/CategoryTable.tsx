@@ -13,7 +13,7 @@ export interface CategoryTableProps {
   /** Registro de categorías expandidas */
   expandedCategories: Record<number, boolean>;
   /** Función llamada cuando se hace clic en una categoría */
-  onCategoryClick?: (categoryId: number) => void;
+  onCategoryClick?: (category: Category) => void;
   /** Función llamada cuando se edita una categoría */
   onEditCategory?: (category: Category) => void;
   /** Función llamada cuando se elimina una categoría */
@@ -139,7 +139,7 @@ export default function CategoryTable({
                         <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-8">
                           <div className="flex items-center">
                             <button 
-                              onClick={() => onCategoryClick && onCategoryClick(category.category_id)}
+                              onClick={() => onCategoryClick && onCategoryClick(category)}
                               className={`p-1 rounded-full transition-colors ${
                                 expandedCategories[category.category_id] 
                                   ? "bg-indigo-100 text-indigo-600" 
@@ -252,7 +252,7 @@ export default function CategoryTable({
                     <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-8">
                       <div className="flex items-center">
                         <button 
-                          onClick={() => onCategoryClick && onCategoryClick(category.category_id)}
+                          onClick={() => onCategoryClick && onCategoryClick(category)}
                           className={`p-1 rounded-full transition-colors ${
                             expandedCategories[category.category_id] 
                               ? "bg-indigo-100 text-indigo-600" 

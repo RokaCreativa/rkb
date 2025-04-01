@@ -15,7 +15,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
  * @property {Function} setCategories - Función para actualizar el estado de categorías
  * @property {Function} onSuccess - Callback opcional para cuando la edición es exitosa
  */
-interface EditCategoryModalProps {
+export interface EditCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   categoryToEdit: Category | null;
@@ -140,16 +140,24 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
         )
       );
 
-      // Mostrar mensaje de éxito y cerrar el modal
+      // Mostrar notificación
       toast.success('Categoría actualizada correctamente');
       
-      // Llamar al callback de éxito si existe
-      if (onSuccess) {
-        console.log("Ejecutando onSuccess después de actualizar categoría");
-        onSuccess();
-      }
+      // Cerrar el modal
+      onClose();
       
-      handleCloseModal();
+      // Solución drástica: Recargar la página completa para asegurar una vista actualizada
+      console.log("Programando recarga completa después de editar categoría...");
+      setTimeout(() => {
+        try {
+          console.log("Ejecutando recarga de página...");
+          window.location.href = window.location.href;
+        } catch (reloadError) {
+          console.error("Error al recargar con location.href, intentando reload():", reloadError);
+          window.location.reload();
+        }
+      }, 1000);
+      
     } catch (error: any) {
       console.error('Error:', error);
       toast.error(error.message || 'Error al actualizar la categoría');

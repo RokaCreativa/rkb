@@ -4,19 +4,21 @@ import { ChevronRightIcon, HomeIcon } from '@heroicons/react/24/outline';
 interface BreadcrumbItem {
   id: number | null | any;
   name: string;
+  key?: string;
   onClick?: () => void;
   current: boolean;
 }
 
 interface BreadcrumbsProps {
   items: BreadcrumbItem[];
+  onItemClick?: (item: BreadcrumbItem) => void;
 }
 
 /**
  * Componente de migas de pan para navegación jerárquica
  * Creado: 26-03-2024 19:00 (GMT+0)
  */
-const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
+const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, onItemClick }) => {
   return (
     <nav className="flex" aria-label="Breadcrumb">
       <ol className="flex items-center space-x-1">
@@ -46,7 +48,13 @@ const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
                 </span>
               ) : (
                 <button
-                  onClick={item.onClick}
+                  onClick={() => {
+                    if (item.onClick) {
+                      item.onClick();
+                    } else if (onItemClick) {
+                      onItemClick(item);
+                    }
+                  }}
                   className="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700"
                 >
                   {item.name}
