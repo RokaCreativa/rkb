@@ -234,88 +234,89 @@ export default function DashboardPage() {
     
   }, [expandedCategories, sections, fetchSectionsByCategory]);
 
-  // Manejar clic en categoría
+  /**
+   * Maneja el clic en una categoría
+   * 
+   * Este es un método CRÍTICO que:
+   * 1. Expande/colapsa la categoría seleccionada
+   * 2. Carga las secciones de la categoría si no están cargadas
+   * 3. Actualiza el estado para mostrar las secciones inmediatamente
+   * 
+   * IMPORTANTE: Siempre expandimos la categoría (no alternamos) para garantizar
+   * consistencia en la experiencia de usuario
+   * 
+   * @param category - El objeto Category completo que fue clickeado
+   */
   const handleCategoryClick = async (category: Category) => {
-    try {
-      console.log(`Clic en categoría: ${category.name} (${category.category_id})`);
+    console.log(`Clic en categoría: ${category.name} (${category.category_id})`);
+    const categoryId = category.category_id;
+    
+    // Expandir la categoría seleccionada (no alternar, siempre expandir)
+    console.log(`Expandiendo categoría: ${categoryId}`);
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: true
+    }));
+    
+    // Solo cargamos secciones si no tenemos datos en el estado local o global
+    const sectionsLoaded = expandedCategorySections[categoryId] || sections[categoryId];
+    
+    if (!sectionsLoaded) {
+      console.log(`Cargando secciones directamente para categoría ${categoryId}`);
+      setLoadingSections(prev => ({
+        ...prev,
+        [categoryId]: true
+      }));
       
-      // Actualizar la categoría seleccionada
-      setSelectedCategory(category);
-      
-      // IMPORTANTE: NO cambiar a la vista de secciones, solo expandir/colapsar la categoría
-      const categoryId = category.category_id;
-      const isCurrentlyExpanded = expandedCategories[categoryId];
-      
-      // Si estamos expandiendo, cargar las secciones primero y luego actualizar el estado
-      if (!isCurrentlyExpanded) {
-        console.log(`Expandiendo categoría: ${categoryId}`);
+      try {
+        // 1. Llamar a la API para obtener las secciones de esta categoría
+        const response = await fetch(`/api/sections?category_id=${categoryId}`);
+        const data = await response.json();
         
-        // Actualizar primero el estado de expansión para la interfaz
-        setExpandedCategories(prev => ({
-          ...prev,
-          [categoryId]: true
-        }));
-        
-        // Indicar que estamos cargando las secciones
-        setLoadingSections(prev => ({ ...prev, [categoryId]: true }));
-        
-        try {
-          // Carga directa de secciones para mantener un flujo síncrono
-          console.log(`Cargando secciones directamente para categoría ${categoryId}`);
-          const response = await fetch(`/api/sections?category_id=${categoryId}`);
-          
-          if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-          }
-          
-          const data = await response.json();
-          console.log(`API respondió con ${data.length} secciones para categoría ${categoryId}`);
-          
-          // Normalización de datos para asegurar formato correcto
-          const processedSections = data.map((section: any) => ({
-            section_id: section.section_id || section.id,
-            id: section.id || section.section_id,
+        if (data && Array.isArray(data.sections)) {
+          // 2. Procesar las secciones recibidas para asegurar formato correcto
+          const processedSections = data.sections.map((section: any) => ({
+            ...section,
+            section_id: section.section_id,
+            id: section.section_id,
             name: section.name,
             image: section.image,
             status: typeof section.status === 'boolean' ? (section.status ? 1 : 0) : section.status,
-            display_order: section.display_order || section.order || 0,
-            category_id: categoryId,
+            display_order: section.display_order,
+            category_id: section.category_id,
             products_count: section.products_count || 0,
             visible_products_count: section.visible_products_count || 0
           }));
           
-          // Actualizar estado GLOBAL (para coordinar con otros componentes)
+          console.log(`API respondió con ${processedSections.length} secciones para categoría ${categoryId}`);
+          
+          // 3. Actualizar el estado GLOBAL para coordinación con otros componentes
+          console.log(`Actualizando estado global de secciones: ${JSON.stringify({[categoryId]: processedSections.length})}`);
           setSections(prev => {
             const newSections = { ...prev };
             newSections[categoryId] = processedSections;
-            console.log("Actualizando estado global de secciones:", newSections);
             return newSections;
           });
           
-          // CRUCIAL: También guardar en estado local para renderizado inmediato
+          // 4. CRUCIAL: También guardar en estado local para renderizado inmediato
           setExpandedCategorySections(prev => {
             const newSections = { ...prev };
             newSections[categoryId] = processedSections;
             console.log("Guardando secciones en estado local:", processedSections.length);
             return newSections;
           });
-          
-        } catch (error) {
-          console.error(`❌ Error cargando secciones para categoría ${categoryId}:`, error);
-        } finally {
-          setLoadingSections(prev => ({ ...prev, [categoryId]: false }));
         }
-      } else {
-        // Si estamos colapsando, simplemente actualizar el estado
-        console.log(`Colapsando categoría: ${categoryId}`);
-        setExpandedCategories(prev => ({
+      } catch (error) {
+        console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
+      } finally {
+        // 5. Siempre finalizar el estado de carga
+        setLoadingSections(prev => ({
           ...prev,
           [categoryId]: false
         }));
       }
-    } catch (err: any) {
-      console.error('❌ Error general en handleCategoryClick:', err);
-      setError(err.message || 'Error al cargar secciones');
+    } else {
+      console.log(`Secciones ya cargadas para categoría ${categoryId}, no es necesario recargar`);
     }
   };
 
@@ -590,7 +591,18 @@ export default function DashboardPage() {
               
               {/* Secciones expandidas para categorías */}
               <div className="space-y-6">
-                {/* Secciones para la categoría expandida se renderizan aquí */}
+                {/* 
+                  IMPORTANTE: Secciones para categorías expandidas
+                  =================================================
+                  Aquí mostramos las secciones de cada categoría expandida.
+                  El proceso es:
+                  
+                  1. Iteramos sobre todas las categorías
+                  2. Solo procesamos las que están expandidas (expandedCategories[category.category_id] = true)
+                  3. Obtenemos las secciones del estado LOCAL primero (respuesta inmediata) o 
+                     del estado GLOBAL como respaldo
+                  4. Mostramos un indicador de carga, las secciones, o un mensaje si no hay secciones
+                */}
                 {categories.map(category => {
                   // Solo mostrar si la categoría está expandida
                   if (!expandedCategories[category.category_id]) return null;
@@ -635,6 +647,12 @@ export default function DashboardPage() {
                           </button>
                         </div>
                         
+                        {/* 
+                          Estados de contenido de secciones:
+                          1. Cargando: Mostramos spinner
+                          2. Con secciones: Mostramos tabla de secciones
+                          3. Sin secciones: Mostramos mensaje y botón de añadir
+                        */}
                         {loadingSections[category.category_id] ? (
                           <div className="flex justify-center items-center py-8">
                             <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

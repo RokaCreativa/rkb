@@ -147,86 +147,112 @@ export default function useDataState(clientId: number | null = null) {
     }
   }, [categories, categoriesFromHook]);
   
-  // Cargar secciones para una categoría específica
-  const fetchSectionsByCategory = useCallback(async (categoryId: number) => {
-    if (!categoryId) {
-      console.error("❌ ID de categoría no válido");
-      return [];
-    }
+  /**
+   * Carga las secciones de una categoría específica
+   * 
+   * FUNCIÓN CRÍTICA: Esta función obtiene todas las secciones de una categoría desde la API
+   * y las almacena en el estado global. Incluye validaciones y transformaciones importantes.
+   * 
+   * El proceso paso a paso es:
+   * 1. Verificar si ya tenemos las secciones en caché para evitar carga innecesaria
+   * 2. Hacer la petición a la API si es necesario
+   * 3. Procesar y normalizar los datos recibidos
+   * 4. Actualizar el estado con las secciones recibidas
+   * 
+   * @param categoryId - ID de la categoría para la que queremos cargar secciones
+   * @returns Promise que se resuelve cuando la operación termina
+   */
+  const fetchSectionsByCategory = useCallback(
+    async (categoryId: number) => {
+      // PASO 1: Validaciones básicas
+      if (!categoryId) {
+        console.error("❌ ID de categoría inválido:", categoryId);
+        return;
+      }
 
-    // Si ya tenemos las secciones cargadas, retornarlas
-    if (sections[categoryId] && sections[categoryId].length > 0) {
-      console.log(`📦 Secciones ya cargadas para categoría ${categoryId}, evitando recarga`);
-      return sections[categoryId];
-    }
-    
-    console.log(`🔄 Cargando secciones para categoría ${categoryId}...`);
-    
-    try {
-      const response = await fetch(`/api/sections?category_id=${categoryId}`);
-      if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      console.log(`🔄 Cargando secciones para categoría ${categoryId}...`);
+      
+      // PASO 2: Verificar si ya tenemos las secciones en caché
+      // Esto es crucial para evitar llamadas API innecesarias
+      if (sections[categoryId] && sections[categoryId].length > 0) {
+        console.log(`📦 Secciones ya cargadas para categoría ${categoryId}, evitando recarga`);
+        setIsLoading(false);
+        return;
       }
-      
-      const data = await response.json();
-      console.log(`✅ Se cargaron ${data.length} secciones para categoría ${categoryId}`);
-      
-      // Verificar la estructura de los datos
-      console.log('Estructura de la primera sección:', data[0]);
-      console.log('Datos completos de secciones:', JSON.stringify(data.slice(0, 2)));
-      
-      // Normalización de datos para asegurar formato correcto
-      const processedSections = data.map((section: any) => ({
-        section_id: section.section_id || section.id,
-        id: section.id || section.section_id, // Asegurarse de que siempre tiene id para compatibilidad
-        name: section.name,
-        image: section.image,
-        status: typeof section.status === 'boolean' ? (section.status ? 1 : 0) : section.status,
-        display_order: section.display_order || section.order || 0,
-        category_id: categoryId,
-        products_count: section.products_count || 0,
-        visible_products_count: section.visible_products_count || 0
-      }));
-      
-      // Actualizamos el estado usando la variable newSections
-      const newSections = { ...sections };
-      newSections[categoryId] = processedSections;
-      
-      console.log(`🔄 Actualizando estado de secciones para categoría ${categoryId}:`, 
-                processedSections.map((s: Section) => s.name).join(', '));
-      
-      // Actualizamos el estado usando setState para asegurar reactividad
-      setSections(newSections);
-      
-      console.log('✅ Estado de secciones actualizado:', newSections);
-      console.log(`Secciones para categoría ${categoryId}:`, newSections[categoryId]?.length || 0);
-      
-      // Actualizar categorías con conteos
-      if (data.length > 0) {
-        const visibleSectionsCount = data.filter((s: Section) => 
-          typeof s.status === 'boolean' ? s.status : s.status === 1
-        ).length;
+
+      try {
+        // PASO 3: Hacer la petición a la API
+        const response = await fetch(`/api/sections?category_id=${categoryId}`);
+        const data = await response.json();
         
-        setCategories(prevCategories => 
-          prevCategories.map(cat => 
-            cat.category_id === categoryId 
-              ? {
-                  ...cat,
-                  sections_count: data.length,
-                  visible_sections_count: visibleSectionsCount
-                } 
-              : cat
-          )
-        );
+        // PASO 4: Verificar que la respuesta es correcta
+        if (!data || !data.sections || !Array.isArray(data.sections)) {
+          throw new Error(`Formato de respuesta inválido para secciones de categoría ${categoryId}`);
+        }
+        
+        // PASO 5: Procesar y normalizar secciones
+        // Esto asegura que todos los datos tengan el formato correcto
+        const sectionsData = data.sections.map((section: any) => ({
+          ...section,
+          // Normalizar ID para asegurar consistencia
+          section_id: section.section_id,
+          id: section.section_id,
+          
+          // Normalizar estado: API puede devolver boolean o numérico
+          // Convertimos siempre a numérico (0/1) para el frontend
+          status: typeof section.status === 'boolean' 
+            ? (section.status ? 1 : 0) 
+            : section.status,
+            
+          // Otros campos críticos
+          category_id: section.category_id,
+          products_count: section.products_count || 0,
+          visible_products_count: section.visible_products_count || 0
+        }));
+        
+        // PASO 6: Registrar detalles para depuración
+        console.log(`✅ Se cargaron ${sectionsData.length} secciones para categoría ${categoryId}`);
+        if (sectionsData.length > 0) {
+          console.log(`Estructura de la primera sección: ${JSON.stringify(sectionsData[0])}`);
+          console.log(`Datos completos de secciones: ${JSON.stringify(sectionsData.slice(0, 2))}`);
+        }
+        
+        // PASO 7: Actualizar contador de secciones para la categoría
+        if (categories.length > 0) {
+          setCategories(currentCategories => 
+            currentCategories.map(category => 
+              category.category_id === categoryId
+                ? { 
+                    ...category, 
+                    sections_count: sectionsData.length,
+                    visible_sections_count: sectionsData.filter((s: Section) => s.status === 1).length
+                  }
+                : category
+            )
+          );
+        }
+        
+        // PASO 8: Actualizar estado de secciones
+        console.log(`🔄 Actualizando estado de secciones para categoría ${categoryId}: ${sectionsData.map((s: Section) => s.name).join(', ')}`);
+        setSections(prevSections => {
+          const newSections = { ...prevSections };
+          newSections[categoryId] = sectionsData;
+          console.log(`✅ Estado de secciones actualizado: ${JSON.stringify(Object.keys(newSections).map(k => `${k}: ${newSections[parseInt(k)]?.length || 0}`))}`)
+          console.log(`Secciones para categoría ${categoryId}: ${sectionsData.length}`);
+          return newSections;
+        });
+        
+        // PASO 9: Finalizar estado de carga
+        setIsLoading(false);
+        
+      } catch (error) {
+        console.error(`❌ Error cargando secciones para categoría ${categoryId}:`, error);
+        setError(`Error al cargar secciones: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+        setIsLoading(false);
       }
-      
-      return processedSections;
-    } catch (error) {
-      console.error(`❌ Error al cargar secciones para categoría ${categoryId}:`, error);
-      toast.error("Error al cargar las secciones");
-      return [];
-    }
-  }, [sections, setCategories]);
+    },
+    [categories, sections, setCategories, setSections, setIsLoading, setError]
+  );
   
   // Cargar productos para una sección específica
   const fetchProductsBySection = useCallback(async (sectionId: number) => {
