@@ -208,24 +208,19 @@ export default function DashboardPage() {
     try {
       console.log(`Clic en categoría: ${category.name} (${category.category_id})`);
       
-      // Usar el ID para expandir/contraer
-    setExpandedCategories(prev => ({
-      ...prev,
-        [category.category_id]: !prev[category.category_id]
-      }));
-      
       // Actualizar la categoría seleccionada
-            setSelectedCategory(category);
+      setSelectedCategory(category);
       setSelectedSection(null);
       
       setCurrentView('sections');
       
       const categoryId = category.category_id;
       
-      if (!sections[categoryId] || sections[categoryId].length === 0) {
-        console.log(`Cargando secciones para categoría: ${categoryId}`);
-        setLoadingSections(prev => ({ ...prev, [categoryId]: true }));
-        
+      // Siempre cargar las secciones para asegurar datos actualizados
+      console.log(`Cargando secciones para categoría: ${categoryId}`);
+      setLoadingSections(prev => ({ ...prev, [categoryId]: true }));
+      
+      try {
         const response = await fetch(`/api/sections?category_id=${categoryId}`);
         
         if (!response.ok) {
@@ -243,19 +238,26 @@ export default function DashboardPage() {
           name: s.name,
           image: s.image,
           order: s.order,
-          visible: s.visible !== false // Por defecto visible
+          visible: s.visible !== false, // Por defecto visible
+          status: s.visible !== false ? 1 : 0 // Convertir a formato numérico para compatibilidad
         }));
         
         setSections(prev => ({ ...prev, [categoryId]: normalizedSections }));
-        setLoadingSections(prev => ({ ...prev, [categoryId]: false }));
-        
         console.log(`Secciones cargadas para categoría ${categoryId}: ${normalizedSections.length}`);
-        } else {
-        console.log(`Usando secciones ya cargadas (${sections[categoryId].length}) para categoría: ${categoryId}`);
+      } catch (error) {
+        console.error(`Error cargando secciones para categoría ${categoryId}:`, error);
+        // En caso de error, asegurarnos que se sigue mostrando cualquier dato que ya tuviéramos
+      } finally {
+        setLoadingSections(prev => ({ ...prev, [categoryId]: false }));
       }
+      
+      // Siempre expandir la categoría cuando se hace clic en ella
+      setExpandedCategories(prev => ({
+        ...prev,
+        [category.category_id]: true
+      }));
     } catch (err: any) {
-      console.error('Error loading sections:', err);
-      setLoadingSections(prev => ({ ...prev, [selectedCategory?.category_id || 0]: false }));
+      console.error('Error general en handleCategoryClick:', err);
       setError(err.message || 'Error al cargar secciones');
     }
   };
@@ -424,6 +426,7 @@ export default function DashboardPage() {
         {/* Barra superior con botón de vista previa */}
         <div className="flex justify-between items-center mb-6">
           <div>
+            {/* Navegación simple como en el original */}
             <Breadcrumbs items={breadcrumbs} />
           </div>
           <div>

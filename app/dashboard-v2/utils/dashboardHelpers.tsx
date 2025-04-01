@@ -95,9 +95,11 @@ export function getBreadcrumbItems(
     });
   }
   
-  if (currentView === 'products' && selectedCategory && selectedSection) {
+  if (selectedSection && currentView === 'products') {
     // Asegurarse de que el item de categoría no esté marcado como actual
-    items[1].current = false;
+    if (items.length > 1) {
+      items[1].current = false;
+    }
     
     items.push({ 
       id: `section-${selectedSection.section_id}`, 

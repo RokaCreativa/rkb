@@ -43,6 +43,17 @@
 - Verificar rendimiento
 - NO avanzar si algo no funciona igual
 
+## 📖 MANDAMIENTO CRÍTICO: Estudio del Código Original
+- **SIEMPRE CONSULTARÁS el código del dashboard original antes de implementar cualquier componente**
+- Este mandamiento es PRIORITARIO y no puede ser ignorado bajo ninguna circunstancia
+- Entender a fondo el código original ANTES de refactorizar cualquier parte
+- Comparar visual y funcionalmente cada componente con su equivalente original
+- Analizar meticulosamente los patrones de interacción y comportamientos específicos
+- Revisar los estilos exactos (márgenes, espaciados, colores, tipografía) para asegurar fidelidad visual
+- Documentar diferencias estructurales pero mantener la experiencia de usuario IDÉNTICA
+- NUNCA asumir cómo funciona algo - verificar siempre en el código original
+- En caso de duda, SIEMPRE consultar el código original como fuente de verdad absoluta
+
 ## 🚀 Escalabilidad Real
 - Arquitectura que permita crecimiento
 - Código modular y reutilizable
@@ -268,6 +279,12 @@
 >   * Mejorar la experiencia de usuario en breadcrumbs
 >   * Mantener estado de navegación consistente
 >   * Asegurar transiciones suaves entre vistas
+>
+> ⚠️ **RECORDATORIO CRÍTICO**:
+> - SIEMPRE consultar el código original del dashboard antes de modificar cualquier componente
+> - Verificar cada detalle visual y funcional contra la implementación original
+> - No avanzar en ninguna implementación sin entender completamente cómo funciona en el dashboard original
+> - Este mandamiento es PRIORITARIO y debe respetarse en cada paso del desarrollo
 >
 > 📋 **Progreso de Fase 2**: 80% completado
 > 
