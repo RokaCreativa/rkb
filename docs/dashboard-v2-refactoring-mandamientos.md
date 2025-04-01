@@ -65,6 +65,8 @@
 - Respetar la jerarquía de navegación: Categorías -> Secciones -> Productos
 - Mantener la coherencia entre el breadcrumb y la vista actual
 - Garantizar que el comportamiento de "volver atrás" funcione exactamente igual que en el original
+- **CRUCIAL**: Mostrar las secciones expandidas dentro de la vista de categorías, NO navegar a una vista separada
+- Las secciones DEBEN aparecer como elementos expandidos bajo la categoría correspondiente, manteniendo la vista de categorías
 
 ## 🚀 Escalabilidad Real
 - Arquitectura que permita crecimiento

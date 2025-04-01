@@ -212,52 +212,60 @@ export default function DashboardPage() {
       // Actualizar la categoría seleccionada
       setSelectedCategory(category);
       
-      // IMPORTANTE: Cambiar a la vista de secciones
-      setCurrentView('sections');
-      
+      // IMPORTANTE: NO cambiar a la vista de secciones, solo expandir/colapsar la categoría
       const categoryId = category.category_id;
+      const isCurrentlyExpanded = expandedCategories[categoryId];
       
-      // Siempre cargar las secciones para asegurar datos actualizados
-      console.log(`Cargando secciones para categoría: ${categoryId}`);
-      setLoadingSections(prev => ({ ...prev, [categoryId]: true }));
-      
-      try {
-        const response = await fetch(`/api/sections?category_id=${categoryId}`);
-        
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
-        console.log(`API respondió con ${data.length} secciones para categoría ${categoryId}`);
-        
-        // Normalizar los datos de las secciones
-        const normalizedSections = data.map((s: any) => ({
-          section_id: s.id,
-          id: s.id, // Para compatibilidad con nuevos componentes
-          name: s.name,
-          image: s.image,
-          order: s.order,
-          visible: s.visible !== false, // Por defecto visible
-          status: s.visible !== false ? 1 : 0, // Convertir a formato numérico para compatibilidad
-          category_id: categoryId // Asegurarse de que la sección tenga referencia a su categoría
-        }));
-        
-        setSections(prev => ({ ...prev, [categoryId]: normalizedSections }));
-        console.log(`Secciones cargadas para categoría ${categoryId}: ${normalizedSections.length}`);
-      } catch (error) {
-        console.error(`Error cargando secciones para categoría ${categoryId}:`, error);
-        // En caso de error, asegurarnos que se sigue mostrando cualquier dato que ya tuviéramos
-      } finally {
-        setLoadingSections(prev => ({ ...prev, [categoryId]: false }));
-      }
-      
-      // También expandir la categoría
+      // Actualizar el estado para expandir/colapsar la categoría
       setExpandedCategories(prev => ({
         ...prev,
-        [category.category_id]: true
+        [categoryId]: !isCurrentlyExpanded
       }));
+      
+      // Si estamos expandiendo y no tenemos secciones cargadas, cargarlas
+      if (!isCurrentlyExpanded) {
+        console.log(`Expandiendo categoría: ${categoryId}`);
+        
+        // Siempre cargar las secciones para asegurar datos actualizados
+        console.log(`Cargando secciones para categoría: ${categoryId}`);
+        setLoadingSections(prev => ({ ...prev, [categoryId]: true }));
+        
+        try {
+          const response = await fetch(`/api/sections?category_id=${categoryId}`);
+          
+          if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          
+          console.log(`API respondió con ${data.length} secciones para categoría ${categoryId}`);
+          
+          // Normalizar los datos de las secciones
+          const normalizedSections = data.map((s: any) => ({
+            section_id: s.id,
+            id: s.id, // Para compatibilidad con nuevos componentes
+            name: s.name,
+            image: s.image,
+            order: s.order,
+            visible: s.visible !== false, // Por defecto visible
+            status: s.visible !== false ? 1 : 0, // Convertir a formato numérico para compatibilidad
+            category_id: categoryId, // Asegurarse de que la sección tenga referencia a su categoría
+            products_count: 0, // Inicializar con valores por defecto
+            visible_products_count: 0
+          }));
+          
+          setSections(prev => ({ ...prev, [categoryId]: normalizedSections }));
+          console.log(`Secciones cargadas para categoría ${categoryId}: ${normalizedSections.length}`);
+        } catch (error) {
+          console.error(`Error cargando secciones para categoría ${categoryId}:`, error);
+          // En caso de error, asegurarnos que se sigue mostrando cualquier dato que ya tuviéramos
+        } finally {
+          setLoadingSections(prev => ({ ...prev, [categoryId]: false }));
+        }
+      } else {
+        console.log(`Colapsando categoría: ${categoryId}`);
+      }
     } catch (err: any) {
       console.error('Error general en handleCategoryClick:', err);
       setError(err.message || 'Error al cargar secciones');
@@ -532,6 +540,85 @@ export default function DashboardPage() {
                   }
                 }}
               />
+              
+              {/* Secciones expandidas para categorías */}
+              {categories.map(category => {
+                // Solo mostrar si la categoría está expandida
+                if (!expandedCategories[category.category_id]) return null;
+                
+                return (
+                  <div 
+                    key={`expanded-category-${category.category_id}`}
+                    id={`category-${category.category_id}`}
+                    className="mt-4 w-full pl-4 border-l-4 border-indigo-100"
+                  >
+                    <div className="bg-blue-50 py-4 px-6 rounded-md shadow-sm border border-blue-100">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-lg font-medium text-indigo-800">{category.name}</h3>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedCategory(category);
+                            handleAddSection();
+                          }}
+                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                          <PlusIcon className="-ml-0.5 mr-2 h-4 w-4" />
+                          Añadir sección
+                        </button>
+                      </div>
+                      
+                      {loadingSections[category.category_id] ? (
+                        <div className="flex justify-center items-center py-8">
+                          <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        </div>
+                      ) : sections[category.category_id] && sections[category.category_id].length > 0 ? (
+                        <SectionTable 
+                          sections={sections[category.category_id] || []}
+                          onEditSection={handleEditSection}
+                          onDeleteSection={(section) => handleDeleteSection(section, category.category_id)}
+                          onToggleSectionVisibility={toggleSectionVisibility}
+                          categoryId={category.category_id}
+                          isUpdatingVisibility={isUpdatingVisibility}
+                          onSectionClick={(sectionId) => {
+                            const section = sections[category.category_id]?.find(s => s.section_id === sectionId);
+                            if (section) {
+                              setSelectedCategory(category);
+                              setSelectedSection(section);
+                              setCurrentView('products');
+                            }
+                          }}
+                          onAddProduct={(sectionId) => {
+                            const section = sections[category.category_id]?.find(s => s.section_id === sectionId);
+                            if (section) {
+                              setSelectedSection(section);
+                              setShowNewProductModal(true);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="bg-white shadow rounded-md p-6 text-center">
+                          <p className="text-gray-500">No hay secciones disponibles para esta categoría.</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategory(category);
+                              handleAddSection();
+                            }}
+                            className="mt-4 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            <PlusIcon className="-ml-0.5 mr-2 h-4 w-4" />
+                            Añadir primera sección
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
           
