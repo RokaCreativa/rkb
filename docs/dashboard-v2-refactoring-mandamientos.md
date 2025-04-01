@@ -54,6 +54,18 @@
 - NUNCA asumir cómo funciona algo - verificar siempre en el código original
 - En caso de duda, SIEMPRE consultar el código original como fuente de verdad absoluta
 
+## 📱 MANDAMIENTO CRÍTICO: Flujo de Navegación y Comportamiento de Vistas
+- **RESPETAR EXACTAMENTE el flujo de navegación del dashboard original**
+- Estudiar meticulosamente cómo se manejan los cambios entre vistas en el dashboard original
+- Mantener el mismo comportamiento cuando se hace clic en categorías, secciones y productos
+- Preservar el estado de navegación (expandido/colapsado) según el diseño original
+- Asegurar que las transiciones entre vistas sean idénticas al dashboard original
+- Estudiar los métodos `navigateToCategory`, `navigateToSection` y similares en el código original
+- NO implementar cambios en el flujo de navegación sin primero verificar el comportamiento original
+- Respetar la jerarquía de navegación: Categorías -> Secciones -> Productos
+- Mantener la coherencia entre el breadcrumb y la vista actual
+- Garantizar que el comportamiento de "volver atrás" funcione exactamente igual que en el original
+
 ## 🚀 Escalabilidad Real
 - Arquitectura que permita crecimiento
 - Código modular y reutilizable

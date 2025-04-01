@@ -13,7 +13,7 @@ import EditCategoryModal from "./components/EditCategoryModal";
 import EditSectionModal from "./components/EditSectionModal";
 import EditProductModal from "./components/EditProductModal";
 import { TopNavbar } from "./components/TopNavbar";
-import { Breadcrumbs } from "./components/Breadcrumbs";
+import { Breadcrumbs, getBreadcrumbItems } from "./components/Breadcrumbs";
 import { FloatingPhonePreview } from "./components/FloatingPhonePreview";
 import { useTogglePreview } from "./components/hooks/useTogglePreview";
 import { Loader } from "./components/ui/Loader";
@@ -22,7 +22,6 @@ import { CategoryList } from "./components/CategoryList";
 import { Category, Section, Product } from "@/app/types/menu";
 import useDataState from "./hooks/useDataState";
 import { getImagePath, handleImageError, getClientLogoPath, getMainLogoPath } from "@/app/dashboard-v2/utils/imageUtils";
-import { getBreadcrumbItems } from "@/app/dashboard-v2/utils/dashboardHelpers";
 import { PlusIcon } from "@heroicons/react/24/outline";
 
 // Añadir console.log para depuración
@@ -212,8 +211,8 @@ export default function DashboardPage() {
       
       // Actualizar la categoría seleccionada
       setSelectedCategory(category);
-      setSelectedSection(null);
       
+      // IMPORTANTE: Cambiar a la vista de secciones
       setCurrentView('sections');
       
       const categoryId = category.category_id;
@@ -241,7 +240,8 @@ export default function DashboardPage() {
           image: s.image,
           order: s.order,
           visible: s.visible !== false, // Por defecto visible
-          status: s.visible !== false ? 1 : 0 // Convertir a formato numérico para compatibilidad
+          status: s.visible !== false ? 1 : 0, // Convertir a formato numérico para compatibilidad
+          category_id: categoryId // Asegurarse de que la sección tenga referencia a su categoría
         }));
         
         setSections(prev => ({ ...prev, [categoryId]: normalizedSections }));
@@ -253,7 +253,7 @@ export default function DashboardPage() {
         setLoadingSections(prev => ({ ...prev, [categoryId]: false }));
       }
       
-      // Siempre expandir la categoría cuando se hace clic en ella
+      // También expandir la categoría
       setExpandedCategories(prev => ({
         ...prev,
         [category.category_id]: true
@@ -267,8 +267,8 @@ export default function DashboardPage() {
   // Manejar clic en sección
   const handleSectionClick = (section: DashboardSection) => {
     console.log(`Clic en sección: ${section.name} (${section.section_id})`);
-      setSelectedSection(section);
-      setCurrentView('products');
+    setSelectedSection(section);
+    setCurrentView('products');
     // Aquí se cargarían los productos de esta sección
     setProducts([
       { id: 1, name: 'Producto 1', price: 9.99, order: 1, image: null, visible: true },
@@ -491,7 +491,7 @@ export default function DashboardPage() {
                     setShowNewSectionModal(true);
                   }
                 }}
-                onSectionClick={(sectionId: number) => {
+                onSectionClick={(sectionId) => {
                   // Buscar la sección con este ID
                   let section = null;
                   let foundCategory = null;
@@ -538,16 +538,16 @@ export default function DashboardPage() {
           {/* Vista de secciones */}
           {currentView === 'sections' && selectedCategory && (
             <div className="animate-fade-in">
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Secciones de {selectedCategory.name}</h1>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-2xl font-semibold text-gray-900">
+                  Secciones de {selectedCategory.name}
+                </h2>
                 <button
                   type="button"
                   onClick={handleAddSection}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                  </svg>
+                  <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
                   Añadir sección
                 </button>
               </div>
@@ -567,6 +567,43 @@ export default function DashboardPage() {
                   onToggleSectionVisibility={toggleSectionVisibility}
                   categoryId={selectedCategory.category_id}
                   isUpdatingVisibility={isUpdatingVisibility}
+                  onSectionClick={(sectionId) => {
+                    // Buscar la sección con este ID
+                    let section = null;
+                    let foundCategory = null;
+                    
+                    Object.entries(sections).forEach(([categoryId, sectionList]) => {
+                      const foundSection = sectionList.find(s => s.section_id === sectionId);
+                      if (foundSection) {
+                        section = foundSection;
+                        foundCategory = categories.find(c => c.category_id === parseInt(categoryId));
+                      }
+                    });
+                    
+                    if (section && foundCategory) {
+                      setSelectedCategory(foundCategory);
+                      setSelectedSection(section);
+                      handleSectionClick(section);
+                    }
+                  }}
+                  onAddProduct={(sectionId: number) => {
+                    // Buscar la sección con este ID
+                    let section = null;
+                    let foundCategory = null;
+                    
+                    Object.entries(sections).forEach(([categoryId, sectionList]) => {
+                      const foundSection = sectionList.find(s => s.section_id === sectionId);
+                      if (foundSection) {
+                        section = foundSection;
+                        foundCategory = categories.find(c => c.category_id === parseInt(categoryId));
+                      }
+                    });
+                    
+                    if (section) {
+                      setSelectedSection(section);
+                      setShowNewProductModal(true);
+                    }
+                  }}
                 />
               ) : (
                 <div className="bg-white shadow rounded-md p-6 text-center">
@@ -576,9 +613,7 @@ export default function DashboardPage() {
                     onClick={handleAddSection}
                     className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                    </svg>
+                    <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
                     Añadir primera sección
                   </button>
                 </div>
