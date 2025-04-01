@@ -23,6 +23,7 @@ import { Category, Section, Product } from "@/app/types/menu";
 import useDataState from "./hooks/useDataState";
 import { getImagePath, handleImageError, getClientLogoPath, getMainLogoPath } from "@/app/dashboard-v2/utils/imageUtils";
 import { getBreadcrumbItems } from "@/app/dashboard-v2/utils/dashboardHelpers";
+import { PlusIcon } from "@heroicons/react/24/outline";
 
 // Añadir console.log para depuración
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -431,7 +432,7 @@ export default function DashboardPage() {
             <Breadcrumbs items={breadcrumbs} />
           </div>
           <div>
-              <button
+            <button
               type="button"
               onClick={togglePreview}
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -439,9 +440,9 @@ export default function DashboardPage() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
-              Vista previa
-              </button>
-            </div>
+              Live Preview
+            </button>
+          </div>
         </div>
         
         {/* Contenedor con efectos de transición para las vistas */}
@@ -449,16 +450,15 @@ export default function DashboardPage() {
           {/* Vista de categorías */}
           {currentView === 'categories' && (
             <div className="animate-fade-in">
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Categorías</h1>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="sr-only">Categorías</h2>
+                <div></div> {/* Spacer */}
                 <button
                   type="button"
                   onClick={handleAddCategory}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                  </svg>
+                  <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
                   Añadir categoría
                 </button>
               </div>
