@@ -75,6 +75,7 @@ export default function useDataState(clientId: number | null = null) {
   // Cargar datos del cliente
   const fetchClientData = useCallback(async () => {
     setIsLoading(true);
+    console.log('🔄 Iniciando carga de datos del cliente...');
     try {
       const response = await fetch('/api/client');
       if (!response.ok) {
@@ -82,14 +83,16 @@ export default function useDataState(clientId: number | null = null) {
       }
       
       const clientData = await response.json();
+      console.log('✅ Datos del cliente cargados correctamente:', clientData?.business_name || clientData?.name);
       setClient(clientData);
       return clientData;
     } catch (error) {
-      console.error('Error en fetchClientData:', error);
+      console.error('❌ Error en fetchClientData:', error);
       setError('Error al cargar datos del cliente');
       toast.error('No se pudieron cargar los datos del cliente');
       throw error;
     } finally {
+      console.log('🏁 Finalizando fetchClientData, estableciendo isLoading=false');
       setIsLoading(false);
     }
   }, []);
@@ -109,10 +112,10 @@ export default function useDataState(clientId: number | null = null) {
       return categoriesFromHook;
     }
     
+    console.log('🔄 Iniciando carga de categorías...');
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
-      console.log('🔄 Iniciando carga de categorías...');
-      
       let url = '/api/categories';
       
       // Añadir parámetros de paginación si se proporcionan
@@ -139,6 +142,7 @@ export default function useDataState(clientId: number | null = null) {
       toast.error('No se pudieron cargar las categorías');
       throw error;
     } finally {
+      console.log('🏁 Finalizando fetchCategories, estableciendo isLoading=false');
       setIsLoading(false);
     }
   }, [categories, categoriesFromHook]);

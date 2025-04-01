@@ -185,6 +185,14 @@ export default function DashboardPage() {
       const loadInitialData = async () => {
         try {
           if (DEBUG) console.log('⏳ Cargando datos iniciales...');
+          
+          // Evitar cargar datos si ya tenemos categorías
+          if (categories.length > 0) {
+            if (DEBUG) console.log('✅ Ya hay categorías cargadas, evitando recarga');
+            setIsLoading(false);
+            return;
+          }
+          
           await fetchClientData();
           await fetchCategories();
           if (DEBUG) console.log('✅ Datos iniciales cargados con éxito');
@@ -202,7 +210,7 @@ export default function DashboardPage() {
       setIsLoading(false);
       router.push('/login');
     }
-  }, [status, fetchClientData, fetchCategories, router]);
+  }, [status, fetchClientData, fetchCategories, router, categories]);
 
   // Manejar clic en categoría
   const handleCategoryClick = async (category: Category) => {
@@ -406,7 +414,7 @@ export default function DashboardPage() {
   };
 
   // Manejar estados de carga y error
-  if (isLoading || isDataLoading) {
+  if (isLoading && isDataLoading) {
     if (DEBUG) console.log('⏳ Mostrando pantalla de carga...');
     return (
       <div className="flex items-center justify-center min-h-screen">
