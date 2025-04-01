@@ -15,7 +15,7 @@ export function TopNavbar({ isReorderModeActive = false, onToggleReorderMode = (
           {/* Logo y menú izquierdo */}
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <img className="h-8 w-auto" src="/images/logo.png" alt="RokaMenu" />
+              <img className="h-8 w-auto" src="/images/logo_rokamenu.png" alt="RokaMenu" />
             </div>
           </div>
           

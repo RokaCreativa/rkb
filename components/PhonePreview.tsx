@@ -112,27 +112,31 @@ export function PhonePreview({
   }, [])
 
   // Manejar errores de carga de imágenes de categorías
-  const handleCategoryImageError = useCallback((categoryId: number) => {
-    setImageErrors(prev => ({
-      ...prev,
-      [categoryId]: true
-    }))
-  }, [])
+  const handleCategoryImageError = (categoryId: number) => {
+    // Si es necesario, podríamos rastrear categorías con errores de imagen
+    console.log(`Error cargando imagen para categoría ${categoryId}`);
+  };
 
   // Manejar errores de carga del logo
-  const handleLogoError = useCallback(() => {
-    setLogoError(true)
-    setHeaderImage("/images/restaurant-header.jpg")
-  }, [])
+  const handleLogoError = () => {
+    setLogoError(true);
+  };
 
   // Manejar errores de carga del logo principal
-  const handleMainLogoError = useCallback(() => {
-    setMainLogoError(true)
-  }, [])
+  const handleMainLogoError = () => {
+    setMainLogoError(true);
+  };
+
+  // Manejador genérico de error de imagen
+  const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = event.target as HTMLImageElement;
+    target.src = '/images/no-image.png';
+  };
 
   // Expandir una imagen al hacer clic
   const handleImageClick = useCallback((image: string) => {
-    if (image && !image.includes('placeholder')) {
+    // Solo expandir si es una imagen válida y no un placeholder
+    if (image && !image.includes('no-image')) {
       setExpandedImage(image)
     }
   }, [])

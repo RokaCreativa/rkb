@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Product } from '@/app/types/menu';
-import { getImagePath } from '@/lib/imageUtils';
+import { getImagePath, handleImageError } from '@/app/dashboard-v2/core/utils/imageUtils';
 
 interface ProductTableProps {
   products: Product[];
@@ -91,12 +91,10 @@ export function ProductTable({
             <td className="px-6 py-4 whitespace-nowrap text-center">
               {product.image ? (
                 <img 
-                  src={getImagePath(product.image, 'products')} 
+                  src={product.image} 
                   alt={product.name} 
-                  className="h-10 w-10 rounded-full mx-auto object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/images/placeholder.png';
-                  }}
+                  className="h-full w-full object-cover"
+                  onError={handleImageError}
                 />
               ) : (
                 <div className="h-10 w-10 rounded-full mx-auto bg-gray-200 flex items-center justify-center">

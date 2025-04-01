@@ -8,6 +8,10 @@
 - Mantener EXACTAMENTE la misma funcionalidad
 - Aplicar patrones modernos SIN sobre-ingenierizar
 - Implementar arquitectura limpia
+- **PROHIBIDO USAR COMPONENTES DEL DASHBOARD ORIGINAL**
+  * Si necesitas un componente similar, cópialo y adáptalo en dashboard-v2
+  * Mantén total separación entre las dos implementaciones
+  * No mezclar importaciones entre dashboard y dashboard-v2
 
 ## 📚 Buenas Prácticas de Programación
 - Implementar principios SOLID
@@ -176,6 +180,58 @@
    - Probar cada cambio
    - Validar tipos
    - Verificar rendimiento
+
+5. **Gestión de imágenes**
+   - Usar sólo rutas estandarizadas:
+     * Logo de Roka Menu: `/images/logo_rokamenu.png`
+     * Categorías: `/images/categories/{nombre_archivo}`
+     * Secciones: `/images/sections/{nombre_archivo}`
+     * Productos: `/images/products/{nombre_archivo}`
+     * Logo principal: `/images/main_logo/{nombre_archivo}`
+     * Imagen de respaldo: `/images/no-image.png`
+   - Utilizar siempre `getImagePath()` para resolver rutas
+   - Implementar `handleImageError()` para manejo de errores
+   - NO usar rutas antiguas como `/images/clientes/`
+
+6. **Modelo de datos principal**
+   - **clients**:
+     * client_id: Int [@id]
+     * name: String? [@db.VarChar(100)]
+     * company_logo: String? [@db.VarChar(70)] Este de momento creo que no se usa
+     * main_logo: String? [@db.VarChar(100)]
+     * email: String [@db.VarChar(200)]
+   - **categories**:
+     * category_id: Int [@id @default(autoincrement())]
+     * name: String? [@db.VarChar(50)]
+     * image: String? [@db.VarChar(45)]
+     * status: Boolean? [@default(true)]
+     * display_order: Int?
+     * client_id: Int?
+   - **sections**:
+     * section_id: Int [@id @default(autoincrement())]
+     * name: String? [@db.VarChar(50)]
+     * image: String? [@db.VarChar(100)]
+     * status: Boolean? [@default(true)]
+     * display_order: Int?
+     * category_id: Int?
+   - **products**:
+     * product_id: Int [@id @default(autoincrement())]
+     * name: String? [@db.VarChar(100)]
+     * description: String? [@db.Text]
+     * price: Decimal? [@db.Decimal(10, 2)]
+     * image: String? [@db.VarChar(100)]
+     * status: Boolean? [@default(true)]
+     * display_order: Int?
+   - **products_sections**:
+     * product_id: Int [parte de clave primaria compuesta]
+     * section_id: Int [parte de clave primaria compuesta]
+   - **users** (auth):
+     * user_id: String [@id @db.VarChar(30)]
+     * email: String [@db.VarChar(255)] /* Principalmente usado para autenticación */
+     * password: String? [@db.VarChar(30)] /* Principalmente usado para autenticación */
+     * username: String? [@db.VarChar(200)] /* Usado para gestión de sesión */
+     * profile: String? [@db.VarChar(2)] /* Usado para gestión de sesión */
+     * client_id: Int? /* Usado para gestión de sesión */
 
 ---
 

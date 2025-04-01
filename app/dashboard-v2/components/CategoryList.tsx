@@ -3,6 +3,7 @@
 import React from 'react';
 import { Category } from '@/app/types/menu';
 import Image from 'next/image';
+import { getImagePath, handleImageError } from '@/app/dashboard-v2/core/utils/imageUtils';
 
 interface CategoryListProps {
   categories: Category[];
@@ -32,13 +33,11 @@ export function CategoryList({ categories, onCategoryClick, expandedCategories }
               <div className="relative h-36">
                 {category.image ? (
                   <Image
-                    src={`/images/categories/${category.image}`}
+                    src={getImagePath(category.image, 'categories')}
                     alt={category.name}
                     fill
                     className="object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/images/placeholder.png';
-                    }}
+                    onError={handleImageError}
                   />
                 ) : (
                   <div className="w-full h-full bg-gray-200 flex items-center justify-center">

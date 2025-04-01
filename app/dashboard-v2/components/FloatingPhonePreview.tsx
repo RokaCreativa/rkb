@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { handleImageError } from '@/app/dashboard-v2/core/utils/imageUtils';
 
 interface CategoryPreview {
   id: number;
@@ -113,6 +114,7 @@ export function FloatingPhonePreview({
                     src={clientLogo}
                     alt={clientName}
                     className="w-10 h-10 object-cover rounded-full"
+                    onError={handleImageError}
                   />
                 </div>
               )}
@@ -131,6 +133,7 @@ export function FloatingPhonePreview({
                   src={clientMainLogo}
                   alt={clientName}
                   className="max-h-32 object-contain"
+                  onError={handleImageError}
                 />
               </div>
             )}
@@ -157,6 +160,7 @@ export function FloatingPhonePreview({
                               src={category.image} 
                               alt={category.name}
                               className="w-full h-full object-cover"
+                              onError={handleImageError}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-gray-200">

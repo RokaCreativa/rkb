@@ -3,6 +3,7 @@
 import React from 'react';
 import { Section } from '@/app/types/menu';
 import Image from 'next/image';
+import { getImagePath, handleImageError } from '@/app/dashboard-v2/core/utils/imageUtils';
 
 interface SectionListProps {
   sections: Section[];
@@ -44,13 +45,11 @@ export function SectionList({ sections, onSectionClick, selectedSection, isLoadi
             <div className="relative h-32">
               {section.image ? (
                 <Image
-                  src={`/images/sections/${section.image}`}
+                  src={getImagePath(section.image, 'sections')}
                   alt={section.name}
                   fill
                   className="object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/images/placeholder.png';
-                  }}
+                  onError={handleImageError}
                 />
               ) : (
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center">

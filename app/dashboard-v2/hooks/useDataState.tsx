@@ -149,6 +149,12 @@ export default function useDataState(clientId: number | null = null) {
       console.error("❌ ID de categoría no válido");
       return [];
     }
+
+    // Si ya tenemos las secciones cargadas, retornarlas
+    if (sections[categoryId] && sections[categoryId].length > 0) {
+      console.log(`📦 Secciones ya cargadas para categoría ${categoryId}, evitando recarga`);
+      return sections[categoryId];
+    }
     
     console.log(`🔄 Cargando secciones para categoría ${categoryId}...`);
     
@@ -160,6 +166,9 @@ export default function useDataState(clientId: number | null = null) {
       
       const data = await response.json();
       console.log(`✅ Se cargaron ${data.length} secciones para categoría ${categoryId}`);
+      
+      // Verificar la estructura de los datos
+      console.log('Estructura de la primera sección:', data[0]);
       
       // Actualizar estado con las secciones cargadas
       setSections(prev => ({
@@ -189,7 +198,7 @@ export default function useDataState(clientId: number | null = null) {
       toast.error("Error al cargar las secciones");
       return [];
     }
-  }, []);
+  }, [sections, setCategories]);
   
   // Cargar productos para una sección específica
   const fetchProductsBySection = useCallback(async (sectionId: number) => {
@@ -269,20 +278,20 @@ export default function useDataState(clientId: number | null = null) {
     const categoryId = category.category_id;
     console.log(`👆 Clic en categoría: ${category.name} (${categoryId})`);
     
-    // Toggle estado de expansión
-    const isCurrentlyExpanded = expandedCategories[categoryId];
-    setExpandedCategories(prev => ({
-      ...prev,
-      [categoryId]: !isCurrentlyExpanded
-    }));
-    
-    // Actualizar selección
+    // Actualizar selección primero
     setSelectedCategory(category);
     
-    // Si estamos expandiendo y no tenemos secciones, cargarlas
-    if (!isCurrentlyExpanded && (!sections[categoryId] || sections[categoryId].length === 0)) {
+    // Cargar secciones si no están cargadas
+    if (!sections[categoryId] || sections[categoryId].length === 0) {
       await fetchSectionsByCategory(categoryId);
     }
+    
+    // Toggle estado de expansión después de cargar
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+    
   }, [expandedCategories, fetchSectionsByCategory, sections]);
   
   const handleSectionClick = useCallback(async (sectionId: number) => {

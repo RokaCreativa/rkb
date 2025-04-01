@@ -19,7 +19,7 @@ export const IMAGE_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localho
  */
 export function getImagePath(
   path: string | null | undefined,
-  defaultImage: string = '/placeholder.png'
+  defaultImage: string = '/images/no-image.png'
 ): string {
   // Si no hay ruta o es vacía, devolver imagen por defecto
   if (!path || path.trim() === '') {
@@ -51,7 +51,7 @@ export function getImagePath(
  */
 export function handleImageError(
   event: React.SyntheticEvent<HTMLImageElement, Event>,
-  fallbackSrc: string = '/placeholder.png'
+  fallbackSrc: string = '/images/no-image.png'
 ): void {
   const imgElement = event.currentTarget;
   

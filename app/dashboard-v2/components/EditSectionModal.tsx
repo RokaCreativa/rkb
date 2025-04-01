@@ -19,7 +19,7 @@ import { toast } from 'react-hot-toast';
 import { Section, Category, SectionWithFileUpload } from '@/app/types/menu';
 import useSections from '@/app/hooks/useSections';
 import { PlusIcon as PlusIconMini } from '@heroicons/react/20/solid';
-import { getImagePath } from '@/lib/imageUtils';
+import { getImagePath } from '@/app/dashboard-v2/core/utils/imageUtils';
 
 /**
  * Props para el componente EditSectionModal

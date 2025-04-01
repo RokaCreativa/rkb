@@ -3,7 +3,7 @@
 import React from 'react';
 import { PencilIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { Category, Section } from '@/app/types/menu';
-import { getImagePath } from '@/lib/imageUtils';
+import { getImagePath, handleImageError } from '@/app/dashboard-v2/core/utils/imageUtils';
 import { SectionTable } from './SectionTable';
 
 interface CategoryTableProps {
@@ -96,9 +96,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                           src={getImagePath(category.image, 'categories')} 
                           alt={category.name} 
                           className="h-full w-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/images/no-image.png';
-                          }}
+                          onError={handleImageError}
                         />
                       ) : (
                         <div className="h-full w-full flex items-center justify-center bg-gray-200">

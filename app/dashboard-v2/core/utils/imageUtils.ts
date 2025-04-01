@@ -1,11 +1,13 @@
 /**
- * Utilidades para manejar rutas de imágenes en la aplicación
+ * Utilidades para manejar rutas de imágenes en el dashboard v2
  * 
  * Este archivo contiene funciones auxiliares para gestionar correctamente
  * las rutas de imágenes y evitar problemas de duplicación de prefijos.
  * 
- * @author GX
- * @date 2023-10-27 22:30
+ * Separado del dashboard original para mantener la independencia de código.
+ * 
+ * @version Dashboard v2
+ * @date 2024-04-01
  */
 
 /**
@@ -44,7 +46,7 @@ export function getImagePath(
  */
 export function handleImageError(event: React.SyntheticEvent<HTMLImageElement>): void {
   const target = event.target as HTMLImageElement;
-  console.log(`Error cargando imagen: ${target.src}`);
+  console.log(`Dashboard V2 - Error cargando imagen: ${target.src}`);
   target.src = '/images/no-image.png';
   // Evitar bucle infinito si la imagen de fallback también falla
   target.onerror = null;
