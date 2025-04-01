@@ -25,8 +25,8 @@ export default function useDataState(clientId: number | null = null) {
   // Estados de datos principales
   const [client, setClient] = useState<Client | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [sections, setSections] = useState<{ [key: string]: Section[] }>({});
-  const [products, setProducts] = useState<{ [key: string]: Product[] }>({});
+  const [sections, setSections] = useState<{ [key: number]: Section[] }>({});
+  const [products, setProducts] = useState<{ [key: number]: Product[] }>({});
   
   // Estados de carga
   const [isLoading, setIsLoading] = useState(true);
@@ -188,22 +188,18 @@ export default function useDataState(clientId: number | null = null) {
         visible_products_count: section.visible_products_count || 0
       }));
       
-      // Actualizar estado con las secciones cargadas
-      setSections(prev => {
-        const newSections = { ...prev };
-        newSections[categoryId] = processedSections;
-        console.log(`🔄 Actualizando estado de secciones para categoría ${categoryId}:`, 
-                   processedSections.map((s: Section) => s.name).join(', '));
-        return newSections;
-      });
+      // Actualizamos el estado usando la variable newSections
+      const newSections = { ...sections };
+      newSections[categoryId] = processedSections;
       
-      // Verificar que se hayan guardado correctamente
-      setTimeout(() => {
-        console.log(`✅ Verificación después de guardar: ${sections[categoryId]?.length || 0} secciones para categoría ${categoryId}`);
-        if (sections[categoryId]) {
-          console.log('Secciones guardadas:', sections[categoryId].map(s => s.name).join(', '));
-        }
-      }, 100);
+      console.log(`🔄 Actualizando estado de secciones para categoría ${categoryId}:`, 
+                processedSections.map((s: Section) => s.name).join(', '));
+      
+      // Actualizamos el estado usando setState para asegurar reactividad
+      setSections(newSections);
+      
+      console.log('✅ Estado de secciones actualizado:', newSections);
+      console.log(`Secciones para categoría ${categoryId}:`, newSections[categoryId]?.length || 0);
       
       // Actualizar categorías con conteos
       if (data.length > 0) {

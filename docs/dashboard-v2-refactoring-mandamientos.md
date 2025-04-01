@@ -258,11 +258,23 @@
      * profile: String? [@db.VarChar(2)] /* Usado para gestión de sesión */
      * client_id: Int? /* Usado para gestión de sesión */
 
+## 🧠 MANDAMIENTO CRÍTICO: Gestión del Estado
+- **IMPLEMENTARÁS un sistema de doble estado (local y global) para datos críticos**
+- Usar estado local para respuesta inmediata en la interfaz de usuario
+- Mantener estado global para coordinación entre componentes
+- Implementar verificación de cache para evitar cargas redundantes
+- Normalizar datos antes de almacenarlos en cualquier estado
+- Priorizar el estado local sobre el global para renderizado cuando sea necesario
+- Incluir indicadores visuales específicos durante estados de carga
+- Implementar herramientas de depuración visibles en modo desarrollo
+- Evitar efectos con dependencias innecesarias o mal configuradas
+- Utilizar nombres descriptivos para los estados que indiquen su propósito específico
+
 ---
 
-> 🎯 **Estado Actual**: Fase 2 - Componentes Base (En Progreso)
+> 🎯 **Estado Actual**: Fase 3 - Features Principales (En Progreso)
 > 
-> 📅 **Última Actualización**: 14/04/2024 - 19:20 - v0.2.2
+> 📅 **Última Actualización**: 15/05/2024 - 20:30 - v0.3.5
 > 
 > ✅ **Completado**:
 > - Estructura de directorios creada
@@ -282,37 +294,45 @@
 >   * Sistema de componentes CSS coherente
 >   * Estructura de archivos modular para estilos
 >   * Integración con el layout principal
+> - Gestión de estado optimizada:
+>   * Implementación de estado dual (local/global)
+>   * Sistema de caché para datos frecuentemente usados
+>   * Verificación preventiva antes de cargas
+>   * Indicadores de carga específicos por contexto
+> - Componentes críticos implementados:
+>   * Vista de categorías con expansión in-situ
+>   * Carga bajo demanda de secciones
+>   * Manejo óptimo de autenticación
+>   * Layout adaptativo para diferentes dispositivos
 > 
-> 🔄 **Siguiente Paso**: Aplicar el sistema de diseño a componentes críticos
-> - **Refactorizar componentes clave**:
->   * Aplicar estilos del sistema de diseño a CategoryTable
->   * Aplicar estilos del sistema de diseño a SectionTable
->   * Aplicar estilos del sistema de diseño a ProductTable
->   * Aplicar estilos del sistema de diseño a modales
-> - **Optimizar navegación**:
->   * Mejorar la experiencia de usuario en breadcrumbs
->   * Mantener estado de navegación consistente
->   * Asegurar transiciones suaves entre vistas
+> 🔄 **Siguiente Paso**: Completar la implementación de features principales
+> - **Refactorizar funcionalidad de productos**:
+>   * Implementar carga bajo demanda de productos
+>   * Optimizar rendimiento de tablas de productos
+>   * Mejorar UX para creación/edición de productos
+>   * Implementar vista previa en tiempo real
+> - **Optimizar vista previa de teléfono**:
+>   * Mejorar rendimiento con lazy loading
+>   * Sincronizar estado con la navegación principal
+>   * Implementar transiciones fluidas
 >
 > ⚠️ **RECORDATORIO CRÍTICO**:
 > - SIEMPRE consultar el código original del dashboard antes de modificar cualquier componente
 > - Verificar cada detalle visual y funcional contra la implementación original
 > - No avanzar en ninguna implementación sin entender completamente cómo funciona en el dashboard original
-> - Este mandamiento es PRIORITARIO y debe respetarse en cada paso del desarrollo
+> - Implementar SIEMPRE sistema de doble estado para datos críticos
+> - Priorizar renderizado inmediato con estado local para mejor UX
 >
-> 📋 **Progreso de Fase 2**: 80% completado
+> 📋 **Progreso de Fase 3**: 65% completado
 > 
 > 📝 **Notas**:
-> - La arquitectura base está tomando forma
-> - Se mantiene la compatibilidad con el dashboard original
-> - Se implementan patrones modernos sin sobre-ingenierizar
-> - Los hooks siguen el principio de responsabilidad única
-> - Se mantiene la consistencia en el manejo de errores y estados de carga
-> - Los componentes base son altamente reutilizables y tipados
-> - Se han resuelto varios errores de tipos y parámetros en API calls
-> - Se ha mejorado la gestión del estado con Zustand
-> - Se ha implementado un sistema de diseño coherente y mantenible
-> - Los estilos se organizan de forma modular para facilitar mantenimiento
+> - La arquitectura ha demostrado ser robusta y eficiente
+> - Se han resuelto problemas críticos de sincronización de estado
+> - El renderizado de secciones ahora es inmediato gracias al estado local
+> - Se ha optimizado la carga de datos con verificación de caché
+> - El sistema de depuración en desarrollo facilita la identificación de problemas
+> - Se mantiene plena compatibilidad con el dashboard original
+> - Las herramientas de diagnóstico implementadas permiten identificar rápidamente problemas de autenticación y carga de datos
 
 > 💡 **Nota**: Este documento debe ser consultado en cada paso de la refactorización para mantener el rumbo correcto.
 

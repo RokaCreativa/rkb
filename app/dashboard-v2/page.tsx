@@ -150,6 +150,9 @@ export default function DashboardPage() {
   const [showRedirectMessage, setShowRedirectMessage] = useState(true);
   const [loadingSections, setLoadingSections] = useState<{ [key: number]: boolean }>({});
   const togglePreview = useTogglePreview();
+  
+  // Estado local para almacenar las secciones de categorías expandidas
+  const [expandedCategorySections, setExpandedCategorySections] = useState<{ [key: number]: Section[] }>({});
 
   // Estado para el modo de reordenación
   const [isReorderModeActive, setIsReorderModeActive] = useState(false);
@@ -212,6 +215,25 @@ export default function DashboardPage() {
     }
   }, [status, fetchClientData, fetchCategories, router, categories]);
 
+  // Efecto para cargar secciones de categorías expandidas
+  useEffect(() => {
+    // Verificar si hay categorías expandidas
+    const expandedCategoryIds = Object.entries(expandedCategories)
+      .filter(([_, isExpanded]) => isExpanded)
+      .map(([id]) => parseInt(id));
+    
+    if (expandedCategoryIds.length === 0) return;
+    
+    // Para cada categoría expandida, verificar si necesitamos cargar sus secciones
+    expandedCategoryIds.forEach(categoryId => {
+      if (!sections[categoryId] || sections[categoryId].length === 0) {
+        console.log(`Cargando secciones para categoría expandida ${categoryId}`);
+        fetchSectionsByCategory(categoryId);
+      }
+    });
+    
+  }, [expandedCategories, sections, fetchSectionsByCategory]);
+
   // Manejar clic en categoría
   const handleCategoryClick = async (category: Category) => {
     try {
@@ -227,124 +249,61 @@ export default function DashboardPage() {
       // Si estamos expandiendo, cargar las secciones primero y luego actualizar el estado
       if (!isCurrentlyExpanded) {
         console.log(`Expandiendo categoría: ${categoryId}`);
+        
+        // Actualizar primero el estado de expansión para la interfaz
+        setExpandedCategories(prev => ({
+          ...prev,
+          [categoryId]: true
+        }));
+        
+        // Indicar que estamos cargando las secciones
         setLoadingSections(prev => ({ ...prev, [categoryId]: true }));
         
         try {
-          // Intentar usar primero fetchSectionsByCategory del hook para evitar duplicación
-          let sectionsData = [];
+          // Carga directa de secciones para mantener un flujo síncrono
+          console.log(`Cargando secciones directamente para categoría ${categoryId}`);
+          const response = await fetch(`/api/sections?category_id=${categoryId}`);
           
-          if (fetchSectionsByCategory) {
-            console.log(`Usando fetchSectionsByCategory del hook para categoría ${categoryId}`);
-            sectionsData = await fetchSectionsByCategory(categoryId);
-          } else {
-            // Fallback directo a la API
-            console.log(`Usando fetch API directo para categoría ${categoryId}`);
-            const response = await fetch(`/api/sections?category_id=${categoryId}`);
-            
-            if (!response.ok) {
-              throw new Error(`Error ${response.status}: ${response.statusText}`);
-            }
-            
-            sectionsData = await response.json();
+          if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
           }
           
-          console.log(`API respondió con ${sectionsData.length} secciones para categoría ${categoryId}`);
-          console.log("Datos de secciones:", sectionsData);
+          const data = await response.json();
+          console.log(`API respondió con ${data.length} secciones para categoría ${categoryId}`);
           
-          // Verificar tipo de dato secciones
-          if (sectionsData.length > 0) {
-            console.log("Tipo de section_id:", typeof sectionsData[0].section_id);
-            console.log("Tipo de id (si existe):", typeof sectionsData[0].id);
-          }
+          // Normalización de datos para asegurar formato correcto
+          const processedSections = data.map((section: any) => ({
+            section_id: section.section_id || section.id,
+            id: section.id || section.section_id,
+            name: section.name,
+            image: section.image,
+            status: typeof section.status === 'boolean' ? (section.status ? 1 : 0) : section.status,
+            display_order: section.display_order || section.order || 0,
+            category_id: categoryId,
+            products_count: section.products_count || 0,
+            visible_products_count: section.visible_products_count || 0
+          }));
           
-          // Normalizar los datos de las secciones si es necesario
-          if (sectionsData.length > 0 && !sectionsData[0].section_id && sectionsData[0].id) {
-            console.log(`Normalizando datos de secciones para categoría ${categoryId}`);
-            const normalizedSections = sectionsData.map((s: any) => ({
-              section_id: s.id,
-              id: s.id, // Para compatibilidad con nuevos componentes
-              name: s.name,
-              image: s.image,
-              order: s.order || s.display_order,
-              visible: s.visible !== false, // Por defecto visible
-              status: s.visible !== false ? 1 : 0, // Convertir a formato numérico para compatibilidad
-              category_id: categoryId, // Asegurarse de que la sección tenga referencia a su categoría
-              products_count: s.products_count || 0,
-              visible_products_count: s.visible_products_count || 0,
-              display_order: s.display_order || s.order || 0
-            }));
-            
-            // Actualizar estado con secciones normalizadas - USAMOS setSections directamente para acceder al contexto
-            console.log(`Guardando ${normalizedSections.length} secciones normalizadas en el estado para categoría ${categoryId}`);
-            
-            // IMPORTANTE: Verificar la estructura actual del estado para mantenerla
-            setSections(prev => {
-              const newSections = { ...prev };
-              newSections[categoryId] = normalizedSections;
-              console.log("Nuevo estado de secciones:", newSections);
-              return newSections;
-            });
-            
-            // Verificar datos
-            console.log(`Secciones después de normalizar para categoría ${categoryId}:`, 
-                        normalizedSections.map((s: Section) => `${s.name} (${s.section_id})`).join(', '));
-          } else {
-            // Ya están en formato correcto, actualizar directamente
-            console.log(`Guardando ${sectionsData.length} secciones sin normalizar en el estado para categoría ${categoryId}`);
-            
-            // IMPORTANTE: Asegurarnos de que las secciones tienen display_order
-            const processedSections = sectionsData.map((s: any) => ({
-              ...s,
-              display_order: s.display_order || 0
-            }));
-            
-            // IMPORTANTE: Verificar la estructura actual del estado para mantenerla
-            setSections(prev => {
-              const newSections = { ...prev };
-              newSections[categoryId] = processedSections;
-              console.log("Nuevo estado de secciones:", newSections);
-              return newSections;
-            });
-            
-            // Verificar datos
-            if (sectionsData.length > 0) {
-              console.log(`Secciones sin normalizar para categoría ${categoryId}:`, 
-                        sectionsData.map((s: any) => `${s.name} (${s.section_id || s.id})`).join(', '));
-            }
-          }
-
-          // Verificar estado secciones después de actualizar
-          setTimeout(() => {
-            console.log("Estado de secciones después de actualizar:", sections);
-            if (sections[categoryId]) {
-              console.log(`Secciones para categoría ${categoryId} después de actualizar:`, 
-                sections[categoryId].map((s: any) => `${s.name} (${s.section_id})`).join(', '));
-            } else {
-              console.log(`No hay secciones para categoría ${categoryId} después de actualizar`);
-            }
-          }, 100);
-
+          // Actualizar estado GLOBAL (para coordinar con otros componentes)
+          setSections(prev => {
+            const newSections = { ...prev };
+            newSections[categoryId] = processedSections;
+            console.log("Actualizando estado global de secciones:", newSections);
+            return newSections;
+          });
+          
+          // CRUCIAL: También guardar en estado local para renderizado inmediato
+          setExpandedCategorySections(prev => {
+            const newSections = { ...prev };
+            newSections[categoryId] = processedSections;
+            console.log("Guardando secciones en estado local:", processedSections.length);
+            return newSections;
+          });
+          
         } catch (error) {
           console.error(`❌ Error cargando secciones para categoría ${categoryId}:`, error);
         } finally {
           setLoadingSections(prev => ({ ...prev, [categoryId]: false }));
-          
-          // Ahora que hemos cargado las secciones, actualizar el estado de expansión
-          console.log(`Actualizando estado de expansión para categoría ${categoryId} a expandida`);
-          setExpandedCategories(prev => ({
-            ...prev,
-            [categoryId]: true
-          }));
-          
-          // Verificar si las secciones se han guardado correctamente
-          setTimeout(() => {
-            console.log("Estado de sections:", sections);
-            if (sections[categoryId]) {
-              console.log(`✓ Verificación: Hay ${sections[categoryId].length} secciones disponibles para categoría ${categoryId}`);
-            } else {
-              console.log(`❌ Verificación: No hay secciones disponibles para categoría ${categoryId}`);
-            }
-          }, 100);
         }
       } else {
         // Si estamos colapsando, simplemente actualizar el estado
@@ -637,13 +596,21 @@ export default function DashboardPage() {
                   if (!expandedCategories[category.category_id]) return null;
                   
                   console.log(`Renderizando categoría expandida: ${category.name} (${category.category_id})`);
+                  console.log("Estado global de sections:", JSON.stringify(sections));
+                  console.log("Estado local de sections:", JSON.stringify(expandedCategorySections));
                   
                   // Debug: Verificar si tenemos secciones para esta categoría
-                  const hasSections = sections && sections[category.category_id] && sections[category.category_id].length > 0;
+                  // Priorizar el estado local de secciones (más inmediato) sobre el estado global (más retrasado)
+                  const categoryId = category.category_id;
+                  const sectionsList = expandedCategorySections[categoryId] || sections[categoryId] || [];
+                  const hasSections = sectionsList && sectionsList.length > 0;
+                  
                   console.log(`¿Tiene secciones la categoría ${category.category_id}?`, hasSections);
+                  console.log(`Número de secciones para categoría ${category.category_id}:`, sectionsList?.length || 0);
+                  
                   if (hasSections) {
                     console.log(`Secciones para categoría ${category.category_id}:`, 
-                                sections[category.category_id].map((s: Section) => `${s.name} (${s.section_id})`).join(', '));
+                                sectionsList.map((s: Section) => `${s.name} (${s.section_id})`).join(', '));
                   }
                   
                   return (
@@ -680,19 +647,20 @@ export default function DashboardPage() {
                             {/* Debug info solo en desarrollo */}
                             {DEBUG && (
                               <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2 mb-3 text-xs">
-                                <p>Debug: Categoría {category.category_id} tiene {sections[category.category_id].length} secciones</p>
-                                <p>Secciones: {sections[category.category_id].map((s: Section) => s.name).join(', ')}</p>
+                                <p>Debug: Categoría {category.category_id} tiene {sectionsList.length} secciones</p>
+                                <p>Secciones: {sectionsList.map((s: Section) => s.name).join(', ')}</p>
+                                <p>Fuente: {expandedCategorySections[categoryId] ? 'Estado local' : 'Estado global'}</p>
                               </div>
                             )}
                             <SectionTable 
-                              sections={sections[category.category_id]}
+                              sections={sectionsList}
                               onEditSection={handleEditSection}
                               onDeleteSection={(section) => handleDeleteSection(section, category.category_id)}
                               onToggleSectionVisibility={toggleSectionVisibility}
                               categoryId={category.category_id}
                               isUpdatingVisibility={isUpdatingVisibility}
                               onSectionClick={(sectionId) => {
-                                const section = sections[category.category_id]?.find(s => s.section_id === sectionId);
+                                const section = sectionsList.find(s => s.section_id === sectionId);
                                 if (section) {
                                   setSelectedCategory(category);
                                   setSelectedSection(section);
@@ -700,7 +668,7 @@ export default function DashboardPage() {
                                 }
                               }}
                               onAddProduct={(sectionId) => {
-                                const section = sections[category.category_id]?.find(s => s.section_id === sectionId);
+                                const section = sectionsList.find(s => s.section_id === sectionId);
                                 if (section) {
                                   setSelectedSection(section);
                                   setShowNewProductModal(true);

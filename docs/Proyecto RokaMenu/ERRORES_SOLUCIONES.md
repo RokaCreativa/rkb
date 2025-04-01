@@ -344,6 +344,138 @@ Carga síncrona de datos grandes que bloquea el hilo principal.
 
 **Estado**: ✅ Resuelto
 
+## 🔄 Problemas de Sincronización de Estado
+
+### Error: Discrepancia entre Estado Global y Local
+
+**Descripción**:
+Las secciones cargadas para categorías expandidas no se mostraban correctamente debido a discrepancias entre el estado global (almacenado en hooks centrales) y el estado local del componente.
+
+**Síntomas**:
+- Secciones que no aparecen después de expandir una categoría, a pesar de que los datos se cargan correctamente
+- Logs muestran que los datos existen en la API pero no se renderizan en la UI
+- Carga repetida de los mismos datos
+
+**Causa**:
+1. Dependencia exclusiva del estado global que puede actualizarse de forma asíncrona
+2. Falta de un estado local dedicado para almacenar datos de uso inmediato
+3. Uso de referencias no normalizadas a los datos entre componentes
+
+**Solución**:
+1. Implementar un estado local dedicado para mantener los datos accesibles inmediatamente:
+   ```typescript
+   // Crear un estado local específico para secciones expandidas
+   const [expandedCategorySections, setExpandedCategorySections] = useState<{ [key: number]: Section[] }>({});
+   ```
+
+2. Priorizar el estado local sobre el global para renderizado inmediato:
+   ```typescript
+   // Usar primero el estado local, luego el global como respaldo
+   const sectionsList = expandedCategorySections[categoryId] || sections[categoryId] || [];
+   ```
+
+3. Actualizar ambos estados al cargar datos, pero usar el local para la UI:
+   ```typescript
+   // Al cargar secciones, actualizar ambos estados
+   try {
+     const data = await fetch(`/api/sections?category_id=${categoryId}`).then(r => r.json());
+     
+     // Actualizar estado GLOBAL (para coordinar con otros componentes)
+     setSections(prev => ({
+       ...prev,
+       [categoryId]: processedSections
+     }));
+     
+     // CRUCIAL: También guardar en estado local para renderizado inmediato
+     setExpandedCategorySections(prev => ({
+       ...prev,
+       [categoryId]: processedSections
+     }));
+   } catch (error) {
+     console.error('Error loading sections', error);
+   }
+   ```
+
+4. Implementar verificación visible para depuración:
+   ```tsx
+   {DEBUG && (
+     <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2 mb-3 text-xs">
+       <p>Debug: Categoría {category.category_id} tiene {sectionsList.length} secciones</p>
+       <p>Secciones: {sectionsList.map((s: Section) => s.name).join(', ')}</p>
+       <p>Fuente: {expandedCategorySections[categoryId] ? 'Estado local' : 'Estado global'}</p>
+     </div>
+   )}
+   ```
+
+**Resultados**:
+- Renderizado inmediato de secciones expandidas
+- Eliminación de la percepción de latencia
+- Mayor robustez ante condiciones de red variables
+- Información de depuración clara para diagnosticar problemas de origen de datos
+
+**Estado**: ✅ Resuelto
+
+## 🏭 Problemas con la Carga de Datos
+
+### Error: Carga Redundante de Datos
+
+**Descripción**:
+El dashboard cargaba repetidamente los mismos datos debido a efectos múltiples y condiciones de recarga no controladas.
+
+**Síntomas**:
+- Múltiples llamadas API para el mismo recurso
+- Logs de consola mostrando recargas innecesarias
+- Parpadeo de componentes durante recargas
+- Rendimiento reducido en la interfaz de usuario
+
+**Causa**:
+1. Efectos con dependencias incorrectas o faltantes
+2. Ausencia de verificación de datos ya cargados
+3. Recarga de datos en cada renderización de componente
+
+**Solución**:
+1. Implementar verificación de cache antes de cargar:
+   ```typescript
+   // Evitar cargar datos si ya existen
+   if (categories.length > 0) {
+     console.log('✅ Ya hay categorías cargadas, evitando recarga');
+     setIsLoading(false);
+     return;
+   }
+   ```
+
+2. Verificar datos específicos para cargas condicionadas:
+   ```typescript
+   // Para categorías expandidas, verificar cache específica
+   useEffect(() => {
+     expandedCategoryIds.forEach(categoryId => {
+       if (!sections[categoryId] || sections[categoryId].length === 0) {
+         console.log(`Cargando secciones para categoría expandida ${categoryId}`);
+         fetchSectionsByCategory(categoryId);
+       }
+     });
+   }, [expandedCategories, sections, fetchSectionsByCategory]);
+   ```
+
+3. Incorporar indicadores visuales de carga específicos:
+   ```jsx
+   {loadingSections[category.category_id] ? (
+     <div className="flex justify-center items-center py-8">
+       <svg className="animate-spin h-10 w-10 text-indigo-600">...</svg>
+     </div>
+   ) : (
+     // renderizado de contenido...
+   )}
+   ```
+
+**Resultados**:
+- Reducción de llamadas API redundantes
+- Mejora significativa en el rendimiento percibido
+- Experiencia de usuario más fluida
+- Facilitación de diagnóstico a través de mensajes de depuración específicos
+
+**Estado**: ✅ Resuelto
+
 ## 💡 Mejores Prácticas para Evitar Errores
 
 1. **Validar datos** antes de enviarlos a la API
