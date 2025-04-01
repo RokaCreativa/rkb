@@ -1,0 +1,245 @@
+/* 
+ * Sistema Tipográfico - RokaMenu Dashboard v2
+ * Versión: 0.1.0
+ * Fecha: 14/04/2024 - 19:05
+ * 
+ * Este archivo define el sistema tipográfico para el dashboard v2,
+ * manteniendo la misma apariencia visual que el dashboard original.
+ */
+
+/* Definición de fuentes */
+:root {
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* Tamaños de fuente base */
+:root {
+  --font-size-xs: 0.75rem;   /* 12px */
+  --font-size-sm: 0.875rem;  /* 14px */
+  --font-size-base: 1rem;    /* 16px */
+  --font-size-lg: 1.125rem;  /* 18px */
+  --font-size-xl: 1.25rem;   /* 20px */
+  --font-size-2xl: 1.5rem;   /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem;  /* 36px */
+}
+
+/* Grosores de fuente */
+:root {
+  --font-weight-thin: 100;
+  --font-weight-extralight: 200;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+}
+
+/* Altura de línea */
+:root {
+  --line-height-none: 1;
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+}
+
+/* Espaciado entre letras */
+:root {
+  --letter-spacing-tighter: -0.05em;
+  --letter-spacing-tight: -0.025em;
+  --letter-spacing-normal: 0em;
+  --letter-spacing-wide: 0.025em;
+  --letter-spacing-wider: 0.05em;
+  --letter-spacing-widest: 0.1em;
+}
+
+/* Estilos tipográficos */
+body {
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-normal);
+  color: var(--color-text);
+}
+
+/* Headings */
+h1, .h1 {
+  @apply text-3xl font-bold text-gray-900 mb-6;
+  font-family: var(--font-family-sans);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+h2, .h2 {
+  @apply text-2xl font-bold text-gray-900 mb-4;
+  font-family: var(--font-family-sans);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+h3, .h3 {
+  @apply text-xl font-semibold text-gray-900 mb-3;
+  font-family: var(--font-family-sans);
+}
+
+h4, .h4 {
+  @apply text-lg font-medium text-gray-900 mb-2;
+  font-family: var(--font-family-sans);
+}
+
+h5, .h5 {
+  @apply text-base font-medium text-gray-900 mb-2;
+  font-family: var(--font-family-sans);
+}
+
+h6, .h6 {
+  @apply text-sm font-medium text-gray-900 mb-2;
+  font-family: var(--font-family-sans);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+/* Párrafos */
+p {
+  @apply text-sm text-gray-500 mb-4;
+  line-height: var(--line-height-relaxed);
+}
+
+.lead {
+  @apply text-base text-gray-600 mb-6;
+  line-height: var(--line-height-relaxed);
+}
+
+/* Texto de utilidad */
+.text-xs {
+  font-size: var(--font-size-xs);
+}
+
+.text-sm {
+  font-size: var(--font-size-sm);
+}
+
+.text-base {
+  font-size: var(--font-size-base);
+}
+
+.text-lg {
+  font-size: var(--font-size-lg);
+}
+
+.text-xl {
+  font-size: var(--font-size-xl);
+}
+
+/* Estilos de texto */
+.font-thin {
+  font-weight: var(--font-weight-thin);
+}
+
+.font-extralight {
+  font-weight: var(--font-weight-extralight);
+}
+
+.font-light {
+  font-weight: var(--font-weight-light);
+}
+
+.font-normal {
+  font-weight: var(--font-weight-normal);
+}
+
+.font-medium {
+  font-weight: var(--font-weight-medium);
+}
+
+.font-semibold {
+  font-weight: var(--font-weight-semibold);
+}
+
+.font-bold {
+  font-weight: var(--font-weight-bold);
+}
+
+.font-extrabold {
+  font-weight: var(--font-weight-extrabold);
+}
+
+.font-black {
+  font-weight: var(--font-weight-black);
+}
+
+/* Estilo para título de página */
+.page-title {
+  @apply text-2xl font-bold text-gray-900 mb-6;
+}
+
+/* Estilo para subtítulo de página */
+.page-subtitle {
+  @apply text-lg font-medium text-gray-600 mb-6;
+}
+
+/* Estilo para título de sección */
+.section-title {
+  @apply text-xl font-semibold text-gray-900 mb-4;
+}
+
+/* Estilo para título de tarjeta */
+.card-title {
+  @apply text-lg font-medium text-gray-900 mb-2;
+}
+
+/* Estilo para texto de etiqueta */
+.label-text {
+  @apply text-sm font-medium text-gray-700;
+}
+
+/* Estilo para texto de ayuda */
+.help-text {
+  @apply text-xs text-gray-500;
+}
+
+/* Estilo para texto de error */
+.error-text {
+  @apply text-xs text-red-600;
+}
+
+/* Truncamiento de texto */
+.truncate {
+  @apply overflow-hidden overflow-ellipsis whitespace-nowrap;
+}
+
+/* Estilos de capitalización */
+.uppercase {
+  text-transform: uppercase;
+}
+
+.lowercase {
+  text-transform: lowercase;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+.normal-case {
+  text-transform: none;
+}
+
+/* Estilos de alineación */
+.text-left {
+  text-align: left;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-justify {
+  text-align: justify;
+} 

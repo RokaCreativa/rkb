@@ -1,0 +1,57 @@
+/* 
+ * Sistema de Diseño - RokaMenu Dashboard v2
+ * Archivo principal de importación
+ * Versión: 0.1.0
+ * Fecha: 14/04/2024 - 19:15
+ */
+
+@import './theme.css';
+@import './typography.css';
+@import './components.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reglas adicionales específicas */
+.dashboard-v2 {
+  /* Asegura que todos los componentes dentro del dashboard-v2 
+     utilicen el sistema de diseño */
+  color: var(--color-text);
+  font-family: var(--font-family-sans);
+}
+
+/* Algunas utilidades específicas para dashboard-v2 */
+.dashboard-container {
+  @apply px-4 py-6 md:px-6 lg:px-8;
+}
+
+.dashboard-header {
+  @apply mb-6;
+}
+
+.dashboard-content {
+  @apply bg-white rounded-lg shadow-sm;
+}
+
+/* Mejoras de accesibilidad */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Soporte para modo claro/oscuro (preparación futura) */
+@media (prefers-color-scheme: dark) {
+  .dashboard-v2 {
+    /* Variables que se sobrescribirían en modo oscuro */
+    /* Desactivado por ahora para mantener coherencia con dashboard original */
+    /* --color-background: #1F2937; */
+  }
+} 

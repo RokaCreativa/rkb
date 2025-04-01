@@ -225,7 +225,7 @@ export default function DashboardPage() {
         console.log(`Cargando secciones para categoría: ${categoryId}`);
         setLoadingSections(prev => ({ ...prev, [categoryId]: true }));
         
-        const response = await fetch(`/api/sections?categoryId=${categoryId}`);
+        const response = await fetch(`/api/sections?category_id=${categoryId}`);
         
         if (!response.ok) {
           throw new Error(`Error ${response.status}: ${response.statusText}`);
