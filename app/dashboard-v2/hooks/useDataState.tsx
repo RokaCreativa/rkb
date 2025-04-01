@@ -173,16 +173,44 @@ export default function useDataState(clientId: number | null = null) {
       
       // Verificar la estructura de los datos
       console.log('Estructura de la primera sección:', data[0]);
+      console.log('Datos completos de secciones:', JSON.stringify(data.slice(0, 2)));
+      
+      // Normalización de datos para asegurar formato correcto
+      const processedSections = data.map((section: any) => ({
+        section_id: section.section_id || section.id,
+        id: section.id || section.section_id, // Asegurarse de que siempre tiene id para compatibilidad
+        name: section.name,
+        image: section.image,
+        status: typeof section.status === 'boolean' ? (section.status ? 1 : 0) : section.status,
+        display_order: section.display_order || section.order || 0,
+        category_id: categoryId,
+        products_count: section.products_count || 0,
+        visible_products_count: section.visible_products_count || 0
+      }));
       
       // Actualizar estado con las secciones cargadas
-      setSections(prev => ({
-        ...prev,
-        [categoryId]: data
-      }));
+      setSections(prev => {
+        const newSections = { ...prev };
+        newSections[categoryId] = processedSections;
+        console.log(`🔄 Actualizando estado de secciones para categoría ${categoryId}:`, 
+                   processedSections.map((s: Section) => s.name).join(', '));
+        return newSections;
+      });
+      
+      // Verificar que se hayan guardado correctamente
+      setTimeout(() => {
+        console.log(`✅ Verificación después de guardar: ${sections[categoryId]?.length || 0} secciones para categoría ${categoryId}`);
+        if (sections[categoryId]) {
+          console.log('Secciones guardadas:', sections[categoryId].map(s => s.name).join(', '));
+        }
+      }, 100);
       
       // Actualizar categorías con conteos
       if (data.length > 0) {
-        const visibleSectionsCount = data.filter((s: Section) => s.status === 1).length;
+        const visibleSectionsCount = data.filter((s: Section) => 
+          typeof s.status === 'boolean' ? s.status : s.status === 1
+        ).length;
+        
         setCategories(prevCategories => 
           prevCategories.map(cat => 
             cat.category_id === categoryId 
@@ -196,7 +224,7 @@ export default function useDataState(clientId: number | null = null) {
         );
       }
       
-      return data;
+      return processedSections;
     } catch (error) {
       console.error(`❌ Error al cargar secciones para categoría ${categoryId}:`, error);
       toast.error("Error al cargar las secciones");

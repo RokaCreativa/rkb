@@ -224,58 +224,138 @@ export default function DashboardPage() {
       const categoryId = category.category_id;
       const isCurrentlyExpanded = expandedCategories[categoryId];
       
-      // Actualizar el estado para expandir/colapsar la categoría
-      setExpandedCategories(prev => ({
-        ...prev,
-        [categoryId]: !isCurrentlyExpanded
-      }));
-      
-      // Si estamos expandiendo y no tenemos secciones cargadas, cargarlas
+      // Si estamos expandiendo, cargar las secciones primero y luego actualizar el estado
       if (!isCurrentlyExpanded) {
         console.log(`Expandiendo categoría: ${categoryId}`);
-        
-        // Siempre cargar las secciones para asegurar datos actualizados
-        console.log(`Cargando secciones para categoría: ${categoryId}`);
         setLoadingSections(prev => ({ ...prev, [categoryId]: true }));
         
         try {
-          const response = await fetch(`/api/sections?category_id=${categoryId}`);
+          // Intentar usar primero fetchSectionsByCategory del hook para evitar duplicación
+          let sectionsData = [];
           
-          if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
+          if (fetchSectionsByCategory) {
+            console.log(`Usando fetchSectionsByCategory del hook para categoría ${categoryId}`);
+            sectionsData = await fetchSectionsByCategory(categoryId);
+          } else {
+            // Fallback directo a la API
+            console.log(`Usando fetch API directo para categoría ${categoryId}`);
+            const response = await fetch(`/api/sections?category_id=${categoryId}`);
+            
+            if (!response.ok) {
+              throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            
+            sectionsData = await response.json();
           }
           
-          const data = await response.json();
+          console.log(`API respondió con ${sectionsData.length} secciones para categoría ${categoryId}`);
+          console.log("Datos de secciones:", sectionsData);
           
-          console.log(`API respondió con ${data.length} secciones para categoría ${categoryId}`);
+          // Verificar tipo de dato secciones
+          if (sectionsData.length > 0) {
+            console.log("Tipo de section_id:", typeof sectionsData[0].section_id);
+            console.log("Tipo de id (si existe):", typeof sectionsData[0].id);
+          }
           
-          // Normalizar los datos de las secciones
-          const normalizedSections = data.map((s: any) => ({
-            section_id: s.id,
-            id: s.id, // Para compatibilidad con nuevos componentes
-            name: s.name,
-            image: s.image,
-            order: s.order,
-            visible: s.visible !== false, // Por defecto visible
-            status: s.visible !== false ? 1 : 0, // Convertir a formato numérico para compatibilidad
-            category_id: categoryId, // Asegurarse de que la sección tenga referencia a su categoría
-            products_count: 0, // Inicializar con valores por defecto
-            visible_products_count: 0
-          }));
-          
-          setSections(prev => ({ ...prev, [categoryId]: normalizedSections }));
-          console.log(`Secciones cargadas para categoría ${categoryId}: ${normalizedSections.length}`);
+          // Normalizar los datos de las secciones si es necesario
+          if (sectionsData.length > 0 && !sectionsData[0].section_id && sectionsData[0].id) {
+            console.log(`Normalizando datos de secciones para categoría ${categoryId}`);
+            const normalizedSections = sectionsData.map((s: any) => ({
+              section_id: s.id,
+              id: s.id, // Para compatibilidad con nuevos componentes
+              name: s.name,
+              image: s.image,
+              order: s.order || s.display_order,
+              visible: s.visible !== false, // Por defecto visible
+              status: s.visible !== false ? 1 : 0, // Convertir a formato numérico para compatibilidad
+              category_id: categoryId, // Asegurarse de que la sección tenga referencia a su categoría
+              products_count: s.products_count || 0,
+              visible_products_count: s.visible_products_count || 0,
+              display_order: s.display_order || s.order || 0
+            }));
+            
+            // Actualizar estado con secciones normalizadas - USAMOS setSections directamente para acceder al contexto
+            console.log(`Guardando ${normalizedSections.length} secciones normalizadas en el estado para categoría ${categoryId}`);
+            
+            // IMPORTANTE: Verificar la estructura actual del estado para mantenerla
+            setSections(prev => {
+              const newSections = { ...prev };
+              newSections[categoryId] = normalizedSections;
+              console.log("Nuevo estado de secciones:", newSections);
+              return newSections;
+            });
+            
+            // Verificar datos
+            console.log(`Secciones después de normalizar para categoría ${categoryId}:`, 
+                        normalizedSections.map((s: Section) => `${s.name} (${s.section_id})`).join(', '));
+          } else {
+            // Ya están en formato correcto, actualizar directamente
+            console.log(`Guardando ${sectionsData.length} secciones sin normalizar en el estado para categoría ${categoryId}`);
+            
+            // IMPORTANTE: Asegurarnos de que las secciones tienen display_order
+            const processedSections = sectionsData.map((s: any) => ({
+              ...s,
+              display_order: s.display_order || 0
+            }));
+            
+            // IMPORTANTE: Verificar la estructura actual del estado para mantenerla
+            setSections(prev => {
+              const newSections = { ...prev };
+              newSections[categoryId] = processedSections;
+              console.log("Nuevo estado de secciones:", newSections);
+              return newSections;
+            });
+            
+            // Verificar datos
+            if (sectionsData.length > 0) {
+              console.log(`Secciones sin normalizar para categoría ${categoryId}:`, 
+                        sectionsData.map((s: any) => `${s.name} (${s.section_id || s.id})`).join(', '));
+            }
+          }
+
+          // Verificar estado secciones después de actualizar
+          setTimeout(() => {
+            console.log("Estado de secciones después de actualizar:", sections);
+            if (sections[categoryId]) {
+              console.log(`Secciones para categoría ${categoryId} después de actualizar:`, 
+                sections[categoryId].map((s: any) => `${s.name} (${s.section_id})`).join(', '));
+            } else {
+              console.log(`No hay secciones para categoría ${categoryId} después de actualizar`);
+            }
+          }, 100);
+
         } catch (error) {
-          console.error(`Error cargando secciones para categoría ${categoryId}:`, error);
-          // En caso de error, asegurarnos que se sigue mostrando cualquier dato que ya tuviéramos
+          console.error(`❌ Error cargando secciones para categoría ${categoryId}:`, error);
         } finally {
           setLoadingSections(prev => ({ ...prev, [categoryId]: false }));
+          
+          // Ahora que hemos cargado las secciones, actualizar el estado de expansión
+          console.log(`Actualizando estado de expansión para categoría ${categoryId} a expandida`);
+          setExpandedCategories(prev => ({
+            ...prev,
+            [categoryId]: true
+          }));
+          
+          // Verificar si las secciones se han guardado correctamente
+          setTimeout(() => {
+            console.log("Estado de sections:", sections);
+            if (sections[categoryId]) {
+              console.log(`✓ Verificación: Hay ${sections[categoryId].length} secciones disponibles para categoría ${categoryId}`);
+            } else {
+              console.log(`❌ Verificación: No hay secciones disponibles para categoría ${categoryId}`);
+            }
+          }, 100);
         }
       } else {
+        // Si estamos colapsando, simplemente actualizar el estado
         console.log(`Colapsando categoría: ${categoryId}`);
+        setExpandedCategories(prev => ({
+          ...prev,
+          [categoryId]: false
+        }));
       }
     } catch (err: any) {
-      console.error('Error general en handleCategoryClick:', err);
+      console.error('❌ Error general en handleCategoryClick:', err);
       setError(err.message || 'Error al cargar secciones');
     }
   };
@@ -550,83 +630,105 @@ export default function DashboardPage() {
               />
               
               {/* Secciones expandidas para categorías */}
-              {categories.map(category => {
-                // Solo mostrar si la categoría está expandida
-                if (!expandedCategories[category.category_id]) return null;
-                
-                return (
-                  <div 
-                    key={`expanded-category-${category.category_id}`}
-                    id={`category-${category.category_id}`}
-                    className="mt-4 w-full pl-4 border-l-4 border-indigo-100"
-                  >
-                    <div className="bg-blue-50 py-4 px-6 rounded-md shadow-sm border border-blue-100">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-medium text-indigo-800">{category.name}</h3>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedCategory(category);
-                            handleAddSection();
-                          }}
-                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                          <PlusIcon className="-ml-0.5 mr-2 h-4 w-4" />
-                          Añadir sección
-                        </button>
-                      </div>
-                      
-                      {loadingSections[category.category_id] ? (
-                        <div className="flex justify-center items-center py-8">
-                          <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        </div>
-                      ) : sections[category.category_id] && sections[category.category_id].length > 0 ? (
-                        <SectionTable 
-                          sections={sections[category.category_id] || []}
-                          onEditSection={handleEditSection}
-                          onDeleteSection={(section) => handleDeleteSection(section, category.category_id)}
-                          onToggleSectionVisibility={toggleSectionVisibility}
-                          categoryId={category.category_id}
-                          isUpdatingVisibility={isUpdatingVisibility}
-                          onSectionClick={(sectionId) => {
-                            const section = sections[category.category_id]?.find(s => s.section_id === sectionId);
-                            if (section) {
-                              setSelectedCategory(category);
-                              setSelectedSection(section);
-                              setCurrentView('products');
-                            }
-                          }}
-                          onAddProduct={(sectionId) => {
-                            const section = sections[category.category_id]?.find(s => s.section_id === sectionId);
-                            if (section) {
-                              setSelectedSection(section);
-                              setShowNewProductModal(true);
-                            }
-                          }}
-                        />
-                      ) : (
-                        <div className="bg-white shadow rounded-md p-6 text-center">
-                          <p className="text-gray-500">No hay secciones disponibles para esta categoría.</p>
+              <div className="space-y-6">
+                {/* Secciones para la categoría expandida se renderizan aquí */}
+                {categories.map(category => {
+                  // Solo mostrar si la categoría está expandida
+                  if (!expandedCategories[category.category_id]) return null;
+                  
+                  console.log(`Renderizando categoría expandida: ${category.name} (${category.category_id})`);
+                  
+                  // Debug: Verificar si tenemos secciones para esta categoría
+                  const hasSections = sections && sections[category.category_id] && sections[category.category_id].length > 0;
+                  console.log(`¿Tiene secciones la categoría ${category.category_id}?`, hasSections);
+                  if (hasSections) {
+                    console.log(`Secciones para categoría ${category.category_id}:`, 
+                                sections[category.category_id].map((s: Section) => `${s.name} (${s.section_id})`).join(', '));
+                  }
+                  
+                  return (
+                    <div 
+                      key={`expanded-category-${category.category_id}`}
+                      id={`category-${category.category_id}`}
+                      className="mt-4 w-full pl-4 border-l-4 border-indigo-100"
+                    >
+                      <div className="bg-blue-50 py-4 px-6 rounded-md shadow-sm border border-blue-100">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-lg font-medium text-indigo-800">{category.name}</h3>
                           <button
                             type="button"
                             onClick={() => {
                               setSelectedCategory(category);
                               handleAddSection();
                             }}
-                            className="mt-4 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                           >
                             <PlusIcon className="-ml-0.5 mr-2 h-4 w-4" />
-                            Añadir primera sección
+                            Añadir sección
                           </button>
                         </div>
-                      )}
+                        
+                        {loadingSections[category.category_id] ? (
+                          <div className="flex justify-center items-center py-8">
+                            <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          </div>
+                        ) : hasSections ? (
+                          <div>
+                            {/* Debug info solo en desarrollo */}
+                            {DEBUG && (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2 mb-3 text-xs">
+                                <p>Debug: Categoría {category.category_id} tiene {sections[category.category_id].length} secciones</p>
+                                <p>Secciones: {sections[category.category_id].map((s: Section) => s.name).join(', ')}</p>
+                              </div>
+                            )}
+                            <SectionTable 
+                              sections={sections[category.category_id]}
+                              onEditSection={handleEditSection}
+                              onDeleteSection={(section) => handleDeleteSection(section, category.category_id)}
+                              onToggleSectionVisibility={toggleSectionVisibility}
+                              categoryId={category.category_id}
+                              isUpdatingVisibility={isUpdatingVisibility}
+                              onSectionClick={(sectionId) => {
+                                const section = sections[category.category_id]?.find(s => s.section_id === sectionId);
+                                if (section) {
+                                  setSelectedCategory(category);
+                                  setSelectedSection(section);
+                                  setCurrentView('products');
+                                }
+                              }}
+                              onAddProduct={(sectionId) => {
+                                const section = sections[category.category_id]?.find(s => s.section_id === sectionId);
+                                if (section) {
+                                  setSelectedSection(section);
+                                  setShowNewProductModal(true);
+                                }
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="bg-white shadow rounded-md p-6 text-center">
+                            <p className="text-gray-500">No hay secciones disponibles para esta categoría.</p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedCategory(category);
+                                handleAddSection();
+                              }}
+                              className="mt-4 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                              <PlusIcon className="-ml-0.5 mr-2 h-4 w-4" />
+                              Añadir primera sección
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
           
