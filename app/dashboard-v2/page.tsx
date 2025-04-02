@@ -148,6 +148,10 @@ export default function DashboardPage() {
   const [selectedSection, setSelectedSection] = useState<DashboardSection | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<{ [key: number]: boolean }>({});
   const [expandedSections, setExpandedSections] = useState<{ [key: number]: boolean }>({});
+  
+  // Estado para secciones con productos cargados (para debug y optimización)
+  const [loadedProductSections, setLoadedProductSections] = useState<{ [key: number]: boolean }>({});
+  
   const [showRedirectMessage, setShowRedirectMessage] = useState(true);
   const [loadingSections, setLoadingSections] = useState<{ [key: number]: boolean }>({});
   const [loadingProducts, setLoadingProducts] = useState<{ [key: number]: boolean }>({});
@@ -240,25 +244,6 @@ export default function DashboardPage() {
     
   }, [expandedCategories, sections, fetchSectionsByCategory]);
 
-  // Efecto para sincronizar expandedCategorySections con sections del hook
-  useEffect(() => {
-    if (Object.keys(sections).length > 0) {
-      console.log('🔄 Sincronizando estado local de secciones con estado global:', sections);
-      // Actualizar el estado local con los datos del estado global
-      setExpandedCategorySections(prevState => {
-        const newState = { ...prevState };
-        // Para cada categoría en sections, actualizar el estado local si está expandida
-        Object.entries(sections).forEach(([categoryId, categorySections]) => {
-          if (categorySections && categorySections.length > 0) {
-            console.log(`✅ Actualizando estado local para categoría ${categoryId} con ${categorySections.length} secciones`);
-            newState[parseInt(categoryId)] = categorySections;
-          }
-        });
-        return newState;
-      });
-    }
-  }, [sections]);
-
   /**
    * Maneja el clic en una categoría
    * 
@@ -282,27 +267,7 @@ export default function DashboardPage() {
       ...prev,
       [categoryId]: true
     }));
-
-    // Aplicar directamente el hook useDataState
-    if (fetchSectionsByCategory) {
-      // Demostrar que usamos directamente el hook para resolver el problema
-      console.log(`🔍 DEBUG - Usando fetchSectionsByCategory del hook para categoría ${categoryId}`);
-      
-      try {
-        // PRIMERA ACTUALIZACIÓN: Usar la función proporcionada por el hook para cargar las secciones
-        await fetchSectionsByCategory(categoryId);
-        
-        // VERIFICACIÓN CRÍTICA: Inspeccionar el objeto sections después de la carga
-        console.log(`🔍 DEBUG - Después de fetchSectionsByCategory, estado de sections:`, sections);
-        console.log(`🔍 DEBUG - ¿Contiene sections la categoría ${categoryId}?`, Object.keys(sections).includes(categoryId.toString()));
-        console.log(`🔍 DEBUG - Número de secciones para categoría ${categoryId}:`, sections[categoryId]?.length || 0);
-        
-        return; // Terminar aquí y dejar que useEffect haga el resto
-      } catch (error) {
-        console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
-      }
-    }
-
+    
     // Solo cargamos secciones si no tenemos datos en el estado local o global
     const sectionsLoaded = expandedCategorySections[categoryId] || sections[categoryId];
     
@@ -381,45 +346,69 @@ export default function DashboardPage() {
   const handleSectionClick = async (section: DashboardSection) => {
     console.log(`Clic en sección: ${section.name} (${section.section_id})`);
     
-    // Paso 1: Actualizar selección y vista
+    // Actualizar la sección seleccionada pero sin cambiar de vista
     setSelectedSection(section);
-    setCurrentView('products');
-    
     const sectionId = section.section_id;
     
-    // Paso 2: Verificar si necesitamos cargar productos
-    const productsLoaded = expandedSectionProducts[sectionId] || products[sectionId];
+    // MODIFICACIÓN CRÍTICA: Expandir/colapsar la sección en lugar de cambiar de vista
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }));
     
-    if (!productsLoaded) {
-      console.log(`Cargando productos para sección ${sectionId}...`);
+    console.log(`Estado de expansión para sección ${sectionId}: ${!expandedSections[sectionId] ? 'Expandiendo' : 'Colapsando'}`);
+    
+    // Si estamos expandiendo la sección, cargar los productos si no están cargados
+    if (!expandedSections[sectionId]) {
+      console.log(`🔍 DEBUG - Expandiendo sección ${sectionId} (${section.name})`);
+      // Verificar si necesitamos cargar productos
+      const productsLoaded = expandedSectionProducts[sectionId] || products[sectionId] || loadedProductSections[sectionId];
       
-      // Paso 3: Mostrar indicador de carga
-      setLoadingProducts(prev => ({
-        ...prev,
-        [sectionId]: true
-      }));
+      console.log(`🔍 DEBUG - ¿Productos ya cargados para sección ${sectionId}?`, !!productsLoaded);
+      console.log(`🔍 DEBUG - Estado actual:`, {
+        expandedSectionProducts: !!expandedSectionProducts[sectionId],
+        globalProducts: !!products[sectionId],
+        loadedProductSections: !!loadedProductSections[sectionId]
+      });
       
-      try {
-        // Paso 4: Usar la función mejorada de useDataState que actualiza ambos estados
-        await fetchProductsBySection(sectionId, (loadedProducts) => {
-          // Esta función actualiza el estado LOCAL inmediatamente
-          setExpandedSectionProducts(prev => ({
-            ...prev,
-            [sectionId]: loadedProducts
-          }));
-          console.log(`✅ Estado local actualizado con ${loadedProducts.length} productos`);
-        });
-      } catch (error) {
-        console.error(`Error al cargar productos para sección ${sectionId}:`, error);
-      } finally {
-        // Paso 5: Quitar indicador de carga
+      if (!productsLoaded) {
+        console.log(`Cargando productos para sección ${sectionId}...`);
+        
+        // Mostrar indicador de carga
         setLoadingProducts(prev => ({
           ...prev,
-          [sectionId]: false
+          [sectionId]: true
         }));
+        
+        try {
+          // Usar la función mejorada de useDataState que actualiza ambos estados
+          await fetchProductsBySection(sectionId, (loadedProducts) => {
+            // Esta función actualiza el estado LOCAL inmediatamente
+            setExpandedSectionProducts(prev => ({
+              ...prev,
+              [sectionId]: loadedProducts
+            }));
+            
+            // Marcar esta sección como cargada para evitar recargas innecesarias
+            setLoadedProductSections(prev => ({
+              ...prev,
+              [sectionId]: true
+            }));
+            
+            console.log(`✅ Estado local actualizado con ${loadedProducts.length} productos`);
+          });
+        } catch (error) {
+          console.error(`Error al cargar productos para sección ${sectionId}:`, error);
+        } finally {
+          // Quitar indicador de carga
+          setLoadingProducts(prev => ({
+            ...prev,
+            [sectionId]: false
+          }));
+        }
+      } else {
+        console.log(`Productos ya cargados para sección ${sectionId}, usando datos en caché`);
       }
-    } else {
-      console.log(`Productos ya cargados para sección ${sectionId}, usando datos en caché`);
     }
   };
 
@@ -500,13 +489,29 @@ export default function DashboardPage() {
 
   // Preparar breadcrumbs usando la función de utilidad
   const breadcrumbs = getBreadcrumbItems(
-    currentView,
+    currentView === 'products' ? 'categories' : currentView, // Mantener siempre en categories para mostrar todo en la misma vista
     selectedCategory,
     selectedSection,
     {
       goToCategories: resetView,
       goToSections: handleCategoryClick,
-      goToProducts: handleSectionClick
+      goToProducts: (section) => {
+        console.log("Breadcrumb: Expandiendo sección desde breadcrumb", section.name);
+        // En lugar de cambiar de vista, expandir la sección
+        handleSectionClick(section);
+        
+        // Asegurar que la categoría también esté expandida
+        if (section.category_id) {
+          const category = categories.find(c => c.category_id === section.category_id);
+          if (category) {
+            console.log("Breadcrumb: Expandiendo categoría desde breadcrumb", category.name);
+            setExpandedCategories(prev => ({
+              ...prev,
+              [category.category_id]: true
+            }));
+          }
+        }
+      }
     }
   );
   
@@ -640,19 +645,15 @@ export default function DashboardPage() {
                 onSectionClick={(sectionId) => {
                   // Buscar la sección con este ID
                   let section = null;
-                  let foundCategory = null;
                   
                   Object.entries(sections).forEach(([categoryId, sectionList]) => {
                     const foundSection = sectionList.find(s => s.section_id === sectionId);
                     if (foundSection) {
                       section = foundSection;
-                      foundCategory = categories.find(c => c.category_id === parseInt(categoryId));
                     }
                   });
                   
-                  if (section && foundCategory) {
-                    setSelectedCategory(foundCategory);
-                    setSelectedSection(section);
+                  if (section) {
                     handleSectionClick(section);
                   }
                 }}
@@ -697,21 +698,18 @@ export default function DashboardPage() {
                   // Solo mostrar si la categoría está expandida
                   if (!expandedCategories[category.category_id]) return null;
                   
-                  // Debug: información extendida sobre los estados de secciones
-                  console.log(`🔍 DEBUG - Renderizando categoría expandida: ${category.name} (${category.category_id})`);
-                  console.log(`🔍 DEBUG - Estado global de sections:`, sections);
-                  console.log(`🔍 DEBUG - Estado local de expandedCategorySections:`, expandedCategorySections);
-                  console.log(`🔍 DEBUG - ¿Tiene el objeto sections la propiedad ${category.category_id}?`, Object.keys(sections).includes(category.category_id.toString()));
+                  console.log(`Renderizando categoría expandida: ${category.name} (${category.category_id})`);
+                  console.log("Estado global de sections:", JSON.stringify(sections));
+                  console.log("Estado local de sections:", JSON.stringify(expandedCategorySections));
                   
+                  // Debug: Verificar si tenemos secciones para esta categoría
                   // Priorizar el estado local de secciones (más inmediato) sobre el estado global (más retrasado)
                   const categoryId = category.category_id;
                   const sectionsList = expandedCategorySections[categoryId] || sections[categoryId] || [];
                   const hasSections = sectionsList && sectionsList.length > 0;
                   
-                  console.log(`🔍 DEBUG - Secciones recuperadas para categoría ${category.category_id}:`, 
-                              sectionsList ? JSON.stringify(sectionsList.map(s => ({name: s.name, id: s.section_id}))) : "ninguna");
-                  console.log(`🔍 DEBUG - ¿Tiene secciones la categoría ${category.category_id}?`, hasSections);
-                  console.log(`🔍 DEBUG - Número de secciones para categoría ${category.category_id}:`, sectionsList?.length || 0);
+                  console.log(`¿Tiene secciones la categoría ${category.category_id}?`, hasSections);
+                  console.log(`Número de secciones para categoría ${category.category_id}:`, sectionsList?.length || 0);
                   
                   if (hasSections) {
                     console.log(`Secciones para categoría ${category.category_id}:`, 
@@ -773,7 +771,6 @@ export default function DashboardPage() {
                               onSectionClick={(sectionId) => {
                                 const section = sectionsList.find(s => s.section_id === sectionId);
                                 if (section) {
-                                  setSelectedCategory(category);
                                   handleSectionClick(section);
                                 }
                               }}
@@ -785,6 +782,101 @@ export default function DashboardPage() {
                                 }
                               }}
                             />
+                            
+                            {/* Productos para secciones expandidas */}
+                            <div className="space-y-4 mt-4">
+                              {sectionsList.map((section: Section) => {
+                                // Solo mostrar si la sección está expandida
+                                if (!expandedSections[section.section_id]) return null;
+                                
+                                console.log(`🔍 DEBUG - Renderizando sección expandida: ${section.name} (${section.section_id})`);
+                                
+                                // Obtener productos para esta sección
+                                const sectionId = section.section_id;
+                                const productsList = expandedSectionProducts[sectionId] || products[sectionId] || [];
+                                const hasProducts = productsList && productsList.length > 0;
+                                
+                                console.log(`🔍 DEBUG - Productos para sección ${sectionId}:`, 
+                                          hasProducts ? productsList.map(p => p.name).join(', ') : 'ninguno');
+                                
+                                return (
+                                  <div 
+                                    key={`expanded-section-${sectionId}`}
+                                    id={`section-${sectionId}`}
+                                    className="pl-4 border-l-4 border-green-100"
+                                  >
+                                    <div className="bg-green-50 py-4 px-6 rounded-md shadow-sm border border-green-100">
+                                      <div className="flex justify-between items-center mb-4">
+                                        <h4 className="text-md font-medium text-green-800">{section.name}</h4>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setSelectedSection(section);
+                                            setShowNewProductModal(true);
+                                          }}
+                                          className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                        >
+                                          <PlusIcon className="-ml-0.5 mr-2 h-4 w-4" />
+                                          Añadir producto
+                                        </button>
+                                      </div>
+                                      
+                                      {/* Estados posibles: cargando, con productos, sin productos */}
+                                      {loadingProducts[sectionId] ? (
+                                        <div className="flex justify-center items-center py-6">
+                                          <svg className="animate-spin h-8 w-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                          </svg>
+                                        </div>
+                                      ) : hasProducts ? (
+                                        <ProductTable
+                                          products={productsList.map(p => ({
+                                            ...p,
+                                            id: p.product_id,
+                                            product_id: p.product_id,
+                                            name: p.name || '',
+                                            price: p.price || 0,
+                                            image: p.image || null,
+                                            status: typeof p.status === 'boolean' ? (p.status ? 1 : 0) : (p.status || 0)
+                                          })) as any[]}
+                                          sectionName={section.name}
+                                          onEditProduct={handleEditProduct}
+                                          onDeleteProduct={async (productId: number) => {
+                                            console.log("Delete product:", productId);
+                                            return true; // Simular eliminación exitosa
+                                          }}
+                                          onToggleVisibility={async (productId: number, status: number) => {
+                                            console.log(`Toggle visibility for product: ${productId} to ${status}`);
+                                            // Implementar actualización real cuando sea necesario
+                                          }}
+                                          isUpdatingVisibility={null}
+                                          isReorderModeActive={isReorderModeActive}
+                                          onReorderProduct={(productId: number, direction: 'up' | 'down') => {
+                                            console.log(`Reorder product: ${productId} ${direction}`);
+                                          }}
+                                        />
+                                      ) : (
+                                        <div className="bg-white shadow rounded-md p-6 text-center">
+                                          <p className="text-gray-500">No hay productos disponibles para esta sección.</p>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setSelectedSection(section);
+                                              setShowNewProductModal(true);
+                                            }}
+                                            className="mt-4 inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                          >
+                                            <PlusIcon className="-ml-0.5 mr-2 h-4 w-4" />
+                                            Añadir primer producto
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         ) : (
                           <div className="bg-white shadow rounded-md p-6 text-center">
@@ -807,152 +899,6 @@ export default function DashboardPage() {
                   );
                 })}
               </div>
-            </div>
-          )}
-          
-          {/* Vista de secciones */}
-          {currentView === 'sections' && selectedCategory && (
-            <div className="animate-fade-in">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-2xl font-semibold text-gray-900">
-                  Secciones de {selectedCategory.name}
-                </h2>
-                <button
-                  type="button"
-                  onClick={handleAddSection}
-                  className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-                >
-                  <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                  Añadir sección
-                </button>
-              </div>
-              
-              {loadingSections[selectedCategory.category_id] ? (
-                <div className="flex justify-center items-center py-8">
-                  <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </div>
-              ) : sections && sections[selectedCategory.category_id] && sections[selectedCategory.category_id].length > 0 ? (
-                <SectionTable 
-                  sections={sections[selectedCategory.category_id] || []}
-                  onEditSection={handleEditSection}
-                  onDeleteSection={(section) => handleDeleteSection(section, selectedCategory.category_id)}
-                  onToggleSectionVisibility={toggleSectionVisibility}
-                  categoryId={selectedCategory.category_id}
-                  isUpdatingVisibility={isUpdatingVisibility}
-                  onSectionClick={(sectionId) => {
-                    // Buscar la sección con este ID
-                    let section = null;
-                    let foundCategory = null;
-                    
-                    Object.entries(sections).forEach(([categoryId, sectionList]) => {
-                      const foundSection = sectionList.find(s => s.section_id === sectionId);
-                      if (foundSection) {
-                        section = foundSection;
-                        foundCategory = categories.find(c => c.category_id === parseInt(categoryId));
-                      }
-                    });
-                    
-                    if (section && foundCategory) {
-                      setSelectedCategory(foundCategory);
-                      handleSectionClick(section);
-                    }
-                  }}
-                  onAddProduct={(sectionId: number) => {
-                    // Buscar la sección con este ID
-                    let section = null;
-                    let foundCategory = null;
-                    
-                    Object.entries(sections).forEach(([categoryId, sectionList]) => {
-                      const foundSection = sectionList.find(s => s.section_id === sectionId);
-                      if (foundSection) {
-                        section = foundSection;
-                        foundCategory = categories.find(c => c.category_id === parseInt(categoryId));
-                      }
-                    });
-                    
-                    if (section) {
-                      setSelectedSection(section);
-                      setShowNewProductModal(true);
-                    }
-                  }}
-                />
-              ) : (
-                <div className="bg-white shadow rounded-md p-6 text-center">
-                  <p className="text-gray-500">No hay secciones disponibles para esta categoría.</p>
-                  <button
-                    type="button"
-                    onClick={handleAddSection}
-                    className="mt-4 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-                    Añadir primera sección
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-           
-          {/* Vista de productos */}
-          {currentView === 'products' && selectedCategory && selectedSection && (
-            <div className="animate-fade-in">
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">Productos de {selectedSection.name}</h1>
-                <button
-                  type="button"
-                  onClick={handleAddProduct}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="-ml-1 mr-2 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
-                  </svg>
-                  Añadir producto
-                </button>
-              </div>
-              
-              {loadingProducts[selectedSection.section_id] ? (
-                <div className="flex justify-center items-center py-8">
-                  <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </div>
-              ) : (
-                // Usar estado LOCAL (expandedSectionProducts) con fallback al estado GLOBAL (products)
-                // También normalizar para asegurar que cada producto tenga propiedad 'id'
-                <ProductTable
-                  products={(expandedSectionProducts[selectedSection.section_id] || 
-                             products[selectedSection.section_id] || 
-                             []).map(p => ({
-                    ...p,
-                    // Asegurar que id esté presente (requerido por ProductTable)
-                    id: p.product_id,
-                    // Normalizar otros campos críticos
-                    product_id: p.product_id,
-                    name: p.name || '',
-                    price: p.price || 0,
-                    image: p.image || null,
-                    status: typeof p.status === 'boolean' ? (p.status ? 1 : 0) : (p.status || 0)
-                  })) as any[]}
-                  sectionName={selectedSection.name}
-                  onEditProduct={handleEditProduct}
-                  onDeleteProduct={async (productId: number) => {
-                    console.log("Delete product:", productId);
-                    return true; // Simular eliminación exitosa
-                  }}
-                  onToggleVisibility={async (productId: number, status: number) => {
-                    console.log(`Toggle visibility for product: ${productId} to ${status}`);
-                    // Implementar actualización real cuando sea necesario
-                  }}
-                  isUpdatingVisibility={null}
-                  isReorderModeActive={isReorderModeActive}
-                  onReorderProduct={(productId: number, direction: 'up' | 'down') => {
-                    console.log(`Reorder product: ${productId} ${direction}`);
-                  }}
-                />
-              )}
             </div>
           )}
         </div>

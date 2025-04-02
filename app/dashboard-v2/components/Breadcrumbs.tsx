@@ -16,49 +16,43 @@ interface BreadcrumbsProps {
 }
 
 export function getBreadcrumbItems(
-  currentView: 'categories' | 'sections' | 'products',
+  view: string,
   selectedCategory: Category | null,
   selectedSection: Section | null,
-  callbacks: {
-    goToCategories: () => void,
-    goToSections: (category: Category) => void,
-    goToProducts: (section: Section) => void
+  handlers: {
+    goToCategories: () => void;
+    goToSections: (category: Category) => void;
+    goToProducts: (section: Section) => void;
   }
-) {
+): BreadcrumbItem[] {
   const items: BreadcrumbItem[] = [
-    { 
-      id: 'categories', 
-      name: 'Categorías', 
-      onClick: callbacks.goToCategories, 
-      current: currentView === 'categories' 
+    {
+      id: 'categories',
+      name: "Categorías",
+      onClick: handlers.goToCategories,
+      current: view === 'categories' || !view
     }
   ];
-  
-  if (currentView === 'sections' && selectedCategory) {
-    items.push({ 
-      id: `category-${selectedCategory.category_id}`, 
-      name: selectedCategory.name, 
-      onClick: () => {}, 
-      current: true 
+
+  if (selectedCategory) {
+    items.push({
+      id: `category-${selectedCategory.category_id}`,
+      name: selectedCategory.name || "Categoría",
+      onClick: () => handlers.goToSections(selectedCategory),
+      current: view === 'sections' && !selectedSection
     });
   }
-  
-  if (currentView === 'products' && selectedCategory && selectedSection) {
-    items.push({ 
-      id: `category-${selectedCategory.category_id}`, 
-      name: selectedCategory.name, 
-      onClick: () => callbacks.goToSections(selectedCategory), 
-      current: false 
-    });
-    
-    items.push({ 
-      id: `section-${selectedSection.section_id}`, 
-      name: selectedSection.name, 
-      onClick: () => {}, 
-      current: true 
+
+  if (selectedSection) {
+    items.push({
+      id: `section-${selectedSection.section_id}`,
+      name: selectedSection.name || "Sección",
+      onClick: () => handlers.goToProducts(selectedSection),
+      // Siempre false porque ahora las secciones se expanden, no se cambia de vista
+      current: false
     });
   }
-  
+
   return items;
 }
 
