@@ -19,7 +19,7 @@ import { Category } from '@/app/types/menu';
 import { PrismaClient } from '@prisma/client';
 import eventBus, { Events } from '@/app/lib/eventBus';
 import { CheckIcon } from '@heroicons/react/24/outline';
-import SuccessMessage from './ui/SuccessMessage';
+import { XMarkIcon } from '@heroicons/react/24/outline';
 
 /**
  * Props para el componente NewCategoryModal
@@ -33,8 +33,8 @@ import SuccessMessage from './ui/SuccessMessage';
 interface NewCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  client: PrismaClient;
-  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
+  client: any;
+  setCategories: React.Dispatch<React.SetStateAction<any[]>>;
   onSuccess?: () => void;
 }
 
@@ -70,6 +70,8 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
   const [categoryName, setCategoryName] = useState('');
   const [categoryImage, setCategoryImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [status, setStatus] = useState<number>(1);
+  const [displayOrder, setDisplayOrder] = useState<number | null>(null);
   
   // Estado para controlar el proceso de creación
   const [isCreating, setIsCreating] = useState(false);
@@ -92,15 +94,7 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setCategoryImage(file);
-      
-      // Crear una vista previa de la imagen
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target && typeof event.target.result === 'string') {
-          setImagePreview(event.target.result);
-        }
-      };
-      reader.readAsDataURL(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
@@ -132,57 +126,65 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
     e.preventDefault();
     
     if (!categoryName.trim()) {
-      toast.error('El nombre de la categoría es obligatorio');
       return;
     }
     
     setIsCreating(true);
     
+    // Primero mostrar un toast indicando que se está creando
+    toast.loading("Creando categoría...", { id: "create-category" });
+    
     try {
-      // Preparar los datos de la nueva categoría
       const formData = new FormData();
       formData.append('name', categoryName);
-      
       if (categoryImage) {
         formData.append('image', categoryImage);
       }
+      formData.append('status', status.toString());
+      if (displayOrder !== null) {
+        formData.append('display_order', displayOrder.toString());
+      }
       
-      // Crear la categoría en la base de datos
+      // Subir la categoría a través de la API
       const response = await fetch('/api/categories', {
         method: 'POST',
         body: formData,
       });
       
       if (!response.ok) {
-        throw new Error('Error al crear la categoría');
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
-      const newCategory: Category = await response.json();
+      const data = await response.json();
       
-      // Actualizar el estado local con la nueva categoría
-      setCategories(prevCategories => [...prevCategories, newCategory]);
+      // Asegurarnos de que status sea un número para consistencia en UI
+      const newCategory = {
+        ...data,
+        category_id: data.category_id,
+        name: data.name,
+        image: data.image,
+        status: typeof data.status === 'boolean' ? (data.status ? 1 : 0) : Number(data.status),
+        display_order: data.display_order,
+        sections_count: 0,
+        visible_sections_count: 0
+      };
       
-      // Emisión de evento para notificar que se creó una categoría
-      console.log("Emitiendo evento de categoría creada");
-      eventBus.emit(Events.CATEGORY_CREATED, newCategory);
+      // Actualizar el estado de categorías
+      setCategories(prev => [...prev, newCategory]);
       
-      // Mostrar mensaje de éxito con secuencia de recarga
-      // Primer mensaje de éxito
-      setSuccessMessage(`Categoría "${categoryName}" creada correctamente.`);
+      // Mostrar mensaje de éxito visible
+      toast.success(`Categoría "${categoryName}" creada correctamente`, { id: "create-category", duration: 3000 });
       
-      // Después de un momento, avisar que vamos a recargar
-      setTimeout(() => {
-        setSuccessMessage(`Categoría "${categoryName}" creada correctamente. Recargando...`);
-        
-        // Finalmente recargar después de un tiempo para que se vea el mensaje
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-      }, 800);
+      // Cerrar el modal
+      handleCancel();
       
+      // Llamar al callback de éxito si existe
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
-      console.error('Error al crear la categoría:', error);
-      toast.error('Error al crear la categoría');
+      console.error('Error al crear categoría:', error);
+      toast.error("Error al crear la categoría", { id: "create-category" });
     } finally {
       setIsCreating(false);
     }
@@ -202,12 +204,14 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
     setCategoryName('');
     setCategoryImage(null);
     setImagePreview(null);
+    setStatus(1);
+    setDisplayOrder(null);
     onClose();
   };
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={onClose}>
+      <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={handleCancel}>
         <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
           {/* Capa de fondo oscura */}
           <Transition.Child
@@ -235,16 +239,9 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
-            <Dialog.Panel className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-              {successMessage ? (
-                <SuccessMessage 
-                  title="¡Categoría creada con éxito!"
-                  message={successMessage} 
-                  color="green" 
-                  progressDuration={2.3} 
-                />
-              ) : (
-                <div>
+            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                   <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
                     Crear nueva categoría
                   </Dialog.Title>
@@ -288,7 +285,7 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
                           {imagePreview ? (
                             <div className="mb-3">
                               <Image
-                                src={imagePreview}
+                                src={imagePreview} 
                                 alt="Vista previa"
                                 width={200}
                                 height={200}
@@ -338,6 +335,39 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
                       </div>
                     </div>
                     
+                    {/* Selector de estado */}
+                    <div className="mb-4">
+                      <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+                        Estado
+                      </label>
+                      <select
+                        id="status"
+                        name="status"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        value={status}
+                        onChange={(e) => setStatus(parseInt(e.target.value))}
+                      >
+                        <option value={1}>Visible</option>
+                        <option value={0}>Oculto</option>
+                      </select>
+                    </div>
+                    
+                    {/* Campo de orden */}
+                    <div className="mb-4">
+                      <label htmlFor="display_order" className="block text-sm font-medium text-gray-700">
+                        Orden (opcional)
+                      </label>
+                      <input
+                        type="number"
+                        id="display_order"
+                        name="display_order"
+                        min="1"
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        value={displayOrder || ''}
+                        onChange={(e) => setDisplayOrder(e.target.value ? parseInt(e.target.value) : null)}
+                      />
+                    </div>
+                    
                     {/* Botones de acción */}
                     <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
                       <button
@@ -370,8 +400,8 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
                     </div>
                   </form>
                 </div>
-              )}
-            </Dialog.Panel>
+              </div>
+            </div>
           </Transition.Child>
         </div>
       </Dialog>

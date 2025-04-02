@@ -214,25 +214,44 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       }
 
       // Usar la función updateProduct del hook
-      await updateProduct(formData);
+      const updatedProduct = await updateProduct(formData);
       
-      // Mostrar notificación de éxito
-      toast.success('Producto actualizado correctamente');
+      // Actualizar estado local para reflejar cambios inmediatamente
+      if (updatedProduct && setProducts) {
+        setProducts(prev => {
+          const updated = { ...prev };
+          // Buscar en todas las secciones para actualizar el producto correcto
+          Object.keys(updated).forEach(sectionId => {
+            // @ts-ignore - Sabemos que la estructura es correcta
+            if (updated[sectionId]) {
+              // @ts-ignore - Sabemos que la estructura es correcta
+              updated[sectionId] = updated[sectionId].map(p => 
+                // @ts-ignore - Product ID existe en el objeto
+                p.product_id === product.id ? {
+                  ...p,
+                  name: editProductName,
+                  price: editProductPrice,
+                  description: editProductDescription,
+                  image: editProductImage ? URL.createObjectURL(editProductImage) : p.image,
+                  status: p.status // Mantener el status actual
+                } : p
+              );
+            }
+          });
+          return updated;
+        });
+      }
       
       // Cerrar el modal
       onClose();
       
-      // Solución drástica: Recargar la página completa para asegurar una vista actualizada
-      console.log("Programando recarga completa después de editar producto...");
-      setTimeout(() => {
-        try {
-          console.log("Ejecutando recarga de página...");
-          window.location.href = window.location.href;
-        } catch (reloadError) {
-          console.error("Error al recargar con location.href, intentando reload():", reloadError);
-          window.location.reload();
-        }
-      }, 1000);
+      // Mostrar mensaje de éxito
+      toast.success('Producto actualizado correctamente');
+      
+      // Ejecutar callback de éxito si existe
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       console.error('Error al actualizar el producto:', error);
       toast.error('Error al actualizar el producto');

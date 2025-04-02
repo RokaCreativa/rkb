@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import CategoryTable from "./components/CategoryTable";
@@ -23,6 +23,9 @@ import { Category, Section, Product } from "@/app/types/menu";
 import useDataState from "./hooks/useDataState";
 import { getImagePath, handleImageError, getClientLogoPath, getMainLogoPath } from "@/app/dashboard-v2/utils/imageUtils";
 import { PlusIcon } from "@heroicons/react/24/outline";
+import { toast } from "react-hot-toast";
+import { Dialog, Transition } from '@headlessui/react';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 // Añadir console.log para depuración
 const DEBUG = process.env.NODE_ENV === 'development';
@@ -135,13 +138,15 @@ export default function DashboardPage() {
     isLoading: isDataLoading,
     isUpdatingVisibility,
     error: dataError,
-    setCategories,
+      setCategories,
     setSections,
     toggleSectionVisibility: toggleSectionVisibilityFromHook,
     fetchSectionsByCategory,
     fetchClientData,
     fetchCategories,
-    fetchProductsBySection
+    fetchProductsBySection,
+    deleteCategory,
+    deleteSection
   } = useDataState();
   
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -178,6 +183,7 @@ export default function DashboardPage() {
   const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
   const [showEditSectionModal, setShowEditSectionModal] = useState(false);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   
   const [categoryToEdit, setCategoryToEdit] = useState<Category | null>(null);
   const [sectionToEdit, setSectionToEdit] = useState<DashboardSection | null>(null);
@@ -185,6 +191,25 @@ export default function DashboardPage() {
   
   // Productos para la sección seleccionada
   const [products, setProducts] = useState<any[]>([]);
+
+  // Estado para submits
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Añadir estos estados
+  const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
+  const [categoryNameToDelete, setCategoryNameToDelete] = useState<string>('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // Estado para el modal de eliminación de sección
+  const [isDeleteSectionModalOpen, setIsDeleteSectionModalOpen] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState<Section | null>(null);
+  
+  // Estado para el modal de eliminación de producto
+  const [isDeleteProductModalOpen, setIsDeleteProductModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<number | null>(null);
+  const [productNameToDelete, setProductNameToDelete] = useState<string>('');
+  const [sectionIdOfProductToDelete, setSectionIdOfProductToDelete] = useState<number | null>(null);
 
   // Cargar datos al montar el componente
   useEffect(() => {
@@ -273,12 +298,12 @@ export default function DashboardPage() {
     
     if (!sectionsLoaded) {
       console.log(`Cargando secciones directamente para categoría ${categoryId}`);
-      setLoadingSections(prev => ({
-        ...prev,
-        [categoryId]: true
-      }));
+        setLoadingSections(prev => ({
+          ...prev,
+          [categoryId]: true
+        }));
       
-      try {
+        try {
         // 1. Llamar a la API para obtener las secciones de esta categoría
         const response = await fetch(`/api/sections?category_id=${categoryId}`);
         const data = await response.json();
@@ -315,21 +340,21 @@ export default function DashboardPage() {
             console.log("Guardando secciones en estado local:", processedSections.length);
             return newSections;
           });
-        }
-      } catch (error) {
-        console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
-      } finally {
+          }
+        } catch (error) {
+          console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
+        } finally {
         // 5. Siempre finalizar el estado de carga
-        setLoadingSections(prev => ({
-          ...prev,
-          [categoryId]: false
-        }));
-      }
-    } else {
+          setLoadingSections(prev => ({
+            ...prev,
+            [categoryId]: false
+          }));
+        }
+      } else {
       console.log(`Secciones ya cargadas para categoría ${categoryId}, no es necesario recargar`);
     }
   };
-
+  
   /**
    * Maneja el clic en una sección
    * 
@@ -372,15 +397,15 @@ export default function DashboardPage() {
       });
       
       if (!productsLoaded) {
-        console.log(`Cargando productos para sección ${sectionId}...`);
-        
+          console.log(`Cargando productos para sección ${sectionId}...`);
+          
         // Mostrar indicador de carga
-        setLoadingProducts(prev => ({
-          ...prev,
-          [sectionId]: true
-        }));
-        
-        try {
+          setLoadingProducts(prev => ({
+            ...prev,
+            [sectionId]: true
+          }));
+          
+          try {
           // Usar la función mejorada de useDataState que actualiza ambos estados
           await fetchProductsBySection(sectionId, (loadedProducts) => {
             // Esta función actualiza el estado LOCAL inmediatamente
@@ -397,16 +422,16 @@ export default function DashboardPage() {
             
             console.log(`✅ Estado local actualizado con ${loadedProducts.length} productos`);
           });
-        } catch (error) {
-          console.error(`Error al cargar productos para sección ${sectionId}:`, error);
-        } finally {
+          } catch (error) {
+            console.error(`Error al cargar productos para sección ${sectionId}:`, error);
+          } finally {
           // Quitar indicador de carga
-          setLoadingProducts(prev => ({
-            ...prev,
-            [sectionId]: false
-          }));
-        }
-      } else {
+            setLoadingProducts(prev => ({
+              ...prev,
+              [sectionId]: false
+            }));
+          }
+        } else {
         console.log(`Productos ya cargados para sección ${sectionId}, usando datos en caché`);
       }
     }
@@ -429,16 +454,69 @@ export default function DashboardPage() {
     await toggleSectionVisibilityFromHook(sectionId, status);
   };
 
+  /**
+   * Función para eliminar una sección
+   * @param section Sección a eliminar
+   * @param categoryId ID de la categoría a la que pertenece
+   */
   const handleDeleteSection = (section: Section, categoryId: number) => {
-    console.log(`Delete section: ${section.section_id} from category ${categoryId}`);
-    // Implementation here
-    if (selectedCategory) {
-      setSections(prev => ({
-          ...prev,
-        [categoryId]: prev[categoryId].filter(s => s.section_id !== section.section_id)
-        }));
+    // Guardar la sección que se va a eliminar
+    setSectionToDelete(section);
+    
+    // Abrir el modal de confirmación
+    setIsDeleteSectionModalOpen(true);
+  };
+  
+  const handleConfirmDeleteSection = async () => {
+    if (!sectionToDelete) return;
+    
+    try {
+      // Mostrar indicador de carga
+      toast.loading("Eliminando sección...", { id: "delete-section" });
+      
+      const response = await fetch(`/api/sections/${sectionToDelete.section_id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al eliminar la sección');
       }
-    };
+      
+      // Actualizar el estado local
+      setSections(prev => {
+        const updated = { ...prev };
+        // Si existe la categoría en el estado, filtrar la sección eliminada
+        if (sectionToDelete && sectionToDelete.category_id && updated[sectionToDelete.category_id]) {
+          updated[sectionToDelete.category_id] = updated[sectionToDelete.category_id].filter(
+            s => s.section_id !== sectionToDelete.section_id
+          );
+        }
+        return updated;
+      });
+      
+      // Actualizar también el estado local expandedCategorySections si existe
+      setExpandedCategorySections(prev => {
+        const updated = { ...prev };
+        // Si existe la categoría en el estado, filtrar la sección eliminada
+        if (sectionToDelete && sectionToDelete.category_id && updated[sectionToDelete.category_id]) {
+          updated[sectionToDelete.category_id] = updated[sectionToDelete.category_id].filter(
+            s => s.section_id !== sectionToDelete.section_id
+          );
+        }
+        return updated;
+      });
+      
+      // Cerrar el modal
+      setIsDeleteSectionModalOpen(false);
+      setSectionToDelete(null);
+      
+      // Mostrar mensaje de éxito
+      toast.success("Sección eliminada correctamente", { id: "delete-section" });
+    } catch (error) {
+      console.error('Error al eliminar sección:', error);
+      toast.error("Error al eliminar la sección", { id: "delete-section" });
+    }
+  };
 
   const toggleProductVisibility = async (productId: number, status: number): Promise<void> => {
     // Implementación de ejemplo
@@ -451,10 +529,86 @@ export default function DashboardPage() {
   };
 
   const handleDeleteProduct = async (productId: number): Promise<boolean> => {
-    // Implementation here
-    console.log(`Delete product: ${productId}`);
-    setProducts(prev => prev.filter(p => p.id !== productId));
-    return true; // Return true to indicate success
+    try {
+      // Buscar el producto en las secciones para obtener su nombre
+      let productName = '';
+      let sectionId = null;
+      
+      // Buscar en todas las secciones el producto con el ID proporcionado
+      for (const [sectionIdStr, sectionProducts] of Object.entries(products)) {
+        const product = sectionProducts.find((p: Product) => p.product_id === productId);
+        if (product) {
+          productName = product.name || '';
+          sectionId = parseInt(sectionIdStr, 10);
+          break;
+        }
+      }
+      
+      // Guardar la información del producto para el modal
+      setProductToDelete(productId);
+      setProductNameToDelete(productName);
+      setSectionIdOfProductToDelete(sectionId);
+      
+      // Abrir el modal de confirmación
+      setIsDeleteProductModalOpen(true);
+      
+      // Este método ahora solo prepara el modal, no realiza la eliminación
+        return true;
+    } catch (error) {
+      console.error('Error al preparar la eliminación del producto:', error);
+      toast.error('Error al intentar eliminar el producto');
+      return false;
+    }
+  };
+  
+  const handleConfirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      // Mostrar indicador de carga
+      toast.loading("Eliminando producto...", { id: "delete-product" });
+      
+      const response = await fetch(`/api/products/${productToDelete}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al eliminar el producto');
+      }
+      
+      // Actualizar el estado local de productos
+      if (sectionIdOfProductToDelete) {
+        setProducts(prev => {
+          const updated = { ...prev };
+          const sectionIdStr = sectionIdOfProductToDelete.toString();
+          // @ts-ignore - Sabemos que la estructura de datos es correcta aquí
+          if (updated[sectionIdStr]) {
+            // @ts-ignore - Sabemos que la estructura de datos es correcta aquí
+            updated[sectionIdStr] = updated[sectionIdStr].filter(
+              // @ts-ignore - Filtramos por product_id que sabemos existe
+              p => p.product_id !== productToDelete
+            );
+          }
+          return updated;
+        });
+      }
+      
+      // Cerrar el modal
+      setIsDeleteProductModalOpen(false);
+      setProductToDelete(null);
+      setProductNameToDelete('');
+      setSectionIdOfProductToDelete(null);
+      
+      // Mostrar mensaje de éxito
+      toast.success("Producto eliminado correctamente", { id: "delete-product" });
+    } catch (error) {
+      console.error('Error al eliminar producto:', error);
+      toast.error("Error al eliminar el producto", { id: "delete-product" });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const reorderCategories = (reorderedCategories: Category[]) => {
@@ -470,9 +624,9 @@ export default function DashboardPage() {
       setSections(prev => ({
         ...prev,
         [selectedCategory.category_id]: reorderedSections
-      }));
-    }
-  };
+        }));
+      }
+    };
 
   const reorderProducts = (reorderedProducts: any[]) => {
     // Implementación de ejemplo
@@ -506,7 +660,7 @@ export default function DashboardPage() {
           if (category) {
             console.log("Breadcrumb: Expandiendo categoría desde breadcrumb", category.name);
             setExpandedCategories(prev => ({
-              ...prev,
+        ...prev,
               [category.category_id]: true
             }));
           }
@@ -544,8 +698,215 @@ export default function DashboardPage() {
   };
 
   const handleDeleteCategory = async (categoryId: number) => {
-    // Implementar lógica de eliminación
     console.log("Delete category:", categoryId);
+    setCategoryToDelete(categoryId);
+    setIsDeleteCategoryModalOpen(true);
+  };
+
+  // Añadir función para confirmar la eliminación
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const success = await deleteCategory(categoryToDelete);
+      if (success) {
+        // Si está expandida, quitarla del estado de expandidas
+        if (expandedCategories[categoryToDelete]) {
+          setExpandedCategories(prev => {
+            const updated = { ...prev };
+            delete updated[categoryToDelete];
+            return updated;
+          });
+        }
+        
+        // Filtrar la categoría del estado local
+        setCategories(prev => prev.filter(cat => cat.category_id !== categoryToDelete));
+        
+        // Cerrar el modal
+        setIsDeleteCategoryModalOpen(false);
+        setCategoryToDelete(null);
+      }
+    } catch (error) {
+      console.error("Error al eliminar categoría:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  /**
+   * Maneja la creación de una nueva categoría
+   */
+  const handleCreateCategory = async (values: { name: string; image: File | null; status: number; display_order: number | null; }) => {
+    setIsSubmitting(true);
+    setShowNewCategoryModal(false); // Cerrar el modal inmediatamente para mejor UX
+    
+    // Primero mostrar un toast indicando que se está creando
+    toast.loading("Creando categoría...", { id: "create-category" });
+    
+    try {
+      const formData = new FormData();
+      formData.append('name', values.name);
+      if (values.image) {
+        formData.append('image', values.image);
+      }
+      formData.append('status', values.status.toString());
+      if (values.display_order !== null) {
+        formData.append('display_order', values.display_order.toString());
+      }
+      
+      const response = await fetch('/api/categories', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Actualizar el estado de categorías con la nueva
+      setCategories(prev => [...prev, {
+        ...data,
+        category_id: data.category_id,
+        name: data.name,
+        status: typeof data.status === 'boolean' ? (data.status ? 1 : 0) : data.status,
+        display_order: data.display_order || prev.length + 1,
+        sections_count: 0,
+        visible_sections_count: 0
+      }]);
+      
+      // Mostrar mensaje de éxito visible
+      toast.success(`Categoría "${values.name}" creada correctamente`, { id: "create-category", duration: 3000 });
+    } catch (error) {
+      console.error('Error al crear categoría:', error);
+      toast.error("Error al crear la categoría", { id: "create-category" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  /**
+   * Maneja la edición de una sección
+   */
+  const handleUpdateSection = async (values: { 
+    section_id: number; 
+    name: string; 
+    image: File | null; 
+    status: number; 
+    display_order: number | null;
+    category_id: number;
+    existingImage?: string;
+  }) => {
+    setIsSubmitting(true);
+    setShowEditSectionModal(false); // Cerrar modal inmediatamente
+    
+    // Mostrar toast de carga
+    toast.loading("Actualizando sección...", { id: "update-section" });
+    
+    try {
+      const formData = new FormData();
+      formData.append('section_id', values.section_id.toString());
+      formData.append('name', values.name);
+      if (values.image) {
+        formData.append('image', values.image);
+      } else if (values.existingImage) {
+        formData.append('existingImage', values.existingImage);
+      }
+      formData.append('status', values.status.toString());
+      if (values.display_order !== null) {
+        formData.append('display_order', values.display_order.toString());
+      }
+      formData.append('category_id', values.category_id.toString());
+      
+      const response = await fetch('/api/sections', {
+        method: 'PUT',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      const updatedSection = await response.json();
+      
+      // Actualizar AMBOS estados (global y local) para evitar refresco completo
+      // 1. Actualizar el estado global de sections
+      setSections(prev => {
+        const updated = { ...prev };
+        if (updated[values.category_id]) {
+          updated[values.category_id] = updated[values.category_id].map(section => 
+            section.section_id === values.section_id ? {
+              ...section,
+              name: updatedSection.name,
+              image: updatedSection.image,
+              status: typeof updatedSection.status === 'boolean' ? 
+                (updatedSection.status ? 1 : 0) : updatedSection.status,
+              display_order: updatedSection.display_order || section.display_order
+            } : section
+          );
+        }
+        return updated;
+      });
+      
+      // 2. Actualizar también el estado local expandedCategorySections si existe
+      if (expandedCategorySections[values.category_id]) {
+        setExpandedCategorySections(prev => {
+          const updated = { ...prev };
+          if (updated[values.category_id]) {
+            updated[values.category_id] = updated[values.category_id].map(section => 
+              section.section_id === values.section_id ? {
+                ...section,
+                name: updatedSection.name,
+                image: updatedSection.image,
+                status: typeof updatedSection.status === 'boolean' ? 
+                  (updatedSection.status ? 1 : 0) : updatedSection.status,
+                display_order: updatedSection.display_order || section.display_order
+              } : section
+            );
+          }
+          return updated;
+        });
+      }
+      
+      // Actualizar la sección seleccionada si es la misma que estamos editando
+      if (selectedSection && selectedSection.section_id === values.section_id) {
+        setSelectedSection({
+          ...selectedSection,
+          name: updatedSection.name,
+          image: updatedSection.image,
+          status: typeof updatedSection.status === 'boolean' ? 
+            (updatedSection.status ? 1 : 0) : updatedSection.status,
+          display_order: updatedSection.display_order || selectedSection.display_order
+        });
+      }
+      
+      // Mostrar mensaje de éxito visible - Eliminar este toast puede evitar la duplicación
+      // de mensajes ya que la API probablemente ya está mostrando uno
+      toast.dismiss("update-section");
+    } catch (error) {
+      console.error('Error al actualizar sección:', error);
+      toast.error("Error al actualizar la sección", { id: "update-section" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Renderizar el modal de edición de sección
+  const renderEditSectionModal = () => {
+    if (!showEditSectionModal || !sectionToEdit) return null;
+
+  return (
+      <EditSectionModal 
+        isOpen={true}
+        onClose={() => {
+          setShowEditSectionModal(false);
+          setSectionToEdit(null);
+        }}
+        section={sectionToEdit}
+      />
+    );
   };
 
   // Manejar estados de carga y error
@@ -583,7 +944,7 @@ export default function DashboardPage() {
             <Breadcrumbs items={breadcrumbs} />
           </div>
           <div>
-            <button
+              <button
               type="button"
               onClick={togglePreview}
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -591,9 +952,9 @@ export default function DashboardPage() {
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
-              Live Preview
-            </button>
-          </div>
+                Live Preview
+              </button>
+            </div>
         </div>
         
         {/* Contenedor con efectos de transición para las vistas */}
@@ -604,16 +965,16 @@ export default function DashboardPage() {
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="sr-only">Categorías</h2>
                 <div></div> {/* Spacer */}
-                <button
+            <button
                   type="button"
                   onClick={handleAddCategory}
                   className="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
-                >
+            >
                   <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
                   Añadir categoría
-                </button>
-              </div>
-              
+            </button>
+          </div>
+          
               <CategoryTable
                 categories={categories}
                 expandedCategories={expandedCategories}
@@ -696,7 +1057,7 @@ export default function DashboardPage() {
                 */}
                 {categories.map(category => {
                   // Solo mostrar si la categoría está expandida
-                  if (!expandedCategories[category.category_id]) return null;
+                if (!expandedCategories[category.category_id]) return null;
                   
                   console.log(`Renderizando categoría expandida: ${category.name} (${category.category_id})`);
                   console.log("Estado global de sections:", JSON.stringify(sections));
@@ -715,11 +1076,11 @@ export default function DashboardPage() {
                     console.log(`Secciones para categoría ${category.category_id}:`, 
                               sectionsList.map((s: Section) => `${s.name} (${s.section_id})`).join(', '));
                   }
-                  
-                  return (
-                    <div 
-                      key={`expanded-category-${category.category_id}`}
-                      id={`category-${category.category_id}`}
+                
+                return (
+                  <div 
+                    key={`expanded-category-${category.category_id}`}
+                    id={`category-${category.category_id}`}
                       className="mt-4 w-full pl-4 border-l-4 border-indigo-100"
                     >
                       <div className="bg-blue-50 py-4 px-6 rounded-md shadow-sm border border-blue-100">
@@ -761,13 +1122,13 @@ export default function DashboardPage() {
                                 <p>Fuente: {expandedCategorySections[categoryId] ? 'Estado local' : 'Estado global'}</p>
                               </div>
                             )}
-                            <SectionTable 
+                    <SectionTable 
                               sections={sectionsList}
                               onEditSection={handleEditSection}
                               onDeleteSection={(section) => handleDeleteSection(section, category.category_id)}
                               onToggleSectionVisibility={toggleSectionVisibility}
                               categoryId={category.category_id}
-                              isUpdatingVisibility={isUpdatingVisibility}
+                      isUpdatingVisibility={isUpdatingVisibility}
                               onSectionClick={(sectionId) => {
                                 const section = sectionsList.find(s => s.section_id === sectionId);
                                 if (section) {
@@ -787,8 +1148,8 @@ export default function DashboardPage() {
                             <div className="space-y-4 mt-4">
                               {sectionsList.map((section: Section) => {
                                 // Solo mostrar si la sección está expandida
-                                if (!expandedSections[section.section_id]) return null;
-                                
+                      if (!expandedSections[section.section_id]) return null;
+                      
                                 console.log(`🔍 DEBUG - Renderizando sección expandida: ${section.name} (${section.section_id})`);
                                 
                                 // Obtener productos para esta sección
@@ -798,9 +1159,9 @@ export default function DashboardPage() {
                                 
                                 console.log(`🔍 DEBUG - Productos para sección ${sectionId}:`, 
                                           hasProducts ? productsList.map(p => p.name).join(', ') : 'ninguno');
-                                
-                                return (
-                                  <div 
+                      
+                      return (
+                        <div 
                                     key={`expanded-section-${sectionId}`}
                                     id={`section-${sectionId}`}
                                     className="pl-4 border-l-4 border-green-100"
@@ -830,7 +1191,7 @@ export default function DashboardPage() {
                                           </svg>
                                         </div>
                                       ) : hasProducts ? (
-                                        <ProductTable
+                          <ProductTable 
                                           products={productsList.map(p => ({
                                             ...p,
                                             id: p.product_id,
@@ -840,7 +1201,7 @@ export default function DashboardPage() {
                                             image: p.image || null,
                                             status: typeof p.status === 'boolean' ? (p.status ? 1 : 0) : (p.status || 0)
                                           })) as any[]}
-                                          sectionName={section.name}
+                            sectionName={section.name}
                                           onEditProduct={handleEditProduct}
                                           onDeleteProduct={async (productId: number) => {
                                             console.log("Delete product:", productId);
@@ -870,13 +1231,13 @@ export default function DashboardPage() {
                                             <PlusIcon className="-ml-0.5 mr-2 h-4 w-4" />
                                             Añadir primer producto
                                           </button>
-                                        </div>
+                        </div>
                                       )}
                                     </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                  </div>
+                );
+              })}
+            </div>
                           </div>
                         ) : (
                           <div className="bg-white shadow rounded-md p-6 text-center">
@@ -892,18 +1253,18 @@ export default function DashboardPage() {
                               <PlusIcon className="-ml-0.5 mr-2 h-4 w-4" />
                               Añadir primera sección
                             </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                  </div>
+                )}
+            </div>
+                  </div>
                   );
                 })}
               </div>
             </div>
           )}
-        </div>
+      </div>
       </main>
-      
+        
       {/* Modals para creación */}
       {showNewCategoryModal && (
       <NewCategoryModal
@@ -944,16 +1305,7 @@ export default function DashboardPage() {
         />
       )}
       
-      {showEditSectionModal && sectionToEdit && (
-        <EditSectionModal 
-          isOpen={true}
-        onClose={() => {
-              setShowEditSectionModal(false);
-              setSectionToEdit(null);
-            }} 
-          section={sectionToEdit}
-        />
-      )}
+      {renderEditSectionModal()}
       
       {showEditProductModal && productToEdit && (
       <EditProductModal
@@ -998,6 +1350,217 @@ export default function DashboardPage() {
           image: selectedSection.image ? getImagePath(selectedSection.image, 'sections') : undefined
         } : null}
       />
+      
+      {/* Modal de confirmación para eliminar categoría */}
+      <Transition.Root show={isDeleteCategoryModalOpen} as={Fragment}>
+        <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={() => setIsDeleteCategoryModalOpen(false)}>
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+            </Transition.Child>
+
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enterTo="opacity-100 translate-y-0 sm:scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            >
+              <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <ExclamationTriangleIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                      Eliminar categoría
+                    </Dialog.Title>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        {(() => {
+                          const categoryToDeleteData = categories.find(cat => cat.category_id === categoryToDelete);
+                          return `¿Estás seguro de que deseas eliminar la categoría "${categoryToDeleteData?.name}"? Esta acción no se puede deshacer. Se eliminarán todas las secciones y productos asociados a esta categoría.`;
+                        })()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="button"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={handleConfirmDeleteCategory}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Eliminando...
+                      </span>
+                    ) : (
+                      'Eliminar'
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={() => setIsDeleteCategoryModalOpen(false)}
+                    disabled={isDeleting}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition.Root>
+      
+      {/* Modal de confirmación para eliminar sección */}
+      <Transition.Root show={isDeleteSectionModalOpen} as={Fragment}>
+        <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={() => setIsDeleteSectionModalOpen(false)}>
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+            </Transition.Child>
+
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enterTo="opacity-100 translate-y-0 sm:scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            >
+              <Dialog.Panel className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <ExclamationTriangleIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                      Eliminar sección
+                    </Dialog.Title>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        ¿Estás seguro de que deseas eliminar la sección "{sectionToDelete?.name}"? Todos los productos asociados también serán eliminados.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="button"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={handleConfirmDeleteSection}
+                  >
+                    Eliminar
+                  </button>
+                  <button
+                    type="button"
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+                    onClick={() => setIsDeleteSectionModalOpen(false)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition.Root>
+      
+      {/* Modal de confirmación para eliminar producto */}
+      <Transition.Root show={isDeleteProductModalOpen} as={Fragment}>
+        <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={() => setIsDeleteProductModalOpen(false)}>
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0"
+              enterTo="opacity-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100"
+              leaveTo="opacity-0"
+            >
+              <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+            </Transition.Child>
+
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enterTo="opacity-100 translate-y-0 sm:scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            >
+              <Dialog.Panel className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <ExclamationTriangleIcon className="h-6 w-6 text-orange-600" aria-hidden="true" />
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                      Eliminar producto
+                    </Dialog.Title>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        ¿Estás seguro de que deseas eliminar el producto "{productNameToDelete}"? Esta acción no se puede deshacer.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                  <button
+                    type="button"
+                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-orange-600 text-base font-medium text-white hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={handleConfirmDeleteProduct}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? 'Eliminando...' : 'Eliminar'}
+                  </button>
+                  <button
+                    type="button"
+                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+                    onClick={() => setIsDeleteProductModalOpen(false)}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </Dialog>
+      </Transition.Root>
     </div>
   );
 }

@@ -173,11 +173,18 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
       
       const newSection: Section = await response.json();
       
+      // Normalizar el status para asegurar consistencia en la UI
+      const normalizedSection = {
+        ...newSection,
+        status: typeof newSection.status === 'boolean' ? 
+          (newSection.status ? 1 : 0) : Number(newSection.status)
+      };
+      
       // Actualizar el estado local con la nueva sección si setSections está disponible
       if (setSections && selectedCategory) {
         setSections(prevSections => ({
           ...prevSections,
-          [selectedCategory.category_id]: [...(prevSections[selectedCategory.category_id] || []), newSection]
+          [selectedCategory.category_id]: [...(prevSections[selectedCategory.category_id] || []), normalizedSection]
         }));
       }
       
@@ -185,12 +192,12 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
       console.log("Emitiendo evento de sección creada");
       if (selectedCategory) {
         eventBus.emit(Events.SECTION_CREATED, {
-          section: newSection,
+          section: normalizedSection,
           categoryId: selectedCategory.category_id
         });
       } else {
         eventBus.emit(Events.SECTION_CREATED, {
-          section: newSection,
+          section: normalizedSection,
           categoryId: categoryId
         });
       }
@@ -200,19 +207,6 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
       
       // Cerrar el modal
       onClose();
-      
-      // SOLUCIÓN HÍBRIDA: Mantener la recarga como fallback, pero con más tiempo
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          console.log("Programando recarga completa como fallback...");
-          try {
-            window.location.href = window.location.href;
-          } catch (reloadError) {
-            console.error("Error al recargar:", reloadError);
-            window.location.reload();
-          }
-        }, 2000); // Tiempo mayor para dar oportunidad al EventBus
-      }
       
     } catch (error) {
       console.error('Error al crear la sección:', error);

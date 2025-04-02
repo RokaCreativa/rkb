@@ -146,18 +146,10 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
       // Cerrar el modal
       onClose();
       
-      // Solución drástica: Recargar la página completa para asegurar una vista actualizada
-      console.log("Programando recarga completa después de editar categoría...");
-      setTimeout(() => {
-        try {
-          console.log("Ejecutando recarga de página...");
-          window.location.href = window.location.href;
-        } catch (reloadError) {
-          console.error("Error al recargar con location.href, intentando reload():", reloadError);
-          window.location.reload();
-        }
-      }, 1000);
-      
+      // Ejecutar callback de éxito si existe
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error: any) {
       console.error('Error:', error);
       toast.error(error.message || 'Error al actualizar la categoría');

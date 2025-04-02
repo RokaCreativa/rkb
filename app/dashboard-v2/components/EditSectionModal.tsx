@@ -134,23 +134,10 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
       const success = await updateSection(formData, section.section_id, section.category_id);
       
       if (success) {
-        // Mostrar notificación de éxito
-        toast.success('Sección actualizada correctamente');
+        // No mostrar toast de éxito duplicado ya que el hook ya lo muestra
         
         // Cerrar el modal
         onClose();
-        
-        // Solución drástica: Recargar la página completa para asegurar una vista actualizada
-        console.log("Programando recarga completa después de editar sección...");
-        setTimeout(() => {
-          try {
-            console.log("Ejecutando recarga de página...");
-            window.location.href = window.location.href;
-          } catch (reloadError) {
-            console.error("Error al recargar con location.href, intentando reload():", reloadError);
-            window.location.reload();
-          }
-        }, 1000);
       } else {
         // toast.error se muestra desde el hook, evitar duplicación aquí
         console.error("La actualización de la sección no tuvo éxito");

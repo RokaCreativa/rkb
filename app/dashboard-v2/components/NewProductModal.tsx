@@ -30,6 +30,7 @@ import { Events } from '@/app/lib/eventBus';
  * @property {Section | null} selectedSection - Sección seleccionada donde se añadirá el nuevo producto
  * @property {Function} setProducts - Función para actualizar el estado global de productos después de la creación
  * @property {number} sectionId - Identificador de la sección seleccionada
+ * @property {Function} onSuccess - Callback opcional que se ejecuta después de crear un producto con éxito
  */
 interface NewProductModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ interface NewProductModalProps {
   selectedSection?: Section | null;
   setProducts?: React.Dispatch<React.SetStateAction<Record<string, Product[]>>>;
   sectionId: number;
+  onSuccess?: () => void;
 }
 
 /**
@@ -65,7 +67,8 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
   client,
   selectedSection,
   setProducts,
-  sectionId
+  sectionId,
+  onSuccess
 }) => {
   /**
    * Estados del formulario para la creación de productos
@@ -172,6 +175,9 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
     }
 
     try {
+      // Mostrar toast de carga
+      toast.loading("Creando producto...", { id: "create-product" });
+      
       const response = await fetch('/api/products', {
         method: 'POST',
         body: formData,
@@ -182,34 +188,52 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
       }
 
       const newProduct = await response.json();
+      
+      // Normalizar el status para consistencia en la UI
+      const normalizedProduct = {
+        ...newProduct,
+        status: typeof newProduct.status === 'boolean' ? 
+          (newProduct.status ? 1 : 0) : Number(newProduct.status)
+      };
 
       // Actualizar el estado local con el nuevo producto, verificando que setProducts existe
       if (setProducts) {
-        setProducts(prev => ({
-          ...prev,
-          [sectionId]: [...(prev[sectionId] || []), newProduct]
-        }));
+        setProducts(prev => {
+          // Crear copia del estado para modificarlo
+          const updated = { ...prev };
+          
+          // Si no existe la sección, inicializarla como array vacío
+          if (!updated[sectionId]) {
+            updated[sectionId] = [];
+          }
+          
+          // Añadir el nuevo producto a la sección correspondiente
+          // @ts-ignore - Sabemos que la estructura es correcta
+          updated[sectionId] = [...updated[sectionId], normalizedProduct];
+          
+          return updated;
+        });
       }
 
       // Emisión de evento para notificar que se creó un producto
       eventBus.emit(Events.PRODUCT_CREATED, {
-        product: newProduct,
+        product: normalizedProduct,
         sectionId: sectionId
       });
 
-      toast.success('Producto creado correctamente');
-      onClose();
-
-      // Solución híbrida: Mantener recarga como fallback
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          console.log("Programando recarga completa como fallback...");
-          window.location.reload();
-        }, 2000);
+      // Toast de éxito
+      toast.success('Producto creado correctamente', { id: "create-product" });
+      
+      // Cerrar el modal y limpiar el formulario
+      handleCancel();
+      
+      // Si hay una función de éxito, ejecutarla
+      if (onSuccess) {
+        onSuccess();
       }
     } catch (error) {
       console.error('Error al crear el producto:', error);
-      toast.error('Error al crear el producto');
+      toast.error('Error al crear el producto', { id: "create-product" });
     } finally {
       setIsCreating(false);
     }
