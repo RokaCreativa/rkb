@@ -87,12 +87,23 @@ interface EditCategoryModalProps {
   categoryToEdit: Category | null;
   client: any;
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
+  onSuccess: () => void;
 }
 
 interface EditSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   section: DashboardSection;
+  updateSection?: (values: { 
+    section_id: number; 
+    name: string; 
+    image: File | null; 
+    status: number; 
+    display_order: number | null;
+    category_id: number;
+    existingImage?: string;
+  }) => Promise<any>;
+  onSuccess?: () => void;
 }
 
 interface EditProductModalProps {
@@ -102,6 +113,7 @@ interface EditProductModalProps {
   client?: any;  // Make optional
   selectedSection?: any;  // Make optional
   setProducts?: any;  // Make optional
+  onSuccess?: () => void; // Callback para cuando la edición es exitosa
 }
 
 // Fix client object type
@@ -483,8 +495,8 @@ export default function DashboardPage() {
       }
       
       // Actualizar el estado local
-      setSections(prev => {
-        const updated = { ...prev };
+          setSections(prev => {
+            const updated = { ...prev };
         // Si existe la categoría en el estado, filtrar la sección eliminada
         if (sectionToDelete && sectionToDelete.category_id && updated[sectionToDelete.category_id]) {
           updated[sectionToDelete.category_id] = updated[sectionToDelete.category_id].filter(
@@ -502,9 +514,9 @@ export default function DashboardPage() {
           updated[sectionToDelete.category_id] = updated[sectionToDelete.category_id].filter(
             s => s.section_id !== sectionToDelete.section_id
           );
-        }
-        return updated;
-      });
+            }
+            return updated;
+          });
       
       // Cerrar el modal
       setIsDeleteSectionModalOpen(false);
@@ -622,7 +634,7 @@ export default function DashboardPage() {
     console.log('Reordering sections', reorderedSections);
     if (selectedCategory) {
       setSections(prev => ({
-        ...prev,
+          ...prev,
         [selectedCategory.category_id]: reorderedSections
         }));
       }
@@ -660,10 +672,10 @@ export default function DashboardPage() {
           if (category) {
             console.log("Breadcrumb: Expandiendo categoría desde breadcrumb", category.name);
             setExpandedCategories(prev => ({
-        ...prev,
+          ...prev,
               [category.category_id]: true
-            }));
-          }
+        }));
+      }
         }
       }
     }
@@ -896,15 +908,52 @@ export default function DashboardPage() {
   // Renderizar el modal de edición de sección
   const renderEditSectionModal = () => {
     if (!showEditSectionModal || !sectionToEdit) return null;
-
-  return (
-      <EditSectionModal 
+    
+    return (
+      <EditSectionModal
         isOpen={true}
         onClose={() => {
           setShowEditSectionModal(false);
           setSectionToEdit(null);
         }}
         section={sectionToEdit}
+        updateSection={async (formData, sectionId, categoryId) => {
+          try {
+            await handleUpdateSection({
+              section_id: sectionId,
+              name: formData.get('name') as string,
+              image: formData.get('image') as File | null,
+              status: sectionToEdit.status || 1,
+              display_order: sectionToEdit.display_order || null,
+              category_id: categoryId,
+              existingImage: sectionToEdit.image || undefined
+            });
+            return true; // Si llega aquí, fue exitoso
+          } catch (error) {
+            console.error("Error al actualizar sección:", error);
+            return false; // Si hay error, retornar false
+          }
+        }}
+        onSuccess={() => {
+          console.log("🔄 Forzando refresco de UI después de editar sección");
+          // Forzar refresco del grid/componentes usando el estado dual
+          // Este enfoque implementa el MANDAMIENTO CRÍTICO de gestión de estado
+          const categoryId = sectionToEdit.category_id;
+          // Recargar las secciones de esta categoría
+          fetchSectionsByCategory(categoryId);
+          
+          // Si hay sección seleccionada y es la misma que estamos editando, actualizar su estado
+          if (selectedSection && selectedSection.section_id === sectionToEdit.section_id) {
+            // Timeout para dar tiempo a que se actualice el estado global
+            setTimeout(() => {
+              // Buscar la sección actualizada en el estado global
+              const updatedSection = sections[categoryId]?.find(s => s.section_id === sectionToEdit.section_id);
+              if (updatedSection) {
+                setSelectedSection(updatedSection);
+              }
+            }, 100);
+          }
+        }}
       />
     );
   };
@@ -1302,7 +1351,23 @@ export default function DashboardPage() {
           categoryToEdit={categoryToEdit}
           client={client}
         setCategories={setCategories}
-        />
+        onSuccess={() => {
+          console.log("🔄 Forzando refresco de UI después de editar categoría");
+          // Forzar refresco del grid/componentes usando el estado dual
+          // Este enfoque implementa el MANDAMIENTO CRÍTICO de gestión de estado
+          fetchCategories();
+          // Si hay categoría seleccionada y es la misma que estamos editando, actualizar su estado
+          if (selectedCategory && selectedCategory.category_id === categoryToEdit.category_id) {
+            // Timeout para dar tiempo a que se actualice el estado global antes de actualizar la selección
+            setTimeout(() => {
+              const updatedCategory = categories.find(c => c.category_id === categoryToEdit.category_id);
+              if (updatedCategory) {
+                setSelectedCategory(updatedCategory);
+              }
+            }, 100);
+          }
+        }}
+      />
       )}
       
       {renderEditSectionModal()}
@@ -1318,8 +1383,16 @@ export default function DashboardPage() {
         client={client as any}
         selectedSection={selectedSection}
           setProducts={setProducts as any}
-        />
-      )}
+        onSuccess={() => {
+          console.log("🔄 Forzando refresco de UI después de editar producto");
+          // Forzar refresco del grid/componentes usando el estado dual
+          // Este enfoque implementa el MANDAMIENTO CRÍTICO de gestión de estado
+          if (selectedSection) {
+            fetchProductsBySection(selectedSection.section_id);
+          }
+        }}
+      />
+        )}
 
       {/* Componente de vista previa flotante */}
       <FloatingPhonePreview 

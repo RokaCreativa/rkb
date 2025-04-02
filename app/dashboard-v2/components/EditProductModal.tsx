@@ -196,6 +196,12 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     setIsUpdatingProduct(true);
     
     try {
+      // Identificador único para el toast de carga
+      const toastId = "update-product-" + product.id;
+      
+      // Mostrar indicador de carga
+      toast.loading("Actualizando producto...", { id: toastId });
+      
       // Crear un objeto FormData para enviar datos e imagen
       const formData = new FormData();
       formData.append('product_id', product.id.toString());
@@ -213,44 +219,30 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         formData.append('image', currentProduct.image);
       }
 
-      // Usar la función updateProduct del hook
-      const updatedProduct = await updateProduct(formData);
+      // Usar el hook updateProduct para actualizar el producto
+      const success = await updateProduct(formData);
       
-      // Actualizar estado local para reflejar cambios inmediatamente
-      if (updatedProduct && setProducts) {
-        setProducts(prev => {
-          const updated = { ...prev };
-          // Buscar en todas las secciones para actualizar el producto correcto
-          Object.keys(updated).forEach(sectionId => {
-            // @ts-ignore - Sabemos que la estructura es correcta
-            if (updated[sectionId]) {
-              // @ts-ignore - Sabemos que la estructura es correcta
-              updated[sectionId] = updated[sectionId].map(p => 
-                // @ts-ignore - Product ID existe en el objeto
-                p.product_id === product.id ? {
-                  ...p,
-                  name: editProductName,
-                  price: editProductPrice,
-                  description: editProductDescription,
-                  image: editProductImage ? URL.createObjectURL(editProductImage) : p.image,
-                  status: p.status // Mantener el status actual
-                } : p
-              );
-            }
-          });
-          return updated;
-        });
-      }
-      
-      // Cerrar el modal
-      onClose();
-      
-      // Mostrar mensaje de éxito
-      toast.success('Producto actualizado correctamente');
-      
-      // Ejecutar callback de éxito si existe
-      if (onSuccess) {
-        onSuccess();
+      if (success) {
+        // Limpiar el formulario
+        setEditProductName('');
+        setEditProductPrice('');
+        setEditProductDescription('');
+        setEditProductImage(null);
+        setEditImagePreview(null);
+        
+        // Cerrar el modal
+        onClose();
+        
+        // Mostrar mensaje de éxito
+        toast.success('Producto actualizado correctamente', { id: toastId });
+        
+        // Llamar al callback de éxito si existe
+        if (onSuccess) {
+          console.log("🔄 Ejecutando callback onSuccess para forzar refresco del UI");
+          onSuccess();
+        }
+      } else {
+        toast.error('Error al actualizar el producto', { id: toastId });
       }
     } catch (error) {
       console.error('Error al actualizar el producto:', error);

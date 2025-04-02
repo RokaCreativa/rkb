@@ -107,6 +107,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
     if (isUpdatingCategory) return;
     
     setIsUpdatingCategory(true);
+    console.log('🔄 Iniciando actualización de categoría:', categoryToEdit.category_id);
 
     try {
       // Crear un objeto FormData para enviar datos e imagen
@@ -120,6 +121,10 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
         formData.append('image', editCategoryImage);
       }
 
+      // Identificador único para el toast de carga
+      const toastId = "update-category-" + categoryToEdit.category_id;
+      toast.loading('Actualizando categoría...', { id: toastId });
+
       // Enviar datos al servidor
       const response = await fetch('/api/categories', {
         method: 'PUT',
@@ -132,26 +137,42 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
       }
 
       const updatedCategory = await response.json();
+      console.log("✅ Categoría actualizada recibida:", updatedCategory);
 
-      // Actualizar el estado local
-      setCategories((prevCategories) => 
-        prevCategories.map((cat) => 
-          cat.category_id === categoryToEdit.category_id ? updatedCategory : cat
-        )
-      );
+      // Asegurarnos de que status sea un número para consistencia en UI
+      const normalizedCategory = {
+        ...updatedCategory,
+        status: typeof updatedCategory.status === 'boolean' ? 
+          (updatedCategory.status ? 1 : 0) : Number(updatedCategory.status)
+      };
 
-      // Mostrar notificación
-      toast.success('Categoría actualizada correctamente');
+      console.log("🔧 Categoría normalizada a actualizar en UI:", normalizedCategory);
+
+      // SISTEMA DUAL: Actualizar el estado LOCAL inmediatamente para UI responsiva
+      setCategories((prevCategories) => {
+        const updatedCategories = prevCategories.map((cat) => 
+          cat.category_id === categoryToEdit.category_id ? normalizedCategory : cat
+        );
+        console.log("📊 Estado local de categorías actualizado");
+        return updatedCategories;
+      });
+
+      // Actualizar el toast con mensaje de éxito
+      toast.success('Categoría actualizada correctamente', { id: toastId });
       
-      // Cerrar el modal
+      // Limpiar el estado local y cerrar el modal
+      setEditCategoryName('');
+      setEditCategoryImage(null);
+      setEditImagePreview(null);
       onClose();
       
-      // Ejecutar callback de éxito si existe
+      // SISTEMA DUAL: Ejecutar callback de éxito para actualizar el estado GLOBAL
       if (onSuccess) {
+        console.log("🔄 Ejecutando callback onSuccess para actualizar estado global");
         onSuccess();
       }
     } catch (error: any) {
-      console.error('Error:', error);
+      console.error('❌ Error:', error);
       toast.error(error.message || 'Error al actualizar la categoría');
     } finally {
       setIsUpdatingCategory(false);

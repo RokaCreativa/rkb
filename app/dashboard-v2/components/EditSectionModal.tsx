@@ -30,11 +30,14 @@ import { getImagePath } from '@/app/dashboard-v2/core/utils/imageUtils';
  * @property {number | null} clientId - ID del cliente propietario del menú
  * @property {Category | null} selectedCategory - Categoría a la que pertenece la sección
  * @property {Function} [onSuccess] - Callback opcional que se ejecuta tras una edición exitosa
+ * @property {Function} [updateSection] - Función para actualizar la sección (opcional, si no se proporciona se usa el hook)
  */
 export interface EditSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   section: any; // Accept a Section object
+  updateSection?: (formData: FormData, sectionId: number, categoryId: number) => Promise<boolean>;
+  onSuccess?: () => void;
 }
 
 /**
@@ -59,7 +62,9 @@ export interface EditSectionModalProps {
 const EditSectionModal: React.FC<EditSectionModalProps> = ({
   isOpen,
   onClose,
-  section
+  section,
+  updateSection,
+  onSuccess
 }) => {
   /**
    * Estados del formulario y gestión de la sección
@@ -76,7 +81,7 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
    * Hook personalizado para operaciones CRUD de secciones
    * Proporciona métodos optimizados y manejo de estado/notificaciones
    */
-  const { updateSection } = useSections(section?.client_id || 0);
+  const { updateSection: useSectionsUpdateSection } = useSections(section?.client_id || 0);
 
   /**
    * Efectos para cargar y establecer valores iniciales
@@ -129,18 +134,29 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
     }
 
     try {
-      // Actualizar la sección utilizando la función de updateSection del hook
-      // que ahora acepta FormData como primer argumento
-      const success = await updateSection(formData, section.section_id, section.category_id);
+      // Identificador único para el toast de carga
+      const toastId = "update-section-" + section.section_id;
+      
+      // Mostrar toast de carga
+      toast.loading("Actualizando sección...", { id: toastId });
+      
+      // Actualizar la sección usando el hook
+      const success = await (updateSection || useSectionsUpdateSection)(formData, section.section_id, section.category_id);
       
       if (success) {
-        // No mostrar toast de éxito duplicado ya que el hook ya lo muestra
-        
+        console.log("Actualización de sección completada con éxito");
         // Cerrar el modal
-        onClose();
+        handleCloseModal();
+        
+        // Actualizar el toast con éxito
+        toast.success("Sección actualizada correctamente", { id: toastId });
+
+        if (onSuccess) {
+          onSuccess();
+        }
       } else {
-        // toast.error se muestra desde el hook, evitar duplicación aquí
-        console.error("La actualización de la sección no tuvo éxito");
+        console.error("La actualización no fue exitosa");
+        toast.error("Error al actualizar la sección", { id: toastId });
       }
     } catch (error) {
       console.error("Error al actualizar sección:", error);

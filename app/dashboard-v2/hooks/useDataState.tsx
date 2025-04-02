@@ -57,14 +57,14 @@ export default function useDataState(clientId: number | null = null) {
     sections: sectionsFromHook,
     fetchSections: fetchSectionsHook,
     deleteSection: deleteSectionHook,
-    updateSection
+    updateSection: updateSectionHook
   } = useSections(clientId || client?.id || null);
   
   const {
     products: productsFromHook,
     fetchProducts: fetchProductsHook,
     deleteProduct,
-    updateProduct,
+    updateProduct: updateProductHook,
     toggleProductVisibility
   } = useProducts({
     onSuccess: () => {
@@ -656,6 +656,166 @@ export default function useDataState(clientId: number | null = null) {
     }
   }, [categories]);
   
+  /**
+   * Actualiza una sección en el servidor y en el estado local
+   * @param formData Datos del formulario o sección a actualizar
+   * @param sectionId ID de la sección a actualizar
+   * @param categoryId ID de la categoría a la que pertenece la sección
+   * @returns true si la actualización fue exitosa, false en caso contrario
+   */
+  const updateSection = useCallback(async (
+    formData: FormData | any,
+    sectionId: number,
+    categoryId: number
+  ): Promise<boolean> => {
+    console.log(`🔄 Iniciando actualización de sección ${sectionId} en categoría ${categoryId}`);
+    setIsSectionsLoading(true);
+
+    try {
+      let response;
+      
+      // Verificar si formData es una instancia de FormData
+      if (formData instanceof FormData) {
+        // Si ya es FormData, usarlo directamente
+        console.log(`📤 Enviando FormData para sección ${sectionId}`);
+        response = await fetch('/api/sections', {
+          method: 'PUT',
+          body: formData
+        });
+      } else {
+        // Si no es FormData, crear uno nuevo con los datos
+        console.log(`🔧 Creando FormData para sección ${sectionId} con datos:`, formData);
+        const newFormData = new FormData();
+        newFormData.append('section_id', sectionId.toString());
+        newFormData.append('name', formData.name || '');
+        newFormData.append('category_id', categoryId.toString());
+        
+        if (formData.image && typeof formData.image !== 'string') {
+          newFormData.append('image', formData.image);
+        }
+        
+        response = await fetch('/api/sections', {
+          method: 'PUT',
+          body: newFormData
+        });
+      }
+      
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+      }
+      
+      // Obtener la sección actualizada
+      const updatedSection = await response.json();
+      console.log(`✅ Sección actualizada recibida:`, updatedSection);
+      
+      // Normalizar el status para consistencia
+      const normalizedSection = {
+        ...updatedSection,
+        status: typeof updatedSection.status === 'boolean' ? 
+          (updatedSection.status ? 1 : 0) : Number(updatedSection.status)
+      };
+      
+      console.log(`🔧 Sección normalizada:`, normalizedSection);
+      
+      // Actualizar el estado local
+      setSections(prevSections => {
+        const updatedSections = { ...prevSections };
+        
+        // Si existe la categoría, actualizar la sección
+        if (updatedSections[categoryId]) {
+          updatedSections[categoryId] = updatedSections[categoryId].map(section =>
+            section.section_id === sectionId ? normalizedSection : section
+          );
+        }
+        
+        console.log(`✅ Estado de secciones actualizado:`, updatedSections);
+        return updatedSections;
+      });
+      
+      // Mostrar notificación de éxito
+      toast.success("Sección actualizada correctamente");
+      
+      return true;
+    } catch (error) {
+      console.error(`❌ Error al actualizar sección ${sectionId}:`, error);
+      toast.error("Error al actualizar la sección");
+      return false;
+    } finally {
+      setIsSectionsLoading(false);
+    }
+  }, [setSections, setIsSectionsLoading]);
+  
+  /**
+   * Actualiza un producto en el servidor y en el estado local
+   * Versión mejorada que garantiza la actualización correcta del estado
+   * @param formData Datos del formulario del producto a actualizar
+   * @returns true si la actualización fue exitosa, false en caso contrario
+   */
+  const updateProductImproved = useCallback(async (formData: FormData): Promise<boolean> => {
+    const productId = formData.get('product_id');
+    const sectionId = formData.get('section_id');
+    
+    if (!productId || !sectionId) {
+      console.error('❌ ID de producto o sección no proporcionado');
+      return false;
+    }
+    
+    console.log(`🔄 Iniciando actualización de producto ${productId} en sección ${sectionId}`);
+    setIsLoading(true);
+
+    try {
+      // Enviar datos al servidor
+      const response = await fetch('/api/products', {
+        method: 'PUT',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+      }
+      
+      // Obtener el producto actualizado
+      const updatedProduct = await response.json();
+      console.log(`✅ Producto actualizado recibido:`, updatedProduct);
+      
+      // Normalizar el status para consistencia
+      const normalizedProduct = {
+        ...updatedProduct,
+        status: typeof updatedProduct.status === 'boolean' ? 
+          (updatedProduct.status ? 1 : 0) : Number(updatedProduct.status)
+      };
+      
+      console.log(`🔧 Producto normalizado a actualizar en UI:`, normalizedProduct);
+      
+      // Actualizar el estado local
+      setProducts(prevProducts => {
+        const updatedProducts = { ...prevProducts };
+        
+        // Verificar si existe la clave de la sección
+        if (updatedProducts[Number(sectionId)]) {
+          // Actualizar el producto dentro de la sección
+          updatedProducts[Number(sectionId)] = updatedProducts[Number(sectionId)].map(product =>
+            product.product_id === Number(productId) ? normalizedProduct : product
+          );
+        }
+        
+        console.log(`✅ Estado de productos actualizado:`, updatedProducts);
+        return updatedProducts;
+      });
+      
+      // Mostrar notificación de éxito
+      toast.success("Producto actualizado correctamente");
+      
+      return true;
+    } catch (error) {
+      console.error(`❌ Error al actualizar producto ${productId}:`, error);
+      toast.error("Error al actualizar el producto");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [setProducts, setIsLoading]);
+  
   // Efecto para cargar datos del cliente al inicializar el hook
   useEffect(() => {
     if (clientId) {
@@ -705,7 +865,7 @@ export default function useDataState(clientId: number | null = null) {
     updateSection,
     toggleProductVisibility,
     deleteProduct,
-    updateProduct,
+    updateProduct: updateProductImproved,
     
     // Estado de UI
     expandedCategories,
