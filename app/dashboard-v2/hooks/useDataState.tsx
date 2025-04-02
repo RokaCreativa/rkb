@@ -148,6 +148,24 @@ export default function useDataState(clientId: number | null = null) {
   }, [categories, categoriesFromHook]);
   
   /**
+   * Encuentra el ID de la categoría a la que pertenece una sección
+   * 
+   * Busca en todas las categorías para encontrar aquella que contiene la sección especificada.
+   * Esta función es útil para mantener la relación jerárquica entre categorías y secciones.
+   * 
+   * @param sectionId - ID de la sección para la que queremos encontrar su categoría
+   * @returns El ID de la categoría si se encuentra, o null si no se encuentra
+   */
+  const findCategoryIdForSection = useCallback((sectionId: number): number | null => {
+    for (const [categoryId, categorySections] of Object.entries(sections)) {
+      if (categorySections.some(s => s.section_id === sectionId)) {
+        return parseInt(categoryId);
+      }
+    }
+    return null;
+  }, [sections]);
+  
+  /**
    * Carga las secciones de una categoría específica
    * 
    * FUNCIÓN CRÍTICA: Esta función obtiene todas las secciones de una categoría desde la API
@@ -183,16 +201,43 @@ export default function useDataState(clientId: number | null = null) {
       try {
         // PASO 3: Hacer la petición a la API
         const response = await fetch(`/api/sections?category_id=${categoryId}`);
-        const data = await response.json();
         
-        // PASO 4: Verificar que la respuesta es correcta
-        if (!data || !data.sections || !Array.isArray(data.sections)) {
+        if (!response.ok) {
+          throw new Error(`Error al cargar secciones: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log(`🔎 Respuesta API para secciones (categoría ${categoryId}):`, data);
+        
+        // PASO 4: Determinar el formato de la respuesta y extraer secciones
+        // La API puede devolver:
+        // 1. Un array directo de secciones
+        // 2. Un objeto con una propiedad "sections" que contiene el array
+        // 3. Un objeto con propiedad "data" (para respuestas paginadas)
+        
+        let sectionsData: any[] = [];
+        
+        if (Array.isArray(data)) {
+          // Caso 1: La respuesta es un array directo
+          sectionsData = data;
+          console.log(`✅ Formato de respuesta: Array directo con ${sectionsData.length} secciones`);
+        } else if (data && data.sections && Array.isArray(data.sections)) {
+          // Caso 2: La respuesta tiene formato { sections: [...] }
+          sectionsData = data.sections;
+          console.log(`✅ Formato de respuesta: Objeto con propiedad 'sections', contiene ${sectionsData.length} secciones`);
+        } else if (data && data.data && Array.isArray(data.data)) {
+          // Caso 3: La respuesta tiene formato paginado { data: [...], meta: {...} }
+          sectionsData = data.data;
+          console.log(`✅ Formato de respuesta: Objeto paginado con propiedad 'data', contiene ${sectionsData.length} secciones`);
+        } else {
+          // Ningún formato reconocido
+          console.error(`❌ Formato de respuesta desconocido para secciones:`, data);
           throw new Error(`Formato de respuesta inválido para secciones de categoría ${categoryId}`);
         }
         
         // PASO 5: Procesar y normalizar secciones
         // Esto asegura que todos los datos tengan el formato correcto
-        const sectionsData = data.sections.map((section: any) => ({
+        const processedSections = sectionsData.map((section: any) => ({
           ...section,
           // Normalizar ID para asegurar consistencia
           section_id: section.section_id,
@@ -211,10 +256,10 @@ export default function useDataState(clientId: number | null = null) {
         }));
         
         // PASO 6: Registrar detalles para depuración
-        console.log(`✅ Se cargaron ${sectionsData.length} secciones para categoría ${categoryId}`);
-        if (sectionsData.length > 0) {
-          console.log(`Estructura de la primera sección: ${JSON.stringify(sectionsData[0])}`);
-          console.log(`Datos completos de secciones: ${JSON.stringify(sectionsData.slice(0, 2))}`);
+        console.log(`✅ Se cargaron ${processedSections.length} secciones para categoría ${categoryId}`);
+        if (processedSections.length > 0) {
+          console.log(`Estructura de la primera sección: ${JSON.stringify(processedSections[0])}`);
+          console.log(`Datos completos de secciones: ${JSON.stringify(processedSections.slice(0, 2))}`);
         }
         
         // PASO 7: Actualizar contador de secciones para la categoría
@@ -224,8 +269,8 @@ export default function useDataState(clientId: number | null = null) {
               category.category_id === categoryId
                 ? { 
                     ...category, 
-                    sections_count: sectionsData.length,
-                    visible_sections_count: sectionsData.filter((s: Section) => s.status === 1).length
+                    sections_count: processedSections.length,
+                    visible_sections_count: processedSections.filter((s: Section) => s.status === 1).length
                   }
                 : category
             )
@@ -233,16 +278,29 @@ export default function useDataState(clientId: number | null = null) {
         }
         
         // PASO 8: Actualizar estado de secciones
-        console.log(`🔄 Actualizando estado de secciones para categoría ${categoryId}: ${sectionsData.map((s: Section) => s.name).join(', ')}`);
+        console.log(`🔄 Actualizando estado de secciones para categoría ${categoryId}: ${processedSections.map((s: Section) => s.name).join(', ')}`);
         setSections(prevSections => {
           const newSections = { ...prevSections };
-          newSections[categoryId] = sectionsData;
-          console.log(`✅ Estado de secciones actualizado: ${JSON.stringify(Object.keys(newSections).map(k => `${k}: ${newSections[parseInt(k)]?.length || 0}`))}`)
-          console.log(`Secciones para categoría ${categoryId}: ${sectionsData.length}`);
+          newSections[categoryId] = processedSections;
+          
+          // Debug crítico para verificar el objeto antes y después
+          console.log(`🔍 DEBUG - Estado ANTES de actualizar:`, JSON.stringify(Object.keys(prevSections)));
+          console.log(`🔍 DEBUG - Estado DESPUÉS de actualizar:`, JSON.stringify(Object.keys(newSections)));
+          console.log(`🔍 DEBUG - ¿Contiene la categoría ${categoryId}?`, newSections.hasOwnProperty(categoryId));
+          console.log(`🔍 DEBUG - Valor para categoryId ${categoryId}:`, newSections[categoryId]?.length || 0);
+          
+          console.log(`✅ Estado de secciones actualizado: ${JSON.stringify(Object.keys(newSections).map(k => `${k}: ${newSections[parseInt(k)]?.length || 0}`))}`);
+          console.log(`Secciones para categoría ${categoryId}: ${processedSections.length}`);
           return newSections;
         });
         
-        // PASO 9: Finalizar estado de carga
+        // PASO 9: Verificar que las secciones se guardaron correctamente
+        setTimeout(() => {
+          console.log(`🔍 DEBUG - Verificando después de actualizar, secciones para categoría ${categoryId}:`, 
+                      sections[categoryId]?.length || 0);
+        }, 500);
+        
+        // PASO 10: Finalizar estado de carga
         setIsLoading(false);
         
       } catch (error) {
@@ -254,39 +312,106 @@ export default function useDataState(clientId: number | null = null) {
     [categories, sections, setCategories, setSections, setIsLoading, setError]
   );
   
-  // Cargar productos para una sección específica
-  const fetchProductsBySection = useCallback(async (sectionId: number) => {
+  // Funciones de ayuda
+  /**
+   * Carga los productos de una sección específica
+   * 
+   * FUNCIÓN CRÍTICA: Esta función obtiene todos los productos de una sección desde la API
+   * y los almacena tanto en el estado global como en un estado local para renderizado inmediato.
+   * Implementa el patrón de "estado dual" (local/global) siguiendo el MANDAMIENTO CRÍTICO.
+   * 
+   * El proceso paso a paso es:
+   * 1. Verificar si ya tenemos los productos en caché para evitar carga innecesaria
+   * 2. Hacer la petición a la API si es necesario
+   * 3. Procesar y normalizar los datos recibidos
+   * 4. Actualizar AMBOS estados (global y local) con los productos recibidos
+   * 5. Actualizar contadores en la sección correspondiente
+   * 
+   * @param sectionId - ID de la sección para la que queremos cargar productos
+   * @param updateLocalState - Función opcional para actualizar el estado local inmediatamente
+   * @returns Promise con los productos cargados
+   */
+  const fetchProductsBySection = useCallback(async (
+    sectionId: number, 
+    updateLocalState?: (products: Product[]) => void
+  ) => {
+    // PASO 1: Validaciones básicas
     if (!sectionId) {
       console.error("❌ ID de sección no válido");
       return [];
     }
     
+    // PASO 2: Verificar si ya tenemos los productos en caché
+    if (products[sectionId] && products[sectionId].length > 0) {
+      console.log(`📦 Productos ya cargados para sección ${sectionId}, evitando recarga`);
+      
+      // Si nos proporcionaron una función para actualizar estado local, la llamamos con datos de caché
+      if (updateLocalState) {
+        console.log(`🔄 Actualizando estado local con productos en caché`);
+        updateLocalState(products[sectionId]);
+      }
+      
+      return products[sectionId];
+    }
+    
     console.log(`🔄 Cargando productos para sección ${sectionId}...`);
     
     try {
+      // PASO 3: Hacer la petición a la API
       const response = await fetch(`/api/products?section_id=${sectionId}`);
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log(`✅ Se cargaron ${data.length} productos para sección ${sectionId}`);
       
-      // Verificar que realmente tengamos datos
-      if (data.length > 0) {
-        console.log("Primeros productos:", data.slice(0, 2));
-      }
-      
-      // Actualizar estado con los productos cargados
-      setProducts(prev => ({
-        ...prev,
-        [sectionId]: data
+      // PASO 4: Procesar y normalizar productos
+      // Aseguramos formato correcto y consistente para todos los campos
+      const processedProducts = data.map((product: any) => ({
+        ...product,
+        // Normalizar IDs
+        product_id: product.product_id,
+        id: product.product_id,
+        
+        // Normalizar estado: API puede devolver boolean o numérico
+        status: typeof product.status === 'boolean' 
+          ? (product.status ? 1 : 0) 
+          : product.status,
+          
+        // Asegurar que section_id está presente
+        section_id: sectionId,
+        
+        // Normalizar precio si es necesario
+        price: product.price !== null ? parseFloat(product.price) : 0,
+        
+        // Asegurar que display_order está presente
+        display_order: product.display_order || 0
       }));
       
-      // Actualizar sección con conteos de productos si corresponde
+      console.log(`✅ Se cargaron ${processedProducts.length} productos para sección ${sectionId}`);
+      
+      // Verificar resultados para depuración
+      if (processedProducts.length > 0) {
+        console.log("Primeros productos:", processedProducts.slice(0, 2));
+      }
+      
+      // PASO 5: Actualizar estado GLOBAL con los productos cargados
+      setProducts(prev => {
+        const updatedProducts = { ...prev };
+        updatedProducts[sectionId] = processedProducts;
+        return updatedProducts;
+      });
+      
+      // PASO 6: Actualizar estado LOCAL si nos proporcionaron la función
+      if (updateLocalState) {
+        console.log(`🔄 Actualizando estado local con ${processedProducts.length} productos`);
+        updateLocalState(processedProducts);
+      }
+      
+      // PASO 7: Actualizar sección con conteos de productos
       const foundCategoryId = findCategoryIdForSection(sectionId);
       if (foundCategoryId !== null) {
-        const visibleProductsCount = data.filter((p: Product) => p.status === 1).length;
+        const visibleProductsCount = processedProducts.filter((p: Product) => p.status === 1).length;
         
         setSections(prev => {
           const updated = { ...prev };
@@ -295,7 +420,7 @@ export default function useDataState(clientId: number | null = null) {
               s.section_id === sectionId 
                 ? {
                     ...s,
-                    products_count: data.length,
+                    products_count: processedProducts.length,
                     visible_products_count: visibleProductsCount
                   } 
                 : s
@@ -305,27 +430,18 @@ export default function useDataState(clientId: number | null = null) {
         });
       }
       
-      // Verificar que los nombres de los productos estén bien
-      const sectionNames = data.map((s: Product) => s.name);
-      console.log(`Nombres de productos recibidos para sección ${sectionId}:`, sectionNames.join(", "));
+      // PASO 8: Verificar integridad de datos y registrar para depuración
+      const productNames = processedProducts.map((p: Product) => p.name);
+      console.log(`Nombres de productos recibidos para sección ${sectionId}:`, 
+                productNames.length > 0 ? productNames.join(", ") : "No hay productos");
       
-      return data;
+      return processedProducts;
     } catch (error) {
       console.error(`❌ Error al cargar productos para sección ${sectionId}:`, error);
       toast.error("Error al cargar los productos");
       return [];
     }
-  }, []);
-  
-  // Funciones de ayuda
-  const findCategoryIdForSection = useCallback((sectionId: number): number | null => {
-    for (const [categoryId, categorySections] of Object.entries(sections)) {
-      if (categorySections.some(s => s.section_id === sectionId)) {
-        return parseInt(categoryId);
-      }
-    }
-    return null;
-  }, [sections]);
+  }, [products, setSections, findCategoryIdForSection]);
   
   // Funciones de manejo de UI
   const handleCategoryClick = useCallback(async (category: Category) => {
@@ -551,7 +667,7 @@ export default function useDataState(clientId: number | null = null) {
     // Estados
     client,
     categories: categoriesFromHook && categoriesFromHook.length > 0 ? categoriesFromHook : categories,
-    sections: sectionsFromHook || sections,
+    sections,
     products: productsFromHook || products,
     isLoading: isLoading || isLoadingCategories,
     isSectionsLoading,

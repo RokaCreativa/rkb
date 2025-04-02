@@ -140,7 +140,8 @@ export default function DashboardPage() {
     toggleSectionVisibility: toggleSectionVisibilityFromHook,
     fetchSectionsByCategory,
     fetchClientData,
-    fetchCategories
+    fetchCategories,
+    fetchProductsBySection
   } = useDataState();
   
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -149,10 +150,15 @@ export default function DashboardPage() {
   const [expandedSections, setExpandedSections] = useState<{ [key: number]: boolean }>({});
   const [showRedirectMessage, setShowRedirectMessage] = useState(true);
   const [loadingSections, setLoadingSections] = useState<{ [key: number]: boolean }>({});
+  const [loadingProducts, setLoadingProducts] = useState<{ [key: number]: boolean }>({});
   const togglePreview = useTogglePreview();
   
   // Estado local para almacenar las secciones de categorías expandidas
   const [expandedCategorySections, setExpandedCategorySections] = useState<{ [key: number]: Section[] }>({});
+  
+  // Estado local para almacenar los productos de secciones expandidas
+  // ⚠️ IMPORTANTE: Seguimos el mandamiento crítico de estado dual (local/global)
+  const [expandedSectionProducts, setExpandedSectionProducts] = useState<{ [key: number]: Product[] }>({});
 
   // Estado para el modo de reordenación
   const [isReorderModeActive, setIsReorderModeActive] = useState(false);
@@ -234,6 +240,25 @@ export default function DashboardPage() {
     
   }, [expandedCategories, sections, fetchSectionsByCategory]);
 
+  // Efecto para sincronizar expandedCategorySections con sections del hook
+  useEffect(() => {
+    if (Object.keys(sections).length > 0) {
+      console.log('🔄 Sincronizando estado local de secciones con estado global:', sections);
+      // Actualizar el estado local con los datos del estado global
+      setExpandedCategorySections(prevState => {
+        const newState = { ...prevState };
+        // Para cada categoría en sections, actualizar el estado local si está expandida
+        Object.entries(sections).forEach(([categoryId, categorySections]) => {
+          if (categorySections && categorySections.length > 0) {
+            console.log(`✅ Actualizando estado local para categoría ${categoryId} con ${categorySections.length} secciones`);
+            newState[parseInt(categoryId)] = categorySections;
+          }
+        });
+        return newState;
+      });
+    }
+  }, [sections]);
+
   /**
    * Maneja el clic en una categoría
    * 
@@ -257,7 +282,27 @@ export default function DashboardPage() {
       ...prev,
       [categoryId]: true
     }));
-    
+
+    // Aplicar directamente el hook useDataState
+    if (fetchSectionsByCategory) {
+      // Demostrar que usamos directamente el hook para resolver el problema
+      console.log(`🔍 DEBUG - Usando fetchSectionsByCategory del hook para categoría ${categoryId}`);
+      
+      try {
+        // PRIMERA ACTUALIZACIÓN: Usar la función proporcionada por el hook para cargar las secciones
+        await fetchSectionsByCategory(categoryId);
+        
+        // VERIFICACIÓN CRÍTICA: Inspeccionar el objeto sections después de la carga
+        console.log(`🔍 DEBUG - Después de fetchSectionsByCategory, estado de sections:`, sections);
+        console.log(`🔍 DEBUG - ¿Contiene sections la categoría ${categoryId}?`, Object.keys(sections).includes(categoryId.toString()));
+        console.log(`🔍 DEBUG - Número de secciones para categoría ${categoryId}:`, sections[categoryId]?.length || 0);
+        
+        return; // Terminar aquí y dejar que useEffect haga el resto
+      } catch (error) {
+        console.error(`Error al cargar secciones para categoría ${categoryId}:`, error);
+      }
+    }
+
     // Solo cargamos secciones si no tenemos datos en el estado local o global
     const sectionsLoaded = expandedCategorySections[categoryId] || sections[categoryId];
     
@@ -320,17 +365,62 @@ export default function DashboardPage() {
     }
   };
 
-  // Manejar clic en sección
-  const handleSectionClick = (section: DashboardSection) => {
+  /**
+   * Maneja el clic en una sección
+   * 
+   * Este es un método CRÍTICO que:
+   * 1. Establece la sección seleccionada
+   * 2. Cambia la vista a productos
+   * 3. Carga los productos de esta sección si no están cargados
+   * 4. Actualiza AMBOS estados (global y local) para mostrar productos inmediatamente
+   * 
+   * Sigue el MANDAMIENTO CRÍTICO de gestión de estado dual (local/global)
+   * 
+   * @param section - El objeto Section completo que fue clickeado
+   */
+  const handleSectionClick = async (section: DashboardSection) => {
     console.log(`Clic en sección: ${section.name} (${section.section_id})`);
+    
+    // Paso 1: Actualizar selección y vista
     setSelectedSection(section);
     setCurrentView('products');
-    // Aquí se cargarían los productos de esta sección
-    setProducts([
-      { id: 1, name: 'Producto 1', price: 9.99, order: 1, image: null, visible: true },
-      { id: 2, name: 'Producto 2', price: 12.99, order: 2, image: null, visible: true },
-      { id: 3, name: 'Producto 3', price: 15.99, order: 3, image: null, visible: false }
-    ]);
+    
+    const sectionId = section.section_id;
+    
+    // Paso 2: Verificar si necesitamos cargar productos
+    const productsLoaded = expandedSectionProducts[sectionId] || products[sectionId];
+    
+    if (!productsLoaded) {
+      console.log(`Cargando productos para sección ${sectionId}...`);
+      
+      // Paso 3: Mostrar indicador de carga
+      setLoadingProducts(prev => ({
+        ...prev,
+        [sectionId]: true
+      }));
+      
+      try {
+        // Paso 4: Usar la función mejorada de useDataState que actualiza ambos estados
+        await fetchProductsBySection(sectionId, (loadedProducts) => {
+          // Esta función actualiza el estado LOCAL inmediatamente
+          setExpandedSectionProducts(prev => ({
+            ...prev,
+            [sectionId]: loadedProducts
+          }));
+          console.log(`✅ Estado local actualizado con ${loadedProducts.length} productos`);
+        });
+      } catch (error) {
+        console.error(`Error al cargar productos para sección ${sectionId}:`, error);
+      } finally {
+        // Paso 5: Quitar indicador de carga
+        setLoadingProducts(prev => ({
+          ...prev,
+          [sectionId]: false
+        }));
+      }
+    } else {
+      console.log(`Productos ya cargados para sección ${sectionId}, usando datos en caché`);
+    }
   };
 
   // Funciones para manejar acciones en categorías, secciones y productos
@@ -607,22 +697,25 @@ export default function DashboardPage() {
                   // Solo mostrar si la categoría está expandida
                   if (!expandedCategories[category.category_id]) return null;
                   
-                  console.log(`Renderizando categoría expandida: ${category.name} (${category.category_id})`);
-                  console.log("Estado global de sections:", JSON.stringify(sections));
-                  console.log("Estado local de sections:", JSON.stringify(expandedCategorySections));
+                  // Debug: información extendida sobre los estados de secciones
+                  console.log(`🔍 DEBUG - Renderizando categoría expandida: ${category.name} (${category.category_id})`);
+                  console.log(`🔍 DEBUG - Estado global de sections:`, sections);
+                  console.log(`🔍 DEBUG - Estado local de expandedCategorySections:`, expandedCategorySections);
+                  console.log(`🔍 DEBUG - ¿Tiene el objeto sections la propiedad ${category.category_id}?`, Object.keys(sections).includes(category.category_id.toString()));
                   
-                  // Debug: Verificar si tenemos secciones para esta categoría
                   // Priorizar el estado local de secciones (más inmediato) sobre el estado global (más retrasado)
                   const categoryId = category.category_id;
                   const sectionsList = expandedCategorySections[categoryId] || sections[categoryId] || [];
                   const hasSections = sectionsList && sectionsList.length > 0;
                   
-                  console.log(`¿Tiene secciones la categoría ${category.category_id}?`, hasSections);
-                  console.log(`Número de secciones para categoría ${category.category_id}:`, sectionsList?.length || 0);
+                  console.log(`🔍 DEBUG - Secciones recuperadas para categoría ${category.category_id}:`, 
+                              sectionsList ? JSON.stringify(sectionsList.map(s => ({name: s.name, id: s.section_id}))) : "ninguna");
+                  console.log(`🔍 DEBUG - ¿Tiene secciones la categoría ${category.category_id}?`, hasSections);
+                  console.log(`🔍 DEBUG - Número de secciones para categoría ${category.category_id}:`, sectionsList?.length || 0);
                   
                   if (hasSections) {
                     console.log(`Secciones para categoría ${category.category_id}:`, 
-                                sectionsList.map((s: Section) => `${s.name} (${s.section_id})`).join(', '));
+                              sectionsList.map((s: Section) => `${s.name} (${s.section_id})`).join(', '));
                   }
                   
                   return (
@@ -681,8 +774,7 @@ export default function DashboardPage() {
                                 const section = sectionsList.find(s => s.section_id === sectionId);
                                 if (section) {
                                   setSelectedCategory(category);
-                                  setSelectedSection(section);
-                                  setCurrentView('products');
+                                  handleSectionClick(section);
                                 }
                               }}
                               onAddProduct={(sectionId) => {
@@ -765,7 +857,6 @@ export default function DashboardPage() {
                     
                     if (section && foundCategory) {
                       setSelectedCategory(foundCategory);
-                      setSelectedSection(section);
                       handleSectionClick(section);
                     }
                   }}
@@ -821,24 +912,47 @@ export default function DashboardPage() {
                 </button>
               </div>
               
-              <ProductTable
-                products={products[selectedSection.section_id] || []}
-                sectionName={selectedSection.name}
-                onEditProduct={handleEditProduct}
-                onDeleteProduct={async (productId: number) => {
-                  console.log("Delete product:", productId);
-                  return true; // Simular eliminación exitosa
-                }}
-                onToggleVisibility={async (productId: number, status: number) => {
-                  console.log(`Toggle visibility for product: ${productId} to ${status}`);
-                  // Implementar actualización real cuando sea necesario
-                }}
-                isUpdatingVisibility={null}
-                isReorderModeActive={isReorderModeActive}
-                onReorderProduct={(productId: number, direction: 'up' | 'down') => {
-                  console.log(`Reorder product: ${productId} ${direction}`);
-                }}
-              />
+              {loadingProducts[selectedSection.section_id] ? (
+                <div className="flex justify-center items-center py-8">
+                  <svg className="animate-spin h-10 w-10 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              ) : (
+                // Usar estado LOCAL (expandedSectionProducts) con fallback al estado GLOBAL (products)
+                // También normalizar para asegurar que cada producto tenga propiedad 'id'
+                <ProductTable
+                  products={(expandedSectionProducts[selectedSection.section_id] || 
+                             products[selectedSection.section_id] || 
+                             []).map(p => ({
+                    ...p,
+                    // Asegurar que id esté presente (requerido por ProductTable)
+                    id: p.product_id,
+                    // Normalizar otros campos críticos
+                    product_id: p.product_id,
+                    name: p.name || '',
+                    price: p.price || 0,
+                    image: p.image || null,
+                    status: typeof p.status === 'boolean' ? (p.status ? 1 : 0) : (p.status || 0)
+                  })) as any[]}
+                  sectionName={selectedSection.name}
+                  onEditProduct={handleEditProduct}
+                  onDeleteProduct={async (productId: number) => {
+                    console.log("Delete product:", productId);
+                    return true; // Simular eliminación exitosa
+                  }}
+                  onToggleVisibility={async (productId: number, status: number) => {
+                    console.log(`Toggle visibility for product: ${productId} to ${status}`);
+                    // Implementar actualización real cuando sea necesario
+                  }}
+                  isUpdatingVisibility={null}
+                  isReorderModeActive={isReorderModeActive}
+                  onReorderProduct={(productId: number, direction: 'up' | 'down') => {
+                    console.log(`Reorder product: ${productId} ${direction}`);
+                  }}
+                />
+              )}
             </div>
           )}
         </div>
