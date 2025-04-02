@@ -67,7 +67,7 @@ export const SectionTable: React.FC<SectionTableProps> = ({
       <div className="flex items-center justify-between px-4 py-2 bg-teal-50 border-b border-teal-100">
         <div className="flex items-center space-x-2">
           <h2 className="text-sm font-medium text-teal-700">
-            {categoryName ? `Secciones de ${categoryName}` : 'Secciones'}
+            {categoryName || 'Secciones'}
           </h2>
         </div>
         <div className="flex items-center">
@@ -328,19 +328,6 @@ export const SectionTable: React.FC<SectionTableProps> = ({
           )}
         </Droppable>
       </DragDropContext>
-      
-      {/* Botón para agregar nuevo producto */}
-      {onAddProduct && (
-        <div className="px-4 py-3 border-t border-teal-100 bg-teal-50">
-          <button
-            onClick={() => onAddProduct(0)}
-            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500"
-          >
-            <PlusIcon className="h-4 w-4 mr-1" />
-            Nuevo Producto
-          </button>
-        </div>
-      )}
     </div>
   );
 }; 

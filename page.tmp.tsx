@@ -1374,7 +1374,7 @@ export default function DashboardPage() {
                     id={`category-${category.category_id}`}
                       className="mt-4 w-full pl-4 border-l-4 border-indigo-100"
                     >
-                      <div className="bg-blue-50 py-4 px-6 rounded-md shadow-sm border border-blue-100">
+                      <div className="bg-white py-4 px-6 rounded-md shadow-sm border border-gray-200">
                         <div className="flex justify-between items-center mb-4">
                           <h3 className="text-lg font-medium text-indigo-800">{category.name}</h3>
                           <button
@@ -1406,13 +1406,12 @@ export default function DashboardPage() {
                         ) : hasSections ? (
                           <div>
                     <SectionTable 
-                              sections={sectionsList}
-                              expandedSections={expandedSections}
+                              sections={sectionsList}\n                              categoryName={category.name}\n                              expandedSections={expandedSections}
                               onEditSection={handleEditSection}
                               onDeleteSection={(section) => handleDeleteSection(section, category.category_id)}
                               onToggleSectionVisibility={toggleSectionVisibility}
                               categoryId={category.category_id}
-                      isUpdatingVisibility={isUpdatingVisibility}
+                              isUpdatingVisibility={isUpdatingVisibility}
                               onSectionClick={(sectionId) => {
                                 const section = sectionsList.find(s => s.section_id === sectionId);
                                 if (section) {
@@ -1497,8 +1496,8 @@ export default function DashboardPage() {
                                           }}
                                           isUpdatingVisibility={null}
                                           isReorderModeActive={isReorderModeActive}
-                                          onReorderProduct={(sourceIndex: number, destinationIndex: number) => {
-                                            console.log(`Reordenar producto desde ${sourceIndex} a ${destinationIndex}`);
+                                          onReorderProduct={(productId: number, direction: 'up' | 'down') => {
+                                            console.log(`Reorder product: ${productId} ${direction}`);
                                           }}
                                         />
                                       ) : (
