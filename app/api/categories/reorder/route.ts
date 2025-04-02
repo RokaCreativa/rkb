@@ -1,123 +1,88 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/prisma/prisma';
+import { PrismaClient } from '@prisma/client';
+import { revalidatePath } from 'next/cache';
+
+// Interfaz para la solicitud de reordenamiento
+interface ReorderRequest {
+  categories: {
+    category_id: number;
+    display_order: number;
+  }[];
+}
+
+const prisma = new PrismaClient();
 
 /**
- * API para reordenar categorías
- * Maneja las solicitudes POST para actualizar el orden de múltiples categorías a la vez
+ * Endpoint para reordenar categorías
+ * Recibe un array de categorías con sus nuevas posiciones y actualiza la base de datos
  * 
- * @route POST /api/categories/reorder
- * @returns NextResponse con los resultados actualizados o un mensaje de error
+ * @param req - Solicitud HTTP con un body que contiene el array de categorías a reordenar
+ * @returns Respuesta HTTP con las categorías actualizadas o un error
  */
-export async function POST(request: Request) {
+export async function PUT(req: NextRequest) {
   try {
-    // 1. Verificación de autenticación
+    // Verificar la autenticación
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    
+    if (!session || !session.user) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
-
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    
+    // Extraer el ID del cliente de la sesión
+    const clientId = (session.user as any).client_id;
+    
+    if (!clientId) {
+      return NextResponse.json({ error: 'ID de cliente no encontrado' }, { status: 400 });
     }
-
-    // 3. Obtener y validar los datos de la solicitud
-    const data = await request.json();
     
-    if (!data.categories || !Array.isArray(data.categories)) {
-      return NextResponse.json(
-        { error: 'Formato inválido: se requiere un array de categorías' }, 
-        { status: 400 }
-      );
+    // Obtener los datos del cuerpo de la solicitud
+    const data: ReorderRequest = await req.json();
+    
+    if (!data.categories || !Array.isArray(data.categories) || data.categories.length === 0) {
+      return NextResponse.json({ error: 'Datos de categorías inválidos' }, { status: 400 });
     }
-
-    // 4. Obtener todas las categorías del cliente
-    const categories = await prisma.categories.findMany({
-      where: {
-        client_id: user.client_id,
-        OR: [
-          { deleted: 0 as any },
-          { deleted: null }
-        ]
-      },
-      orderBy: {
-        display_order: 'asc',
-      },
-    });
-
-    // 5. Verificar que todas las categorías pertenezcan al cliente
-    const categoryIds = data.categories.map((cat: any) => cat.id);
     
-    console.log("[DEBUG] Reordenando categorías IDs:", categoryIds);
+    // Array para guardar los resultados de las operaciones
+    const updateResults = [];
     
-    const existingCategories = await prisma.categories.findMany({
-      where: {
-        category_id: { in: categoryIds },
-        client_id: user.client_id,
-        OR: [
-          { deleted: 0 as any },
-          { deleted: null }
-        ]
-      },
-      select: {
-        category_id: true,
-      },
-    });
-    
-    console.log("[DEBUG] Categorías encontradas:", existingCategories.map(c => c.category_id));
-
-    if (existingCategories.length !== categoryIds.length) {
-      console.warn(`[WARN] No se encontraron todas las categorías: esperadas=${categoryIds.length}, encontradas=${existingCategories.length}`);
-      return NextResponse.json(
-        { error: 'Una o más categorías no existen o no pertenecen a este cliente' }, 
-        { status: 400 }
-      );
-    }
-
-    // 6. Actualizar el orden de las categorías en una transacción
-    try {
-      console.log("[DEBUG] Iniciando transacción para actualizar orden");
-      const updates = await prisma.$transaction(
-        data.categories.map((cat: any) => {
-          console.log(`[DEBUG] Actualizando categoría ID=${cat.id} a display_order=${cat.display_order}`);
-          return prisma.categories.update({
-            where: {
-              category_id: cat.id,
-            },
-            data: {
-              display_order: cat.display_order,
-            },
-          });
-        })
-      );
-      
-      console.log(`[DEBUG] Actualización exitosa: ${updates.length} categorías actualizadas`);
-
-      // 7. Devolver respuesta de éxito
-      return NextResponse.json({
-        success: true,
-        message: 'Orden de categorías actualizado correctamente',
-        updated: updates.length,
+    // Actualizar cada categoría
+    for (const item of data.categories) {
+      // Verificar que la categoría pertenece al cliente autenticado
+      const category = await prisma.categories.findUnique({
+        where: { 
+          category_id: item.category_id,
+          client_id: clientId
+        }
       });
-    } catch (txError) {
-      console.error('[ERROR] Error en la transacción:', txError);
-      return NextResponse.json(
-        { error: 'Error al actualizar el orden de las categorías en la base de datos' }, 
-        { status: 500 }
-      );
+      
+      if (!category) {
+        continue; // Omitir categorías que no pertenecen al cliente
+      }
+      
+      // Actualizar el orden de visualización
+      const updatedCategory = await prisma.categories.update({
+        where: { category_id: item.category_id },
+        data: { display_order: item.display_order }
+      });
+      
+      updateResults.push(updatedCategory);
     }
     
+    // Revalidar la página de categorías para actualizar la caché
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard-v2');
+    
+    return NextResponse.json({ 
+      message: 'Categorías reordenadas con éxito',
+      categories: updateResults 
+    });
   } catch (error) {
-    // 8. Manejo centralizado de errores
     console.error('Error al reordenar categorías:', error);
+    
     return NextResponse.json(
-      { error: 'Error al actualizar el orden de las categorías' }, 
+      { error: 'Error al procesar la solicitud de reordenamiento' },
       { status: 500 }
     );
   }
