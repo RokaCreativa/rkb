@@ -270,6 +270,18 @@
 - Evitar efectos con dependencias innecesarias o mal configuradas
 - Utilizar nombres descriptivos para los estados que indiquen su propósito específico
 
+## 🔄 MANDAMIENTO CRÍTICO: Patrón de Actualización Inmediata
+- **APLICARÁS el mismo patrón de actualización UI en todos los niveles jerárquicos**
+- Implementar actualización directa del objeto original antes de llamar a callbacks (`objeto.propiedad = nuevoValor`)
+- Mantener consistencia entre implementaciones de categorías, secciones y productos
+- Cuando una implementación funciona correctamente, analizar y replicar el mismo patrón
+- Evitar soluciones complejas cuando un enfoque simple ya ha demostrado funcionar
+- Para forzar re-renders, usar el patrón de nueva referencia de array (`[...arrayExistente]`)
+- Documentar claramente los patrones de actualización para mantener consistencia
+- Verificar que cada nivel de la jerarquía (categoría → sección → producto) siga el mismo patrón
+- Implementar actualización optimista de la UI antes de recibir respuesta del servidor
+- Considerar estados intermedios para indicar procesamiento durante la actualización
+
 ---
 
 > 🎯 **Estado Actual**: Fase 3 - Features Principales (En Progreso)

@@ -99,25 +99,33 @@ export default function useDataState(clientId: number | null = null) {
   
   // Cargar categorías (con soporte para paginación)
   const fetchCategories = useCallback(async (options?: { page?: number; limit?: number; forceRefresh?: boolean }) => {
-    // Evitar cargas duplicadas si ya tenemos datos, a menos que se solicite un refresh forzado
-    if (categories.length > 0 && !options?.forceRefresh) {
-      console.log('📦 Categorías ya cargadas, evitando recarga duplicada');
-      return categories;
+    const forceRefresh = options?.forceRefresh || false;
+    
+    // Para recarga forzada, siempre vamos al servidor
+    if (forceRefresh) {
+      console.log('🔄 Forzando recarga de categorías desde el servidor...');
     }
-
-    // Evitar cargas duplicadas si ya estamos usando el hook, a menos que se solicite un refresh forzado
-    if (categoriesFromHook && categoriesFromHook.length > 0 && !options?.forceRefresh) {
-      console.log('📦 Usando categorías del hook, evitando recarga duplicada');
-      setCategories(categoriesFromHook);
-      return categoriesFromHook;
+    // Solo usar caché si NO es una recarga forzada
+    else {
+      // Evitar cargas duplicadas si ya tenemos datos
+      if (categories.length > 0) {
+        console.log('📦 Categorías ya cargadas, evitando recarga duplicada');
+        return categories;
+      }
+      // Evitar cargas duplicadas si ya estamos usando el hook
+      else if (categoriesFromHook && categoriesFromHook.length > 0) {
+        console.log('📦 Usando categorías del hook, evitando recarga duplicada');
+        setCategories(categoriesFromHook);
+        return categoriesFromHook;
+      }
     }
     
-    console.log('🔄 Iniciando carga de categorías' + (options?.forceRefresh ? ' (FORZADA)' : '') + '...');
+    console.log('🔄 Iniciando carga de categorías' + (forceRefresh ? ' (FORZADA)' : '') + '...');
     setIsLoading(true);
     
     try {
       // Añadir timestamp para evitar caché en refreshes forzados
-      let url = options?.forceRefresh 
+      let url = forceRefresh 
         ? `/api/categories?_t=${Date.now()}` 
         : '/api/categories';
       
@@ -136,7 +144,7 @@ export default function useDataState(clientId: number | null = null) {
       }
       
       const data = await response.json();
-      console.log(`✅ Se cargaron ${data.length} categorías${options?.forceRefresh ? ' (refresco forzado)' : ''}`);
+      console.log(`✅ Se cargaron ${data.length} categorías${forceRefresh ? ' (refresco forzado)' : ''}`);
       
       // Normalizar el estado para UI
       const normalizedCategories = data.map((cat: Category) => ({

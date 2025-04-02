@@ -143,7 +143,7 @@ export default function DashboardPage() {
   }, [session, status]);
   
   // Initialize useDataState hook for state management
-  const { 
+  const {
     client,
     categories,
     sections,
@@ -946,6 +946,7 @@ export default function DashboardPage() {
         }}
         onSuccess={() => {
           console.log("🔄 Forzando refresco de UI después de editar sección");
+          
           // Pausa pequeña para dar tiempo a que se complete el cierre del modal
           setTimeout(() => {
             // Recargar las secciones de esta categoría
@@ -983,35 +984,27 @@ export default function DashboardPage() {
         client={client}
         setCategories={setCategories}
         onSuccess={() => {
-          console.log("🔄 Forzando refresco de UI después de editar categoría");
+          // Enfoque directo sin llamadas a la API
+          console.log("🔄 Forzando actualización inmediata de UI después de editar categoría");
           
-          // Pequeña pausa para dar tiempo a que se complete el cierre del modal
-          setTimeout(() => {
-            // Refrescar todas las categorías con recarga forzada
-            fetchCategories({ forceRefresh: true })
-              .then((updatedCategories) => {
-                console.log(`✅ Se han recargado ${updatedCategories.length} categorías`);
-                
-                // Actualizar INMEDIATAMENTE el estado local con las categorías actualizadas
-                setCategories(updatedCategories);
-                
-                // Actualizar la categoría seleccionada si es la misma que estamos editando
-                if (selectedCategory && selectedCategory.category_id === categoryToEdit.category_id) {
-                  const updatedCategory = updatedCategories.find((c: Category) => c.category_id === categoryToEdit.category_id);
-                  if (updatedCategory) {
-                    console.log(`✅ Categoría actualizada encontrada: ${updatedCategory.name}`);
-                    setSelectedCategory(updatedCategory);
-                    
-                    // También recargamos las secciones de esta categoría
-                    fetchSectionsByCategory(updatedCategory.category_id);
-                  }
-                }
-              })
-              .catch(error => {
-                console.error("❌ Error al recargar categorías:", error);
-                toast.error("No se pudieron cargar las categorías actualizadas");
-              });
-          }, 50); // Reducir el delay para mejor UX
+          // 1. Forzar un refresco artificial del componente estableciendo una nueva referencia
+          if (categoryToEdit) {
+            const categoryId = categoryToEdit.category_id;
+            
+            // Este setCategories con nueva referencia fuerza un re-render del componente
+            setCategories([...categories]);
+            
+            // También actualizar el selectedCategory si corresponde
+            if (selectedCategory && selectedCategory.category_id === categoryId) {
+              setSelectedCategory({...selectedCategory, name: categoryToEdit.name});
+            }
+            
+            // Esperar brevemente y refrescar nuevamente para asegurarse
+            setTimeout(() => {
+              console.log("🔄 Segundo refresco para garantizar actualización");
+              setCategories([...categories]);
+            }, 300);
+          }
         }}
       />
     );
@@ -1035,24 +1028,68 @@ export default function DashboardPage() {
         onSuccess={() => {
           console.log("🔄 Forzando refresco de UI después de editar producto");
           
-          // Pequeña pausa para dar tiempo a que se complete el cierre del modal
-          setTimeout(() => {
-            // Asegurarnos de que tenemos una sección seleccionada
-            if (selectedSection) {
-              // Recargar los productos de esta sección
-              console.log("🔄 Recargando productos de la sección:", selectedSection.section_id);
+          // Asegurarnos de que tenemos una sección seleccionada
+          if (selectedSection && productToEdit) {
+            const sectionId = selectedSection.section_id;
+            
+            // Primero actualizamos inmediatamente el estado local
+            setProducts(prevProducts => {
+              const updatedProducts = { ...prevProducts };
               
-              // Forzar recarga de productos para esta sección - IMPORTANTE: pasar true para forzar
+              // Si ya tenemos productos para esta sección
+              if (updatedProducts[sectionId] && Array.isArray(updatedProducts[sectionId])) {
+                updatedProducts[sectionId] = updatedProducts[sectionId].map((p: any) => {
+                  if (p.product_id === productToEdit.id) {
+                    console.log(`⚡ Actualizando inmediatamente producto ${p.product_id} en UI local`);
+                    return {
+                      ...productToEdit,
+                      status: typeof productToEdit.status === 'boolean' ? 
+                        (productToEdit.status ? 1 : 0) : Number(productToEdit.status)
+                    };
+                  }
+                  return p;
+                });
+              }
+              
+              return updatedProducts;
+            });
+            
+            // Actualizar también el estado local para visualización inmediata
+            setExpandedSectionProducts(prev => {
+              const updated = { ...prev };
+              
+              if (updated[sectionId] && Array.isArray(updated[sectionId])) {
+                updated[sectionId] = updated[sectionId].map((p: any) => {
+                  if (p.product_id === productToEdit.id) {
+                    return {
+                      ...productToEdit,
+                      status: typeof productToEdit.status === 'boolean' ? 
+                        (productToEdit.status ? 1 : 0) : Number(productToEdit.status)
+                    };
+                  }
+                  return p;
+                });
+              }
+              
+              return updated;
+            });
+            
+            // Pequeña pausa para dar tiempo a que se complete el cierre del modal
+            setTimeout(() => {
+              // Recargar los productos de esta sección desde el servidor
+              console.log("🔄 Recargando productos de la sección:", sectionId);
+              
+              // Forzar recarga de productos para esta sección
               fetchProductsBySection(
-                selectedSection.section_id,
+                sectionId,
                 true, // Forzar recarga para ignorar caché
                 (loadedProducts: Product[]) => {
-                  console.log(`✅ Recibidos ${loadedProducts.length} productos actualizados para sección ${selectedSection.section_id}`);
+                  console.log(`✅ Recibidos ${loadedProducts.length} productos actualizados para sección ${sectionId}`);
                   
-                  // Actualizar el estado local inmediatamente para mostrar cambios
+                  // Actualizar el estado local con los datos del servidor
                   setExpandedSectionProducts(prev => ({
                     ...prev,
-                    [selectedSection.section_id]: loadedProducts
+                    [sectionId]: loadedProducts
                   }));
                 }
               );
@@ -1062,7 +1099,7 @@ export default function DashboardPage() {
                 // Buscar el producto actualizado en el estado después de recargar
                 setTimeout(() => {
                   // Intentar encontrar el producto en el estado recién cargado
-                  const updatedProduct = products[selectedSection.section_id]?.find(
+                  const updatedProduct = products[sectionId]?.find(
                     (p: Product) => p.product_id === productToEdit.id
                   );
                   
@@ -1072,8 +1109,8 @@ export default function DashboardPage() {
                   }
                 }, 200); // Dar tiempo para que se actualice products
               }
-            }
-          }, 50); // Dar tiempo para el cierre del modal
+            }, 50); // Dar tiempo para el cierre del modal
+          }
         }}
       />
     );
@@ -1473,41 +1510,33 @@ export default function DashboardPage() {
           client={client}
         setCategories={setCategories}
         onSuccess={() => {
-          console.log("🔄 Forzando refresco de UI después de editar categoría");
+          // Enfoque directo sin llamadas a la API
+          console.log("🔄 Forzando actualización inmediata de UI después de editar categoría");
           
-          // Pequeña pausa para dar tiempo a que se complete el cierre del modal
-          setTimeout(() => {
-            // Refrescar todas las categorías con recarga forzada
-            fetchCategories({ forceRefresh: true })
-              .then((updatedCategories) => {
-                console.log(`✅ Se han recargado ${updatedCategories.length} categorías`);
-                
-                // Actualizar INMEDIATAMENTE el estado local con las categorías actualizadas
-                setCategories(updatedCategories);
-                
-                // Actualizar la categoría seleccionada si es la misma que estamos editando
-                if (selectedCategory && selectedCategory.category_id === categoryToEdit.category_id) {
-                  const updatedCategory = updatedCategories.find((c: Category) => c.category_id === categoryToEdit.category_id);
-                  if (updatedCategory) {
-                    console.log(`✅ Categoría actualizada encontrada: ${updatedCategory.name}`);
-                    setSelectedCategory(updatedCategory);
-                    
-                    // También recargamos las secciones de esta categoría
-                    fetchSectionsByCategory(updatedCategory.category_id);
-                  }
-                }
-              })
-              .catch(error => {
-                console.error("❌ Error al recargar categorías:", error);
-                toast.error("No se pudieron cargar las categorías actualizadas");
-              });
-          }, 50); // Reducir el delay para mejor UX
+          // 1. Forzar un refresco artificial del componente estableciendo una nueva referencia
+          if (categoryToEdit) {
+            const categoryId = categoryToEdit.category_id;
+            
+            // Este setCategories con nueva referencia fuerza un re-render del componente
+            setCategories([...categories]);
+            
+            // También actualizar el selectedCategory si corresponde
+            if (selectedCategory && selectedCategory.category_id === categoryId) {
+              setSelectedCategory({...selectedCategory, name: categoryToEdit.name});
+            }
+            
+            // Esperar brevemente y refrescar nuevamente para asegurarse
+            setTimeout(() => {
+              console.log("🔄 Segundo refresco para garantizar actualización");
+              setCategories([...categories]);
+            }, 300);
+          }
         }}
       />
-      )}
-      
+        )}
+
+      {renderEditCategoryModal()}
       {renderEditSectionModal()}
-      
       {renderEditProductModal()}
 
       {/* Componente de vista previa flotante */}

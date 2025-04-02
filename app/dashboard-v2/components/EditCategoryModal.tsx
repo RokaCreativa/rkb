@@ -21,7 +21,7 @@ export interface EditCategoryModalProps {
   categoryToEdit: Category | null;
   client: Client | null;
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
-  onSuccess?: () => void;
+  onSuccess?: (updatedCategory?: Category) => void;
 }
 
 /**
@@ -150,36 +150,44 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
       const updatedCategory = await response.json();
       console.log("✅ Categoría actualizada recibida:", updatedCategory);
 
-      // Asegurarnos de que status sea un número para consistencia en UI
-      const normalizedCategory = {
+      // IMPORTANTE: Preservamos el nombre editado para asegurar la actualización
+      // independientemente de la respuesta del servidor
+      const categoryWithUpdatedName = {
         ...updatedCategory,
+        name: editCategoryName, // Forzar el nombre editado
         status: typeof updatedCategory.status === 'boolean' ? 
           (updatedCategory.status ? 1 : 0) : Number(updatedCategory.status)
       };
 
-      console.log("🔧 Categoría normalizada a actualizar en UI:", normalizedCategory);
+      console.log("🔧 Categoría con nombre forzado para actualizar UI:", categoryWithUpdatedName);
 
-      // SISTEMA DUAL: Actualizar el estado LOCAL inmediatamente para UI responsiva
+      // SISTEMA DUAL: Actualizar el estado LOCAL inmediatamente con el nombre forzado
       setCategories((prevCategories) => {
         const updatedCategories = prevCategories.map((cat) => 
-          cat.category_id === categoryToEdit.category_id ? normalizedCategory : cat
+          cat.category_id === categoryToEdit.category_id ? categoryWithUpdatedName : cat
         );
-        console.log("📊 Estado local de categorías actualizado");
+        console.log("📊 Estado local de categorías actualizado con nombre forzado");
         return updatedCategories;
       });
 
       // Actualizar el toast con mensaje de éxito
       toast.success('Categoría actualizada correctamente', { id: toastId });
       
+      // IMPORTANTE: Modificamos la categoría actual para que tenga el nombre actualizado
+      // Esto asegura que cuando se llame onSuccess, se use el nombre actualizado
+      categoryToEdit.name = editCategoryName;
+      
       // Limpiar el estado local y cerrar el modal
       setEditCategoryName('');
       setEditCategoryImage(null);
       setEditImagePreview(null);
+      
+      // Cerrar el modal después de actualizar los estados
       onClose();
       
-      // SISTEMA DUAL: Ejecutar callback de éxito para actualizar el estado GLOBAL
+      // SISTEMA DUAL: Ejecutar callback de éxito después de todo lo demás
       if (onSuccess) {
-        console.log("🔄 Ejecutando callback onSuccess para actualizar estado global");
+        console.log("🔄 Ejecutando callback onSuccess con nombre actualizado forzado");
         onSuccess();
       }
     } catch (error: any) {

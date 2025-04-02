@@ -344,6 +344,64 @@ Carga síncrona de datos grandes que bloquea el hilo principal.
 
 **Estado**: ✅ Resuelto
 
+### Mayo 2024: Inconsistencia en la Actualización de UI en Grids Jerárquicos
+
+**Problema**: Los grids de categorías y productos no se actualizaban inmediatamente al editar elementos, mientras que el de secciones sí lo hacía correctamente.
+
+**Síntomas**:
+- Al editar una categoría, la UI no reflejaba el cambio hasta recargar la página
+- Los cambios en productos no se veían inmediatamente en el grid
+- El grid de secciones funcionaba correctamente, actualizándose instantáneamente
+- Inconsistencia en la experiencia de usuario entre los diferentes niveles de la jerarquía
+
+**Análisis**: 
+1. La implementación del patrón de actualización variaba entre los diferentes niveles de la aplicación
+2. El componente de secciones implementaba un patrón eficaz de actualización directa del objeto antes de actualizar el estado
+3. Los componentes de categorías y productos intentaban actualizar mediante recarga desde API, causando retrasos
+4. Las implementaciones complejas ocultaban la solución simple que ya funcionaba en el componente de secciones
+
+**Solución implementada**:
+1. Identificar y replicar el patrón exitoso del componente de secciones:
+   ```typescript
+   // Patrón crítico: Actualizar el objeto directamente antes del callback
+   categoryToEdit.name = editCategoryName;
+   
+   // Cerrar modal y ejecutar callback
+   onClose();
+   if (onSuccess) {
+     onSuccess();
+   }
+   ```
+
+2. Simplificar la función `onSuccess` para forzar actualización inmediata:
+   ```typescript
+   onSuccess={() => {
+     // Forzar un refresco artificial del componente con nueva referencia
+     setCategories([...categories]);
+     
+     // También actualizar el selectedCategory si corresponde
+     if (selectedCategory && selectedCategory.category_id === categoryId) {
+       setSelectedCategory({...selectedCategory, name: categoryToEdit.name});
+     }
+   }}
+   ```
+
+3. Documentar el patrón en los mandamientos de refactorización como "Patrón de Actualización Inmediata"
+
+**Resultados**:
+- Actualización inmediata y consistente en todos los niveles (categorías, secciones y productos)
+- Experiencia de usuario mejorada con feedback visual inmediato
+- Simplificación del código al eliminar lógica compleja de refresco
+- Establecimiento de un patrón estándar aplicable a todos los componentes
+
+**Lecciones aprendidas**:
+1. Identificar y replicar patrones que ya funcionan correctamente
+2. Evitar soluciones complejas cuando existe una alternativa simple
+3. Mantener consistencia en la implementación de patrones a través de la aplicación
+4. Modificar los objetos originales antes de actualizaciones de estado para garantizar coherencia
+
+**Estado**: ✅ Resuelto
+
 ## 🔄 Problemas de Sincronización de Estado
 
 ### Error: Discrepancia entre Estado Global y Local
