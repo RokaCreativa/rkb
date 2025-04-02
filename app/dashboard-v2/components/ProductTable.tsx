@@ -1,9 +1,11 @@
 "use client";
 
-import React from 'react';
-import { PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import React, { useState } from 'react';
+import { PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/solid';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import Image from 'next/image';
 
 interface Product {
   id: number;
@@ -25,7 +27,7 @@ interface ProductTableProps {
   onDeleteProduct: (productId: number) => Promise<boolean>;
   onToggleVisibility: (productId: number, status: number) => Promise<void>;
   isReorderModeActive?: boolean;
-  onReorderProduct?: (productId: number, direction: 'up' | 'down') => void;
+  onReorderProduct?: (sourceIndex: number, destinationIndex: number) => void;
 }
 
 export const ProductTable: React.FC<ProductTableProps> = ({
@@ -35,12 +37,14 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   onEditProduct,
   onDeleteProduct,
   onToggleVisibility,
-  isReorderModeActive,
+  isReorderModeActive = false,
   onReorderProduct
 }) => {
+  const [showHiddenProducts, setShowHiddenProducts] = useState(true);
+
   if (!products || products.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500 bg-white rounded-md shadow-sm">
+      <div className="text-center py-4 text-gray-500 bg-white rounded-md border border-indigo-100 shadow-sm">
         No hay productos disponibles para esta sección
       </div>
     );
@@ -60,145 +64,243 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       currency: 'EUR'
     }).format(price);
   };
+  
+  // Manejar el evento de drag and drop finalizado
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination || result.destination.index === result.source.index) {
+      return;
+    }
+    
+    if (onReorderProduct) {
+      onReorderProduct(result.source.index, result.destination.index);
+    }
+  };
 
   return (
-    <div className="overflow-hidden border border-gray-200 rounded-md">
-      <div className="flex justify-between items-center px-6 py-3 bg-gray-50 border-b border-gray-200">
-        <h2 className="text-sm font-medium text-indigo-600">
+    <div className="rounded-lg border border-indigo-100 overflow-hidden bg-white shadow-sm">
+      <div className="flex items-center justify-between px-4 py-2 bg-indigo-50 border-b border-indigo-100">
+        <h2 className="text-sm font-medium text-indigo-700">
           Productos de {sectionName}
         </h2>
-        <div className="text-xs text-gray-500">
-          ({visibleProducts.length}/{products.length} Visibles)
+        <div className="flex items-center">
+          <div className="text-xs text-indigo-600 mr-4">
+            ({visibleProducts.length}/{products.length} Visibles)
+          </div>
+          <button
+            onClick={() => setShowHiddenProducts(!showHiddenProducts)}
+            className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+          >
+            {showHiddenProducts ? 'Ocultar' : 'Mostrar'} no visibles
+            {showHiddenProducts ? 
+              <ChevronDownIcon className="h-3 w-3" /> : 
+              <ChevronDownIcon className="h-3 w-3" />
+            }
+          </button>
         </div>
       </div>
       
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              NOMBRE
-            </th>
-            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-              ORDEN
-            </th>
-            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-              PRECIO
-            </th>
-            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
-              FOTO
-            </th>
-            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
-              VISIBLE
-            </th>
-            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-              ACCIONES
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {products.map((product, index) => (
-            <tr key={product.id || product.product_id} className="hover:bg-gray-50">
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <Bars3Icon className="h-5 w-5 text-gray-400 mr-2" />
-                  <div>
-                    <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                    {product.description && (
-                      <div className="text-xs text-gray-500 max-w-md truncate">
-                        {product.description}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-                {product.display_order || index + 1}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-center font-medium">
-                {formatPrice(product.price)}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-center">
-                <div className="h-10 w-10 rounded-full overflow-hidden mx-auto">
-                  {product.image ? (
-                    <img 
-                      src={getImagePath(product.image, 'products')} 
-                      alt={product.name} 
-                      className="h-full w-full object-cover"
-                      onError={handleImageError}
-                    />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center bg-gray-200">
-                      <span className="text-xs text-gray-500">Sin imagen</span>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId="products">
+          {(provided) => (
+            <table className="min-w-full divide-y divide-indigo-100" {...provided.droppableProps} ref={provided.innerRef}>
+              <thead className="bg-indigo-50">
+                <tr>
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-indigo-600 uppercase tracking-wider">
+                    <div className="flex items-center gap-1">
+                      <span>Nombre</span>
                     </div>
-                  )}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-center">
-                <button 
-                  className="focus:outline-none"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleVisibility(product.id || product.product_id || 0, product.status === 1 ? 0 : 1);
-                  }}
-                  disabled={isUpdatingVisibility === (product.id || product.product_id)}
-                >
-                  {isUpdatingVisibility === (product.id || product.product_id) ? (
-                    <span className="flex items-center justify-center">
-                      <svg className="animate-spin h-5 w-5 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    </span>
-                  ) : product.status === 1 ? (
-                    <span className="inline-flex px-2 py-1 text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                      <EyeIcon className="h-4 w-4 mr-1" />
-                      Visible
-                    </span>
-                  ) : (
-                    <span className="inline-flex px-2 py-1 text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                      <EyeSlashIcon className="h-4 w-4 mr-1" />
-                      Oculto
-                    </span>
-                  )}
-                </button>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-center">
-                <div className="flex space-x-3 justify-center">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEditProduct(product);
-                    }}
-                    className="text-blue-600 hover:text-blue-800"
-                    aria-label="Editar producto"
+                  </th>
+                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-indigo-600 uppercase tracking-wider w-16">Orden</th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-indigo-600 uppercase tracking-wider w-16">Foto</th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-indigo-600 uppercase tracking-wider w-20">Precio</th>
+                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-indigo-600 uppercase tracking-wider w-16">
+                    <EyeIcon className="h-4 w-4 mx-auto text-indigo-500" />
+                  </th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-indigo-600 uppercase tracking-wider w-20">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-indigo-100">
+                {/* Productos visibles */}
+                {visibleProducts.map((product, index) => (
+                  <Draggable 
+                    key={(product.id || product.product_id || index).toString()} 
+                    draggableId={(product.id || product.product_id || index).toString()} 
+                    index={index}
+                    isDragDisabled={!onReorderProduct || !isReorderModeActive}
                   >
-                    <PencilIcon className="h-5 w-5" />
-                  </button>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteProduct(product.id || product.product_id || 0);
-                    }}
-                    className="text-red-600 hover:text-red-800"
-                    aria-label="Eliminar producto"
+                    {(provided, snapshot) => (
+                      <tr 
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`${snapshot.isDragging ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                      >
+                        <td 
+                          className="px-3 py-2 whitespace-nowrap"
+                          {...provided.dragHandleProps}
+                        >
+                          <div className="flex items-center">
+                            <div className="mr-2">
+                              <Bars3Icon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-700">{product.name}</div>
+                              {product.description && (
+                                <div className="text-xs text-gray-500 max-w-md truncate">
+                                  {product.description}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
+                          {product.display_order || index + 1}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="flex justify-center">
+                            <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+                              <Image
+                                src={getImagePath(product.image, 'products')}
+                                alt={product.name || ''}
+                                width={32}
+                                height={32}
+                                className="object-cover w-full h-full"
+                                onError={handleImageError}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700 text-center font-medium">
+                          {formatPrice(product.price)}
+                        </td>
+                        <td className="px-2 py-2 whitespace-nowrap text-center">
+                          <div className="flex justify-center">
+                            <button
+                              onClick={() => onToggleVisibility(product.id || product.product_id || 0, product.status === 1 ? 0 : 1)}
+                              disabled={isUpdatingVisibility === (product.id || product.product_id)}
+                              className={`p-1.5 rounded-full transition-colors ${
+                                product.status === 1 
+                                  ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' 
+                                  : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
+                              }`}
+                              title={product.status === 1 ? "Visible" : "No visible"}
+                            >
+                              {isUpdatingVisibility === (product.id || product.product_id) ? (
+                                <div className="w-5 h-5 flex items-center justify-center">
+                                  <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
+                                </div>
+                              ) : product.status === 1 ? (
+                                <EyeIcon className="w-5 h-5" />
+                              ) : (
+                                <EyeSlashIcon className="w-5 h-5" />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap text-center">
+                          <div className="flex justify-center space-x-1">
+                            <button
+                              onClick={() => onEditProduct(product)}
+                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => onDeleteProduct(product.id || product.product_id || 0)}
+                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Draggable>
+                ))}
+
+                {provided.placeholder}
+
+                {/* Productos ocultos */}
+                {showHiddenProducts && hiddenProducts.map((product, index) => (
+                  <tr 
+                    key={`hidden-${product.id || product.product_id || index}`}
+                    className="hover:bg-gray-50 opacity-70"
                   >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      
-      {/* Contador de productos no visibles */}
-      {hiddenProducts.length > 0 && (
-        <div className="px-6 py-3 border-t border-gray-200 text-right">
-          <span className="text-xs text-gray-500">
-            {hiddenProducts.length} productos no visibles
-          </span>
-        </div>
-      )}
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="mr-2">
+                          <Bars3Icon className="h-5 w-5 text-gray-300 flex-shrink-0" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-400">{product.name}</div>
+                          {product.description && (
+                            <div className="text-xs text-gray-400 max-w-md truncate">
+                              {product.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-center">
+                      {product.display_order || index + 1 + visibleProducts.length}
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <div className="flex justify-center">
+                        <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+                          <Image
+                            src={getImagePath(product.image, 'products')}
+                            alt={product.name || ''}
+                            width={32}
+                            height={32}
+                            className="object-cover w-full h-full opacity-50 grayscale"
+                            onError={handleImageError}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-400 text-center font-medium">
+                      {formatPrice(product.price)}
+                    </td>
+                    <td className="px-2 py-2 whitespace-nowrap text-center">
+                      <div className="flex justify-center">
+                        <button
+                          onClick={() => onToggleVisibility(product.id || product.product_id || 0, product.status === 1 ? 0 : 1)}
+                          disabled={isUpdatingVisibility === (product.id || product.product_id)}
+                          className="p-1.5 rounded-full text-gray-400 bg-gray-50 hover:bg-gray-100"
+                          title="No visible"
+                        >
+                          {isUpdatingVisibility === (product.id || product.product_id) ? (
+                            <div className="w-5 h-5 flex items-center justify-center">
+                              <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
+                            </div>
+                          ) : (
+                            <EyeSlashIcon className="w-5 h-5" />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 whitespace-nowrap text-center">
+                      <div className="flex justify-center space-x-1">
+                        <button
+                          onClick={() => onEditProduct(product)}
+                          className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => onDeleteProduct(product.id || product.product_id || 0)}
+                          className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Droppable>
+      </DragDropContext>
     </div>
   );
 }; 

@@ -274,7 +274,7 @@ export default function DashboardPage() {
       // Actualizar los display_order de todas las categorías
       const reorderedCategories = updatedCategories.map((category, index) => ({
         ...category,
-        display_order: index + 1
+      display_order: index + 1
       }));
       
       // Actualizar el estado local inmediatamente para UI responsiva
@@ -1172,7 +1172,7 @@ export default function DashboardPage() {
                   
                   // Actualizar el estado local con los datos del servidor
                   setExpandedSectionProducts(prev => ({
-                    ...prev,
+      ...prev,
                     [sectionId]: loadedProducts
                   }));
                 }
@@ -1405,14 +1405,6 @@ export default function DashboardPage() {
                           </div>
                         ) : hasSections ? (
                           <div>
-                            {/* Debug info solo en desarrollo */}
-                            {DEBUG && (
-                              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2 mb-3 text-xs">
-                                <p>Debug: Categoría {category.category_id} tiene {sectionsList.length} secciones</p>
-                                <p>Secciones: {sectionsList.map((s: Section) => s.name).join(', ')}</p>
-                                <p>Fuente: {expandedCategorySections[categoryId] ? 'Estado local' : 'Estado global'}</p>
-                              </div>
-                            )}
                     <SectionTable 
                               sections={sectionsList}
                               onEditSection={handleEditSection}
