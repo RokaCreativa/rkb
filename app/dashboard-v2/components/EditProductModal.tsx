@@ -215,38 +215,86 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       if (editProductImage) {
         formData.append('image', editProductImage);
       } else if (currentProduct?.image) {
-        // Si no hay una nueva imagen pero hay una imagen existente, incluirla en el formulario
-        formData.append('image', currentProduct.image);
+        // Si no hay una nueva imagen, NO enviar la imagen existente como un archivo,
+        // sino como una referencia de ruta para que el backend la procese correctamente
+        formData.append('existing_image', currentProduct.image || '');
       }
 
-      // Usar el hook updateProduct para actualizar el producto
-      const success = await updateProduct(formData);
+      console.log("🔧 Enviando actualización de producto con ID:", product.id);
       
-      if (success) {
-        // Limpiar el formulario
-        setEditProductName('');
-        setEditProductPrice('');
-        setEditProductDescription('');
-        setEditProductImage(null);
-        setEditImagePreview(null);
+      // Enviar datos al servidor directamente para tener control total sobre el proceso
+      const response = await fetch('/api/products', {
+        method: 'PUT',
+        body: formData,
+      });
+
+      // Verificar si la respuesta es exitosa
+      if (!response.ok) {
+        const errorResponse = await response.text();
+        console.error("❌ Error del servidor:", errorResponse);
         
-        // Cerrar el modal
-        onClose();
-        
-        // Mostrar mensaje de éxito
-        toast.success('Producto actualizado correctamente', { id: toastId });
-        
-        // Llamar al callback de éxito si existe
-        if (onSuccess) {
-          console.log("🔄 Ejecutando callback onSuccess para forzar refresco del UI");
-          onSuccess();
+        try {
+          const errorData = JSON.parse(errorResponse);
+          throw new Error(errorData.message || 'Error al actualizar el producto');
+        } catch (parseError) {
+          throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
         }
-      } else {
-        toast.error('Error al actualizar el producto', { id: toastId });
       }
-    } catch (error) {
-      console.error('Error al actualizar el producto:', error);
-      toast.error('Error al actualizar el producto');
+
+      // Procesar la respuesta exitosa
+      const updatedProduct = await response.json();
+      console.log("✅ Producto actualizado recibido:", updatedProduct);
+
+      // Normalizar estado para UI
+      const normalizedProduct = {
+        ...updatedProduct,
+        status: typeof updatedProduct.status === 'boolean' ? 
+          (updatedProduct.status ? 1 : 0) : Number(updatedProduct.status)
+      };
+
+      console.log("🔧 Producto normalizado a actualizar en UI:", normalizedProduct);
+
+      // SISTEMA DUAL: Actualizar el estado LOCAL inmediatamente
+      if (setProducts && selectedSection) {
+        const sectionId = selectedSection.section_id;
+        setProducts((prev: any) => {
+          // Crear copia profunda del estado anterior
+          const updatedProducts = { ...prev };
+          
+          // Buscar la sección correcta y actualizar el producto
+          const sectionIdStr = String(sectionId);
+          if (updatedProducts && sectionIdStr in updatedProducts && Array.isArray(updatedProducts[sectionIdStr])) {
+            updatedProducts[sectionIdStr] = updatedProducts[sectionIdStr].map((p: any) => 
+              p.product_id === product.id ? normalizedProduct : p
+            );
+          }
+          
+          console.log("📊 Estado local de productos actualizado para sección:", sectionId);
+          return updatedProducts;
+        });
+      }
+      
+      // Limpiar el formulario
+      setEditProductName('');
+      setEditProductPrice('');
+      setEditProductDescription('');
+      setEditProductImage(null);
+      setEditImagePreview(null);
+      
+      // Cerrar el modal
+      onClose();
+      
+      // Mostrar mensaje de éxito
+      toast.success('Producto actualizado correctamente', { id: toastId });
+      
+      // Llamar al callback de éxito si existe (para refresco global)
+      if (onSuccess) {
+        console.log("🔄 Ejecutando callback onSuccess para forzar refresco del UI");
+        onSuccess();
+      }
+    } catch (error: any) {
+      console.error('❌ Error al actualizar el producto:', error);
+      toast.error(error.message || 'Error al actualizar el producto');
     } finally {
       setIsUpdatingProduct(false);
     }

@@ -97,32 +97,43 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
   };
 
   /**
-   * Maneja el envío del formulario para actualizar una categoría
-   * @param {React.FormEvent} e - Evento de formulario
+   * Maneja el envío del formulario para editar una categoría
+   * 
+   * Este método recopila los datos del formulario, los valida,
+   * y envía la solicitud de actualización al servidor.
+   * Implementa:
+   * - Sistema de gestión dual del estado (local + global)
+   * - Manejo de errores robusto
+   * - Prevención de mensajes duplicados con IDs únicos
    */
   const handleSubmit = async () => {
-    if (!categoryToEdit || !client) return;
-    
-    // Prevenir múltiples envíos
-    if (isUpdatingCategory) return;
-    
+    if (!editCategoryName.trim()) {
+      toast.error('El nombre de la categoría es obligatorio');
+      return;
+    }
+
+    if (!categoryToEdit) {
+      toast.error('No se ha seleccionado ninguna categoría para editar');
+      return;
+    }
+
+    // Comenzar actualización
     setIsUpdatingCategory(true);
-    console.log('🔄 Iniciando actualización de categoría:', categoryToEdit.category_id);
+
+    // Crear FormData para enviar la imagen si existe
+    const formData = new FormData();
+    formData.append('name', editCategoryName);
+    formData.append('category_id', categoryToEdit.category_id.toString());
+    formData.append('client_id', client?.id.toString() || '');
+    if (editCategoryImage) {
+      formData.append('image', editCategoryImage);
+    }
+
+    // ID único para el toast de esta operación
+    const toastId = `update-category-${categoryToEdit.category_id}`;
 
     try {
-      // Crear un objeto FormData para enviar datos e imagen
-      const formData = new FormData();
-      formData.append('category_id', categoryToEdit.category_id.toString());
-      formData.append('name', editCategoryName);
-      formData.append('client_id', client.id.toString());
-      
-      // Solo agregar la imagen si se ha seleccionado una nueva
-      if (editCategoryImage) {
-        formData.append('image', editCategoryImage);
-      }
-
-      // Identificador único para el toast de carga
-      const toastId = "update-category-" + categoryToEdit.category_id;
+      // Mostrar toast de carga con ID único
       toast.loading('Actualizando categoría...', { id: toastId });
 
       // Enviar datos al servidor

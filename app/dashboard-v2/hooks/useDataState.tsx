@@ -98,44 +98,55 @@ export default function useDataState(clientId: number | null = null) {
   }, []);
   
   // Cargar categorías (con soporte para paginación)
-  const fetchCategories = useCallback(async (options?: { page?: number; limit?: number }) => {
-    // Evitar cargas duplicadas si ya tenemos datos
-    if (categories.length > 0) {
+  const fetchCategories = useCallback(async (options?: { page?: number; limit?: number; forceRefresh?: boolean }) => {
+    // Evitar cargas duplicadas si ya tenemos datos, a menos que se solicite un refresh forzado
+    if (categories.length > 0 && !options?.forceRefresh) {
       console.log('📦 Categorías ya cargadas, evitando recarga duplicada');
       return categories;
     }
 
-    // Evitar cargas duplicadas si ya estamos usando el hook
-    if (categoriesFromHook && categoriesFromHook.length > 0) {
+    // Evitar cargas duplicadas si ya estamos usando el hook, a menos que se solicite un refresh forzado
+    if (categoriesFromHook && categoriesFromHook.length > 0 && !options?.forceRefresh) {
       console.log('📦 Usando categorías del hook, evitando recarga duplicada');
       setCategories(categoriesFromHook);
       return categoriesFromHook;
     }
     
-    console.log('🔄 Iniciando carga de categorías...');
+    console.log('🔄 Iniciando carga de categorías' + (options?.forceRefresh ? ' (FORZADA)' : '') + '...');
     setIsLoading(true);
     
     try {
-      let url = '/api/categories';
+      // Añadir timestamp para evitar caché en refreshes forzados
+      let url = options?.forceRefresh 
+        ? `/api/categories?_t=${Date.now()}` 
+        : '/api/categories';
       
       // Añadir parámetros de paginación si se proporcionan
       if (options?.page || options?.limit) {
         const params = new URLSearchParams();
         if (options.page) params.append('page', options.page.toString());
         if (options.limit) params.append('limit', options.limit.toString());
-        url = `${url}?${params.toString()}`;
+        url = `${url}${url.includes('?') ? '&' : '?'}${params.toString()}`;
       }
       
+      console.log(`🔍 Solicitando categorías desde: ${url}`);
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Error al cargar categorías: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
-      console.log(`✅ Se cargaron ${data.length} categorías`);
+      console.log(`✅ Se cargaron ${data.length} categorías${options?.forceRefresh ? ' (refresco forzado)' : ''}`);
       
-      setCategories(data);
-      return data;
+      // Normalizar el estado para UI
+      const normalizedCategories = data.map((cat: Category) => ({
+        ...cat,
+        status: typeof cat.status === 'boolean' ? 
+          (cat.status ? 1 : 0) : Number(cat.status)
+      }));
+      
+      setCategories(normalizedCategories);
+      return normalizedCategories;
     } catch (error) {
       console.error('❌ Error en fetchCategories:', error);
       setError('Error al cargar categorías');
@@ -328,11 +339,13 @@ export default function useDataState(clientId: number | null = null) {
    * 5. Actualizar contadores en la sección correspondiente
    * 
    * @param sectionId - ID de la sección para la que queremos cargar productos
+   * @param forceRefresh - Función opcional para forzar la recarga
    * @param updateLocalState - Función opcional para actualizar el estado local inmediatamente
    * @returns Promise con los productos cargados
    */
   const fetchProductsBySection = useCallback(async (
     sectionId: number, 
+    forceRefresh?: boolean,
     updateLocalState?: (products: Product[]) => void
   ) => {
     // PASO 1: Validaciones básicas
@@ -342,7 +355,7 @@ export default function useDataState(clientId: number | null = null) {
     }
     
     // PASO 2: Verificar si ya tenemos los productos en caché
-    if (products[sectionId] && products[sectionId].length > 0) {
+    if (products[sectionId] && products[sectionId].length > 0 && !forceRefresh) {
       console.log(`📦 Productos ya cargados para sección ${sectionId}, evitando recarga`);
       
       // Si nos proporcionaron una función para actualizar estado local, la llamamos con datos de caché
@@ -354,11 +367,15 @@ export default function useDataState(clientId: number | null = null) {
       return products[sectionId];
     }
     
-    console.log(`🔄 Cargando productos para sección ${sectionId}...`);
+    console.log(`🔄 Cargando productos para sección ${sectionId}${forceRefresh ? ' (FORZADO)' : ''}...`);
     
     try {
       // PASO 3: Hacer la petición a la API
-      const response = await fetch(`/api/products?section_id=${sectionId}`);
+      const url = forceRefresh 
+        ? `/api/products?section_id=${sectionId}&_t=${Date.now()}`
+        : `/api/products?section_id=${sectionId}`;
+        
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
@@ -879,4 +896,4 @@ export default function useDataState(clientId: number | null = null) {
     selectedProduct,
     setSelectedProduct
   };
-} 
+}

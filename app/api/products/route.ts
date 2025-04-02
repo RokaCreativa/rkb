@@ -4,6 +4,9 @@ import { authOptions } from '@/lib/auth';
 import prisma from "@/prisma/prisma";
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
+import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
 
 // Ruta base para las imágenes de productos
 const IMAGE_BASE_PATH = '/images/products/';
@@ -410,142 +413,122 @@ export async function POST(request: Request) {
  * @param request - Objeto de solicitud HTTP con datos de actualización
  * @returns Respuesta HTTP con el producto actualizado o un mensaje de error
  */
-export async function PUT(request: Request) {
+export async function PUT(req: Request) {
   try {
-    // 1. Verificación de autenticación
+    // Verificar autenticación
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
-
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-    }
-
-    // 3. Obtener y validar los datos de actualización
-    const data = await request.json();
-    console.log('PUT /api/products - Datos recibidos:', data);
-
-    if (!data.product_id) {
-      return NextResponse.json({ error: 'ID de producto requerido' }, { status: 400 });
-    }
-
-    // 4. Preparar los datos de actualización
-    const updateData: any = {};
-    
-    if (data.name !== undefined) updateData.name = data.name;
-    if (data.display_order !== undefined) updateData.display_order = data.display_order;
-    if (data.image !== undefined) updateData.image = data.image;
-    if (data.status !== undefined) updateData.status = data.status === 1; // Convertir numérico a booleano
-    if (data.price !== undefined) updateData.price = data.price;
-    if (data.description !== undefined) updateData.description = data.description;
-    
-    console.log('PUT /api/products - Datos a actualizar:', updateData);
-    console.log('PUT /api/products - ¿Imagen incluida?:', data.image !== undefined);
-    console.log('PUT /api/products - Valor de imagen:', data.image);
-
-    // 5. Actualizar el producto
-    await prisma.products.updateMany({
-      where: {
-        product_id: data.product_id,
-        client_id: user.client_id,
-      },
-      data: updateData,
-    });
-
-    // 6. Actualizar relaciones con secciones si se proporcionaron
-    if (data.section_ids && Array.isArray(data.section_ids)) {
-      // Primero eliminar todas las relaciones existentes
-      await prisma.products_sections.deleteMany({
-        where: {
-          product_id: data.product_id,
-        },
-      });
-
-      // Luego crear las nuevas relaciones
-      const productSectionsData = data.section_ids.map((sectionId: number) => ({
-        product_id: data.product_id,
-        section_id: sectionId,
-      }));
-
-      await prisma.products_sections.createMany({
-        data: productSectionsData,
+    if (!session) {
+      return new Response(JSON.stringify({ message: 'No autorizado' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // 7. Obtener el producto actualizado
-    const updatedProduct = await prisma.products.findFirst({
-      where: {
-        product_id: data.product_id,
-        client_id: user.client_id,
-      },
-    });
+    // Procesar el formulario multipart
+    const formData = await req.formData();
+    const product_id = formData.get('product_id')?.toString();
+    const name = formData.get('name')?.toString();
+    const price = formData.get('price')?.toString();
+    const description = formData.get('description')?.toString();
+    const section_id = formData.get('section_id')?.toString();
+    const client_id = formData.get('client_id')?.toString();
+    const image = formData.get('image') as File | null;
+    const existing_image = formData.get('existing_image')?.toString(); // Obtener la imagen existente
 
-    if (!updatedProduct) {
-      return NextResponse.json({ error: 'No se pudo actualizar el producto' }, { status: 404 });
+    // Validar datos requeridos
+    if (!product_id || !name || !section_id || !client_id) {
+      return new Response(
+        JSON.stringify({
+          message: 'Faltan datos requeridos para actualizar el producto',
+          details: { 
+            product_id: product_id ? 'OK' : 'Missing', 
+            name: name ? 'OK' : 'Missing',
+            section_id: section_id ? 'OK' : 'Missing',
+            client_id: client_id ? 'OK' : 'Missing'
+          }
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    // 8. Obtener las secciones asociadas al producto
-    const productSections = await prisma.products_sections.findMany({
-      where: {
-        product_id: data.product_id,
-      },
-      select: {
-        section_id: true,
+    // Parsear IDs
+    const productId = parseInt(product_id);
+    const sectionId = parseInt(section_id);
+    const clientId = parseInt(client_id);
+
+    // Verificar si el producto existe
+    const prisma = new PrismaClient();
+    const existingProduct = await prisma.products.findUnique({
+      where: { product_id: productId },
+    });
+
+    if (!existingProduct) {
+      await prisma.$disconnect();
+      return new Response(JSON.stringify({ message: 'Producto no encontrado' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Procesar imagen si se proporciona
+    let imagePath = existingProduct.image; // Mantener la imagen existente por defecto
+    if (image && image.size > 0) {
+      // Se proporcionó una nueva imagen, procesarla
+      const imageName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${(image.name || 'image').split('.').pop()}`;
+      const imageBuffer = Buffer.from(await image.arrayBuffer());
+      
+      const publicDir = path.join(process.cwd(), 'public');
+      const imageDir = path.join(publicDir, 'images', 'products');
+      
+      // Asegurarse de que el directorio existe
+      if (!fs.existsSync(imageDir)) {
+        fs.mkdirSync(imageDir, { recursive: true });
+      }
+      
+      const imageFilePath = path.join(imageDir, imageName);
+      fs.writeFileSync(imageFilePath, imageBuffer);
+      
+      imagePath = `/images/products/${imageName}`;
+    } else if (existing_image) {
+      // Si no hay nueva imagen pero se proporcionó una referencia a la imagen existente
+      imagePath = existing_image;
+    }
+    // Si no hay nueva imagen ni existing_image, se mantiene la imagen actual
+
+    // Actualizar producto
+    const updatedProduct = await prisma.products.update({
+      where: { product_id: productId },
+      data: {
+        name,
+        price: price || null,
+        description: description || null,
+        image: imagePath,
+        // Otros campos a actualizar si es necesario
       },
     });
 
-    const sectionIds = productSections.map(ps => ps.section_id);
+    await prisma.$disconnect();
 
-    // 9. Obtener información detallada de las secciones
-    const sections = await prisma.sections.findMany({
-      where: {
-        section_id: { in: sectionIds },
-      },
-      select: {
-        section_id: true,
-        name: true,
-      },
+    // Devolver producto actualizado
+    return new Response(JSON.stringify(updatedProduct), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
     });
-
-    // 10. Preparar la respuesta
-    const processedProduct: ProcessedProduct = {
-      product_id: updatedProduct.product_id,
-      name: updatedProduct.name || '',
-      image: updatedProduct.image 
-        ? (() => {
-            // Si ya contiene el prefijo completo, devolverlo tal cual
-            if (updatedProduct.image.startsWith('/images/products/')) {
-              return updatedProduct.image;
-            }
-            // Si contiene el prefijo sin la barra inicial, añadirla
-            if (updatedProduct.image.startsWith('images/products/')) {
-              return '/' + updatedProduct.image;
-            }
-            // En cualquier otro caso, añadir el prefijo completo
-            return `${IMAGE_BASE_PATH}${updatedProduct.image}`;
-          })()
-        : null,
-      status: updatedProduct.status ? 1 : 0,
-      display_order: updatedProduct.display_order || 0,
-      client_id: updatedProduct.client_id || 0,
-      price: parseFloat(updatedProduct.price?.toString() || '0'),
-      description: updatedProduct.description,
-      sections: sections.map(section => ({
-        section_id: section.section_id,
-        name: section.name || '',
-      })),
-    };
-
-    return NextResponse.json(processedProduct);
-  } catch (error) {
-    // 11. Manejo centralizado de errores
-    console.error('Error al actualizar el producto:', error);
-    return NextResponse.json({ error: 'Error al actualizar el producto' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Error al actualizar producto:', error);
+    
+    return new Response(
+      JSON.stringify({
+        message: 'Error al actualizar producto',
+        error: error.message || 'Error desconocido'
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 } 

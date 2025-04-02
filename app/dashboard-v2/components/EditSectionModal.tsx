@@ -133,34 +133,40 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
       formData.append('image', editSectionImage);
     }
 
+    // Identificador único para el toast de carga
+    const toastId = "update-section-" + section.section_id;
+    
     try {
-      // Identificador único para el toast de carga
-      const toastId = "update-section-" + section.section_id;
-      
       // Mostrar toast de carga
       toast.loading("Actualizando sección...", { id: toastId });
       
-      // Actualizar la sección usando el hook
-      const success = await (updateSection || useSectionsUpdateSection)(formData, section.section_id, section.category_id);
+      // Función para actualizar la sección (usamos la inyectada o la del hook)
+      const updateSectionFn = updateSection || useSectionsUpdateSection;
+      
+      // Solo realizamos una única llamada para actualizar
+      const success = await updateSectionFn(formData, section.section_id, section.category_id);
       
       if (success) {
-        console.log("Actualización de sección completada con éxito");
-        // Cerrar el modal
+        // Primero actualizamos el toast
+        toast.success("Sección actualizada correctamente", { id: toastId });
+        
+        console.log("✅ Actualización de sección completada con éxito");
+        
+        // Limpiar estado y cerrar modal
         handleCloseModal();
         
-        // Actualizar el toast con éxito
-        toast.success("Sección actualizada correctamente", { id: toastId });
-
+        // Llamar al callback si existe (después de cerrar el modal)
         if (onSuccess) {
+          console.log("🔄 Ejecutando onSuccess para forzar refresco de UI");
           onSuccess();
         }
       } else {
-        console.error("La actualización no fue exitosa");
+        console.error("❌ La actualización no fue exitosa");
         toast.error("Error al actualizar la sección", { id: toastId });
       }
     } catch (error) {
-      console.error("Error al actualizar sección:", error);
-      toast.error('Error al actualizar la sección');
+      console.error("❌ Error al actualizar sección:", error);
+      toast.error('Error al actualizar la sección', { id: toastId });
     } finally {
       setIsUpdatingSectionName(false);
     }

@@ -223,6 +223,9 @@ export default function DashboardPage() {
   const [productNameToDelete, setProductNameToDelete] = useState<string>('');
   const [sectionIdOfProductToDelete, setSectionIdOfProductToDelete] = useState<number | null>(null);
 
+  // Estado para producto seleccionado
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
   // Cargar datos al montar el componente
   useEffect(() => {
     if (DEBUG) console.log('🔄 Checking authentication status:', status);
@@ -419,7 +422,10 @@ export default function DashboardPage() {
           
           try {
           // Usar la función mejorada de useDataState que actualiza ambos estados
-          await fetchProductsBySection(sectionId, (loadedProducts) => {
+          await fetchProductsBySection(
+            sectionId, 
+            false, // No forzar la recarga
+            (loadedProducts: Product[]) => { // Tercer parámetro como callback con tipo explícito
             // Esta función actualiza el estado LOCAL inmediatamente
             setExpandedSectionProducts(prev => ({
               ...prev,
@@ -919,6 +925,9 @@ export default function DashboardPage() {
         section={sectionToEdit}
         updateSection={async (formData, sectionId, categoryId) => {
           try {
+            // Log de diagnóstico
+            console.log("🔄 Iniciando actualización de sección:", sectionId, "en categoría:", categoryId);
+            
             await handleUpdateSection({
               section_id: sectionId,
               name: formData.get('name') as string,
@@ -928,31 +937,143 @@ export default function DashboardPage() {
               category_id: categoryId,
               existingImage: sectionToEdit.image || undefined
             });
+            console.log("✅ Sección actualizada correctamente");
             return true; // Si llega aquí, fue exitoso
           } catch (error) {
-            console.error("Error al actualizar sección:", error);
+            console.error("❌ Error al actualizar sección:", error);
             return false; // Si hay error, retornar false
           }
         }}
         onSuccess={() => {
           console.log("🔄 Forzando refresco de UI después de editar sección");
-          // Forzar refresco del grid/componentes usando el estado dual
-          // Este enfoque implementa el MANDAMIENTO CRÍTICO de gestión de estado
-          const categoryId = sectionToEdit.category_id;
-          // Recargar las secciones de esta categoría
-          fetchSectionsByCategory(categoryId);
+          // Pausa pequeña para dar tiempo a que se complete el cierre del modal
+          setTimeout(() => {
+            // Recargar las secciones de esta categoría
+            const categoryId = sectionToEdit.category_id;
+            fetchSectionsByCategory(categoryId);
+            
+            // Si hay sección seleccionada y es la misma que estamos editando, actualizar su estado
+            if (selectedSection && selectedSection.section_id === sectionToEdit.section_id) {
+              // Buscar la sección actualizada en el estado global (después de recargar)
+              setTimeout(() => {
+                const updatedSection = sections[categoryId]?.find(s => s.section_id === sectionToEdit.section_id);
+                if (updatedSection) {
+                  setSelectedSection(updatedSection);
+                }
+              }, 100);
+            }
+          }, 50);
+        }}
+      />
+    );
+  };
+
+  // Renderizar el modal de edición de categoría
+  const renderEditCategoryModal = () => {
+    if (!showEditCategoryModal || !categoryToEdit) return null;
+
+    return (
+      <EditCategoryModal
+        isOpen={true}
+        onClose={() => {
+          setShowEditCategoryModal(false);
+          setCategoryToEdit(null);
+        }}
+        categoryToEdit={categoryToEdit}
+        client={client}
+        setCategories={setCategories}
+        onSuccess={() => {
+          console.log("🔄 Forzando refresco de UI después de editar categoría");
           
-          // Si hay sección seleccionada y es la misma que estamos editando, actualizar su estado
-          if (selectedSection && selectedSection.section_id === sectionToEdit.section_id) {
-            // Timeout para dar tiempo a que se actualice el estado global
-            setTimeout(() => {
-              // Buscar la sección actualizada en el estado global
-              const updatedSection = sections[categoryId]?.find(s => s.section_id === sectionToEdit.section_id);
-              if (updatedSection) {
-                setSelectedSection(updatedSection);
+          // Pequeña pausa para dar tiempo a que se complete el cierre del modal
+          setTimeout(() => {
+            // Refrescar todas las categorías con recarga forzada
+            fetchCategories({ forceRefresh: true })
+              .then((updatedCategories) => {
+                console.log(`✅ Se han recargado ${updatedCategories.length} categorías`);
+                
+                // Actualizar INMEDIATAMENTE el estado local con las categorías actualizadas
+                setCategories(updatedCategories);
+                
+                // Actualizar la categoría seleccionada si es la misma que estamos editando
+                if (selectedCategory && selectedCategory.category_id === categoryToEdit.category_id) {
+                  const updatedCategory = updatedCategories.find((c: Category) => c.category_id === categoryToEdit.category_id);
+                  if (updatedCategory) {
+                    console.log(`✅ Categoría actualizada encontrada: ${updatedCategory.name}`);
+                    setSelectedCategory(updatedCategory);
+                    
+                    // También recargamos las secciones de esta categoría
+                    fetchSectionsByCategory(updatedCategory.category_id);
+                  }
+                }
+              })
+              .catch(error => {
+                console.error("❌ Error al recargar categorías:", error);
+                toast.error("No se pudieron cargar las categorías actualizadas");
+              });
+          }, 50); // Reducir el delay para mejor UX
+        }}
+      />
+    );
+  };
+
+  // Renderizar el modal de edición de producto
+  const renderEditProductModal = () => {
+    if (!showEditProductModal || !productToEdit) return null;
+
+    return (
+      <EditProductModal
+        isOpen={true}
+        onClose={() => {
+          setShowEditProductModal(false);
+          setProductToEdit(null);
+        }}
+        product={productToEdit}
+        client={client}
+        selectedSection={selectedSection}
+        setProducts={setProducts as any}
+        onSuccess={() => {
+          console.log("🔄 Forzando refresco de UI después de editar producto");
+          
+          // Pequeña pausa para dar tiempo a que se complete el cierre del modal
+          setTimeout(() => {
+            // Asegurarnos de que tenemos una sección seleccionada
+            if (selectedSection) {
+              // Recargar los productos de esta sección
+              console.log("🔄 Recargando productos de la sección:", selectedSection.section_id);
+              
+              // Forzar recarga de productos para esta sección - IMPORTANTE: pasar true para forzar
+              fetchProductsBySection(
+                selectedSection.section_id,
+                true, // Forzar recarga para ignorar caché
+                (loadedProducts: Product[]) => {
+                  console.log(`✅ Recibidos ${loadedProducts.length} productos actualizados para sección ${selectedSection.section_id}`);
+                  
+                  // Actualizar el estado local inmediatamente para mostrar cambios
+                  setExpandedSectionProducts(prev => ({
+                    ...prev,
+                    [selectedSection.section_id]: loadedProducts
+                  }));
+                }
+              );
+              
+              // Si hay un producto seleccionado y es el mismo que estamos editando
+              if (selectedProduct && selectedProduct.product_id === productToEdit.id) {
+                // Buscar el producto actualizado en el estado después de recargar
+                setTimeout(() => {
+                  // Intentar encontrar el producto en el estado recién cargado
+                  const updatedProduct = products[selectedSection.section_id]?.find(
+                    (p: Product) => p.product_id === productToEdit.id
+                  );
+                  
+                  if (updatedProduct) {
+                    console.log("✅ Producto actualizado encontrado, actualizando estado seleccionado");
+                    setSelectedProduct(updatedProduct);
+                  }
+                }, 200); // Dar tiempo para que se actualice products
               }
-            }, 100);
-          }
+            }
+          }, 50); // Dar tiempo para el cierre del modal
         }}
       />
     );
@@ -1353,46 +1474,41 @@ export default function DashboardPage() {
         setCategories={setCategories}
         onSuccess={() => {
           console.log("🔄 Forzando refresco de UI después de editar categoría");
-          // Forzar refresco del grid/componentes usando el estado dual
-          // Este enfoque implementa el MANDAMIENTO CRÍTICO de gestión de estado
-          fetchCategories();
-          // Si hay categoría seleccionada y es la misma que estamos editando, actualizar su estado
-          if (selectedCategory && selectedCategory.category_id === categoryToEdit.category_id) {
-            // Timeout para dar tiempo a que se actualice el estado global antes de actualizar la selección
-            setTimeout(() => {
-              const updatedCategory = categories.find(c => c.category_id === categoryToEdit.category_id);
-              if (updatedCategory) {
-                setSelectedCategory(updatedCategory);
-              }
-            }, 100);
-          }
+          
+          // Pequeña pausa para dar tiempo a que se complete el cierre del modal
+          setTimeout(() => {
+            // Refrescar todas las categorías con recarga forzada
+            fetchCategories({ forceRefresh: true })
+              .then((updatedCategories) => {
+                console.log(`✅ Se han recargado ${updatedCategories.length} categorías`);
+                
+                // Actualizar INMEDIATAMENTE el estado local con las categorías actualizadas
+                setCategories(updatedCategories);
+                
+                // Actualizar la categoría seleccionada si es la misma que estamos editando
+                if (selectedCategory && selectedCategory.category_id === categoryToEdit.category_id) {
+                  const updatedCategory = updatedCategories.find((c: Category) => c.category_id === categoryToEdit.category_id);
+                  if (updatedCategory) {
+                    console.log(`✅ Categoría actualizada encontrada: ${updatedCategory.name}`);
+                    setSelectedCategory(updatedCategory);
+                    
+                    // También recargamos las secciones de esta categoría
+                    fetchSectionsByCategory(updatedCategory.category_id);
+                  }
+                }
+              })
+              .catch(error => {
+                console.error("❌ Error al recargar categorías:", error);
+                toast.error("No se pudieron cargar las categorías actualizadas");
+              });
+          }, 50); // Reducir el delay para mejor UX
         }}
       />
       )}
       
       {renderEditSectionModal()}
       
-      {showEditProductModal && productToEdit && (
-      <EditProductModal
-          isOpen={true}
-        onClose={() => {
-              setShowEditProductModal(false);
-              setProductToEdit(null);
-        }}
-          product={productToEdit}
-        client={client as any}
-        selectedSection={selectedSection}
-          setProducts={setProducts as any}
-        onSuccess={() => {
-          console.log("🔄 Forzando refresco de UI después de editar producto");
-          // Forzar refresco del grid/componentes usando el estado dual
-          // Este enfoque implementa el MANDAMIENTO CRÍTICO de gestión de estado
-          if (selectedSection) {
-            fetchProductsBySection(selectedSection.section_id);
-          }
-        }}
-      />
-        )}
+      {renderEditProductModal()}
 
       {/* Componente de vista previa flotante */}
       <FloatingPhonePreview 
