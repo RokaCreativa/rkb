@@ -4,7 +4,7 @@
  * @fileoverview Componente modal para la edición de secciones en el menú
  * @author RokaMenu Team
  * @version 1.0.0
- * @updated 2024-03-26
+ * @updated 2024-06-13
  * 
  * Este componente proporciona una interfaz de usuario para editar secciones existentes
  * en el sistema de gestión de menús. Las secciones son agrupaciones de productos dentro
@@ -19,7 +19,7 @@ import { toast } from 'react-hot-toast';
 import { Section, Category, SectionWithFileUpload } from '@/app/types/menu';
 import useSections from '@/app/hooks/useSections';
 import { PlusIcon as PlusIconMini } from '@heroicons/react/20/solid';
-import { getImagePath } from '@/app/dashboard-v2/core/utils/imageUtils';
+import { getImagePath } from '@/app/dashboard-v2/utils/imageUtils';
 
 /**
  * Props para el componente EditSectionModal
@@ -377,4 +377,4 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
   );
 };
 
-export default EditSectionModal; 
+export default EditSectionModal;

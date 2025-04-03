@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * @fileoverview Componente modal para la creación de nuevas secciones en el menú
+ * @fileoverview Componente modal para la creación de nuevos productos en el menú
  * @author RokaMenu Team
  * @version 1.0.0
- * @updated 2024-03-26
+ * @updated 2024-06-13
  * 
- * Este componente proporciona una interfaz de usuario para crear nuevas secciones
- * dentro de una categoría seleccionada en el sistema de gestión de menús.
- * Permite configurar nombre e imagen de la sección.
+ * Este componente proporciona una interfaz de usuario para crear nuevos productos
+ * dentro de una sección seleccionada en el sistema de gestión de menús.
+ * Permite configurar nombre, precio, descripción e imagen del producto.
  */
 
 import React, { Fragment, useState, useRef } from 'react';
@@ -16,66 +16,74 @@ import Image from 'next/image';
 import { Dialog, Transition } from '@headlessui/react';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
-import { Category, Section } from '@/app/types/menu';
+import { Section, Product } from '@/app/types/menu';
 import { PrismaClient } from '@prisma/client';
-import eventBus, { Events } from '@/app/lib/eventBus';
+import eventBus from '@/app/lib/eventBus';
+import { Events } from '@/app/lib/eventBus';
 
 /**
- * Props para el componente NewSectionModal
+ * Props para el componente NewProductModal
  * 
  * @property {boolean} isOpen - Controla si el modal está abierto o cerrado
  * @property {Function} onClose - Función para cerrar el modal y restablecer el estado del formulario
  * @property {PrismaClient} client - Cliente de Prisma para realizar operaciones en la base de datos
- * @property {Category | null} selectedCategory - Categoría seleccionada donde se añadirá la nueva sección
- * @property {Function} setSections - Función para actualizar el estado global de secciones después de la creación
- * @property {number} categoryId - ID de la categoría seleccionada
+ * @property {Section | null} selectedSection - Sección seleccionada donde se añadirá el nuevo producto
+ * @property {Function} setProducts - Función para actualizar el estado global de productos después de la creación
+ * @property {number} sectionId - Identificador de la sección seleccionada
+ * @property {Function} onSuccess - Callback opcional que se ejecuta después de crear un producto con éxito
  */
-interface NewSectionModalProps {
+interface NewProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   client?: PrismaClient;
-  selectedCategory?: Category | null;
-  setSections?: React.Dispatch<React.SetStateAction<Record<string, Section[]>>>;
-  categoryId: number;
+  selectedSection?: Section | null;
+  setProducts?: React.Dispatch<React.SetStateAction<Record<string, Product[]>>>;
+  sectionId: number;
+  onSuccess?: () => void;
 }
 
 /**
- * Componente modal para crear una nueva sección en el menú
+ * Componente modal para crear un nuevo producto en el menú
  * 
- * Este componente proporciona un formulario para la creación de secciones
+ * Este componente proporciona un formulario completo para la creación de productos
  * con las siguientes características:
  * 
- * - Formulario con validación del nombre como campo obligatorio
- * - Carga y previsualización de imágenes para la sección (opcional)
- * - Integración con la API para crear la sección en la base de datos
- * - Actualización automática del estado global para reflejar la nueva sección
+ * - Formulario con validación de campos obligatorios
+ * - Carga y previsualización de imágenes para el producto
+ * - Integración con la API para crear el producto en la base de datos
+ * - Actualización automática del estado global para reflejar el nuevo producto
  * - Gestión de estados de carga durante el proceso de creación
  * - Notificaciones de éxito/error para informar al usuario sobre el resultado
  * 
- * El componente requiere una categoría seleccionada para poder crear la sección,
- * ya que cada sección debe pertenecer a una categoría específica del menú.
+ * El componente requiere una sección seleccionada para poder crear el producto,
+ * ya que cada producto debe pertenecer a una sección específica.
  * 
- * @param {NewSectionModalProps} props - Propiedades del componente
- * @returns {JSX.Element} Modal interactivo para crear nuevas secciones
+ * @param {NewProductModalProps} props - Propiedades del componente
+ * @returns {JSX.Element} Modal interactivo para crear nuevos productos
  */
-const NewSectionModal: React.FC<NewSectionModalProps> = ({
+const NewProductModal: React.FC<NewProductModalProps> = ({
   isOpen,
   onClose,
   client,
-  selectedCategory,
-  setSections,
-  categoryId
+  selectedSection,
+  setProducts,
+  sectionId,
+  onSuccess
 }) => {
   /**
-   * Estados del formulario para la creación de secciones
+   * Estados del formulario para la creación de productos
    * 
-   * @property {string} sectionName - Nombre de la sección
-   * @property {File | null} sectionImage - Archivo de imagen seleccionado para la sección
+   * @property {string} productName - Nombre del producto
+   * @property {string} productPrice - Precio del producto (se almacena como string para facilitar la entrada)
+   * @property {string} productDescription - Descripción detallada del producto
+   * @property {File | null} productImage - Archivo de imagen seleccionado para el producto
    * @property {string | null} imagePreview - URL de previsualización de la imagen como data URL
    * @property {boolean} isCreating - Controla el estado de carga durante la creación
    */
-  const [sectionName, setSectionName] = useState('');
-  const [sectionImage, setSectionImage] = useState<File | null>(null);
+  const [productName, setProductName] = useState('');
+  const [productPrice, setProductPrice] = useState('');
+  const [productDescription, setProductDescription] = useState('');
+  const [productImage, setProductImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -86,7 +94,7 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
-   * Maneja la selección de una imagen para la sección
+   * Maneja la selección de una imagen para el producto
    * 
    * Este método:
    * 1. Captura el archivo seleccionado por el usuario
@@ -99,10 +107,10 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
    * 
    * @param {React.ChangeEvent<HTMLInputElement>} e - Evento de cambio del input de archivo
    */
-  const handleSectionImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProductImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setSectionImage(file);
+      setProductImage(file);
       
       // Crear una vista previa de la imagen
       const reader = new FileReader();
@@ -128,14 +136,14 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
   };
 
   /**
-   * Procesa el envío del formulario para crear una nueva sección
+   * Procesa el envío del formulario para crear un nuevo producto
    * 
    * Este método:
    * 1. Previene el comportamiento predeterminado del formulario
-   * 2. Valida que exista una categoría seleccionada y un nombre de sección
+   * 2. Valida todos los campos requeridos (nombre, precio, sección)
    * 3. Prepara los datos del formulario, incluyendo la imagen si existe
    * 4. Envía los datos al servidor mediante una petición POST
-   * 5. Actualiza el estado global con la nueva sección
+   * 5. Actualiza el estado global con el nuevo producto
    * 6. Muestra una notificación de éxito y reinicia el formulario
    * 
    * Si ocurre algún error durante el proceso, se muestra una notificación
@@ -144,73 +152,88 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
    * @param {React.FormEvent} e - Evento de envío del formulario
    */
   const handleSubmit = async () => {
-    if (!sectionName.trim()) {
-      toast.error('El nombre de la sección es obligatorio');
+    if (!productName.trim()) {
+      toast.error('El nombre del producto es obligatorio');
+      return;
+    }
+
+    if (!productPrice.trim()) {
+      toast.error('El precio del producto es obligatorio');
       return;
     }
 
     setIsCreating(true);
 
-    // Crear FormData para enviar la imagen si existe
     const formData = new FormData();
-    formData.append('name', sectionName);
-    formData.append('category_id', categoryId.toString());
+    formData.append('name', productName);
+    formData.append('price', productPrice);
+    formData.append('description', productDescription || '');
+    formData.append('section_id', sectionId.toString());
 
-    if (sectionImage) {
-      formData.append('image', sectionImage);
+    if (productImage) {
+      formData.append('image', productImage);
     }
 
     try {
-      // Verificar si la API está disponible
-      const response = await fetch('/api/sections', {
+      // Mostrar toast de carga
+      toast.loading("Creando producto...", { id: "create-product" });
+      
+      const response = await fetch('/api/products', {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
-        throw new Error('Error al crear la sección');
+        throw new Error('Error al crear el producto');
       }
+
+      const newProduct = await response.json();
       
-      const newSection: Section = await response.json();
-      
-      // Normalizar el status para asegurar consistencia en la UI
-      const normalizedSection = {
-        ...newSection,
-        status: typeof newSection.status === 'boolean' ? 
-          (newSection.status ? 1 : 0) : Number(newSection.status)
+      // Normalizar el status para consistencia en la UI
+      const normalizedProduct = {
+        ...newProduct,
+        status: typeof newProduct.status === 'boolean' ? 
+          (newProduct.status ? 1 : 0) : Number(newProduct.status)
       };
-      
-      // Actualizar el estado local con la nueva sección si setSections está disponible
-      if (setSections && selectedCategory) {
-        setSections(prevSections => ({
-          ...prevSections,
-          [selectedCategory.category_id]: [...(prevSections[selectedCategory.category_id] || []), normalizedSection]
-        }));
-      }
-      
-      // Emisión de evento para notificar que se creó una sección
-      console.log("Emitiendo evento de sección creada");
-      if (selectedCategory) {
-        eventBus.emit(Events.SECTION_CREATED, {
-          section: normalizedSection,
-          categoryId: selectedCategory.category_id
-        });
-      } else {
-        eventBus.emit(Events.SECTION_CREATED, {
-          section: normalizedSection,
-          categoryId: categoryId
+
+      // Actualizar el estado local con el nuevo producto, verificando que setProducts existe
+      if (setProducts) {
+        setProducts(prev => {
+          // Crear copia del estado para modificarlo
+          const updated = { ...prev };
+          
+          // Si no existe la sección, inicializarla como array vacío
+          if (!updated[sectionId]) {
+            updated[sectionId] = [];
+          }
+          
+          // Añadir el nuevo producto a la sección correspondiente
+          // @ts-ignore - Sabemos que la estructura es correcta
+          updated[sectionId] = [...updated[sectionId], normalizedProduct];
+          
+          return updated;
         });
       }
+
+      // Emisión de evento para notificar que se creó un producto
+      eventBus.emit(Events.PRODUCT_CREATED, {
+        product: normalizedProduct,
+        sectionId: sectionId
+      });
+
+      // Toast de éxito
+      toast.success('Producto creado correctamente', { id: "create-product" });
       
-      // Mostrar notificación de éxito
-      toast.success('Sección creada correctamente');
+      // Cerrar el modal y limpiar el formulario
+      handleCancel();
       
-      // Cerrar el modal
-      onClose();
-      
+      // Si hay una función de éxito, ejecutarla
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
-      console.error('Error al crear la sección:', error);
-      toast.error('Error al crear la sección');
+      console.error('Error al crear el producto:', error);
+      toast.error('Error al crear el producto', { id: "create-product" });
     } finally {
       setIsCreating(false);
     }
@@ -220,17 +243,19 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
    * Reinicia el formulario y cierra el modal
    * 
    * Este método:
-   * 1. Limpia el campo de nombre de la sección
+   * 1. Limpia todos los campos del formulario (nombre, precio, descripción)
    * 2. Elimina la imagen seleccionada y su previsualización
-   * 3. Cierra el modal de creación de sección
+   * 3. Cierra el modal de creación de producto
    * 
    * Se utiliza cuando el usuario cancela la creación o después de
-   * crear una sección exitosamente para preparar el formulario para
+   * crear un producto exitosamente para preparar el formulario para
    * una nueva entrada.
    */
   const handleCancel = () => {
-    setSectionName('');
-    setSectionImage(null);
+    setProductName('');
+    setProductPrice('');
+    setProductDescription('');
+    setProductImage(null);
     setImagePreview(null);
     onClose();
   };
@@ -268,39 +293,90 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
             <Dialog.Panel className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <div>
                 <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                  Crear nueva sección en {selectedCategory?.name}
+                  Crear nuevo producto en {selectedSection?.name}
                 </Dialog.Title>
                 
                 <form onSubmit={handleSubmit} className="mt-4">
-                  {/* Campo de nombre de sección */}
+                  {/* Campo de nombre de producto */}
                   <div className="mb-4">
-                    <label htmlFor="section-name" className="block text-sm font-medium text-gray-700">
-                      Nombre de la sección
+                    <label htmlFor="product-name" className="block text-sm font-medium text-gray-700">
+                      Nombre del producto
                     </label>
                     <input
                       type="text"
-                      id="section-name"
-                      name="section-name"
-                      value={sectionName}
-                      onChange={(e) => setSectionName(e.target.value)}
+                      id="product-name"
+                      name="product-name"
+                      value={productName}
+                      onChange={(e) => setProductName(e.target.value)}
                       className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                      placeholder="Escribe el nombre de la sección"
+                      placeholder="Escribe el nombre del producto"
                       required
                     />
                   </div>
                   
-                  {/* Campo de imagen de sección */}
+                  {/* Campo de precio del producto */}
                   <div className="mb-4">
-                    <label htmlFor="section-image" className="block text-sm font-medium text-gray-700">
-                      Imagen de la sección (opcional)
+                    <label htmlFor="product-price" className="block text-sm font-medium text-gray-700">
+                      Precio (€)
+                    </label>
+                    <div className="mt-1 relative rounded-md shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-500 sm:text-sm">€</span>
+                      </div>
+                      <input
+                        type="text"
+                        id="product-price"
+                        name="product-price"
+                        value={productPrice}
+                        onChange={(e) => {
+                          // Permitir solo números y un punto decimal
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          // Asegurar que solo haya un punto decimal
+                          const parts = value.split('.');
+                          if (parts.length > 2) {
+                            return;
+                          }
+                          // Limitar a 2 decimales
+                          if (parts[1] && parts[1].length > 2) {
+                            return;
+                          }
+                          setProductPrice(value);
+                        }}
+                        className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Campo de descripción del producto */}
+                  <div className="mb-4">
+                    <label htmlFor="product-description" className="block text-sm font-medium text-gray-700">
+                      Descripción (opcional)
+                    </label>
+                    <textarea
+                      id="product-description"
+                      name="product-description"
+                      value={productDescription}
+                      onChange={(e) => setProductDescription(e.target.value)}
+                      rows={3}
+                      className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                      placeholder="Escribe una descripción para el producto"
+                    />
+                  </div>
+                  
+                  {/* Campo de imagen del producto */}
+                  <div className="mb-4">
+                    <label htmlFor="product-image" className="block text-sm font-medium text-gray-700">
+                      Imagen del producto (opcional)
                     </label>
                     
                     <input
                       type="file"
-                      id="section-image"
-                      name="section-image"
+                      id="product-image"
+                      name="product-image"
                       ref={fileInputRef}
-                      onChange={handleSectionImageChange}
+                      onChange={handleProductImageChange}
                       className="hidden"
                       accept="image/*"
                     />
@@ -319,7 +395,7 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
                             <button
                               type="button"
                               onClick={() => {
-                                setSectionImage(null);
+                                setProductImage(null);
                                 setImagePreview(null);
                               }}
                               className="mt-2 text-sm text-red-600 hover:text-red-900"
@@ -378,7 +454,7 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
                           Creando...
                         </>
                       ) : (
-                        'Crear sección'
+                        'Crear producto'
                       )}
                     </button>
                     <button
@@ -400,4 +476,4 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
   );
 };
 
-export default NewSectionModal; 
+export default NewProductModal; 

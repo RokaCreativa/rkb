@@ -1,3 +1,16 @@
+"use client";
+
+/**
+ * @fileoverview Componente modal para la edición de categorías existentes en el menú
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-06-13
+ * 
+ * Este componente proporciona una interfaz de usuario para editar categorías
+ * existentes en el sistema de gestión de menús. Las categorías son la estructura 
+ * principal de organización en el menú.
+ */
+
 import React, { Fragment, useState, useRef, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
@@ -199,7 +212,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
   };
 
   /**
-   * Reinicia el formulario y cierra el modal
+   * Cierra el modal y limpia el estado
    */
   const handleCloseModal = () => {
     setEditCategoryName('');
@@ -209,10 +222,13 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
   };
 
   return (
-    <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={onClose}>
-        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-          {/* Capa de fondo oscura */}
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog
+        as="div"
+        className="fixed inset-0 z-10 overflow-y-auto"
+        onClose={handleCloseModal}
+      >
+        <div className="min-h-screen px-4 text-center">
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
@@ -222,146 +238,151 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+            <div className="fixed inset-0 bg-black opacity-30" />
           </Transition.Child>
 
-          {/* Truco para centrar el modal verticalmente */}
-          <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-          
-          {/* Contenido del modal con animación */}
+          {/* Este elemento es para centrar verticalmente el modal */}
+          <span
+            className="inline-block h-screen align-middle"
+            aria-hidden="true"
+          >
+            &#8203;
+          </span>
+
           <Transition.Child
             as={Fragment}
             enter="ease-out duration-300"
-            enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            enterTo="opacity-100 translate-y-0 sm:scale-100"
+            enterFrom="opacity-0 scale-95"
+            enterTo="opacity-100 scale-100"
             leave="ease-in duration-200"
-            leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-            leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            leaveFrom="opacity-100 scale-100"
+            leaveTo="opacity-0 scale-95"
           >
-            <Dialog.Panel className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-              <div className="sm:flex sm:items-start">
-                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                  <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                    Editar Categoría
-                  </Dialog.Title>
-                  <div className="mt-2">
-                    <div className="mb-4">
-                      <label htmlFor="categoryName" className="block text-sm font-medium text-gray-700">
-                        Nombre de la categoría
-                      </label>
-                      <input
-                        type="text"
-                        name="categoryName"
-                        id="categoryName"
-                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
-                        value={editCategoryName}
-                        onChange={(e) => setEditCategoryName(e.target.value)}
-                        placeholder="Nombre de la categoría"
-                      />
-                    </div>
-                    
-                    <div className="mb-4">
-                      <label htmlFor="categoryImage" className="block text-sm font-medium text-gray-700">
-                        Imagen de la categoría
-                      </label>
-                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
-                        <div className="space-y-1 text-center">
-                          {editImagePreview ? (
-                            <div className="relative mx-auto w-24 h-24 mb-2">
-                              <Image 
-                                src={editImagePreview} 
-                                alt="Vista previa" 
-                                fill
-                                className="object-cover rounded-full"
-                              />
-                              <button 
-                                type="button"
-                                className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
-                                onClick={() => {
-                                  setEditCategoryImage(null);
-                                  setEditImagePreview(null);
-                                }}
-                              >
-                                <XMarkIcon className="h-4 w-4" aria-hidden="true" />
-                              </button>
-                            </div>
-                          ) : (
-                            <svg
-                              className="mx-auto h-12 w-12 text-gray-400"
-                              stroke="currentColor"
-                              fill="none"
-                              viewBox="0 0 48 48"
-                              aria-hidden="true"
-                            >
-                              <path
-                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                                strokeWidth={2}
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          )}
-                          
-                          <div className="flex text-sm text-gray-600">
-                            <label
-                              htmlFor="category-image-upload"
-                              className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
-                            >
-                              <span>Subir imagen</span>
-                              <input 
-                                id="category-image-upload" 
-                                name="category-image-upload" 
-                                type="file" 
-                                className="sr-only" 
-                                accept="image/*"
-                                onChange={handleCategoryImageChange}
-                              />
-                            </label>
-                            <p className="pl-1">o arrastra y suelta</p>
-                          </div>
-                          <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+            <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+              <div className="flex justify-between items-start">
+                <Dialog.Title
+                  as="h3"
+                  className="text-lg font-medium leading-6 text-gray-900"
+                >
+                  Editar Categoría
+                </Dialog.Title>
+                <button
+                  type="button"
+                  className="text-gray-400 hover:text-gray-500"
+                  onClick={handleCloseModal}
+                >
+                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <div className="mb-4">
+                  <label
+                    htmlFor="editCategoryName"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Nombre
+                  </label>
+                  <input
+                    type="text"
+                    name="editCategoryName"
+                    id="editCategoryName"
+                    className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                    value={editCategoryName}
+                    onChange={(e) => setEditCategoryName(e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-4">
+                  <label
+                    htmlFor="editCategoryImage"
+                    className="block text-sm font-medium text-gray-700"
+                  >
+                    Imagen
+                  </label>
+                  <div className="mt-1 flex items-center">
+                    <div className="h-32 w-32 rounded-md overflow-hidden bg-gray-100 mr-4">
+                      {editImagePreview ? (
+                        <Image
+                          src={editImagePreview}
+                          alt="Previsualización"
+                          width={128}
+                          height={128}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-gray-100">
+                          <span className="text-gray-400">Sin imagen</span>
                         </div>
-                      </div>
+                      )}
                     </div>
-                    
-                    <div className="sm:flex sm:flex-row-reverse">
-                      <button
-                        type="button"
-                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm ${
-                          isUpdatingCategory ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                        onClick={handleSubmit}
-                        disabled={isUpdatingCategory || !editCategoryName.trim()}
-                      >
-                        {isUpdatingCategory ? (
-                          <span className="flex items-center">
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Guardando...
-                          </span>
-                        ) : (
-                          'Guardar Cambios'
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-                        onClick={handleCloseModal}
-                        disabled={isUpdatingCategory}
-                      >
-                        Cancelar
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={triggerFileInput}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      Cambiar imagen
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleCategoryImageChange}
+                    />
                   </div>
                 </div>
               </div>
-            </Dialog.Panel>
+
+              <div className="mt-6 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  onClick={handleCloseModal}
+                  disabled={isUpdatingCategory}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  onClick={handleSubmit}
+                  disabled={isUpdatingCategory}
+                >
+                  {isUpdatingCategory ? (
+                    <div className="flex items-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Actualizando...
+                    </div>
+                  ) : (
+                    "Guardar cambios"
+                  )}
+                </button>
+              </div>
+            </div>
           </Transition.Child>
         </div>
       </Dialog>
-    </Transition.Root>
+    </Transition>
   );
 };
 
