@@ -102,7 +102,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
         <Droppable droppableId="categories">
           {(provided) => (
             <table className="min-w-full divide-y divide-indigo-100" {...provided.droppableProps} ref={provided.innerRef}>
-              <thead className="bg-indigo-50">
+              <thead className="bg-gray-50">
                 <tr>
                   <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-indigo-600 uppercase tracking-wider w-10"></th>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-indigo-600 uppercase tracking-wider">
@@ -138,7 +138,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                               : expandedCategories[category.category_id] 
                                 ? "bg-indigo-50" 
                                 : "hover:bg-gray-50"
-                          }`}
+                          } mt-4`}
                         >
                           <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                             <div className="flex items-center">
@@ -241,8 +241,8 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                     {expandedCategories[category.category_id] && sections[category.category_id] ? (
                       <tr key={`sections-${category.category_id}`} className="bg-indigo-50">
                         <td colSpan={6} className="p-0">
-                          <div className="pl-8 pr-4 py-3 border-t border-indigo-100">
-                            <div className="flex justify-between items-center mb-3">
+                          <div className="pl-8 pr-4 py-4 border-t border-indigo-100">
+                            <div className="flex justify-between items-center mb-4">
                               <h3 className="text-sm font-medium text-indigo-700">
                                 Secciones: {category.name}
                               </h3>
@@ -255,14 +255,14 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                               </button>
                             </div>
                             
-                            <div className="ml-10 bg-white border-l-2 border-green-100">
+                            <div className="ml-10 bg-white border-l-4 border-green-500">
                               {sections[category.category_id] && sections[category.category_id].map((section) => (
                                 <div
                                   key={`section-row-${section.section_id}`}
-                                  className="group border border-green-100 rounded-md mb-2 overflow-hidden"
+                                  className="group border border-gray-100 rounded-md mb-3 overflow-hidden"
                                 >
                                   <div
-                                    className={`flex items-center justify-between px-4 py-2 bg-green-50 cursor-pointer`}
+                                    className={`flex items-center justify-between px-4 py-2 bg-white cursor-pointer hover:bg-gray-50`}
                                     onClick={() => onSectionClick(section.section_id)}
                                   >
                                     <div className="flex items-center space-x-2">
@@ -321,9 +321,9 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                   </div>
                                   
                                   {expandedSections[section.section_id] && (
-                                    <div className="pl-8 pr-3 py-2 bg-gray-50">
+                                    <div className="pl-8 pr-3 py-2 bg-white">
                                       {products[section.section_id.toString()] && products[section.section_id.toString()].length > 0 ? (
-                                        <div className="mt-2 rounded-lg bg-yellow-50 p-2 border border-yellow-100">
+                                        <div className="mt-3 rounded-lg bg-yellow-50 p-3 border border-yellow-100">
                                           <div className="text-xs font-medium text-yellow-700 mb-2 px-2">Productos de la sección</div>
                                           <table className="min-w-full divide-y divide-yellow-200">
                                             <thead className="bg-yellow-50">

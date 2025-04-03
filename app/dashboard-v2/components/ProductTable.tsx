@@ -47,7 +47,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
   if (!products || products.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500 bg-white rounded-md border border-indigo-100 shadow-sm">
+      <div className="text-center py-4 text-gray-500 bg-white rounded-md border border-yellow-100 shadow-sm">
         No hay productos disponibles para esta sección
       </div>
     );
@@ -80,18 +80,18 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   };
 
   return (
-    <div className="rounded-lg border border-indigo-100 overflow-hidden bg-white shadow-sm">
-      <div className="flex items-center justify-between px-4 py-2 bg-indigo-50 border-b border-indigo-100">
-        <h2 className="text-sm font-medium text-indigo-700">
-          Productos de {sectionName}
+    <div className="rounded-lg border border-yellow-100 overflow-hidden bg-white shadow-sm">
+      <div className="flex items-center justify-between px-4 py-2 bg-yellow-50 border-b border-yellow-100">
+        <h2 className="text-sm font-medium text-yellow-700">
+          Productos: {sectionName}
         </h2>
         <div className="flex items-center">
-          <div className="text-xs text-indigo-600 mr-4">
+          <div className="text-xs text-yellow-600 mr-4">
             ({visibleProducts.length}/{products.length} Visibles)
           </div>
           <button
             onClick={() => setShowHiddenProducts(!showHiddenProducts)}
-            className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+            className="text-xs text-yellow-600 hover:text-yellow-800 flex items-center gap-1"
           >
             {showHiddenProducts ? 'Ocultar' : 'Mostrar'} no visibles
             {showHiddenProducts ? 
@@ -105,24 +105,24 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="products">
           {(provided) => (
-            <table className="min-w-full divide-y divide-indigo-100" {...provided.droppableProps} ref={provided.innerRef}>
-              <thead className="bg-indigo-50">
+            <table className="min-w-full divide-y divide-yellow-100" {...provided.droppableProps} ref={provided.innerRef}>
+              <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-indigo-600 uppercase tracking-wider">
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-yellow-600 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
                       <span>Nombre</span>
                     </div>
                   </th>
-                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-indigo-600 uppercase tracking-wider w-16">Orden</th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-indigo-600 uppercase tracking-wider w-16">Foto</th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-indigo-600 uppercase tracking-wider w-20">Precio</th>
-                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-indigo-600 uppercase tracking-wider w-16">
-                    <EyeIcon className="h-4 w-4 mx-auto text-indigo-500" />
+                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-yellow-600 uppercase tracking-wider w-16">Orden</th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-600 uppercase tracking-wider w-16">Foto</th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-600 uppercase tracking-wider w-28">Precio</th>
+                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-yellow-600 uppercase tracking-wider w-16">
+                    <EyeIcon className="h-4 w-4 mx-auto text-yellow-500" />
                   </th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-indigo-600 uppercase tracking-wider w-20">Acciones</th>
+                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-600 uppercase tracking-wider w-20">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-indigo-100">
+              <tbody className="bg-white divide-y divide-yellow-100">
                 {/* Productos visibles */}
                 {visibleProducts.map((product, index) => (
                   <Draggable 
@@ -135,7 +135,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       <tr 
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`${snapshot.isDragging ? "bg-blue-50" : "hover:bg-gray-50"}`}
+                        className={`${snapshot.isDragging ? "bg-yellow-50" : "hover:bg-gray-50"}`}
                       >
                         <td 
                           className="px-3 py-2 whitespace-nowrap"
@@ -182,7 +182,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                               disabled={isUpdatingVisibility === (product.id || product.product_id)}
                               className={`p-1.5 rounded-full transition-colors ${
                                 product.status === 1 
-                                  ? 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' 
+                                  ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
                                   : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
                               }`}
                               title={product.status === 1 ? "Visible" : "No visible"}
@@ -203,13 +203,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                           <div className="flex justify-center space-x-1">
                             <button
                               onClick={() => onEditProduct(product)}
-                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                              className="p-1 text-yellow-600 hover:text-yellow-800 rounded-full hover:bg-yellow-50"
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => onDeleteProduct(product.id || product.product_id || 0)}
-                              className="p-1 text-indigo-600 hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                              className="p-1 text-yellow-600 hover:text-yellow-800 rounded-full hover:bg-yellow-50"
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>
