@@ -1374,9 +1374,8 @@ export default function DashboardPage() {
                     id={`category-${category.category_id}`}
                       className="mt-4 w-full pl-4 border-l-4 border-indigo-100"
                     >
-                      <div className="bg-blue-50 py-4 px-6 rounded-md shadow-sm border border-blue-100">
+                      <div className="py-4 px-6 rounded-md shadow-sm border border-gray-200">
                         <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-lg font-medium text-indigo-800">{category.name}</h3>
                           <button
                             type="button"
                             onClick={() => {
@@ -1412,6 +1411,7 @@ export default function DashboardPage() {
                               onDeleteSection={(section) => handleDeleteSection(section, category.category_id)}
                               onToggleSectionVisibility={toggleSectionVisibility}
                               categoryId={category.category_id}
+                              categoryName={category.name}
                       isUpdatingVisibility={isUpdatingVisibility}
                               onSectionClick={(sectionId) => {
                                 const section = sectionsList.find(s => s.section_id === sectionId);
@@ -1448,11 +1448,11 @@ export default function DashboardPage() {
                         <div 
                                     key={`expanded-section-${sectionId}`}
                                     id={`section-${sectionId}`}
-                                    className="pl-4 border-l-4 border-green-100"
+                                    className="pl-4 border-l-4 border-teal-100"
                                   >
-                                    <div className="bg-green-50 py-4 px-6 rounded-md shadow-sm border border-green-100">
+                                    <div className="py-4 px-6 rounded-md shadow-sm border border-gray-200">
                                       <div className="flex justify-between items-center mb-4">
-                                        <h4 className="text-md font-medium text-green-800">{section.name}</h4>
+                                        <h4 className="text-md font-medium text-teal-800">{section.name}</h4>
                                         <button
                                           type="button"
                                           onClick={() => {
@@ -1469,7 +1469,7 @@ export default function DashboardPage() {
                                       {/* Estados posibles: cargando, con productos, sin productos */}
                                       {loadingProducts[sectionId] ? (
                                         <div className="flex justify-center items-center py-6">
-                                          <svg className="animate-spin h-8 w-8 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                          <svg className="animate-spin h-8 w-8 text-teal-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                           </svg>
