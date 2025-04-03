@@ -23,11 +23,11 @@ interface Product {
 interface ProductTableProps {
   products: Product[];
   sectionName: string;
-  sectionId?: number;
+  sectionId: number;
   isUpdatingVisibility: number | null;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: number) => Promise<boolean>;
-  onToggleVisibility: (productId: number, status: number, sectionId?: number) => Promise<void>;
+  onToggleVisibility: (productId: number, status: number, sectionId: number) => Promise<void> | void;
   isReorderModeActive?: boolean;
   onReorderProduct?: (sourceIndex: number, destinationIndex: number) => void;
 }

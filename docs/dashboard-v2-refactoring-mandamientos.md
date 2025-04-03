@@ -367,9 +367,7 @@
      * image: String? [@db.VarChar(100)]
      * status: Boolean? [@default(true)]
      * display_order: Int?
-   - **products_sections**:
-     * product_id: Int [parte de clave primaria compuesta]
-     * section_id: Int [parte de clave primaria compuesta]
+     * section_id: Int? /* Relación directa con la sección a la que pertenece */
    - **users** (auth):
      * user_id: String [@id @db.VarChar(30)]
      * email: String [@db.VarChar(255)] /* Principalmente usado para autenticación */
@@ -397,73 +395,41 @@
 
 > 🎯 **Estado Actual**: Fase 7 - Revisión Final (En Progreso)
 > 
-> 📅 **Última Actualización**: 13/06/2024 - 19:45 - v1.0.0
-> 
-> ✅ **Completado**:
-> - Estructura de directorios creada
-> - Tipos base definidos
-> - Tipos normalizados y consolidados en un archivo centralizado
-> - Modales extraídos a componentes individuales
-> - Componentes visuales por dominio implementados:
->   * CategoryView para gestión de categorías
->   * SectionView para gestión de secciones
->   * ProductView para gestión de productos
->   * MobilePreview para visualización en formato móvil
->   * Breadcrumbs para navegación entre vistas
-> - Hooks de dominio implementados:
->   * useCategoryManagement para categorías
->   * useSectionManagement para secciones
->   * useProductManagement para productos
->   * useDashboardState como fachada de coordinación
-> - Limpieza de page.tsx:
->   * Metadatos adecuados
->   * Validación de roles
->   * Renderizado de DashboardView
-> - Optimizaciones de rendimiento:
->   * Virtualización para listas largas (VirtualizedList)
->   * Carga diferida de datos (useLazyLoading)
->   * Componente OptimizedCategoryView
->   * Utilidades de rendimiento (debounce, throttle, cache)
-> - Validación de acceso:
->   * Página de unauthorized implementada
->   * Verificación de roles en page.tsx
-> - Documentación completa:
->   * Modelo de datos documentado (docs/dashboard-v2-modelo-datos.md)
->   * Optimizaciones documentadas (docs/dashboard-v2-optimizaciones.md)
->   * Checklist de refactorización actualizado
-> 
-> 🔄 **Próximos Pasos**:
-> - Finalizar pruebas de acceso por rol
-> - Implementar code splitting para reducir el tamaño del bundle inicial
-> 
-> ⚠️ **RECORDATORIO CRÍTICO**:
-> - RESPETAR la estructura y arquitectura implementada en la refactorización
-> - MANTENER la separación de responsabilidades entre componentes y hooks
-> - PRESERVAR todas las optimizaciones de rendimiento implementadas
-> - SEGUIR los patrones establecidos para cualquier nueva funcionalidad
-> - CONSULTAR la documentación antes de hacer cambios
-> - ASEGURAR la consistencia en los tipos y interfaces
-> - VERIFICAR los mandamientos antes de cada modificación
-> - PRESERVAR la estructura jerárquica de datos (Cliente → Categoría → Sección → Producto)
-> - UTILIZAR los hooks de dominio específicos para cada tipo de entidad
-> - IMPLEMENTAR virtualización para cualquier lista que pueda crecer significativamente
-> - MANTENER la coherencia entre estados locales y globales para actualizaciones inmediatas
-> - APLICAR debounce y throttle para eventos de alta frecuencia
-> - UTILIZAR memoización (useMemo, useCallback, React.memo) de manera estratégica
->
-> 📋 **Progreso General**: 95% completado
-> 
-> 📝 **Notas**:
-> - La refactorización ha resultado en una mejora significativa de la organización y mantenibilidad del código
-> - La separación en componentes por dominio ha facilitado la comprensión y el mantenimiento
-> - Los hooks de dominio han permitido una separación clara de responsabilidades
-> - Las optimizaciones de rendimiento han mejorado significativamente la experiencia de usuario
-> - La documentación completa facilita la comprensión del código y su arquitectura
-> - La estructura modular permite añadir nuevas funcionalidades de manera más sencilla
-> - La validación de roles mejora la seguridad de la aplicación
-> - Las utilidades de rendimiento permiten una experiencia fluida incluso con grandes volúmenes de datos
-> - La estructura de tipos normalizada facilita la verificación de tipos y previene errores
+> 📅 **Última Actualización**: 09/07/2024 - 17:30 - v1.1.0
 
-> 💡 **Nota**: Este documento debe ser consultado en cada paso del desarrollo para mantener el rumbo correcto.
+## 🔄 **Próximos Pasos**:
+- Finalizar pruebas de acceso por rol
+- Implementar code splitting para reducir el tamaño del bundle inicial
 
-> ⚠️ **Advertencia**: La violación de estos mandamientos resultará en regresión técnica y pérdida del valor generado mediante la refactorización. 
+⚠️ **RECORDATORIO CRÍTICO**:
+- RESPETAR la estructura y arquitectura implementada en la refactorización
+- MANTENER la separación de responsabilidades entre componentes y hooks
+- PRESERVAR todas las optimizaciones de rendimiento implementadas
+- SEGUIR los patrones establecidos para cualquier nueva funcionalidad
+- CONSULTAR la documentación antes de hacer cambios
+- ASEGURAR la consistencia en los tipos y interfaces
+- VERIFICAR los mandamientos antes de cada modificación
+- PRESERVAR la estructura jerárquica de datos (Cliente → Categoría → Sección → Producto)
+- UTILIZAR los hooks de dominio específicos para cada tipo de entidad
+- IMPLEMENTAR virtualización para cualquier lista que pueda crecer significativamente
+- MANTENER la coherencia entre estados locales y globales para actualizaciones inmediatas
+- APLICAR debounce y throttle para eventos de alta frecuencia
+- UTILIZAR memoización (useMemo, useCallback, React.memo) de manera estratégica
+
+📋 **Progreso General**: 95% completado
+
+📝 **Notas**:
+- La refactorización ha resultado en una mejora significativa de la organización y mantenibilidad del código
+- La separación en componentes por dominio ha facilitado la comprensión y el mantenimiento
+- Los hooks de dominio han permitido una separación clara de responsabilidades
+- Las optimizaciones de rendimiento han mejorado significativamente la experiencia de usuario
+- La documentación completa facilita la comprensión del código y su arquitectura
+- La estructura modular permite añadir nuevas funcionalidades de manera más sencilla
+- La validación de roles mejora la seguridad de la aplicación
+- Las utilidades de rendimiento permiten una experiencia fluida incluso con grandes volúmenes de datos
+- La estructura de tipos normalizada facilita la verificación de tipos y previene errores
+- **IMPORTANTE**: Se ha modificado la relación entre productos y secciones, eliminando la tabla pivote `products_sections`. Ahora cada producto pertenece directamente a una sección mediante el campo `section_id`. Esta simplificación mejora el rendimiento de las consultas y facilita la gestión de datos.
+
+💡 **Nota**: Este documento debe ser consultado en cada paso del desarrollo para mantener el rumbo correcto.
+
+⚠️ **Advertencia**: La violación de estos mandamientos resultará en regresión técnica y pérdida del valor generado mediante la refactorización. 

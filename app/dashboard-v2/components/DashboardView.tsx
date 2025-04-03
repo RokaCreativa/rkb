@@ -9,6 +9,8 @@ import { TopNavbar } from "./TopNavbar";
 import { Loader } from "./ui/Loader";
 import { Category, Section, Product } from "@/app/types/menu";
 import useDataState from "../hooks/useDataState";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { cn } from "@/lib/utils";
 
 // Importar nuevos componentes de vistas
 import CategoryView from "./views/CategoryView";
@@ -53,6 +55,9 @@ export default function DashboardView() {
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estado local para modo sin conexión
+  const [offlineMode, setOfflineMode] = useState(false);
   
   // Log de depuración al montar el componente
   useEffect(() => {
@@ -123,6 +128,31 @@ export default function DashboardView() {
     }
   }, [isAuthenticated, fetchClientData, fetchCategories]);
   
+  // Verificar si estamos en modo offline cada 10 segundos
+  useEffect(() => {
+    const checkConnectivity = () => {
+      const isOffline = !navigator.onLine;
+      setOfflineMode(isOffline);
+      console.log(`🌐 Estado de conexión: ${isOffline ? 'OFFLINE' : 'ONLINE'}`);
+    };
+    
+    // Comprobar inmediatamente
+    checkConnectivity();
+    
+    // Agregar event listeners para cambios de conectividad
+    window.addEventListener('online', () => setOfflineMode(false));
+    window.addEventListener('offline', () => setOfflineMode(true));
+    
+    // Comprobar periódicamente
+    const interval = setInterval(checkConnectivity, 10000);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('online', () => setOfflineMode(false));
+      window.removeEventListener('offline', () => setOfflineMode(true));
+    };
+  }, []);
+  
   // Handlers para navegación
   const goToHome = useCallback(() => {
     setCurrentView('CATEGORIES');
@@ -145,34 +175,117 @@ export default function DashboardView() {
     setSelectedSection(null);
   }, [expandedCategories, fetchSectionsByCategory]);
 
-  const goToSection = useCallback((sectionIdOrSection: number | Section) => {
+  const goToSection = useCallback(async (sectionIdOrSection: number | Section) => {
     // Extraer el ID de sección según el tipo de argumento
     const sectionId = typeof sectionIdOrSection === 'number' 
       ? sectionIdOrSection 
       : sectionIdOrSection.section_id;
 
+    console.log(`🎯 goToSection llamado con sección ID: ${sectionId}`);
+
     // Encontrar la sección correspondiente
     const allSections = Object.values(sections).flat();
     const sectionToSelect = allSections.find(s => s.section_id === sectionId);
 
-    if (sectionToSelect) {
-      setSelectedSection(sectionToSelect);
-      
-      // Actualizar los estados de expandido/colapsado
-      setExpandedSections(prev => ({
+    if (!sectionToSelect) {
+      console.error(`❌ No se encontró la sección con ID ${sectionId}`);
+      return;
+    }
+
+    // Actualizar estado de la sección seleccionada primero para evitar UI vacía
+    console.log(`✅ Sección encontrada: ${sectionToSelect.name}`);
+    setSelectedSection(sectionToSelect);
+    
+    // IMPORTANTE: alternar el estado de expansión de la sección al hacer clic
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionId]: !prev[sectionId]
+    }));
+    
+    // Obtener la categoría a la que pertenece esta sección
+    const categoryId = sectionToSelect.category_id;
+    if (categoryId) {
+      // Expandir la categoría para asegurar que la sección es visible
+      setExpandedCategories(prev => ({
         ...prev,
-        [sectionToSelect.section_id]: !prev[sectionToSelect.section_id]
+        [categoryId]: true
       }));
       
-      // Si estamos expandiendo y no tenemos productos, cargarlos
-      const isCurrentlyExpanded = !!expandedSections[sectionToSelect.section_id];
-      const hasProducts = products[sectionToSelect.section_id.toString()]?.length > 0;
-      
-      if (!isCurrentlyExpanded && !hasProducts) {
-        fetchProductsBySection(sectionToSelect.section_id);
+      // Actualizar la categoría seleccionada
+      const categoryObj = categories.find(c => c.category_id === categoryId);
+      if (categoryObj) {
+        setSelectedCategory(categoryObj);
       }
     }
-  }, [expandedSections, fetchProductsBySection, products, sections]);
+    
+    // En el modo anterior cambiábamos a vista PRODUCTS, pero ahora queremos mantener la vista de categorías
+    // setCurrentView('PRODUCTS');
+    setCurrentView('CATEGORIES');
+    console.log(`🔀 Vista mantenida en CATEGORIES, sección expandida: ${sectionToSelect.name}`);
+
+    // Preparar local state
+    const sectionIdStr = sectionId.toString();
+    
+    // Verificar si ya tenemos productos cargados
+    if (!products[sectionIdStr] || products[sectionIdStr].length === 0) {
+      // NUEVA IMPLEMENTACIÓN: Primero forzar un estado vacío para mostrar el loader
+      setProducts(prevProducts => ({
+        ...prevProducts,
+        [sectionIdStr]: []
+      }));
+
+      // Mostrar notificación de carga
+      toast.loading(`Cargando productos...`, { id: `loading-${sectionId}` });
+
+      try {
+        // Cargar productos forzando la recarga
+        console.log(`⏳ [CRITICAL] Cargando productos para sección ${sectionId} (forzado)...`);
+        
+        // IMPORTANTE: Este método ahora devuelve una promesa que se resuelve con los productos cargados
+        const loadedProducts = await fetchProductsBySection(
+          sectionId, 
+          true,  // Forzar recarga
+          // Función para actualizar estado local inmediatamente
+          (freshProducts) => {
+            console.log(`✨ [CRITICAL] Callback recibió ${freshProducts.length} productos frescos`);
+            
+            // Forzar actualización del estado global
+            setProducts(prev => ({
+              ...prev,
+              [sectionIdStr]: freshProducts // Asignar productos nuevos a la sección
+            }));
+          }
+        );
+        
+        // Cerrar la notificación de carga
+        toast.dismiss(`loading-${sectionId}`);
+        
+        if (loadedProducts && loadedProducts.length > 0) {
+          toast.success(`${loadedProducts.length} productos cargados`);
+          
+          // Forzar otra actualización del estado para asegurar que la UI se refresca
+          setProducts(currentProducts => {
+            // Verificar si realmente necesitamos actualizar
+            if (currentProducts[sectionIdStr]?.length !== loadedProducts.length) {
+              console.log(`🔄 [CRITICAL] Forzando actualización final de UI con ${loadedProducts.length} productos`);
+              return {
+                ...currentProducts,
+                [sectionIdStr]: loadedProducts
+              };
+            }
+            return currentProducts;
+          });
+        } else {
+          console.warn(`⚠️ No se encontraron productos para la sección ${sectionId}`);
+          toast.error(`No se encontraron productos para esta sección`);
+        }
+      } catch (error) {
+        console.error(`❌ Error al cargar productos: ${error}`);
+        toast.dismiss(`loading-${sectionId}`);
+        toast.error(`Error al cargar productos`);
+      }
+    }
+  }, [fetchProductsBySection, sections, setCurrentView, setProducts, setSelectedSection, setExpandedSections, setSelectedCategory, categories]);
   
   // Handlers para manejo de categorías
   const handleAddCategory = useCallback(() => {
@@ -325,6 +438,18 @@ export default function DashboardView() {
         clientName={client?.name || 'Dashboard'}
       />
       
+      {offlineMode && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 flex items-center" role="alert">
+          <div className="flex-shrink-0 mr-2">
+            <ExclamationTriangleIcon className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="font-bold">Modo sin conexión</p>
+            <p className="text-sm">Usando datos de demostración. Algunas funciones podrían estar limitadas.</p>
+          </div>
+        </div>
+      )}
+      
       <div className="container mx-auto px-4 py-6 flex-1">
         {/* Breadcrumbs y navegación */}
         <Breadcrumbs
@@ -448,20 +573,75 @@ export default function DashboardView() {
                 />
               )}
 
-              {/* El ProductView solo se debe mostrar cuando se accede directamente a un producto */}
-              {currentView === 'PRODUCTS' && selectedSection && (
-                <ProductView
-                  products={selectedSection ? (products[selectedSection.section_id.toString()] || []) : []}
-                  sectionName={selectedSection ? (selectedSection.name || '') : ''}
-                  sectionId={selectedSection ? selectedSection.section_id : 0}
-                  isUpdatingVisibility={isUpdatingVisibility}
-                  onAddProduct={() => selectedSection && handleAddProduct(selectedSection.section_id)}
-                  onEditProduct={handleEditProduct}
-                  onDeleteProduct={handleDeleteProduct}
-                  onToggleProductVisibility={toggleProductVisibility}
-                  isLoading={false}
-                />
-              )}
+              {/* El ProductView solo se debe mostrar cuando hay una sección seleccionada y estamos en vista PRODUCTS */}
+              {currentView === 'PRODUCTS' && selectedSection && (() => {
+                // Obtener el sectionId como string para acceder al objeto products
+                const sectionIdStr = selectedSection.section_id.toString();
+                
+                // Verificar el objeto products con más detalle
+                console.log(`📊 [CRITICAL] ANTES de renderizar ProductView:`, {
+                  todasLasKeys: Object.keys(products),
+                  tieneKeySection: sectionIdStr in products,
+                  valorDirecto: products[sectionIdStr],
+                  tipoDeValor: products[sectionIdStr] ? typeof products[sectionIdStr] : 'undefined',
+                  esArray: Array.isArray(products[sectionIdStr]),
+                  contieneDatos: products[sectionIdStr]?.length > 0
+                });
+                
+                // SOLUCIÓN TEMPORAL: Si no hay productos en el state global, cargarlos ahora
+                if (!products[sectionIdStr] || products[sectionIdStr].length === 0) {
+                  console.log(`⚠️ [CRITICAL] NO hay productos en el state, intentando cargar ahora...`);
+                  
+                  // Este es un último recurso - idealmente no debería ser necesario
+                  fetchProductsBySection(selectedSection.section_id, true)
+                    .then(loadedProducts => {
+                      console.log(`✅ Carga de emergencia completada: ${loadedProducts.length} productos`);
+                    })
+                    .catch(err => {
+                      console.error(`❌ Error en carga de emergencia:`, err);
+                    });
+                }
+                
+                // Obtener productos para esta sección - intentamos todas las opciones posibles
+                let sectionProducts: Product[] = [];
+                
+                // Opción 1: Productos en el state global
+                if (products[sectionIdStr] && products[sectionIdStr].length > 0) {
+                  sectionProducts = products[sectionIdStr];
+                  console.log(`✅ Usando productos del state global: ${sectionProducts.length}`);
+                } 
+                // Si no hay productos, mandamos un array vacío pero lo registramos
+                else {
+                  console.log(`⚠️ [CRITICAL] No hay productos disponibles para mostrar`);
+                }
+                
+                return (
+                  <>
+                    {/* Debug info visible solo en desarrollo */}
+                    {process.env.NODE_ENV === 'development' && (
+                      <div className="p-2 mb-4 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                        <div className="font-bold">Debug info:</div>
+                        <div>Sección: {selectedSection.name} (ID: {selectedSection.section_id})</div>
+                        <div>Productos cargados: {sectionProducts.length}</div>
+                        <div>Keys en state: {Object.keys(products).join(', ')}</div>
+                        <div>Tiene key {sectionIdStr}: {sectionIdStr in products ? 'Sí' : 'No'}</div>
+                      </div>
+                    )}
+                    
+                    <ProductView
+                      products={sectionProducts}
+                      sectionName={selectedSection.name || ''}
+                      sectionId={selectedSection.section_id}
+                      isUpdatingVisibility={isUpdatingVisibility}
+                      onAddProduct={() => handleAddProduct(selectedSection.section_id)}
+                      onEditProduct={handleEditProduct}
+                      onDeleteProduct={handleDeleteProduct}
+                      onToggleProductVisibility={toggleProductVisibility}
+                      isLoading={!sectionProducts || sectionProducts.length === 0}
+                    />
+                  </>
+                );
+              })()}
             </>
           )}
         </div>

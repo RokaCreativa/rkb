@@ -266,11 +266,12 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                     `}
                                   >
                                     <div className="flex items-center space-x-2">
-                                      <div className={`
-                                        ${expandedSections[section.section_id] ? 'transform rotate-90' : ''}
-                                        transition-transform duration-200
-                                      `}>
-                                        <ChevronRightIcon className="h-4 w-4 text-teal-500" />
+                                      <div className="transition-transform duration-200">
+                                        {expandedSections[section.section_id] ? (
+                                          <ChevronDownIcon className="h-4 w-4 text-teal-500" />
+                                        ) : (
+                                          <ChevronRightIcon className="h-4 w-4 text-teal-500" />
+                                        )}
                                       </div>
                                       
                                       <span className="text-sm font-medium text-gray-700">
@@ -279,13 +280,11 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                       
                                       <span className="text-xs text-gray-500">
                                         ({
-                                          products[section.section_id.toString()] 
-                                            ? products[section.section_id.toString()].filter((p: Product) => p.status === 1).length 
-                                            : 0
-                                        }/{
-                                          products[section.section_id.toString()] 
-                                            ? products[section.section_id.toString()].length 
-                                            : 0
+                                          section.visible_products_count !== undefined && section.products_count !== undefined 
+                                            ? `${section.visible_products_count}/${section.products_count}`
+                                            : products[section.section_id.toString()] 
+                                              ? `${products[section.section_id.toString()].filter((p: Product) => p.status === 1).length}/${products[section.section_id.toString()].length}`
+                                              : '0/0'
                                         })
                                       </span>
                                     </div>

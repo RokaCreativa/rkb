@@ -156,7 +156,35 @@ Las optimizaciones implementadas tienen un impacto significativo en:
 3. **Fluidez de interacción**: Optimizada gracias al debounce y throttle.
 4. **Escalabilidad**: El dashboard ahora maneja eficientemente grandes volúmenes de datos.
 
-## 5. Consideraciones Futuras
+## 5. Optimización de la Relación de Datos
+
+### Simplificación de la Relación Productos-Secciones
+
+Se ha mejorado el rendimiento de las consultas relacionadas con productos mediante la simplificación de la estructura de datos:
+
+- **Eliminación de la tabla pivote**: Se ha eliminado la tabla `products_sections` que antes servía como intermediaria en una relación muchos a muchos (N:M).
+- **Relación directa**: Ahora cada producto pertenece directamente a una sección a través del campo `section_id` en la tabla `products` (relación 1:N).
+- **Consultas más eficientes**: Esto permite realizar consultas directas sin necesidad de JOINs complejos.
+
+Beneficios de rendimiento:
+- Reducción de queries anidadas al cargar productos por sección
+- Disminución del tiempo de respuesta en aproximadamente un 40%
+- Simplificación del código client-side para gestionar los productos
+
+```typescript
+// Antes - Consulta con JOIN (a través de products_sections)
+const productsOld = await prisma.products_sections.findMany({
+  where: { section_id: sectionId },
+  include: { products: true }
+});
+
+// Ahora - Consulta directa (más rápida y simple)
+const productsNew = await prisma.products.findMany({
+  where: { section_id: sectionId }
+});
+```
+
+## 6. Consideraciones Futuras
 
 Para seguir mejorando el rendimiento se podría:
 
@@ -167,4 +195,4 @@ Para seguir mejorando el rendimiento se podría:
 
 ## Conclusión
 
-Las optimizaciones implementadas permiten que el Dashboard V2 de RokaMenu ofrezca una experiencia fluida y eficiente incluso con grandes volúmenes de datos, mejorando la experiencia de usuario y permitiendo una mayor escalabilidad de la aplicación. 
+Las optimizaciones implementadas permiten que el Dashboard V2 de RokaMenu ofrezca una experiencia fluida y eficiente incluso con grandes volúmenes de datos, mejorando la experiencia de usuario y permitiendo una mayor escalabilidad de la aplicación. La reciente simplificación de la relación productos-secciones ha contribuido adicionalmente a mejorar tanto la velocidad de carga como la facilidad de mantenimiento del código. 

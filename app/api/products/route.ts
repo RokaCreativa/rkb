@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
     
     // Obtener los parámetros de la URL
     const url = new URL(req.url);
-    const sectionId = url.searchParams.get('section_id');
+    const sectionId = url.searchParams.get('sectionId') || url.searchParams.get('section_id');
     
     // Parámetros de paginación (opcionales)
     const page = parseInt(url.searchParams.get('page') || '1');
@@ -151,98 +151,83 @@ export async function GET(req: NextRequest) {
       }
     }
     
-    // Si se especifica una sección, buscar los productos de esa sección
+    // Si se especifica una sección, buscar los productos de esa sección directamente
     const sectionIdInt = parseInt(sectionId);
     
-    // Obtener los IDs de productos asociados a la sección
-    const productSectionRelations = await prisma.products_sections.findMany({
-      where: {
-        section_id: sectionIdInt
-      }
-    });
-    
-    const productIds = productSectionRelations.map(relation => relation.product_id);
-    
-    // Si no hay productos en esta sección, devolver un array vacío
-    if (productIds.length === 0) {
-      if (isPaginated) {
-        return new Response(JSON.stringify({
-          data: [],
-          meta: {
-            total: 0,
-            page: validPage,
-            limit: validLimit,
-            totalPages: 0
-          }
-        }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      } else {
-        return new Response(JSON.stringify([]), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
-    }
-    
-    // Obtener el total de productos si hay paginación
+    // Obtener total de productos si hay paginación
     let totalProducts: number | undefined;
     if (isPaginated) {
-      totalProducts = productIds.length;
+      // Primero obtenemos el conteo de todos los productos del cliente
+      const allProductsCount = await prisma.products.count({
+        where: {
+          client_id: clientId,
+          deleted: false
+        }
+      });
+      
+      // Si no hay productos en general, devolvemos un array vacío
+      if (allProductsCount === 0) {
+        return returnEmptyProducts(isPaginated, validPage, validLimit);
+      }
+      
+      // Obtenemos todos los productos para contarlos manualmente (sin paginación)
+      // Esto es ineficiente pero es temporal hasta actualizar el esquema
+      const allProducts = await prisma.products.findMany({
+        where: {
+          client_id: clientId,
+          deleted: false
+        },
+        select: {
+          product_id: true,
+          // @ts-ignore - Seleccionamos section_id aunque TypeScript no lo reconozca
+          section_id: true
+        }
+      });
+      
+      // Filtramos por section_id manualmente para obtener el conteo real
+      totalProducts = allProducts.filter(product => {
+        // @ts-ignore - El campo section_id existe en la DB pero no en el tipo
+        return product.section_id === sectionIdInt;
+      }).length;
+      
+      // Si no hay productos en esta sección, devolver un array vacío
+      if (totalProducts === 0) {
+        return returnEmptyProducts(isPaginated, validPage, validLimit);
+      }
     }
     
-    // Calcular parámetros de paginación para Prisma
-    const skip = isPaginated ? (validPage - 1) * validLimit : undefined;
-    const take = isPaginated ? validLimit : undefined;
-    
-    // Filtrar los IDs de productos según la paginación
-    const paginatedProductIds = isPaginated 
-      ? productIds.slice(skip, skip! + take!) 
-      : productIds;
-    
-    // Obtener los detalles de los productos
-    const products = await prisma.products.findMany({
+    // Utilizamos una estrategia alternativa para obtener los productos
+    // Obtenemos todos los productos del cliente y luego filtramos por section_id en el código
+    const allClientProducts = await prisma.products.findMany({
       where: {
-        product_id: { in: paginatedProductIds },
+        client_id: clientId,
         deleted: false
       },
       orderBy: {
         display_order: 'asc'
-      }
+      },
+      skip: isPaginated ? (validPage - 1) * validLimit : undefined,
+      take: isPaginated ? validLimit : undefined
     });
     
-    // Procesar los productos para el formato requerido por el frontend
-    const processedProducts = products.map(product => {
-      return {
-        ...product,
-        image: product.image || null,
-        status: product.status ? 1 : 0
-      };
+    // Filtrar manualmente por section_id
+    const products = allClientProducts.filter(product => {
+      // @ts-ignore - El campo section_id existe en la DB pero no en el tipo
+      return product.section_id === sectionIdInt;
     });
-
-    // Devolver respuesta según sea paginada o no
-    if (isPaginated && totalProducts !== undefined) {
-      const totalPages = Math.ceil(totalProducts / validLimit);
-      
-      return new Response(JSON.stringify({
-        data: processedProducts,
-        meta: {
-          total: totalProducts,
-          page: validPage,
-          limit: validLimit,
-          totalPages
-        }
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    } else {
-      return new Response(JSON.stringify(processedProducts), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    
+    // Si no hay productos, devolver array vacío
+    if (products.length === 0) {
+      return returnEmptyProducts(isPaginated, validPage, validLimit);
     }
+    
+    // Ajustar el total de productos para la paginación
+    if (!isPaginated) {
+      totalProducts = products.length;
+    }
+    
+    // Procesamos y devolvemos la respuesta
+    return processProductsResponse(products, isPaginated, validPage, validLimit, totalProducts);
   } catch (error) {
     console.error('Error getting products:', error);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
@@ -348,7 +333,15 @@ export async function POST(request: Request) {
       imageUrl = uniqueFileName;
     }
 
-    // 7. Crear el nuevo producto
+    // 7. Usamos el primer section_id como sección principal para el producto
+    // En el nuevo modelo de datos, un producto solo puede estar en una sección a la vez
+    const primarySectionId = sectionIds.length > 0 ? sectionIds[0] : null;
+    
+    if (!primarySectionId) {
+      return NextResponse.json({ error: 'Se requiere al menos una sección' }, { status: 400 });
+    }
+    
+    // Crear el nuevo producto con el section_id directamente
     const newProduct = await prisma.products.create({
       data: {
         name,
@@ -359,28 +352,21 @@ export async function POST(request: Request) {
         display_order: maxOrder + 1,
         client_id: user.client_id,
         deleted: false as any,
+        // @ts-ignore - Usamos el section_id directamente ahora
+        section_id: primarySectionId,
       },
     });
+    
+    // NOTA: Ya no es necesario usar la tabla products_sections
+    // Si se seleccionaron múltiples secciones, advertimos que solo se usará la primera
+    if (sectionIds.length > 1) {
+      console.warn(`⚠️ Se seleccionaron ${sectionIds.length} secciones, pero solo se asignó la primera (ID: ${primarySectionId})`);
+    }
 
-    // 8. Crear relaciones con las secciones
-    const productSectionsData = sectionIds.map(sectionId => ({
-      product_id: newProduct.product_id,
-      section_id: sectionId,
-    }));
-
-    await prisma.products_sections.createMany({
-      data: productSectionsData,
-    });
-
-    // 9. Obtener las secciones asociadas para incluir en la respuesta
-    const productSections = await prisma.sections.findMany({
-      where: {
-        section_id: { in: sectionIds },
-      },
-      select: {
-        section_id: true,
-        name: true,
-      },
+    // Obtener nombre de la sección para la respuesta
+    const section = await prisma.sections.findUnique({
+      where: { section_id: primarySectionId },
+      select: { name: true }
     });
 
     // 10. Preparar la respuesta
@@ -393,10 +379,10 @@ export async function POST(request: Request) {
       client_id: newProduct.client_id || 0,
       price: parseFloat(newProduct.price?.toString() || '0'),
       description: newProduct.description,
-      sections: productSections.map(section => ({
-        section_id: section.section_id,
-        name: section.name || '',
-      })),
+      sections: [{
+        section_id: primarySectionId,
+        name: section?.name || 'Sección sin nombre',
+      }],
     };
 
     return NextResponse.json(processedProduct);
@@ -530,5 +516,63 @@ export async function PUT(req: Request) {
         headers: { 'Content-Type': 'application/json' },
       }
     );
+  }
+}
+
+// Función auxiliar para procesar la respuesta de productos
+function processProductsResponse(products: any[], isPaginated?: boolean, page?: number, limit?: number, total?: number) {
+  // Procesar los productos para el formato requerido por el frontend
+  const processedProducts = products.map(product => {
+    return {
+      ...product,
+      image: product.image || null,
+      status: product.status ? 1 : 0
+    };
+  });
+  
+  // Devolver respuesta según sea paginada o no
+  if (isPaginated && total !== undefined) {
+    const totalPages = Math.ceil(total / limit!);
+    
+    return new Response(JSON.stringify({
+      data: processedProducts,
+      meta: {
+        total: total,
+        page: page,
+        limit: limit,
+        totalPages
+      }
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } else {
+    return new Response(JSON.stringify(processedProducts), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+// Función auxiliar para devolver un array vacío de productos
+function returnEmptyProducts(isPaginated?: boolean, page?: number, limit?: number) {
+  if (isPaginated) {
+    return new Response(JSON.stringify({
+      data: [],
+      meta: {
+        total: 0,
+        page: page,
+        limit: limit,
+        totalPages: 0
+      }
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } else {
+    return new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 } 

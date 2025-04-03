@@ -189,7 +189,11 @@ export const SectionTable: React.FC<SectionTableProps> = ({
                                     : "text-gray-700"
                                 }`}>{section.name}</span>
                                 <span className="text-xs text-gray-500 ml-2">
-                                  ({section.visible_products_count || 0}/{section.products_count || 0} productos visibles)
+                                  {products && products[section.section_id.toString()] ? (
+                                    `(${products[section.section_id.toString()].filter(p => p.status === 1).length}/${products[section.section_id.toString()].length} productos visibles)`
+                                  ) : (
+                                    `(${section.visible_products_count || 0}/${section.products_count || 0} productos visibles)`
+                                  )}
                                 </span>
                               </div>
                             </div>
@@ -427,8 +431,12 @@ export const SectionTable: React.FC<SectionTableProps> = ({
                         </div>
                         <div className="flex items-center">
                           <span className="text-sm font-medium text-gray-400">{section.name}</span>
-                          <span className="text-xs text-gray-400 ml-2">
-                            ({section.visible_products_count || 0}/{section.products_count || 0} productos visibles)
+                          <span className="text-xs text-gray-500 ml-2">
+                            {products && products[section.section_id.toString()] ? (
+                              `(${products[section.section_id.toString()].filter(p => p.status === 1).length}/${products[section.section_id.toString()].length} productos visibles)`
+                            ) : (
+                              `(${section.visible_products_count || 0}/${section.products_count || 0} productos visibles)`
+                            )}
                           </span>
                         </div>
                       </div>

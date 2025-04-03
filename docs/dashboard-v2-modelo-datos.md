@@ -90,7 +90,9 @@ Cliente
 - Un **Cliente** puede tener múltiples **Categorías**
 - Una **Categoría** pertenece a un único **Cliente** y puede tener múltiples **Secciones**
 - Una **Sección** pertenece a una única **Categoría** y puede tener múltiples **Productos**
-- Un **Producto** pertenece a una única **Sección**
+- Un **Producto** pertenece a una única **Sección** (relación directa a través del campo `section_id`)
+
+> **Nota sobre cambio estructural**: Se ha simplificado la relación entre Productos y Secciones. Anteriormente existía una tabla pivote `products_sections` que permitía que un producto perteneciera a múltiples secciones (relación N:M). Con la nueva estructura, cada producto pertenece directamente a una única sección (relación 1:N), lo que simplifica las consultas y la gestión de datos. Para casos especiales donde un producto necesite aparecer en múltiples secciones, se recomienda duplicar el producto.
 
 ## Estados del Dashboard
 

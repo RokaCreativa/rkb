@@ -1,3 +1,66 @@
+
+# 📦 Revisión técnica de `schema.prisma` (estructura de la base de datos RokaMenu)
+
+Este documento contiene una revisión exhaustiva de los modelos definidos en el archivo `schema.prisma`, con observaciones técnicas y recomendaciones de mejora si fueran necesarias.
+
+---
+
+## ✅ Estructura general
+
+- ✔️ Claves primarias definidas correctamente con `@id` y `autoincrement()`.
+- ✔️ Uso apropiado de tipos: `String`, `Int`, `Boolean`, `DateTime`.
+- ⚠️ Muchos campos opcionales (`?`) pueden generar `nulls` inesperados.
+- ❌ No se detectan relaciones `@relation`, lo cual limita el uso de Prisma ORM a su máximo potencial.
+
+---
+
+## 🧠 Recomendaciones generales
+
+### 1. Definir relaciones explícitas entre modelos
+
+Por ejemplo, si un `product` pertenece a una `section`, se debe declarar así:
+
+```prisma
+model products {
+  product_id Int @id @default(autoincrement())
+  section_id Int
+  section sections @relation(fields: [section_id], references: [section_id])
+}
+```
+
+Esto permite que puedas hacer consultas tipo:
+
+```ts
+prisma.products.findMany({
+  include: {
+    section: true
+  }
+})
+```
+
+---
+
+### 2. Revisar campos opcionales
+
+Modelos como `categories`, `sections` y `products` tienen campos como `name String?`. Si estos son requeridos para mostrar datos correctamente en la app, deberían cambiarse a `String` (sin `?`).
+
+---
+
+### 3. Normalización de estado (status, deleted, visible)
+
+Asegurarse de que campos como `status`, `deleted`, `visible` sean:
+
+- Tipo `Boolean`
+- No opcionales (`Boolean` en vez de `Boolean?`)
+- Tengan valores por defecto (`@default(true)` o `@default(false)`)
+
+Esto previene errores en filtros o renderizado condicional en el dashboard.
+
+---
+
+## 📄 Modelos detectados (extraídos de schema.prisma)
+
+```prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -261,10 +324,9 @@ model menu_translations {
 model products {
   product_id                   Int                 @id @default(autoincrement())
   client_id                    Int?
-  section_id                   Int?
-  name                         String              @db.VarChar(100)
+  name                         String?             @db.VarChar(100)
   display_order                Int?
-  price                        Decimal             @db.Decimal(10, 2)
+  price                        Decimal?            @db.Decimal(10, 2)
   status                       Boolean?            @default(true)
   description                  String?             @db.Text
   image                        String?             @db.VarChar(100)
@@ -290,18 +352,16 @@ model products {
   duration_minutes             String?             @db.VarChar(2)
   free_pickup_hotel            String?             @db.VarChar(1)
   zone                         String?             @db.VarChar(100)
-  deleted                      Boolean             @default(false)
+  deleted                      Boolean?
   deleted_at                   String?             @db.VarChar(20)
   deleted_by                   String?             @db.VarChar(50)
   deleted_ip                   String?             @db.VarChar(20)
   video                        String?             @db.VarChar(100)
   no_picture                   Int?                @default(0)
   clients                      clients?            @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_product_client")
-  section                      sections?           @relation("ProductSection", fields: [section_id], references: [section_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_section")
   products_sections            products_sections[]
 
   @@index([client_id], map: "fk_product_client")
-  @@index([section_id], map: "fk_products_section")
 }
 
 model products_sections {
@@ -427,7 +487,6 @@ model sections {
   deleted_at        String?             @db.VarChar(20)
   deleted_by        String?             @db.VarChar(50)
   deleted_ip        String?             @db.VarChar(20)
-  products_v2       products[]          @relation("ProductSection")
   products_sections products_sections[]
   categories        categories?         @relation(fields: [category_id], references: [category_id], onDelete: Cascade, map: "fk_section_category")
 
@@ -505,3 +564,5 @@ enum clients_menu_type {
   digital
   pdf
 }
+
+```
