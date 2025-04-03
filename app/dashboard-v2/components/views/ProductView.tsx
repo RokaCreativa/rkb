@@ -8,8 +8,8 @@
  */
 
 import { ChevronLeftIcon } from "@heroicons/react/24/outline";
-import { ProductTable } from "../ProductTable";
 import { Product, Section } from "@/app/types/menu";
+import { ProductTable } from "../ProductTable";
 
 /**
  * Props para el componente ProductView
@@ -47,6 +47,16 @@ export default function ProductView({
   onDeleteProduct,
   isLoading = false
 }: ProductViewProps) {
+  const adaptedProducts = products.map(p => ({
+    id: p.product_id,
+    name: p.name,
+    description: p.description,
+    image: p.image,
+    price: p.price,
+    discount_price: p.discount_price,
+    status: p.status,
+  }));
+  
   return (
     <>
       <div className="mb-6">
@@ -69,13 +79,24 @@ export default function ProductView({
         </div>
       ) : (
         <ProductTable 
-          products={products}
+          products={adaptedProducts}
           sectionId={selectedSection.section_id}
           sectionName={selectedSection.name}
           onToggleProductVisibility={onToggleProductVisibility}
           isUpdatingVisibility={isUpdatingVisibility}
-          onEditProduct={onEditProduct}
-          onDeleteProduct={onDeleteProduct}
+          onEditProduct={(productFromTable) => {
+            const originalProduct = products.find(p => p.product_id === productFromTable.id);
+            if (originalProduct) {
+              onEditProduct(originalProduct);
+            }
+          }}
+          onDeleteProduct={async (productId) => {
+            const originalProduct = products.find(p => p.product_id === productId);
+            if (originalProduct) {
+              onDeleteProduct(originalProduct);
+            }
+            return true;
+          }}
         />
       )}
     </>

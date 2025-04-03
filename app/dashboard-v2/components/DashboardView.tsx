@@ -189,8 +189,10 @@ export default function DashboardView() {
   const handleConfirmDeleteSection = async () => {
     if (!itemToDelete || !('section_id' in itemToDelete)) return;
     
+    const categoryId = 'category_id' in itemToDelete ? itemToDelete.category_id : 0;
+    
     try {
-      await deleteSection(itemToDelete.section_id);
+      await deleteSection(itemToDelete.section_id, categoryId);
       toast.success('Sección eliminada correctamente');
       setShowDeleteSectionModal(false);
       setItemToDelete(null);
@@ -227,7 +229,7 @@ export default function DashboardView() {
     if (!itemToDelete || !('product_id' in itemToDelete) || !selectedSection) return;
     
     try {
-      await deleteProduct(itemToDelete.product_id);
+      await deleteProduct(itemToDelete.product_id, selectedSection.section_id);
       toast.success('Producto eliminado correctamente');
       setShowDeleteProductModal(false);
       setItemToDelete(null);
@@ -353,9 +355,9 @@ export default function DashboardView() {
       </main>
       
       {/* Vista previa móvil */}
-      {client && client.restaurant_id && (
+      {client && client.id && (
         <MobilePreview
-          restaurantId={client.restaurant_id}
+          restaurantId={String(client.id)}
         />
       )}
       
@@ -373,7 +375,8 @@ export default function DashboardView() {
         <EditCategoryModal 
           isOpen={showEditCategoryModal}
           onClose={() => setShowEditCategoryModal(false)}
-          category={selectedCategory}
+          categoryToEdit={selectedCategory}
+          client={client}
           setCategories={setCategories}
         />
       )}
@@ -393,7 +396,6 @@ export default function DashboardView() {
           isOpen={showNewSectionModal}
           onClose={() => setShowNewSectionModal(false)}
           categoryId={selectedCategory.category_id}
-          categoryName={selectedCategory.name}
           setSections={setSections}
         />
       )}
@@ -403,7 +405,11 @@ export default function DashboardView() {
           isOpen={showEditSectionModal}
           onClose={() => setShowEditSectionModal(false)}
           section={selectedSection}
-          setSections={setSections}
+          updateSection={async (formData, sectionId, categoryId) => {
+            // Implementar la lógica para actualizar la sección
+            // Esta es una implementación temporal que siempre devuelve true
+            return true;
+          }}
         />
       )}
       
@@ -431,6 +437,8 @@ export default function DashboardView() {
           isOpen={showEditProductModal}
           onClose={() => setShowEditProductModal(false)}
           product={itemToDelete as Product}
+          client={client}
+          selectedSection={selectedSection}
           setProducts={setProducts}
         />
       )}

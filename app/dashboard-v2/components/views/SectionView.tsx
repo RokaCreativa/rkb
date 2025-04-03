@@ -77,7 +77,13 @@ export default function SectionView({
         <SectionTable 
           sections={sections}
           expandedSections={expandedSections}
-          onSectionClick={onSectionClick}
+          onSectionClick={(sectionId: number) => {
+            // Buscar la sección por su ID
+            const section = sections.find(s => s.section_id === sectionId);
+            if (section) {
+              onSectionClick(section);
+            }
+          }}
           onToggleSectionVisibility={onToggleSectionVisibility}
           isUpdatingVisibility={isUpdatingVisibility}
           onEditSection={onEditSection}
