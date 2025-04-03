@@ -191,7 +191,7 @@ export default function useDashboardState(clientId: number | null = null): Dashb
     setCurrentView('products');
     
     // Cargar productos si no están cargados
-    if (!products[section.section_id] || products[section.section_id].length === 0) {
+    if (!products[section.section_id.toString()] || products[section.section_id.toString()].length === 0) {
       fetchProductsBySection(section.section_id);
     }
   }, [products, fetchProductsBySection]);

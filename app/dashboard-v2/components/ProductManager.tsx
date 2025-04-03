@@ -34,10 +34,31 @@ export default function ProductManager({ section }: ProductManagerProps) {
       setIsLoading(true);
       
       try {
-        await fetchProductsBySection(section.section_id);
-        setIsLoading(false);
+        // Usar el parámetro updateLocalState para actualizar directamente el estado localProducts
+        // después de cargar los productos del servidor
+        await fetchProductsBySection(
+          section.section_id,
+          false, // No forzar recarga
+          (loadedProducts) => {
+            console.log(`✅ Actualizando estado local con ${loadedProducts.length} productos cargados para sección ${section.section_id}`);
+            
+            // Convertir los productos del formato de la API al formato dashboard-v2
+            const dashboardProducts = loadedProducts.map(product => ({
+              product_id: product.product_id,
+              section_id: product.section_id,
+              name: product.name,
+              description: product.description || '',
+              price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+              image_url: product.image || '',
+              status: product.status === 1 ? 'active' : 'inactive'
+            }));
+            
+            setLocalProducts(dashboardProducts as unknown as Product[]);
+          }
+        );
       } catch (error) {
         console.error('Error al cargar productos:', error);
+      } finally {
         setIsLoading(false);
       }
     };
@@ -47,9 +68,14 @@ export default function ProductManager({ section }: ProductManagerProps) {
   
   // Actualizar productos locales cuando cambia el store
   useEffect(() => {
-    if (section && productsMap && productsMap[section.section_id]) {
-      // Convertir los productos del mapa al tipo Product de dashboard-v2
-      const dashboardProducts = productsMap[section.section_id]?.map(product => ({
+    // Convertir section_id a string para acceder al objeto productsMap correctamente
+    const sectionIdStr = section?.section_id?.toString();
+    if (section && sectionIdStr && productsMap && productsMap[sectionIdStr]) {
+      const productsForSection = productsMap[sectionIdStr];
+      console.log(`🔄 Sincronizando productos locales desde store global para sección ${sectionIdStr}: ${productsForSection.length} productos`);
+      
+      // Convertir los productos del formato de la API al formato dashboard-v2
+      const dashboardProducts = productsForSection.map(product => ({
         product_id: product.product_id,
         section_id: product.section_id,
         name: product.name,
@@ -59,7 +85,7 @@ export default function ProductManager({ section }: ProductManagerProps) {
         status: product.status === 1 ? 'active' : 'inactive'
       }));
       
-      // Usar tipo desconocido como intermedio para la conversión segura
+      // Actualizar estado local con los productos convertidos
       setLocalProducts(dashboardProducts as unknown as Product[]);
     }
   }, [section, productsMap]);

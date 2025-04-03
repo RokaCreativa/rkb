@@ -451,7 +451,7 @@ export default function DashboardView() {
               {/* El ProductView solo se debe mostrar cuando se accede directamente a un producto */}
               {currentView === 'PRODUCTS' && selectedSection && (
                 <ProductView
-                  products={selectedSection ? (products[selectedSection.section_id.toString()] || []) : []}
+                  products={selectedSection ? (products[selectedSection.section_id] || []) : []}
                   sectionName={selectedSection ? (selectedSection.name || '') : ''}
                   sectionId={selectedSection ? selectedSection.section_id : 0}
                   isUpdatingVisibility={isUpdatingVisibility}

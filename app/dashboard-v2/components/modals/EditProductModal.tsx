@@ -36,7 +36,7 @@ export interface EditProductModalProps {
   product: any; // Accept a Product object
   client: Client | null;
   selectedSection: Section | null;
-  setProducts: React.Dispatch<React.SetStateAction<Record<string, Product[]> | any[]>>;
+  setProducts: React.Dispatch<React.SetStateAction<Record<string, Product[]>>>;
   onSuccess?: () => void;
 }
 
@@ -257,24 +257,23 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
 
       // SISTEMA DUAL: Actualizar el estado LOCAL inmediatamente
       setProducts(prevProducts => {
-        if (Array.isArray(prevProducts)) {
-          // Si es un array, actualizar directamente
-          return prevProducts.map(p => 
-            p.product_id === product.id ? normalizedProduct : p
-          );
-        } else {
-          // Si es un Record<string, Product[]>
+        // Crear una copia del objeto actual
+        const updated: Record<string, Product[]> = { ...prevProducts };
+        
+        // Si tenemos una sección seleccionada, actualizar sus productos
+        if (selectedSection && selectedSection.section_id) {
           const sectionId = selectedSection.section_id.toString();
-          const updated = { ...prevProducts };
           
-          if (updated[sectionId]) {
-            updated[sectionId] = updated[sectionId].map((p: Product) => 
-              p.product_id === product.id ? normalizedProduct : p
-            );
+          if (!updated[sectionId]) {
+            updated[sectionId] = [];
           }
           
-          return updated;
+          updated[sectionId] = updated[sectionId].map((p: Product) => 
+            p.product_id === product.id ? normalizedProduct : p
+          );
         }
+        
+        return updated;
       });
 
       // Toast de éxito

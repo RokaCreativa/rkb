@@ -9,15 +9,16 @@
 
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { SectionTable } from "../SectionTable";
-import { Category, Section } from "@/app/types/menu";
+import { Category, Section, Product } from "@/app/types/menu";
 
 /**
  * Props para el componente SectionView
  */
 interface SectionViewProps {
-  selectedCategory: Category;
   sections: Section[];
-  expandedSections: { [key: number]: boolean };
+  categoryName: string;
+  categoryId: number;
+  expandedSections?: { [key: number]: boolean };
   isUpdatingVisibility: number | null;
   onAddSection: () => void;
   onSectionClick: (section: Section) => void;
@@ -25,7 +26,15 @@ interface SectionViewProps {
   onEditSection: (section: Section) => void;
   onDeleteSection: (section: Section) => void;
   onAddProduct: (sectionId: number) => void;
+  products?: { [key: number]: Product[] };
+  onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => Promise<void>;
+  onEditProduct?: (product: Product) => void;
+  onDeleteProduct?: (product: Product) => void;
+  isUpdatingProductVisibility?: number | null;
   isLoading?: boolean;
+  isReorderModeActive: boolean;
+  handleReorderSection: (sectionId: number, newPosition: number) => void;
+  selectedCategory?: Category;
 }
 
 /**
@@ -41,9 +50,10 @@ interface SectionViewProps {
  * @returns {JSX.Element} La vista de secciones renderizada
  */
 export default function SectionView({
-  selectedCategory,
   sections,
-  expandedSections,
+  categoryName,
+  categoryId,
+  expandedSections = {},
   isUpdatingVisibility,
   onAddSection,
   onSectionClick,
@@ -51,13 +61,21 @@ export default function SectionView({
   onEditSection,
   onDeleteSection,
   onAddProduct,
-  isLoading = false
+  products = {},
+  onToggleProductVisibility,
+  onEditProduct,
+  onDeleteProduct,
+  isUpdatingProductVisibility,
+  isLoading = false,
+  isReorderModeActive,
+  handleReorderSection,
+  selectedCategory
 }: SectionViewProps) {
   return (
     <>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">
-          Secciones: {selectedCategory.name}
+          Secciones: {categoryName}
         </h1>
         
         <button
@@ -74,23 +92,36 @@ export default function SectionView({
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
         </div>
       ) : (
-        <SectionTable 
-          sections={sections}
+        <SectionTable
+          sections={sections || []}
           expandedSections={expandedSections}
-          onSectionClick={(sectionId: number) => {
-            // Buscar la sección por su ID
+          onSectionClick={(sectionId) => {
             const section = sections.find(s => s.section_id === sectionId);
             if (section) {
               onSectionClick(section);
             }
           }}
-          onToggleSectionVisibility={onToggleSectionVisibility}
-          isUpdatingVisibility={isUpdatingVisibility}
+          onToggleVisibility={onToggleSectionVisibility}
+          onAddProduct={onAddProduct}
           onEditSection={onEditSection}
           onDeleteSection={onDeleteSection}
-          onAddProduct={onAddProduct}
-          categoryName={selectedCategory.name}
-          categoryId={selectedCategory.category_id}
+          isUpdatingVisibility={isUpdatingVisibility}
+          categoryId={selectedCategory?.category_id || 0}
+          isReorderModeActive={isReorderModeActive}
+          onReorderSection={handleReorderSection}
+          products={products || {}}
+          onToggleProductVisibility={onToggleProductVisibility}
+          onEditProduct={onEditProduct}
+          onDeleteProduct={onDeleteProduct}
+          isUpdatingProductVisibility={isUpdatingProductVisibility}
+          client={{}}
+          loading={false}
+          setLoading={() => {}}
+          setSections={() => {}}
+          setExpandedSections={() => {}}
+          onEdit={onEditSection}
+          handleAddProduct={(section) => onAddProduct(section.section_id)}
+          setProducts={() => {}}
         />
       )}
     </>

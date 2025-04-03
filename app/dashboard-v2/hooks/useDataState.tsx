@@ -8,14 +8,21 @@ import useSections from '@/app/hooks/useSections';
 import useProducts from '@/app/hooks/useProducts';
 
 interface DataState {
+  client: any | null;
   categories: Category[];
-  sections: Record<number, Section[]>;
-  products: Record<number, Product[]>;
+  sections: Record<string, Section[]>;
+  products: Record<string, Product[]>;
   expandedCategories: Record<number, boolean>;
   expandedSections: Record<number, boolean>;
   selectedCategory: Category | null;
   selectedSection: Section | null;
   selectedProduct: Product | null;
+  isLoading: boolean;
+  isSectionsLoading: boolean;
+  isProductsLoading: boolean;
+  error: string | null;
+  isUpdatingVisibility: number | null;
+  isUpdatingOrder: boolean;
 }
 
 /**
@@ -25,8 +32,8 @@ export default function useDataState(clientId: number | null = null) {
   // Estados de datos principales
   const [client, setClient] = useState<Client | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [sections, setSections] = useState<{ [key: number]: Section[] }>({});
-  const [products, setProducts] = useState<{ [key: number]: Product[] }>({});
+  const [sections, setSections] = useState<{ [key: string]: Section[] }>({});
+  const [products, setProducts] = useState<{ [key: string]: Product[] }>({});
   
   // Estados de carga
   const [isLoading, setIsLoading] = useState(true);
@@ -211,7 +218,7 @@ export default function useDataState(clientId: number | null = null) {
       
       // PASO 2: Verificar si ya tenemos las secciones en caché
       // Esto es crucial para evitar llamadas API innecesarias
-      if (sections[categoryId] && sections[categoryId].length > 0) {
+      if (sections[categoryId.toString()] && sections[categoryId.toString()].length > 0) {
         console.log(`📦 Secciones ya cargadas para categoría ${categoryId}, evitando recarga`);
         setIsLoading(false);
         return;
@@ -300,15 +307,15 @@ export default function useDataState(clientId: number | null = null) {
         console.log(`🔄 Actualizando estado de secciones para categoría ${categoryId}: ${processedSections.map((s: Section) => s.name).join(', ')}`);
         setSections(prevSections => {
           const newSections = { ...prevSections };
-          newSections[categoryId] = processedSections;
+          newSections[categoryId.toString()] = processedSections;
           
           // Debug crítico para verificar el objeto antes y después
           console.log(`🔍 DEBUG - Estado ANTES de actualizar:`, JSON.stringify(Object.keys(prevSections)));
           console.log(`🔍 DEBUG - Estado DESPUÉS de actualizar:`, JSON.stringify(Object.keys(newSections)));
-          console.log(`🔍 DEBUG - ¿Contiene la categoría ${categoryId}?`, newSections.hasOwnProperty(categoryId));
-          console.log(`🔍 DEBUG - Valor para categoryId ${categoryId}:`, newSections[categoryId]?.length || 0);
+          console.log(`🔍 DEBUG - ¿Contiene la categoría ${categoryId}?`, newSections.hasOwnProperty(categoryId.toString()));
+          console.log(`🔍 DEBUG - Valor para categoryId ${categoryId}:`, newSections[categoryId.toString()]?.length || 0);
           
-          console.log(`✅ Estado de secciones actualizado: ${JSON.stringify(Object.keys(newSections).map(k => `${k}: ${newSections[parseInt(k)]?.length || 0}`))}`);
+          console.log(`✅ Estado de secciones actualizado: ${JSON.stringify(Object.keys(newSections).map(k => `${k}: ${newSections[k]?.length || 0}`))}`);
           console.log(`Secciones para categoría ${categoryId}: ${processedSections.length}`);
           return newSections;
         });
@@ -316,7 +323,7 @@ export default function useDataState(clientId: number | null = null) {
         // PASO 9: Verificar que las secciones se guardaron correctamente
         setTimeout(() => {
           console.log(`🔍 DEBUG - Verificando después de actualizar, secciones para categoría ${categoryId}:`, 
-                      sections[categoryId]?.length || 0);
+                      sections[categoryId.toString()]?.length || 0);
         }, 500);
         
         // PASO 10: Finalizar estado de carga
@@ -363,16 +370,18 @@ export default function useDataState(clientId: number | null = null) {
     }
     
     // PASO 2: Verificar si ya tenemos los productos en caché
-    if (products[sectionId] && products[sectionId].length > 0 && !forceRefresh) {
+    // Convertir sectionId a string para acceder al objeto
+    const sectionIdStr = sectionId.toString();
+    if (products[sectionIdStr] && products[sectionIdStr].length > 0 && !forceRefresh) {
       console.log(`📦 Productos ya cargados para sección ${sectionId}, evitando recarga`);
       
       // Si nos proporcionaron una función para actualizar estado local, la llamamos con datos de caché
       if (updateLocalState) {
         console.log(`🔄 Actualizando estado local con productos en caché`);
-        updateLocalState(products[sectionId]);
+        updateLocalState(products[sectionIdStr]);
       }
       
-      return products[sectionId];
+      return products[sectionIdStr];
     }
     
     console.log(`🔄 Cargando productos para sección ${sectionId}${forceRefresh ? ' (FORZADO)' : ''}...`);
@@ -423,7 +432,9 @@ export default function useDataState(clientId: number | null = null) {
       // PASO 5: Actualizar estado GLOBAL con los productos cargados
       setProducts(prev => {
         const updatedProducts = { ...prev };
-        updatedProducts[sectionId] = processedProducts;
+        // IMPORTANTE: Convertir sectionId a string para garantizar que la clave sea string
+        updatedProducts[sectionIdStr] = processedProducts;
+        console.log(`🔄 Actualizando productos para sección ${sectionId} (clave: ${sectionIdStr}):`, processedProducts.length);
         return updatedProducts;
       });
       
@@ -440,8 +451,9 @@ export default function useDataState(clientId: number | null = null) {
         
         setSections(prev => {
           const updated = { ...prev };
-          if (updated[foundCategoryId]) {
-            updated[foundCategoryId] = updated[foundCategoryId].map(s => 
+          const categoryIdStr = foundCategoryId.toString();
+          if (updated[categoryIdStr]) {
+            updated[categoryIdStr] = updated[categoryIdStr].map(s => 
               s.section_id === sectionId 
                 ? {
                     ...s,
@@ -477,7 +489,7 @@ export default function useDataState(clientId: number | null = null) {
     setSelectedCategory(category);
     
     // Cargar secciones si no están cargadas
-    if (!sections[categoryId] || sections[categoryId].length === 0) {
+    if (!sections[categoryId.toString()] || sections[categoryId.toString()].length === 0) {
       await fetchSectionsByCategory(categoryId);
     }
     
@@ -507,7 +519,8 @@ export default function useDataState(clientId: number | null = null) {
     }
     
     // Encontrar el objeto sección
-    const section = sections[categoryId]?.find(s => s.section_id === sectionId);
+    const categoryIdStr = categoryId.toString();
+    const section = sections[categoryIdStr]?.find(s => s.section_id === sectionId);
     if (!section) {
       console.error("❌ No se pudo encontrar la sección");
       return;
@@ -516,11 +529,14 @@ export default function useDataState(clientId: number | null = null) {
     // Actualizar selección
     setSelectedSection(section);
     
+    // Usar sectionIdStr para acceso consistente al objeto
+    const sectionIdStr = sectionId.toString();
+    
     // Si estamos expandiendo y no tenemos productos, cargarlos
-    if (!isCurrentlyExpanded && (!products[sectionId] || products[sectionId].length === 0)) {
+    if (!isCurrentlyExpanded && (!products[sectionIdStr] || products[sectionIdStr].length === 0)) {
       await fetchProductsBySection(sectionId);
     } else {
-      console.log(`Productos ya cargados para sección ${sectionId}:`, products[sectionId]?.length || 0);
+      console.log(`Productos ya cargados para sección ${sectionId}:`, products[sectionIdStr]?.length || 0);
     }
   }, [expandedSections, fetchProductsBySection, findCategoryIdForSection, products, sections]);
   
@@ -587,7 +603,7 @@ export default function useDataState(clientId: number | null = null) {
       setSections(prev => {
         const updated = { ...prev };
         Object.keys(updated).forEach(categoryId => {
-          updated[parseInt(categoryId)] = updated[parseInt(categoryId)]?.map(section => 
+          updated[categoryId] = updated[categoryId]?.map(section => 
             section.section_id === sectionId ? { ...section, status: newStatus } : section
           ) || [];
         });
@@ -747,8 +763,8 @@ export default function useDataState(clientId: number | null = null) {
         const updatedSections = { ...prevSections };
         
         // Si existe la categoría, actualizar la sección
-        if (updatedSections[categoryId]) {
-          updatedSections[categoryId] = updatedSections[categoryId].map(section =>
+        if (updatedSections[categoryId.toString()]) {
+          updatedSections[categoryId.toString()] = updatedSections[categoryId.toString()].map(section =>
             section.section_id === sectionId ? normalizedSection : section
           );
         }
@@ -817,9 +833,9 @@ export default function useDataState(clientId: number | null = null) {
         const updatedProducts = { ...prevProducts };
         
         // Verificar si existe la clave de la sección
-        if (updatedProducts[Number(sectionId)]) {
+        if (updatedProducts[sectionId.toString()]) {
           // Actualizar el producto dentro de la sección
-          updatedProducts[Number(sectionId)] = updatedProducts[Number(sectionId)].map(product =>
+          updatedProducts[sectionId.toString()] = updatedProducts[sectionId.toString()].map(product =>
             product.product_id === Number(productId) ? normalizedProduct : product
           );
         }

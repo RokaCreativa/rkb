@@ -2,6 +2,8 @@ Lectura obligrotia no saltarselo:@dashboard-v2-refactoring-mandamientos.md  ,rec
 
 Lectura obligrotia no saltarselo:@dashboard-v2-refactoring-mandamientos.md  ,recuerda leerlo bien   , recuerda docuemntar bien detallado y las buenas practicas. en programacion.
 
+Lectura obligarotia y sus referencias @dashboard-v2-refactoring-mandamientos.md 
+
 
 
 

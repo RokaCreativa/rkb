@@ -5,9 +5,16 @@ import React from 'react';
 interface TopNavbarProps {
   isReorderModeActive?: boolean;
   onToggleReorderMode?: () => void;
+  clientLogo?: string | null;
+  clientName?: string;
 }
 
-export function TopNavbar({ isReorderModeActive = false, onToggleReorderMode = () => {} }: TopNavbarProps) {
+export function TopNavbar({ 
+  isReorderModeActive = false, 
+  onToggleReorderMode = () => {},
+  clientLogo = null,
+  clientName = 'RokaMenu'
+}: TopNavbarProps) {
   return (
     <div className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -16,6 +23,11 @@ export function TopNavbar({ isReorderModeActive = false, onToggleReorderMode = (
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <img className="h-8 w-auto" src="/images/logo_rokamenu.png" alt="RokaMenu" />
+              {clientName && (
+                <div className="ml-4 px-3 py-1 border-l border-gray-200">
+                  <span className="text-sm font-medium text-gray-900">{clientName}</span>
+                </div>
+              )}
             </div>
           </div>
           

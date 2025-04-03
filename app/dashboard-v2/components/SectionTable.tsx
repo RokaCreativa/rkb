@@ -3,39 +3,66 @@
 import React, { useState } from 'react';
 import { PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon, PlusIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/solid';
-import { Section } from '@/app/types/menu';
+import { Section, Product } from '@/app/types/menu';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 import Image from 'next/image';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 interface SectionTableProps {
   sections: Section[];
-  expandedSections: Record<number, boolean>;
+  client?: any;
+  loading?: boolean;
+  setLoading?: React.Dispatch<React.SetStateAction<boolean>>;
+  setSections?: React.Dispatch<React.SetStateAction<Record<string, Section[]>>>;
+  expandedSections: Record<string, boolean>;
+  setExpandedSections?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  onEdit?: (section: Section) => void;
+  onDelete?: (section: Section) => void;
+  onToggleVisibility: (sectionId: number, currentStatus: number) => void;
   isUpdatingVisibility: number | null;
-  onToggleSectionVisibility: (sectionId: number, currentStatus: number) => void;
+  onSectionClick: (sectionId: number) => void;
+  handleAddProduct?: (section: Section) => void;
+  products: Record<string, Product[]>;
+  setProducts?: React.Dispatch<React.SetStateAction<Record<string, Product[]>>>;
+  onEditProduct?: (product: Product) => void;
+  onDeleteProduct?: (product: Product) => void;
+  onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => void;
+  isUpdatingProductVisibility?: number | null;
+  categoryId: number;
+  categoryName?: string;
+  onAddProduct: (sectionId: number) => void;
   onEditSection: (section: Section) => void;
   onDeleteSection: (section: Section) => void;
-  categoryId: number;
-  onSectionClick?: (sectionId: number) => void;
-  onAddProduct?: (sectionId: number) => void;
-  onReorderSection?: (sourceIndex: number, destinationIndex: number) => void;
   isReorderModeActive?: boolean;
-  categoryName?: string;
+  onReorderSection?: (sourceIndex: number, destinationIndex: number) => void;
 }
 
 export const SectionTable: React.FC<SectionTableProps> = ({
   sections,
-  expandedSections,
+  categoryName,
+  categoryId,
   isUpdatingVisibility,
-  onToggleSectionVisibility,
+  expandedSections,
+  onAddProduct,
+  onSectionClick,
   onEditSection,
   onDeleteSection,
-  categoryId,
-  onSectionClick,
-  onAddProduct,
-  onReorderSection,
+  onToggleVisibility,
   isReorderModeActive = false,
-  categoryName
+  onReorderSection,
+  products,
+  onToggleProductVisibility,
+  onEditProduct,
+  onDeleteProduct,
+  isUpdatingProductVisibility = null,
+  client,
+  loading,
+  setLoading,
+  setSections,
+  setExpandedSections,
+  onEdit,
+  handleAddProduct,
+  setProducts
 }) => {
   const [showHiddenSections, setShowHiddenSections] = useState(true);
   
@@ -110,120 +137,254 @@ export const SectionTable: React.FC<SectionTableProps> = ({
               <tbody className="bg-white divide-y divide-teal-100">
                 {/* Secciones visibles */}
                 {visibleSections.map((section, index) => (
-                  <Draggable 
-                    key={section.section_id.toString()} 
-                    draggableId={section.section_id.toString()} 
-                    index={index}
-                    isDragDisabled={!onReorderSection || !isReorderModeActive}
-                  >
-                    {(provided, snapshot) => (
-                      <tr 
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className={`${
-                          snapshot.isDragging 
-                            ? "bg-blue-50" 
-                            : expandedSections && expandedSections[section.section_id] 
-                              ? "bg-teal-50" 
-                              : "hover:bg-gray-50"
-                        }`}
-                      >
-                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
-                          <div className="flex items-center">
-                            <button 
-                              onClick={() => onSectionClick && onSectionClick(section.section_id)}
-                              className={`p-1 rounded-full transition-colors ${
-                                expandedSections && expandedSections[section.section_id] 
-                                  ? "bg-teal-100 text-teal-600" 
-                                  : "hover:bg-gray-200 text-gray-500"
-                              }`}
-                            >
-                              {expandedSections && expandedSections[section.section_id] ? (
-                                <ChevronDownIcon className="h-5 w-5" />
-                              ) : (
-                                <ChevronRightIcon className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                        <td 
-                          className="px-3 py-2 cursor-pointer"
-                          onClick={() => onSectionClick && onSectionClick(section.section_id)}
+                  <React.Fragment key={`section-group-${section.section_id}`}>
+                    <Draggable 
+                      key={section.section_id.toString()} 
+                      draggableId={section.section_id.toString()} 
+                      index={index}
+                      isDragDisabled={!onReorderSection || !isReorderModeActive}
+                    >
+                      {(provided, snapshot) => (
+                        <tr 
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className={`${
+                            snapshot.isDragging 
+                              ? "bg-blue-50" 
+                              : expandedSections && expandedSections[section.section_id] 
+                                ? "bg-teal-50" 
+                                : "hover:bg-gray-50"
+                          }`}
                         >
-                          <div className="flex items-center">
-                            <div {...provided.dragHandleProps} className="mr-2">
-                              <Bars3Icon className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                            </div>
+                          <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                             <div className="flex items-center">
-                              <span className={`text-sm font-medium ${
-                                expandedSections && expandedSections[section.section_id] 
-                                  ? "text-teal-700" 
-                                  : "text-gray-700"
-                              }`}>{section.name}</span>
-                              <span className="text-xs text-gray-500 ml-2">
-                                ({section.visible_products_count || 0}/{section.products_count || 0} productos visibles)
-                              </span>
+                              <button 
+                                onClick={() => onSectionClick(section.section_id)}
+                                className={`p-1 rounded-full transition-colors ${
+                                  expandedSections && expandedSections[section.section_id] 
+                                    ? "bg-teal-100 text-teal-600" 
+                                    : "hover:bg-gray-200 text-gray-500"
+                                }`}
+                              >
+                                {expandedSections && expandedSections[section.section_id] ? (
+                                  <ChevronDownIcon className="h-5 w-5" />
+                                ) : (
+                                  <ChevronRightIcon className="h-4 w-4" />
+                                )}
+                              </button>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">{section.display_order || index + 1}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          <div className="flex justify-center">
-                            <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
-                              <Image
-                                src={getImagePath(section.image, 'sections')}
-                                alt={section.name || ''}
-                                width={32}
-                                height={32}
-                                className="object-cover w-full h-full"
-                                onError={handleImageError}
-                              />
+                          </td>
+                          <td 
+                            className="px-3 py-2 cursor-pointer"
+                            onClick={() => onSectionClick(section.section_id)}
+                          >
+                            <div className="flex items-center">
+                              <div {...provided.dragHandleProps} className="mr-2">
+                                <Bars3Icon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                              </div>
+                              <div className="flex items-center">
+                                <span className={`text-sm font-medium ${
+                                  expandedSections && expandedSections[section.section_id] 
+                                    ? "text-teal-700" 
+                                    : "text-gray-700"
+                                }`}>{section.name}</span>
+                                <span className="text-xs text-gray-500 ml-2">
+                                  ({section.visible_products_count || 0}/{section.products_count || 0} productos visibles)
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-2 py-2 whitespace-nowrap text-center">
-                          <div className="flex justify-center">
-                            <button
-                              onClick={() => onToggleSectionVisibility(section.section_id, section.status)}
-                              disabled={isUpdatingVisibility === section.section_id}
-                              className={`p-1.5 rounded-full transition-colors ${
-                                section.status === 1 
-                                  ? 'text-teal-600 bg-teal-50 hover:bg-teal-100' 
-                                  : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
-                              }`}
-                              title={section.status === 1 ? "Visible" : "No visible"}
-                            >
-                              {isUpdatingVisibility === section.section_id ? (
-                                <div className="w-5 h-5 flex items-center justify-center">
-                                  <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
-                                </div>
-                              ) : section.status === 1 ? (
-                                <EyeIcon className="w-5 h-5" />
-                              ) : (
-                                <EyeSlashIcon className="w-5 h-5" />
+                          </td>
+                          <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">{section.display_order || index + 1}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            <div className="flex justify-center">
+                              <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+                                <Image
+                                  src={getImagePath(section.image, 'sections')}
+                                  alt={section.name || ''}
+                                  width={32}
+                                  height={32}
+                                  className="object-cover w-full h-full"
+                                  onError={handleImageError}
+                                />
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-2 py-2 whitespace-nowrap text-center">
+                            <div className="flex justify-center">
+                              <button
+                                onClick={() => onToggleVisibility(section.section_id, section.status)}
+                                disabled={isUpdatingVisibility === section.section_id}
+                                className={`p-1.5 rounded-full transition-colors ${
+                                  section.status === 1 
+                                    ? 'text-teal-600 bg-teal-50 hover:bg-teal-100' 
+                                    : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
+                                }`}
+                                title={section.status === 1 ? "Visible" : "No visible"}
+                              >
+                                {isUpdatingVisibility === section.section_id ? (
+                                  <div className="w-5 h-5 flex items-center justify-center">
+                                    <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
+                                  </div>
+                                ) : section.status === 1 ? (
+                                  <EyeIcon className="w-5 h-5" />
+                                ) : (
+                                  <EyeSlashIcon className="w-5 h-5" />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 whitespace-nowrap text-center">
+                            <div className="flex justify-center space-x-1">
+                              {onAddProduct && (
+                                <button
+                                  onClick={() => onAddProduct(section.section_id)}
+                                  className="p-1 text-teal-600 hover:text-teal-900 rounded-full hover:bg-teal-50"
+                                  title="Añadir producto"
+                                >
+                                  <PlusIcon className="h-4 w-4" />
+                                </button>
                               )}
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center">
-                          <div className="flex justify-center space-x-1">
-                            <button
-                              onClick={() => onEditSection(section)}
-                              className="p-1 text-teal-600 hover:text-teal-900 rounded-full hover:bg-teal-50"
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => onDeleteSection(section)}
-                              className="p-1 text-teal-600 hover:text-teal-900 rounded-full hover:bg-teal-50"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
+                              <button
+                                onClick={() => onEditSection(section)}
+                                className="p-1 text-teal-600 hover:text-teal-900 rounded-full hover:bg-teal-50"
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => onDeleteSection(section)}
+                                className="p-1 text-teal-600 hover:text-teal-900 rounded-full hover:bg-teal-50"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Draggable>
+
+                    {/* Mostrar productos si la sección está expandida */}
+                    {expandedSections && expandedSections[section.section_id] && (
+                      <tr>
+                        <td colSpan={6} className="p-0">
+                          <div className="pl-8 pr-4 py-3 border-t border-teal-100">
+                            <div className="flex justify-between items-center mb-3">
+                              <h3 className="text-sm font-medium text-teal-700">
+                                Productos: {section.name}
+                              </h3>
+                              {onAddProduct && (
+                                <button
+                                  onClick={() => onAddProduct(section.section_id)}
+                                  className="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-teal-600 hover:bg-teal-700 rounded"
+                                >
+                                  <PlusIcon className="h-3 w-3 mr-1" />
+                                  Añadir producto
+                                </button>
+                              )}
+                            </div>
+                            
+                            {products[section.section_id.toString()] && products[section.section_id.toString()].length > 0 ? (
+                              <table className="min-w-full divide-y divide-teal-200 border border-teal-100 rounded-lg overflow-hidden">
+                                <thead className="bg-teal-100">
+                                  <tr>
+                                    <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">Nombre</th>
+                                    <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-teal-700 uppercase tracking-wider w-20">Precio</th>
+                                    <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-teal-700 uppercase tracking-wider w-16">Foto</th>
+                                    <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-teal-700 uppercase tracking-wider w-16">
+                                      <EyeIcon className="h-3 w-3 mx-auto text-teal-600" />
+                                    </th>
+                                    <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-teal-700 uppercase tracking-wider w-20">Acciones</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-teal-100">
+                                  {products[section.section_id.toString()].map((product: Product) => (
+                                    <tr 
+                                      key={`product-${product.product_id}`}
+                                      className="hover:bg-teal-50"
+                                    >
+                                      <td className="px-3 py-2 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                          <span className="text-sm font-medium text-gray-700">
+                                            {product.name}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
+                                        {product.price}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap">
+                                        <div className="flex justify-center">
+                                          <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+                                            <Image
+                                              src={getImagePath(product.image, 'products')}
+                                              alt={product.name || ''}
+                                              width={32}
+                                              height={32}
+                                              className="object-cover w-full h-full"
+                                              onError={handleImageError}
+                                            />
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td className="px-2 py-2 whitespace-nowrap text-center">
+                                        {onToggleProductVisibility && (
+                                          <div className="flex justify-center">
+                                            <button
+                                              onClick={() => onToggleProductVisibility(product.product_id, product.status, section.section_id)}
+                                              disabled={isUpdatingProductVisibility === product.product_id}
+                                              className={`p-1.5 rounded-full transition-colors ${
+                                                product.status === 1 
+                                                  ? 'text-teal-600 bg-teal-50 hover:bg-teal-100' 
+                                                  : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
+                                              }`}
+                                              title={product.status === 1 ? "Visible" : "No visible"}
+                                            >
+                                              {isUpdatingProductVisibility === product.product_id ? (
+                                                <div className="w-4 h-4 flex items-center justify-center">
+                                                  <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
+                                                </div>
+                                              ) : product.status === 1 ? (
+                                                <EyeIcon className="w-4 h-4" />
+                                              ) : (
+                                                <EyeSlashIcon className="w-4 h-4" />
+                                              )}
+                                            </button>
+                                          </div>
+                                        )}
+                                      </td>
+                                      <td className="px-3 py-2 whitespace-nowrap text-center">
+                                        <div className="flex justify-center space-x-1">
+                                          {onEditProduct && (
+                                            <button
+                                              onClick={() => onEditProduct(product)}
+                                              className="p-1 text-teal-600 hover:text-teal-900 rounded-full hover:bg-teal-50"
+                                            >
+                                              <PencilIcon className="h-4 w-4" />
+                                            </button>
+                                          )}
+                                          {onDeleteProduct && (
+                                            <button
+                                              onClick={() => onDeleteProduct(product)}
+                                              className="p-1 text-teal-600 hover:text-teal-900 rounded-full hover:bg-teal-50"
+                                            >
+                                              <TrashIcon className="h-4 w-4" />
+                                            </button>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            ) : (
+                              <div className="bg-white p-4 text-center text-sm text-gray-500 border border-teal-100 rounded-lg">
+                                No hay productos disponibles
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
                     )}
-                  </Draggable>
+                  </React.Fragment>
                 ))}
 
                 {provided.placeholder}
@@ -241,7 +402,7 @@ export const SectionTable: React.FC<SectionTableProps> = ({
                     <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 w-10">
                       <div className="flex items-center">
                         <button 
-                          onClick={() => onSectionClick && onSectionClick(section.section_id)}
+                          onClick={() => onSectionClick(section.section_id)}
                           className={`p-1 rounded-full transition-colors ${
                             expandedSections && expandedSections[section.section_id] 
                               ? "bg-gray-200 text-gray-500" 
@@ -258,7 +419,7 @@ export const SectionTable: React.FC<SectionTableProps> = ({
                     </td>
                     <td 
                       className="px-3 py-2 cursor-pointer"
-                      onClick={() => onSectionClick && onSectionClick(section.section_id)}
+                      onClick={() => onSectionClick(section.section_id)}
                     >
                       <div className="flex items-center">
                         <div className="mr-2">
@@ -290,7 +451,7 @@ export const SectionTable: React.FC<SectionTableProps> = ({
                     <td className="px-2 py-2 whitespace-nowrap text-center">
                       <div className="flex justify-center">
                         <button
-                          onClick={() => onToggleSectionVisibility(section.section_id, section.status)}
+                          onClick={() => onToggleVisibility(section.section_id, section.status)}
                           disabled={isUpdatingVisibility === section.section_id}
                           className="p-1.5 rounded-full text-gray-400 bg-gray-50 hover:bg-gray-100"
                           title="No visible"

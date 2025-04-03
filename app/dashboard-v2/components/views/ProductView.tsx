@@ -7,7 +7,7 @@
  * @updated 2024-06-13
  */
 
-import { ChevronLeftIcon } from "@heroicons/react/24/outline";
+import { ChevronLeftIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { Product, Section } from "@/app/dashboard-v2/types";
 import { ProductTable } from "../ProductTable";
 
@@ -15,10 +15,11 @@ import { ProductTable } from "../ProductTable";
  * Props para el componente ProductView
  */
 interface ProductViewProps {
-  selectedSection: Section;
   products: Product[];
+  sectionName: string;
+  sectionId: number;
   isUpdatingVisibility: number | null;
-  onBackToSections: () => void;
+  onAddProduct: () => void;
   onToggleProductVisibility: (productId: number, currentStatus: number, sectionId: number) => Promise<void>;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (product: Product) => void;
@@ -38,10 +39,11 @@ interface ProductViewProps {
  * @returns {JSX.Element} La vista de productos renderizada
  */
 export default function ProductView({
-  selectedSection,
   products,
+  sectionName,
+  sectionId,
   isUpdatingVisibility,
-  onBackToSections,
+  onAddProduct,
   onToggleProductVisibility,
   onEditProduct,
   onDeleteProduct,
@@ -60,17 +62,19 @@ export default function ProductView({
   return (
     <>
       <div className="mb-6">
-        <button
-          onClick={onBackToSections}
-          className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-2"
-        >
-          <ChevronLeftIcon className="h-5 w-5 mr-1" />
-          Volver a secciones
-        </button>
-        
-        <h1 className="text-2xl font-bold text-gray-800">
-          Productos: {selectedSection.name}
-        </h1>
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-800">
+            Productos: {sectionName}
+          </h1>
+          
+          <button
+            onClick={onAddProduct}
+            className="inline-flex items-center px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-md shadow-sm"
+          >
+            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+            Añadir producto
+          </button>
+        </div>
       </div>
       
       {isLoading ? (
@@ -80,11 +84,11 @@ export default function ProductView({
       ) : (
         <ProductTable 
           products={adaptedProducts}
-          sectionId={selectedSection.section_id}
-          sectionName={selectedSection.name}
+          sectionId={sectionId}
+          sectionName={sectionName}
           isUpdatingVisibility={isUpdatingVisibility}
-          onToggleVisibility={(productId, status, sectionId) => 
-            onToggleProductVisibility(productId, status, sectionId || selectedSection.section_id)
+          onToggleVisibility={(productId, status, sectionIdParam) => 
+            onToggleProductVisibility(productId, status, sectionIdParam || sectionId)
           }
           onEditProduct={(productFromTable) => {
             const originalProduct = products.find(p => p.product_id === productFromTable.id);

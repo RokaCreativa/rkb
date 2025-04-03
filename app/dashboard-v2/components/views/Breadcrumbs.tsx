@@ -18,9 +18,9 @@ interface BreadcrumbsProps {
   currentView: ViewType;
   selectedCategory?: Category | null;
   selectedSection?: Section | null;
-  onNavigateToHome: () => void;
-  onNavigateToCategory: (category: Category) => void;
-  onNavigateToSection: (section: Section) => void;
+  onHomeClick: () => void;
+  onCategoryClick: (category: Category) => void;
+  onSectionClick: (section: Section) => void;
 }
 
 /**
@@ -38,16 +38,16 @@ export default function Breadcrumbs({
   currentView,
   selectedCategory,
   selectedSection,
-  onNavigateToHome,
-  onNavigateToCategory,
-  onNavigateToSection
+  onHomeClick,
+  onCategoryClick,
+  onSectionClick
 }: BreadcrumbsProps) {
   return (
     <nav className="flex mb-5" aria-label="Breadcrumb">
       <ol className="inline-flex items-center space-x-1 md:space-x-3">
         <li className="inline-flex items-center">
           <button
-            onClick={onNavigateToHome}
+            onClick={onHomeClick}
             className={`inline-flex items-center text-sm font-medium ${
               currentView === 'CATEGORIES' 
                 ? 'text-indigo-600 hover:text-indigo-800' 
@@ -64,7 +64,7 @@ export default function Breadcrumbs({
             <div className="flex items-center">
               <ChevronRightIcon className="w-4 h-4 text-gray-400" />
               <button
-                onClick={() => onNavigateToCategory(selectedCategory)}
+                onClick={() => onCategoryClick(selectedCategory)}
                 className={`ml-1 text-sm font-medium ${
                   currentView === 'SECTIONS' 
                     ? 'text-indigo-600 hover:text-indigo-800' 
@@ -82,7 +82,7 @@ export default function Breadcrumbs({
             <div className="flex items-center">
               <ChevronRightIcon className="w-4 h-4 text-gray-400" />
               <button
-                onClick={() => onNavigateToSection(selectedSection)}
+                onClick={() => onSectionClick(selectedSection)}
                 className="ml-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
               >
                 {selectedSection.name}
