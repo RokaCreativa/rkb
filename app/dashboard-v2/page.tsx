@@ -1406,12 +1406,12 @@ export default function DashboardPage() {
                           <div>
                     <SectionTable 
                               sections={sectionsList}
-                              expandedSections={expandedSections}
+                      expandedSections={expandedSections}
                               onEditSection={handleEditSection}
                               onDeleteSection={(section) => handleDeleteSection(section, category.category_id)}
                               onToggleSectionVisibility={toggleSectionVisibility}
                               categoryId={category.category_id}
-                              categoryName={category.name}
+                      categoryName={category.name}
                       isUpdatingVisibility={isUpdatingVisibility}
                               onSectionClick={(sectionId) => {
                                 const section = sectionsList.find(s => s.section_id === sectionId);
