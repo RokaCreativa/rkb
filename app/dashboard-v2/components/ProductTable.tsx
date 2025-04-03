@@ -13,6 +13,7 @@ interface Product {
   name: string;
   description?: string;
   price: number | string;
+  discount_price?: string | null;
   image: string | null;
   status: number;
   display_order?: number;
@@ -22,10 +23,11 @@ interface Product {
 interface ProductTableProps {
   products: Product[];
   sectionName: string;
+  sectionId?: number;
   isUpdatingVisibility: number | null;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: number) => Promise<boolean>;
-  onToggleVisibility: (productId: number, status: number) => Promise<void>;
+  onToggleVisibility: (productId: number, status: number, sectionId?: number) => Promise<void>;
   isReorderModeActive?: boolean;
   onReorderProduct?: (sourceIndex: number, destinationIndex: number) => void;
 }
@@ -33,6 +35,7 @@ interface ProductTableProps {
 export const ProductTable: React.FC<ProductTableProps> = ({
   products,
   sectionName,
+  sectionId,
   isUpdatingVisibility,
   onEditProduct,
   onDeleteProduct,
@@ -175,7 +178,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                         <td className="px-2 py-2 whitespace-nowrap text-center">
                           <div className="flex justify-center">
                             <button
-                              onClick={() => onToggleVisibility(product.id || product.product_id || 0, product.status === 1 ? 0 : 1)}
+                              onClick={() => onToggleVisibility(product.id || product.product_id || 0, product.status === 1 ? 0 : 1, sectionId)}
                               disabled={isUpdatingVisibility === (product.id || product.product_id)}
                               className={`p-1.5 rounded-full transition-colors ${
                                 product.status === 1 
@@ -263,7 +266,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                     <td className="px-2 py-2 whitespace-nowrap text-center">
                       <div className="flex justify-center">
                         <button
-                          onClick={() => onToggleVisibility(product.id || product.product_id || 0, product.status === 1 ? 0 : 1)}
+                          onClick={() => onToggleVisibility(product.id || product.product_id || 0, product.status === 1 ? 0 : 1, sectionId)}
                           disabled={isUpdatingVisibility === (product.id || product.product_id)}
                           className="p-1.5 rounded-full text-gray-400 bg-gray-50 hover:bg-gray-100"
                           title="No visible"

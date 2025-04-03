@@ -64,6 +64,7 @@ export interface Product {
   image: string | null;
   status: number;
   price: string;
+  discount_price?: string | null;
   section_id: number;
   client_id: number;
   display_order: number;

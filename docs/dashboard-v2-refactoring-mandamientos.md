@@ -13,6 +13,30 @@
   * Mantén total separación entre las dos implementaciones
   * No mezclar importaciones entre dashboard y dashboard-v2
 
+## 🚫 MANDAMIENTO SUPREMO: RESPETARÁS LA REFACTORIZACIÓN REALIZADA
+- **NUNCA volverás a mezclar responsabilidades que han sido separadas**
+- Honrarás la estructura de carpetas establecida:
+  * Modales en `dashboard-v2/components/modals/`
+  * Componentes de vista en `dashboard-v2/components/views/`
+  * Hooks específicos en `dashboard-v2/hooks/`
+  * Tipos en `dashboard-v2/types/`
+  * Utilidades en `dashboard-v2/utils/`
+- Preservarás la separación de responsabilidades:
+  * Hooks por dominio: useCategoryManagement, useSectionManagement, useProductManagement
+  * useDashboardState como fachada para coordinar los hooks de dominio
+  * Componentes visuales solo para renderizado y eventos
+- Mantendrás la documentación actualizada
+- Conservarás las optimizaciones implementadas:
+  * Virtualización para listas largas
+  * Lazy loading para carga de datos
+  * Memoización en componentes pesados
+  * Utilidades de rendimiento (debounce, throttle, cache)
+- **TODA NUEVA FUNCIONALIDAD** debe seguir los mismos patrones establecidos
+- Consultarás los archivos de documentación antes de hacer cambios:
+  * `docs/dashboard-v2-modelo-datos.md`
+  * `docs/dashboard-v2-optimizaciones.md`
+  * `RokaMenu_Refactor_Checklist_dashboard-v2.md`
+
 ## 📚 Buenas Prácticas de Programación
 - Implementar principios SOLID
 - Separación clara de responsabilidades
@@ -34,6 +58,9 @@
   * `dashboard-v2-refactoring-guide-part2.md`
   * `dashboard-v2-refactoring-guide-part3.md`
   * `dashboard-v2-refactoring-index.md`
+  * `docs/dashboard-v2-modelo-datos.md`
+  * `docs/dashboard-v2-optimizaciones.md`
+  * `RokaMenu_Refactor_Checklist_dashboard-v2.md`
 - Comentarios claros "para dummies"
 - Documentar decisiones de arquitectura
 
@@ -67,6 +94,94 @@
 - Garantizar que el comportamiento de "volver atrás" funcione exactamente igual que en el original
 - **CRUCIAL**: Mostrar las secciones expandidas dentro de la vista de categorías, NO navegar a una vista separada
 - Las secciones DEBEN aparecer como elementos expandidos bajo la categoría correspondiente, manteniendo la vista de categorías
+
+## 🧠 MANDAMIENTO CRÍTICO: Gestión del Estado
+- **IMPLEMENTARÁS un sistema de doble estado (local y global) para datos críticos**
+- Usar estado local para respuesta inmediata en la interfaz de usuario
+- Mantener estado global para coordinación entre componentes
+- Implementar verificación de cache para evitar cargas redundantes
+- Normalizar datos antes de almacenarlos en cualquier estado
+- Priorizar el estado local sobre el global para renderizado cuando sea necesario
+- Incluir indicadores visuales específicos durante estados de carga
+- Implementar herramientas de depuración visibles en modo desarrollo
+- Evitar efectos con dependencias innecesarias o mal configuradas
+- Utilizar nombres descriptivos para los estados que indiquen su propósito específico
+
+## 🔄 MANDAMIENTO CRÍTICO: Patrón de Actualización Inmediata
+- **APLICARÁS el mismo patrón de actualización UI en todos los niveles jerárquicos**
+- Implementar actualización directa del objeto original antes de llamar a callbacks (`objeto.propiedad = nuevoValor`)
+- Mantener consistencia entre implementaciones de categorías, secciones y productos
+- Cuando una implementación funciona correctamente, analizar y replicar el mismo patrón
+- Evitar soluciones complejas cuando un enfoque simple ya ha demostrado funcionar
+- Para forzar re-renders, usar el patrón de nueva referencia de array (`[...arrayExistente]`)
+- Documentar claramente los patrones de actualización para mantener consistencia
+- Verificar que cada nivel de la jerarquía (categoría → sección → producto) siga el mismo patrón
+- Implementar actualización optimista de la UI antes de recibir respuesta del servidor
+- Considerar estados intermedios para indicar procesamiento durante la actualización
+
+## 🔍 MANDAMIENTO CRÍTICO: Modelo de Tipos y Transparencia de Datos
+- **HONRARÁS la estructura de tipos centralizada**
+- Todos los tipos e interfaces se definirán SOLO en `dashboard-v2/types/`
+- Todo nuevo tipo o interfaz deberá seguir el patrón de nomenclatura existente
+- No se duplicarán definiciones de tipos existentes
+- Se mantendrá sincronización estricta entre los tipos y las respuestas reales de la API
+- Cualquier extensión de tipos DEBE ser compatible con el modelo de datos actual
+- Las interfaces de componentes seguirán la nomenclatura `ComponentNameProps`
+- Se usarán enumeraciones o tipos union para valores limitados (ej: ViewType)
+- Los tipos relacionados se agruparán en archivos lógicos dentro del directorio de tipos
+- Las propiedades opcionales se marcarán explícitamente con `?`
+- Se documentará el propósito de cada nueva interfaz o tipo añadido
+- **RESPETARÁS la estructura jerárquica definida en docs/dashboard-v2-modelo-datos.md**:
+  * Cliente → Categoría → Sección → Producto
+  * Las relaciones entre entidades deben mantenerse consistentes
+  * Los estados específicos por dominio (CategoryState, SectionState, ProductState) 
+    deben utilizarse apropiadamente
+  * Los identificadores de tipo deben ser consistentes (category_id, section_id, product_id)
+  * Los tipos de vista (ViewType) e interacción (InteractionMode) deben usarse según su definición
+
+## 📊 MANDAMIENTO CRÍTICO: Optimización de Rendimiento
+- **PRESERVARÁS todas las optimizaciones implementadas**
+- Utilizarás virtualización para listas largas (VirtualizedList) según docs/dashboard-v2-optimizaciones.md
+- Implementarás lazy loading de datos cuando sea apropiado (useLazyLoading)
+- Aplicarás debounce a eventos frecuentes (input, scroll)
+- Utilizarás throttle para limitar la frecuencia de operaciones costosas
+- Implementarás memoización con React.memo para componentes puros
+- Utilizarás useCallback para funciones pasadas como props
+- Aprovecharás useMemo para cálculos costosos
+- Utilizarás la caché en memoria para datos frecuentemente accedidos
+- Minimizarás re-renders innecesarios
+- Implementarás code splitting para componentes grandes
+- **SEGUIRÁS la estructura de optimizaciones documentada**:
+  * useVirtualizedList para listas largas
+  * useLazyLoading para carga diferida de datos
+  * VirtualizedList para componentes de lista
+  * OptimizedCategoryView para visualización de categorías
+  * Utilidades de performance.ts para debounce, throttle y cache
+
+## 🗂️ MANDAMIENTO CRÍTICO: Estructura de Archivos del Dashboard V2
+- **RESPETARÁS la estructura de archivos establecida**
+- Todos los modales deben estar en `dashboard-v2/components/modals/`
+- Todos los componentes de vista deben estar en `dashboard-v2/components/views/`
+- Todos los hooks de dominio deben estar en `dashboard-v2/hooks/`
+- Todos los tipos deben estar en `dashboard-v2/types/`
+- Todas las utilidades deben estar en `dashboard-v2/utils/`
+- Toda la documentación específica de Dashboard V2 debe estar en `docs/dashboard-v2-*.md`
+- El esquema de nombrado de archivos debe ser consistente y descriptivo
+- Cada archivo debe tener una responsabilidad única y clara
+- Los componentes UI reutilizables deben estar en `dashboard-v2/components/ui/`
+- Las importaciones deben ser organizadas: primero React, luego dependencias externas, componentes propios y finalmente estilos
+
+## 🔒 MANDAMIENTO CRÍTICO: Validación de Acceso
+- **IMPLEMENTARÁS verificación de roles en cada punto de entrada**
+- Mantener redirecciones a /unauthorized cuando un usuario no tenga permisos
+- Validar roles tanto en el cliente como en el servidor
+- Mantener consistencia en los mensajes de error de acceso
+- Documentar claramente los requisitos de acceso para cada sección
+- Implementar pruebas de acceso para cada rol
+- Asegurar que la redirección sea inmediata y clara
+- Proporcionar retroalimentación específica sobre los permisos faltantes
+- Mantener actualizados los requisitos de acceso según evolucione la aplicación
+- Verificar periódicamente que las restricciones de acceso funcionen correctamente
 
 ## 🚀 Escalabilidad Real
 - Arquitectura que permita crecimiento
@@ -163,6 +278,11 @@
    - Gestión CRUD de secciones por categoría
    - Gestión CRUD de productos por sección
    - Vista previa en tiempo real
+   - **Seguir exactamente el flujo de datos documentado en docs/dashboard-v2-modelo-datos.md**
+     * Carga inicial → Mostrar categorías → Seleccionar categoría → Cargar secciones → 
+       Seleccionar sección → Cargar productos
+     * Las acciones de creación, edición, eliminación y visibilidad deben reflejarse
+       inmediatamente en la UI siguiendo el patrón de actualización inmediata
 
 2. **Vista Pública**
    - Acceso mediante QR
@@ -258,110 +378,92 @@
      * profile: String? [@db.VarChar(2)] /* Usado para gestión de sesión */
      * client_id: Int? /* Usado para gestión de sesión */
 
-## 🧠 MANDAMIENTO CRÍTICO: Gestión del Estado
-- **IMPLEMENTARÁS un sistema de doble estado (local y global) para datos críticos**
-- Usar estado local para respuesta inmediata en la interfaz de usuario
-- Mantener estado global para coordinación entre componentes
-- Implementar verificación de cache para evitar cargas redundantes
-- Normalizar datos antes de almacenarlos en cualquier estado
-- Priorizar el estado local sobre el global para renderizado cuando sea necesario
-- Incluir indicadores visuales específicos durante estados de carga
-- Implementar herramientas de depuración visibles en modo desarrollo
-- Evitar efectos con dependencias innecesarias o mal configuradas
-- Utilizar nombres descriptivos para los estados que indiquen su propósito específico
-
-## 🔄 MANDAMIENTO CRÍTICO: Patrón de Actualización Inmediata
-- **APLICARÁS el mismo patrón de actualización UI en todos los niveles jerárquicos**
-- Implementar actualización directa del objeto original antes de llamar a callbacks (`objeto.propiedad = nuevoValor`)
-- Mantener consistencia entre implementaciones de categorías, secciones y productos
-- Cuando una implementación funciona correctamente, analizar y replicar el mismo patrón
-- Evitar soluciones complejas cuando un enfoque simple ya ha demostrado funcionar
-- Para forzar re-renders, usar el patrón de nueva referencia de array (`[...arrayExistente]`)
-- Documentar claramente los patrones de actualización para mantener consistencia
-- Verificar que cada nivel de la jerarquía (categoría → sección → producto) siga el mismo patrón
-- Implementar actualización optimista de la UI antes de recibir respuesta del servidor
-- Considerar estados intermedios para indicar procesamiento durante la actualización
+## ⚠️ RECORDATORIO CRÍTICO:
+- RESPETAR la estructura y arquitectura implementada en la refactorización
+- MANTENER la separación de responsabilidades entre componentes y hooks
+- PRESERVAR todas las optimizaciones de rendimiento implementadas
+- SEGUIR los patrones establecidos para cualquier nueva funcionalidad
+- CONSULTAR la documentación antes de hacer cambios
+- ASEGURAR la consistencia en los tipos y interfaces
+- VERIFICAR los mandamientos antes de cada modificación
+- PRESERVAR la estructura jerárquica de datos (Cliente → Categoría → Sección → Producto)
+- UTILIZAR los hooks de dominio específicos para cada tipo de entidad
+- IMPLEMENTAR virtualización para cualquier lista que pueda crecer significativamente
+- MANTENER la coherencia entre estados locales y globales para actualizaciones inmediatas
+- APLICAR debounce y throttle para eventos de alta frecuencia
+- UTILIZAR memoización (useMemo, useCallback, React.memo) de manera estratégica
 
 ---
 
-> 🎯 **Estado Actual**: Fase 3 - Features Principales (En Progreso)
+> 🎯 **Estado Actual**: Fase 7 - Revisión Final (En Progreso)
 > 
-> 📅 **Última Actualización**: 13/06/2024 - 19:45 - v0.4.2
+> 📅 **Última Actualización**: 13/06/2024 - 19:45 - v1.0.0
 > 
 > ✅ **Completado**:
 > - Estructura de directorios creada
 > - Tipos base definidos
-> - Store con Zustand implementado
-> - Cliente API base creado
-> - Hook de categorías implementado
-> - Hook de secciones implementado
-> - Hook de productos implementado
-> - Componentes base creados:
->   * Tabla genérica reutilizable
->   * Modal base reutilizable
->   * Campo de formulario reutilizable
->   * Botón reutilizable
-> - Sistema de diseño implementado:
->   * Variables de tema (colores, espaciado, tipografía)
->   * Sistema de componentes CSS coherente
->   * Estructura de archivos modular para estilos
->   * Integración con el layout principal
-> - Gestión de estado optimizada:
->   * Implementación de estado dual (local/global)
->   * Sistema de caché para datos frecuentemente usados
->   * Verificación preventiva antes de cargas
->   * Indicadores de carga específicos por contexto
-> - Componentes críticos implementados:
->   * Vista de categorías con expansión in-situ
->   * Carga bajo demanda de secciones
->   * Manejo óptimo de autenticación
->   * Layout adaptativo para diferentes dispositivos
-> - Sistema de actualización inmediata para componentes jerárquicos:
->   * Implementación consistente del patrón de actualización directa
->   * Actualización inmediata en todos los niveles (categorías, secciones, productos)
->   * Documentación del patrón de "Actualización Inmediata" como mandamiento
->   * Resolución de problemas de refresco en grids a través de la aplicación
-> - Refactorización de hooks por dominio:
->   * Creación de useCategoryManagement.ts para categorías
->   * Creación de useSectionManagement.ts para secciones
->   * Creación de useProductManagement.ts para productos  
->   * Patrón de fachada implementado en useDashboardState.ts
->   * Separación clara de responsabilidades por dominio funcional
+> - Tipos normalizados y consolidados en un archivo centralizado
+> - Modales extraídos a componentes individuales
+> - Componentes visuales por dominio implementados:
+>   * CategoryView para gestión de categorías
+>   * SectionView para gestión de secciones
+>   * ProductView para gestión de productos
+>   * MobilePreview para visualización en formato móvil
+>   * Breadcrumbs para navegación entre vistas
+> - Hooks de dominio implementados:
+>   * useCategoryManagement para categorías
+>   * useSectionManagement para secciones
+>   * useProductManagement para productos
+>   * useDashboardState como fachada de coordinación
+> - Limpieza de page.tsx:
+>   * Metadatos adecuados
+>   * Validación de roles
+>   * Renderizado de DashboardView
+> - Optimizaciones de rendimiento:
+>   * Virtualización para listas largas (VirtualizedList)
+>   * Carga diferida de datos (useLazyLoading)
+>   * Componente OptimizedCategoryView
+>   * Utilidades de rendimiento (debounce, throttle, cache)
+> - Validación de acceso:
+>   * Página de unauthorized implementada
+>   * Verificación de roles en page.tsx
+> - Documentación completa:
+>   * Modelo de datos documentado (docs/dashboard-v2-modelo-datos.md)
+>   * Optimizaciones documentadas (docs/dashboard-v2-optimizaciones.md)
+>   * Checklist de refactorización actualizado
 > 
-> 🔄 **Siguiente Paso**: Finalizar limpieza de page.tsx y verificar consistencia de tipos
-> - **Finalizar componentes visuales**:
->   * Revisar y corregir errores de tipado en componentes visuales
->   * Verificar consistencia en props entre componentes
->   * Implementar correctamente patrones de adaptación entre diferentes estructuras de datos
-> - **Limpiar page.tsx**:
->   * Minimizar el contenido a solo lo esencial
->   * Validación adecuada de roles y permisos
->   * Proveer solo los contextos necesarios
->   * Eliminar código no utilizado
->
+> 🔄 **Próximos Pasos**:
+> - Finalizar pruebas de acceso por rol
+> - Implementar code splitting para reducir el tamaño del bundle inicial
+> 
 > ⚠️ **RECORDATORIO CRÍTICO**:
-> - SIEMPRE consultar el código original del dashboard antes de modificar cualquier componente
-> - Verificar cada detalle visual y funcional contra la implementación original
-> - No avanzar en ninguna implementación sin entender completamente cómo funciona en el dashboard original
-> - Implementar SIEMPRE sistema de doble estado para datos críticos
-> - Priorizar renderizado inmediato con estado local para mejor UX
-> - APLICAR el patrón de "Actualización Inmediata" en todos los niveles jerárquicos
-> - RECORDAR separar responsabilidades en hooks especializados por dominio
+> - RESPETAR la estructura y arquitectura implementada en la refactorización
+> - MANTENER la separación de responsabilidades entre componentes y hooks
+> - PRESERVAR todas las optimizaciones de rendimiento implementadas
+> - SEGUIR los patrones establecidos para cualquier nueva funcionalidad
+> - CONSULTAR la documentación antes de hacer cambios
+> - ASEGURAR la consistencia en los tipos y interfaces
+> - VERIFICAR los mandamientos antes de cada modificación
+> - PRESERVAR la estructura jerárquica de datos (Cliente → Categoría → Sección → Producto)
+> - UTILIZAR los hooks de dominio específicos para cada tipo de entidad
+> - IMPLEMENTAR virtualización para cualquier lista que pueda crecer significativamente
+> - MANTENER la coherencia entre estados locales y globales para actualizaciones inmediatas
+> - APLICAR debounce y throttle para eventos de alta frecuencia
+> - UTILIZAR memoización (useMemo, useCallback, React.memo) de manera estratégica
 >
-> 📋 **Progreso de Fase 3**: 92% completado
+> 📋 **Progreso General**: 95% completado
 > 
 > 📝 **Notas**:
-> - La arquitectura ha demostrado ser robusta y eficiente
-> - Se han resuelto problemas críticos de sincronización de estado
-> - El renderizado de secciones ahora es inmediato gracias al estado local
-> - Se ha optimizado la carga de datos con verificación de caché
-> - El sistema de depuración en desarrollo facilita la identificación de problemas
-> - Se mantiene plena compatibilidad con el dashboard original
-> - Las herramientas de diagnóstico implementadas permiten identificar rápidamente problemas de autenticación y carga de datos
-> - La actualización inmediata de UI ahora es consistente en todos los niveles
-> - La separación de hooks por dominio ha mejorado significativamente la mantenibilidad del código
-> - La implementación del patrón de fachada en useDashboardState.ts permite un acceso centralizado manteniendo la separación de responsabilidades
+> - La refactorización ha resultado en una mejora significativa de la organización y mantenibilidad del código
+> - La separación en componentes por dominio ha facilitado la comprensión y el mantenimiento
+> - Los hooks de dominio han permitido una separación clara de responsabilidades
+> - Las optimizaciones de rendimiento han mejorado significativamente la experiencia de usuario
+> - La documentación completa facilita la comprensión del código y su arquitectura
+> - La estructura modular permite añadir nuevas funcionalidades de manera más sencilla
+> - La validación de roles mejora la seguridad de la aplicación
+> - Las utilidades de rendimiento permiten una experiencia fluida incluso con grandes volúmenes de datos
+> - La estructura de tipos normalizada facilita la verificación de tipos y previene errores
 
-> 💡 **Nota**: Este documento debe ser consultado en cada paso de la refactorización para mantener el rumbo correcto.
+> 💡 **Nota**: Este documento debe ser consultado en cada paso del desarrollo para mantener el rumbo correcto.
 
-> ⚠️ **Advertencia**: La violación de estos mandamientos puede resultar en caos y desorden en el código. 
+> ⚠️ **Advertencia**: La violación de estos mandamientos resultará en regresión técnica y pérdida del valor generado mediante la refactorización. 

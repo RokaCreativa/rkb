@@ -90,6 +90,7 @@ export default function SectionView({
           onDeleteSection={onDeleteSection}
           onAddProduct={onAddProduct}
           categoryName={selectedCategory.name}
+          categoryId={selectedCategory.category_id}
         />
       )}
     </>

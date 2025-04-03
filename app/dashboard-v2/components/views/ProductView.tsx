@@ -8,7 +8,7 @@
  */
 
 import { ChevronLeftIcon } from "@heroicons/react/24/outline";
-import { Product, Section } from "@/app/types/menu";
+import { Product, Section } from "@/app/dashboard-v2/types";
 import { ProductTable } from "../ProductTable";
 
 /**
@@ -82,8 +82,10 @@ export default function ProductView({
           products={adaptedProducts}
           sectionId={selectedSection.section_id}
           sectionName={selectedSection.name}
-          onToggleProductVisibility={onToggleProductVisibility}
           isUpdatingVisibility={isUpdatingVisibility}
+          onToggleVisibility={(productId, status, sectionId) => 
+            onToggleProductVisibility(productId, status, sectionId || selectedSection.section_id)
+          }
           onEditProduct={(productFromTable) => {
             const originalProduct = products.find(p => p.product_id === productFromTable.id);
             if (originalProduct) {
