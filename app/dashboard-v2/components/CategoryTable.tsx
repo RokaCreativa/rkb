@@ -239,187 +239,206 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                     </Draggable>
                     
                     {expandedCategories[category.category_id] && sections[category.category_id] ? (
-                      <tr key={`sections-${category.category_id}`} className="bg-indigo-50">
+                      <tr key={`sections-${category.category_id}`} className="bg-white">
                         <td colSpan={6} className="p-0">
-                          <div className="pl-8 pr-4 py-4 border-t border-indigo-100">
-                            <div className="flex justify-between items-center mb-4">
-                              <h3 className="text-sm font-medium text-indigo-700">
-                                Secciones: {category.name}
-                              </h3>
-                              <button
-                                onClick={() => onAddSection(category.category_id)}
-                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded"
-                              >
-                                <PlusIcon className="h-3 w-3 mr-1" />
-                                Añadir sección
-                              </button>
-                            </div>
-                            
-                            <div className="ml-10 bg-white border-l-4 border-green-500">
-                              {sections[category.category_id] && sections[category.category_id].map((section) => (
-                                <div
-                                  key={`section-row-${section.section_id}`}
-                                  className="group border border-gray-100 rounded-md mb-3 overflow-hidden"
+                          <div className="px-4 py-4 border-t border-gray-100">
+                            <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                              <div className="flex justify-between items-center px-4 py-2 bg-gray-50 border-b border-gray-200">
+                                <h3 className="text-sm font-medium text-gray-700">
+                                  Secciones: {category.name}
+                                </h3>
+                                <button
+                                  onClick={() => onAddSection(category.category_id)}
+                                  className="inline-flex items-center px-3 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded"
                                 >
+                                  <PlusIcon className="h-3 w-3 mr-1" />
+                                  Añadir sección
+                                </button>
+                              </div>
+                              
+                              <div className="p-2 bg-white">
+                                {sections[category.category_id] && sections[category.category_id].map((section) => (
                                   <div
-                                    className={`flex items-center justify-between px-4 py-2 bg-white cursor-pointer hover:bg-gray-50`}
-                                    onClick={() => onSectionClick(section.section_id)}
+                                    key={`section-row-${section.section_id}`}
+                                    className="group border-b border-gray-100 overflow-hidden"
                                   >
-                                    <div className="flex items-center space-x-2">
-                                      <div className="flex-shrink-0 flex items-center">
-                                        {expandedSections[section.section_id] ? (
-                                          <ChevronDownIcon className="h-4 w-4 text-green-500" />
-                                        ) : (
-                                          <ChevronRightIcon className="h-4 w-4 text-green-500" />
-                                        )}
+                                    <div
+                                      className={`flex items-center justify-between px-4 py-2 bg-white cursor-pointer hover:bg-gray-50`}
+                                      onClick={() => onSectionClick(section.section_id)}
+                                    >
+                                      <div className="flex items-center space-x-2">
+                                        <div className="flex-shrink-0 flex items-center">
+                                          {expandedSections[section.section_id] ? (
+                                            <ChevronDownIcon className="h-4 w-4 text-green-500" />
+                                          ) : (
+                                            <ChevronRightIcon className="h-4 w-4 text-green-500" />
+                                          )}
+                                        </div>
+                                        
+                                        <span className="text-sm font-medium text-gray-700">
+                                          {section.name}
+                                        </span>
+                                        
+                                        <span className="text-xs text-gray-500">
+                                          ({
+                                            section.visible_products_count !== undefined && section.products_count !== undefined 
+                                              ? `${section.visible_products_count}/${section.products_count}`
+                                              : products[section.section_id.toString()] 
+                                                ? `${products[section.section_id.toString()].filter((p: Product) => p.status === 1).length}/${products[section.section_id.toString()].length}`
+                                                : '0/0'
+                                          })
+                                        </span>
                                       </div>
                                       
-                                      <span className="text-sm font-medium text-gray-700">
-                                        {section.name}
-                                      </span>
-                                      
-                                      <span className="text-xs text-gray-500">
-                                        ({
-                                          section.visible_products_count !== undefined && section.products_count !== undefined 
-                                            ? `${section.visible_products_count}/${section.products_count}`
-                                            : products[section.section_id.toString()] 
-                                              ? `${products[section.section_id.toString()].filter((p: Product) => p.status === 1).length}/${products[section.section_id.toString()].length}`
-                                              : '0/0'
-                                        })
-                                      </span>
+                                      <div className="flex items-center space-x-1">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            onAddProduct(section.section_id);
+                                          }}
+                                          className="p-1 text-green-600 hover:text-green-800 rounded-full hover:bg-green-50 ml-2"
+                                        >
+                                          <PlusIcon className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onToggleSectionVisibility(section.section_id, section.status);
+                                          }}
+                                          className={`p-1.5 rounded-full transition-colors ${
+                                            section.status === 1 
+                                              ? 'text-green-600 bg-green-50 hover:bg-green-100' 
+                                              : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
+                                          }`}
+                                          title={section.status === 1 ? "Visible" : "No visible"}
+                                        >
+                                          {section.status === 1 ? (
+                                            <EyeIcon className="w-4 h-4" />
+                                          ) : (
+                                            <EyeSlashIcon className="w-4 h-4" />
+                                          )}
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onEditSection(section);
+                                          }}
+                                          className="p-1 text-green-600 hover:text-green-800 rounded-full hover:bg-green-50"
+                                        >
+                                          <PencilIcon className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDeleteSection(section);
+                                          }}
+                                          className="p-1 text-green-600 hover:text-green-800 rounded-full hover:bg-green-50"
+                                        >
+                                          <TrashIcon className="h-4 w-4" />
+                                        </button>
+                                      </div>
                                     </div>
                                     
-                                    <div className="flex items-center space-x-1">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          onAddProduct(section.section_id);
-                                        }}
-                                        className="p-1 text-green-600 hover:text-green-800 rounded-full hover:bg-green-50 ml-2"
-                                      >
-                                        <PlusIcon className="h-4 w-4" />
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          onEditSection(section);
-                                        }}
-                                        className="p-1 text-green-600 hover:text-green-800 rounded-full hover:bg-green-50"
-                                      >
-                                        <PencilIcon className="h-4 w-4" />
-                                      </button>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          onDeleteSection(section);
-                                        }}
-                                        className="p-1 text-green-600 hover:text-green-800 rounded-full hover:bg-green-50"
-                                      >
-                                        <TrashIcon className="h-4 w-4" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                  
-                                  {expandedSections[section.section_id] && (
-                                    <div className="pl-8 pr-3 py-2 bg-white">
-                                      {products[section.section_id.toString()] && products[section.section_id.toString()].length > 0 ? (
-                                        <div className="mt-3 rounded-lg bg-yellow-50 p-3 border border-yellow-100">
-                                          <div className="text-xs font-medium text-yellow-700 mb-2 px-2">Productos de la sección</div>
-                                          <table className="min-w-full divide-y divide-yellow-200">
-                                            <thead className="bg-yellow-50">
-                                              <tr>
-                                                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">Nombre</th>
-                                                <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-700 uppercase tracking-wider w-20">Precio</th>
-                                                <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-700 uppercase tracking-wider w-16">
-                                                  <EyeIcon className="h-3 w-3 mx-auto text-yellow-600" />
-                                                </th>
-                                                <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-700 uppercase tracking-wider w-20">Acciones</th>
-                                              </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-yellow-100">
-                                              {products[section.section_id.toString()].map((product: Product) => (
-                                                <tr key={`product-${product.product_id}`} className="hover:bg-yellow-50">
-                                                  <td className="px-3 py-2 whitespace-nowrap">
-                                                    <div className="flex items-center">
-                                                      <span className="text-sm font-medium text-gray-700">
-                                                        {product.name}
-                                                      </span>
-                                                    </div>
-                                                  </td>
-                                                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
-                                                    {product.price}
-                                                  </td>
-                                                  <td className="px-2 py-2 whitespace-nowrap text-center">
-                                                    {onToggleProductVisibility && (
-                                                      <div className="flex justify-center">
-                                                        <button
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            onToggleProductVisibility(product.product_id, product.status, section.section_id);
-                                                          }}
-                                                          disabled={isUpdatingProductVisibility === product.product_id}
-                                                          className={`p-1.5 rounded-full transition-colors ${
-                                                            product.status === 1 
-                                                              ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
-                                                              : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
-                                                          }`}
-                                                          title={product.status === 1 ? "Visible" : "No visible"}
-                                                        >
-                                                          {isUpdatingProductVisibility === product.product_id ? (
-                                                            <div className="w-4 h-4 flex items-center justify-center">
-                                                              <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
-                                                            </div>
-                                                          ) : product.status === 1 ? (
-                                                            <EyeIcon className="w-4 h-4" />
-                                                          ) : (
-                                                            <EyeSlashIcon className="w-4 h-4" />
-                                                          )}
-                                                        </button>
-                                                      </div>
-                                                    )}
-                                                  </td>
-                                                  <td className="px-3 py-2 whitespace-nowrap text-center">
-                                                    <div className="flex justify-center space-x-1">
-                                                      {onEditProduct && (
-                                                        <button
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            onEditProduct(product);
-                                                          }}
-                                                          className="p-1 text-yellow-600 hover:text-yellow-800 rounded-full hover:bg-yellow-50"
-                                                        >
-                                                          <PencilIcon className="h-4 w-4" />
-                                                        </button>
-                                                      )}
-                                                      {onDeleteProduct && (
-                                                        <button
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            onDeleteProduct(product);
-                                                          }}
-                                                          className="p-1 text-yellow-600 hover:text-yellow-800 rounded-full hover:bg-yellow-50"
-                                                        >
-                                                          <TrashIcon className="h-4 w-4" />
-                                                        </button>
-                                                      )}
-                                                    </div>
-                                                  </td>
+                                    {expandedSections[section.section_id] && (
+                                      <div className="pl-8 pr-3 py-2 bg-white">
+                                        {products[section.section_id.toString()] && products[section.section_id.toString()].length > 0 ? (
+                                          <div className="mt-3 rounded-lg bg-yellow-50 p-3 border border-yellow-100">
+                                            <table className="min-w-full divide-y divide-yellow-200">
+                                              <thead className="bg-yellow-50">
+                                                <tr>
+                                                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">Nombre</th>
+                                                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-700 uppercase tracking-wider w-20">Precio</th>
+                                                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-700 uppercase tracking-wider w-16">
+                                                    <EyeIcon className="h-3 w-3 mx-auto text-yellow-600" />
+                                                  </th>
+                                                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-700 uppercase tracking-wider w-20">Acciones</th>
                                                 </tr>
-                                              ))}
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                      ) : (
-                                        <div className="mt-2 rounded-lg bg-yellow-50 p-4 border border-yellow-100 text-center">
-                                          <div className="text-sm text-yellow-700">
-                                            No hay productos disponibles
+                                              </thead>
+                                              <tbody className="bg-white divide-y divide-yellow-100">
+                                                {products[section.section_id.toString()].map((product: Product) => (
+                                                  <tr key={`product-${product.product_id}`} className="hover:bg-yellow-50">
+                                                    <td className="px-3 py-2 whitespace-nowrap">
+                                                      <div className="flex items-center">
+                                                        <span className="text-sm font-medium text-gray-700">
+                                                          {product.name}
+                                                        </span>
+                                                      </div>
+                                                    </td>
+                                                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
+                                                      {product.price}
+                                                    </td>
+                                                    <td className="px-2 py-2 whitespace-nowrap text-center">
+                                                      {onToggleProductVisibility && (
+                                                        <div className="flex justify-center">
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              onToggleProductVisibility(product.product_id, product.status, section.section_id);
+                                                            }}
+                                                            disabled={isUpdatingProductVisibility === product.product_id}
+                                                            className={`p-1.5 rounded-full transition-colors ${
+                                                              product.status === 1 
+                                                                ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
+                                                                : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
+                                                            }`}
+                                                            title={product.status === 1 ? "Visible" : "No visible"}
+                                                          >
+                                                            {isUpdatingProductVisibility === product.product_id ? (
+                                                              <div className="w-4 h-4 flex items-center justify-center">
+                                                                <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
+                                                              </div>
+                                                            ) : product.status === 1 ? (
+                                                              <EyeIcon className="w-4 h-4" />
+                                                            ) : (
+                                                              <EyeSlashIcon className="w-4 h-4" />
+                                                            )}
+                                                          </button>
+                                                        </div>
+                                                      )}
+                                                    </td>
+                                                    <td className="px-3 py-2 whitespace-nowrap text-center">
+                                                      <div className="flex justify-center space-x-1">
+                                                        {onEditProduct && (
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              onEditProduct(product);
+                                                            }}
+                                                            className="p-1 text-yellow-600 hover:text-yellow-800 rounded-full hover:bg-yellow-50"
+                                                          >
+                                                            <PencilIcon className="h-4 w-4" />
+                                                          </button>
+                                                        )}
+                                                        {onDeleteProduct && (
+                                                          <button
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              onDeleteProduct(product);
+                                                            }}
+                                                            className="p-1 text-yellow-600 hover:text-yellow-800 rounded-full hover:bg-yellow-50"
+                                                          >
+                                                            <TrashIcon className="h-4 w-4" />
+                                                          </button>
+                                                        )}
+                                                      </div>
+                                                    </td>
+                                                  </tr>
+                                                ))}
+                                              </tbody>
+                                            </table>
                                           </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
+                                        ) : (
+                                          <div className="mt-2 rounded-lg bg-yellow-50 p-4 border border-yellow-100 text-center">
+                                            <div className="text-sm text-yellow-700">
+                                              No hay productos disponibles
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </td>

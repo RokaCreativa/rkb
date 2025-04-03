@@ -83,7 +83,7 @@ export const SectionTable: React.FC<SectionTableProps> = ({
 
   if (!sections || sections.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500 bg-white rounded-md border border-teal-200">
+      <div className="text-center py-4 text-gray-500 bg-white rounded-md border border-green-200">
         No hay secciones disponibles
       </div>
     );
@@ -143,124 +143,129 @@ export const SectionTable: React.FC<SectionTableProps> = ({
                       isDragDisabled={!onReorderSection || !isReorderModeActive}
                     >
                       {(provided, snapshot) => (
-                        <tr 
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className={`${
-                            snapshot.isDragging 
-                              ? "bg-blue-50" 
-                              : expandedSections && expandedSections[section.section_id] 
-                                ? "bg-green-50" 
-                                : "hover:bg-gray-50"
-                          }`}
+                        <div
+                          key={`section-${section.section_id}`}
+                          className="group border border-gray-100 rounded-md mb-1 overflow-hidden"
                         >
-                          <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
-                            <div className="flex items-center">
-                              <button 
-                                onClick={() => onSectionClick(section.section_id)}
-                                className={`p-1 rounded-full transition-colors ${
-                                  expandedSections && expandedSections[section.section_id] 
-                                    ? "bg-green-100 text-green-600" 
-                                    : "hover:bg-gray-200 text-gray-500"
-                                }`}
-                              >
-                                {expandedSections && expandedSections[section.section_id] ? (
-                                  <ChevronDownIcon className="h-5 w-5" />
-                                ) : (
-                                  <ChevronRightIcon className="h-4 w-4" />
-                                )}
-                              </button>
-                            </div>
-                          </td>
-                          <td 
-                            className="px-3 py-2 cursor-pointer"
-                            onClick={() => onSectionClick(section.section_id)}
+                          <tr 
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            className={`${
+                              snapshot.isDragging 
+                                ? "bg-blue-50" 
+                                : expandedSections && expandedSections[section.section_id] 
+                                  ? "bg-white border-l-4 border-green-500" 
+                                  : "hover:bg-gray-50 border-l-4 border-transparent"
+                            } bg-white`}
                           >
-                            <div className="flex items-center">
-                              <div {...provided.dragHandleProps} className="mr-2">
-                                <Bars3Icon className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                              </div>
+                            <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                               <div className="flex items-center">
-                                <span className={`text-sm font-medium ${
-                                  expandedSections && expandedSections[section.section_id] 
-                                    ? "text-green-700" 
-                                    : "text-gray-700"
-                                }`}>{section.name}</span>
-                                <span className="text-xs text-gray-500 ml-2">
-                                  {products && products[section.section_id.toString()] ? (
-                                    `(${products[section.section_id.toString()].filter(p => p.status === 1).length}/${products[section.section_id.toString()].length} productos visibles)`
-                                  ) : (
-                                    `(${section.visible_products_count || 0}/${section.products_count || 0} productos visibles)`
-                                  )}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">{section.display_order || index + 1}</td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <div className="flex justify-center">
-                              <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
-                                <Image
-                                  src={getImagePath(section.image, 'sections')}
-                                  alt={section.name || ''}
-                                  width={32}
-                                  height={32}
-                                  className="object-cover w-full h-full"
-                                  onError={handleImageError}
-                                />
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-center">
-                            <div className="flex justify-center">
-                              <button
-                                onClick={() => onToggleVisibility(section.section_id, section.status)}
-                                disabled={isUpdatingVisibility === section.section_id}
-                                className={`p-1.5 rounded-full transition-colors ${
-                                  section.status === 1 
-                                    ? 'text-green-600 bg-green-50 hover:bg-green-100' 
-                                    : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
-                                }`}
-                                title={section.status === 1 ? "Visible" : "No visible"}
-                              >
-                                {isUpdatingVisibility === section.section_id ? (
-                                  <div className="w-5 h-5 flex items-center justify-center">
-                                    <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
-                                  </div>
-                                ) : section.status === 1 ? (
-                                  <EyeIcon className="w-5 h-5" />
-                                ) : (
-                                  <EyeSlashIcon className="w-5 h-5" />
-                                )}
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-3 py-2 whitespace-nowrap text-center">
-                            <div className="flex justify-center space-x-1">
-                              {onAddProduct && (
-                                <button
-                                  onClick={() => onAddProduct(section.section_id)}
-                                  className="p-1 text-green-600 hover:text-green-900 rounded-full hover:bg-green-50"
-                                  title="Añadir producto"
+                                <button 
+                                  onClick={() => onSectionClick(section.section_id)}
+                                  className={`p-1 rounded-full transition-colors ${
+                                    expandedSections && expandedSections[section.section_id] 
+                                      ? "bg-green-100 text-green-600" 
+                                      : "hover:bg-gray-200 text-gray-500"
+                                  }`}
                                 >
-                                  <PlusIcon className="h-4 w-4" />
+                                  {expandedSections && expandedSections[section.section_id] ? (
+                                    <ChevronDownIcon className="h-5 w-5" />
+                                  ) : (
+                                    <ChevronRightIcon className="h-4 w-4" />
+                                  )}
                                 </button>
-                              )}
-                              <button
-                                onClick={() => onEditSection(section)}
-                                className="p-1 text-green-600 hover:text-green-900 rounded-full hover:bg-green-50"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => onDeleteSection(section)}
-                                className="p-1 text-green-600 hover:text-green-900 rounded-full hover:bg-green-50"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
+                              </div>
+                            </td>
+                            <td 
+                              className="px-3 py-2 cursor-pointer"
+                              onClick={() => onSectionClick(section.section_id)}
+                            >
+                              <div className="flex items-center">
+                                <div {...provided.dragHandleProps} className="mr-2">
+                                  <Bars3Icon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                                </div>
+                                <div className="flex items-center">
+                                  <span className={`text-sm font-medium ${
+                                    expandedSections && expandedSections[section.section_id] 
+                                      ? "text-green-700" 
+                                      : "text-gray-700"
+                                  }`}>{section.name}</span>
+                                  <span className="text-xs text-gray-500 ml-2">
+                                    {products && products[section.section_id.toString()] ? (
+                                      `(${products[section.section_id.toString()].filter(p => p.status === 1).length}/${products[section.section_id.toString()].length} productos visibles)`
+                                    ) : (
+                                      `(${section.visible_products_count || 0}/${section.products_count || 0} productos visibles)`
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">{section.display_order || index + 1}</td>
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              <div className="flex justify-center">
+                                <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+                                  <Image
+                                    src={getImagePath(section.image, 'sections')}
+                                    alt={section.name || ''}
+                                    width={32}
+                                    height={32}
+                                    className="object-cover w-full h-full"
+                                    onError={handleImageError}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 whitespace-nowrap text-center">
+                              <div className="flex justify-center">
+                                <button
+                                  onClick={() => onToggleVisibility(section.section_id, section.status)}
+                                  disabled={isUpdatingVisibility === section.section_id}
+                                  className={`p-1.5 rounded-full transition-colors ${
+                                    section.status === 1 
+                                      ? 'text-green-600 bg-green-50 hover:bg-green-100' 
+                                      : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
+                                  }`}
+                                  title={section.status === 1 ? "Visible" : "No visible"}
+                                >
+                                  {isUpdatingVisibility === section.section_id ? (
+                                    <div className="w-5 h-5 flex items-center justify-center">
+                                      <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
+                                    </div>
+                                  ) : section.status === 1 ? (
+                                    <EyeIcon className="w-5 h-5" />
+                                  ) : (
+                                    <EyeSlashIcon className="w-5 h-5" />
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap text-center">
+                              <div className="flex justify-center space-x-1">
+                                {onAddProduct && (
+                                  <button
+                                    onClick={() => onAddProduct(section.section_id)}
+                                    className="p-1 text-green-600 hover:text-green-900 rounded-full hover:bg-green-50"
+                                    title="Añadir producto"
+                                  >
+                                    <PlusIcon className="h-4 w-4" />
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => onEditSection(section)}
+                                  className="p-1 text-green-600 hover:text-green-900 rounded-full hover:bg-green-50"
+                                >
+                                  <PencilIcon className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => onDeleteSection(section)}
+                                  className="p-1 text-green-600 hover:text-green-900 rounded-full hover:bg-green-50"
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        </div>
                       )}
                     </Draggable>
 
@@ -268,8 +273,8 @@ export const SectionTable: React.FC<SectionTableProps> = ({
                     {expandedSections && expandedSections[section.section_id] && (
                       <tr>
                         <td colSpan={6} className="p-0">
-                          <div className="pl-8 pr-4 py-3 border-t border-green-100">
-                            <div className="flex justify-between items-center mb-3">
+                          <div className="pl-8 pr-4 py-2 border-t border-green-100">
+                            <div className="flex justify-between items-center mb-2">
                               <h3 className="text-sm font-medium text-green-700">
                                 Productos: {section.name}
                               </h3>
@@ -285,8 +290,7 @@ export const SectionTable: React.FC<SectionTableProps> = ({
                             </div>
                             
                             {products[section.section_id.toString()] && products[section.section_id.toString()].length > 0 ? (
-                              <div className="mt-3 mb-3 rounded-lg bg-yellow-50 p-3 border border-yellow-100">
-                                <div className="text-xs font-medium text-yellow-700 mb-2 px-2">Productos de la sección</div>
+                              <div className="mt-2 mb-2 rounded-lg bg-yellow-50 p-2 border border-yellow-100">
                                 <table className="min-w-full divide-y divide-yellow-200">
                                   <thead className="bg-yellow-50">
                                     <tr>
@@ -381,7 +385,7 @@ export const SectionTable: React.FC<SectionTableProps> = ({
                                 </table>
                               </div>
                             ) : (
-                              <div className="mt-3 mb-3 rounded-lg bg-yellow-50 p-4 border border-yellow-100 text-center">
+                              <div className="mt-2 mb-2 rounded-lg bg-yellow-50 p-3 border border-yellow-100 text-center">
                                 <div className="text-sm text-yellow-700">
                                   No hay productos disponibles
                                 </div>
