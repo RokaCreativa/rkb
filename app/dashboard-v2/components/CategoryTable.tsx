@@ -255,22 +255,22 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                               </button>
                             </div>
                             
-                            <div className="ml-10 bg-white border-l-2 border-teal-100">
+                            <div className="ml-10 bg-white border-l-2 border-green-100">
                               {sections[category.category_id] && sections[category.category_id].map((section) => (
-                                <div key={`section-${section.section_id}`} className="border-b border-teal-50 last:border-b-0">
-                                  <div 
+                                <div
+                                  key={`section-row-${section.section_id}`}
+                                  className="group border border-green-100 rounded-md mb-2 overflow-hidden"
+                                >
+                                  <div
+                                    className={`flex items-center justify-between px-4 py-2 bg-green-50 cursor-pointer`}
                                     onClick={() => onSectionClick(section.section_id)}
-                                    className={`
-                                      flex items-center justify-between py-2 px-3 cursor-pointer
-                                      ${expandedSections[section.section_id] ? 'bg-teal-50' : 'hover:bg-gray-50'}
-                                    `}
                                   >
                                     <div className="flex items-center space-x-2">
-                                      <div className="transition-transform duration-200">
+                                      <div className="flex-shrink-0 flex items-center">
                                         {expandedSections[section.section_id] ? (
-                                          <ChevronDownIcon className="h-4 w-4 text-teal-500" />
+                                          <ChevronDownIcon className="h-4 w-4 text-green-500" />
                                         ) : (
-                                          <ChevronRightIcon className="h-4 w-4 text-teal-500" />
+                                          <ChevronRightIcon className="h-4 w-4 text-green-500" />
                                         )}
                                       </div>
                                       
@@ -291,11 +291,11 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                     
                                     <div className="flex items-center space-x-1">
                                       <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
+                                        type="button"
+                                        onClick={() => {
                                           onAddProduct(section.section_id);
                                         }}
-                                        className="p-1 text-teal-600 hover:text-teal-800 rounded-full hover:bg-teal-50"
+                                        className="p-1 text-green-600 hover:text-green-800 rounded-full hover:bg-green-50 ml-2"
                                       >
                                         <PlusIcon className="h-4 w-4" />
                                       </button>
@@ -304,7 +304,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                           e.stopPropagation();
                                           onEditSection(section);
                                         }}
-                                        className="p-1 text-teal-600 hover:text-teal-800 rounded-full hover:bg-teal-50"
+                                        className="p-1 text-green-600 hover:text-green-800 rounded-full hover:bg-green-50"
                                       >
                                         <PencilIcon className="h-4 w-4" />
                                       </button>
@@ -313,7 +313,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                           e.stopPropagation();
                                           onDeleteSection(section);
                                         }}
-                                        className="p-1 text-teal-600 hover:text-teal-800 rounded-full hover:bg-teal-50"
+                                        className="p-1 text-green-600 hover:text-green-800 rounded-full hover:bg-green-50"
                                       >
                                         <TrashIcon className="h-4 w-4" />
                                       </button>
@@ -323,92 +323,97 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                   {expandedSections[section.section_id] && (
                                     <div className="pl-8 pr-3 py-2 bg-gray-50">
                                       {products[section.section_id.toString()] && products[section.section_id.toString()].length > 0 ? (
-                                        <table className="min-w-full divide-y divide-teal-200">
-                                          <thead className="bg-teal-50">
-                                            <tr>
-                                              <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-teal-700 uppercase tracking-wider">Nombre</th>
-                                              <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-teal-700 uppercase tracking-wider w-20">Precio</th>
-                                              <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-teal-700 uppercase tracking-wider w-16">
-                                                <EyeIcon className="h-3 w-3 mx-auto text-teal-600" />
-                                              </th>
-                                              <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-teal-700 uppercase tracking-wider w-20">Acciones</th>
-                                            </tr>
-                                          </thead>
-                                          <tbody className="bg-white divide-y divide-teal-100">
-                                            {products[section.section_id.toString()].map((product: Product) => (
-                                              <tr key={`product-${product.product_id}`} className="hover:bg-teal-50">
-                                                <td className="px-3 py-2 whitespace-nowrap">
-                                                  <div className="flex items-center">
-                                                    <span className="text-sm font-medium text-gray-700">
-                                                      {product.name}
-                                                    </span>
-                                                  </div>
-                                                </td>
-                                                <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
-                                                  {product.price}
-                                                </td>
-                                                <td className="px-2 py-2 whitespace-nowrap text-center">
-                                                  {onToggleProductVisibility && (
-                                                    <div className="flex justify-center">
-                                                      <button
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          onToggleProductVisibility(product.product_id, product.status, section.section_id);
-                                                        }}
-                                                        disabled={isUpdatingProductVisibility === product.product_id}
-                                                        className={`p-1.5 rounded-full transition-colors ${
-                                                          product.status === 1 
-                                                            ? 'text-teal-600 bg-teal-50 hover:bg-teal-100' 
-                                                            : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
-                                                        }`}
-                                                        title={product.status === 1 ? "Visible" : "No visible"}
-                                                      >
-                                                        {isUpdatingProductVisibility === product.product_id ? (
-                                                          <div className="w-4 h-4 flex items-center justify-center">
-                                                            <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
-                                                          </div>
-                                                        ) : product.status === 1 ? (
-                                                          <EyeIcon className="w-4 h-4" />
-                                                        ) : (
-                                                          <EyeSlashIcon className="w-4 h-4" />
-                                                        )}
-                                                      </button>
-                                                    </div>
-                                                  )}
-                                                </td>
-                                                <td className="px-3 py-2 whitespace-nowrap text-center">
-                                                  <div className="flex justify-center space-x-1">
-                                                    {onEditProduct && (
-                                                      <button
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          onEditProduct(product);
-                                                        }}
-                                                        className="p-1 text-teal-600 hover:text-teal-800 rounded-full hover:bg-teal-50"
-                                                      >
-                                                        <PencilIcon className="h-4 w-4" />
-                                                      </button>
-                                                    )}
-                                                    {onDeleteProduct && (
-                                                      <button
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          onDeleteProduct(product);
-                                                        }}
-                                                        className="p-1 text-teal-600 hover:text-teal-800 rounded-full hover:bg-teal-50"
-                                                      >
-                                                        <TrashIcon className="h-4 w-4" />
-                                                      </button>
-                                                    )}
-                                                  </div>
-                                                </td>
+                                        <div className="mt-2 rounded-lg bg-yellow-50 p-2 border border-yellow-100">
+                                          <div className="text-xs font-medium text-yellow-700 mb-2 px-2">Productos de la sección</div>
+                                          <table className="min-w-full divide-y divide-yellow-200">
+                                            <thead className="bg-yellow-50">
+                                              <tr>
+                                                <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-yellow-700 uppercase tracking-wider">Nombre</th>
+                                                <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-700 uppercase tracking-wider w-20">Precio</th>
+                                                <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-700 uppercase tracking-wider w-16">
+                                                  <EyeIcon className="h-3 w-3 mx-auto text-yellow-600" />
+                                                </th>
+                                                <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-700 uppercase tracking-wider w-20">Acciones</th>
                                               </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-yellow-100">
+                                              {products[section.section_id.toString()].map((product: Product) => (
+                                                <tr key={`product-${product.product_id}`} className="hover:bg-yellow-50">
+                                                  <td className="px-3 py-2 whitespace-nowrap">
+                                                    <div className="flex items-center">
+                                                      <span className="text-sm font-medium text-gray-700">
+                                                        {product.name}
+                                                      </span>
+                                                    </div>
+                                                  </td>
+                                                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
+                                                    {product.price}
+                                                  </td>
+                                                  <td className="px-2 py-2 whitespace-nowrap text-center">
+                                                    {onToggleProductVisibility && (
+                                                      <div className="flex justify-center">
+                                                        <button
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onToggleProductVisibility(product.product_id, product.status, section.section_id);
+                                                          }}
+                                                          disabled={isUpdatingProductVisibility === product.product_id}
+                                                          className={`p-1.5 rounded-full transition-colors ${
+                                                            product.status === 1 
+                                                              ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
+                                                              : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
+                                                          }`}
+                                                          title={product.status === 1 ? "Visible" : "No visible"}
+                                                        >
+                                                          {isUpdatingProductVisibility === product.product_id ? (
+                                                            <div className="w-4 h-4 flex items-center justify-center">
+                                                              <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
+                                                            </div>
+                                                          ) : product.status === 1 ? (
+                                                            <EyeIcon className="w-4 h-4" />
+                                                          ) : (
+                                                            <EyeSlashIcon className="w-4 h-4" />
+                                                          )}
+                                                        </button>
+                                                      </div>
+                                                    )}
+                                                  </td>
+                                                  <td className="px-3 py-2 whitespace-nowrap text-center">
+                                                    <div className="flex justify-center space-x-1">
+                                                      {onEditProduct && (
+                                                        <button
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onEditProduct(product);
+                                                          }}
+                                                          className="p-1 text-yellow-600 hover:text-yellow-800 rounded-full hover:bg-yellow-50"
+                                                        >
+                                                          <PencilIcon className="h-4 w-4" />
+                                                        </button>
+                                                      )}
+                                                      {onDeleteProduct && (
+                                                        <button
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onDeleteProduct(product);
+                                                          }}
+                                                          className="p-1 text-yellow-600 hover:text-yellow-800 rounded-full hover:bg-yellow-50"
+                                                        >
+                                                          <TrashIcon className="h-4 w-4" />
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  </td>
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
                                       ) : (
-                                        <div className="text-center py-3 text-sm text-gray-500">
-                                          No hay productos disponibles
+                                        <div className="mt-2 rounded-lg bg-yellow-50 p-4 border border-yellow-100 text-center">
+                                          <div className="text-sm text-yellow-700">
+                                            No hay productos disponibles
+                                          </div>
                                         </div>
                                       )}
                                     </div>
