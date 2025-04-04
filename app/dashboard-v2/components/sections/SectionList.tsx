@@ -1,9 +1,33 @@
 import React, { useState } from 'react';
-import { PlusIcon, EyeIcon, ViewColumnsIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, EyeIcon, ViewColumnsIcon, PencilIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon } from '@heroicons/react/24/solid';
 import { Section, Product } from '@/app/types/menu';
 import SectionListItem from './SectionListItem';
 import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import Image from 'next/image';
+import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 
+/**
+ * Propiedades del componente SectionList
+ * @typedef {Object} SectionListProps
+ * @property {Section[]} sections - Array de secciones a mostrar
+ * @property {Record<number, boolean>} expandedSections - Registro de secciones expandidas
+ * @property {function} onSectionClick - Manejador para el click en una sección
+ * @property {function} onToggleSectionVisibility - Manejador para alternar la visibilidad de una sección
+ * @property {function} onEditSection - Manejador para editar una sección
+ * @property {function} onDeleteSection - Manejador para eliminar una sección
+ * @property {function} onAddProduct - Manejador para agregar un producto a una sección
+ * @property {Record<string, Product[]>} products - Productos agrupados por sección
+ * @property {function} [onToggleProductVisibility] - Manejador para alternar la visibilidad de un producto
+ * @property {function} [onEditProduct] - Manejador para editar un producto
+ * @property {function} [onDeleteProduct] - Manejador para eliminar un producto
+ * @property {number|null} isUpdatingVisibility - ID de la sección cuya visibilidad se está actualizando
+ * @property {number|null} [isUpdatingProductVisibility] - ID del producto cuya visibilidad se está actualizando
+ * @property {string} [categoryName] - Nombre de la categoría padre
+ * @property {number} [categoryId] - ID de la categoría padre
+ * @property {function} [onSectionsReorder] - Manejador para reordenar secciones
+ * @property {function} [onAddSectionToCategory] - Manejador para agregar una sección a una categoría
+ */
 interface SectionListProps {
   sections: Section[];
   expandedSections: Record<number, boolean>;
@@ -21,11 +45,19 @@ interface SectionListProps {
   categoryName?: string;
   categoryId?: number;
   onSectionsReorder?: (reorderedSections: Section[]) => void | Promise<void>;
+  onAddSectionToCategory?: (categoryId: number) => void;
 }
 
 /**
- * Componente para mostrar una lista de secciones con sus productos
- * Este componente puede usarse tanto dentro de CategoryTable como de forma independiente
+ * Componente para mostrar una lista de secciones con sus productos en formato de tabla
+ * 
+ * Este componente visualiza secciones de menú en una tabla con capacidad
+ * para expandir/colapsar mostrando los productos de cada sección. Mantiene
+ * el esquema de colores teal para establecer una identidad visual diferenciada
+ * de las categorías (indigo) y los productos (yellow).
+ * 
+ * @param {SectionListProps} props - Propiedades del componente
+ * @returns {JSX.Element} Componente renderizado
  */
 const SectionList: React.FC<SectionListProps> = ({
   sections,
@@ -43,7 +75,8 @@ const SectionList: React.FC<SectionListProps> = ({
   isUpdatingProductVisibility,
   categoryName,
   categoryId,
-  onSectionsReorder
+  onSectionsReorder,
+  onAddSectionToCategory
 }) => {
   const [showHiddenSections, setShowHiddenSections] = useState(true);
   const [showHiddenProducts, setShowHiddenProducts] = useState(true);
@@ -52,6 +85,10 @@ const SectionList: React.FC<SectionListProps> = ({
   const visibleSections = sections.filter(s => s.status === 1);
   const hiddenSections = sections.filter(s => s.status !== 1);
   
+  /**
+   * Maneja el fin del arrastre para reordenar secciones
+   * @param {DropResult} result - Resultado del arrastre
+   */
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || !onSectionsReorder) return;
     
@@ -68,6 +105,7 @@ const SectionList: React.FC<SectionListProps> = ({
     onSectionsReorder(updatedItems);
   };
 
+  // Mostrar mensaje cuando no hay secciones
   if (!sections || sections.length === 0) {
     return (
       <div className="bg-white p-4 text-center text-gray-500 rounded-lg border section-border">
@@ -76,7 +114,11 @@ const SectionList: React.FC<SectionListProps> = ({
     );
   }
   
-  // Renderiza productos para una sección
+  /**
+   * Renderiza los productos para una sección específica
+   * @param {number} sectionId - ID de la sección
+   * @returns {JSX.Element|null} Tabla de productos o null si la sección no está expandida
+   */
   const renderProducts = (sectionId: number) => {
     if (!expandedSections[sectionId] || !products[sectionId]) {
       return null;
@@ -129,6 +171,10 @@ const SectionList: React.FC<SectionListProps> = ({
                     className="text-xs product-title hover:product-text flex items-center gap-1"
                   >
                     {showHiddenProducts ? 'Ocultar' : 'Mostrar'} no visibles
+                    {showHiddenProducts ? 
+                      <ChevronDownIcon className="h-3 w-3" /> : 
+                      <ChevronDownIcon className="h-3 w-3" />
+                    }
                   </button>
                 </div>
               </div>
@@ -212,6 +258,19 @@ const SectionList: React.FC<SectionListProps> = ({
                       </td>
                     </tr>
                   ))}
+                  
+                  {/* Botón para agregar producto al final de la lista */}
+                  <tr className="bg-gray-50">
+                    <td colSpan={5} className="px-3 py-3 text-center">
+                      <button
+                        onClick={() => onAddProduct(sectionId)}
+                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded product-button"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" />
+                        Agregar producto
+                      </button>
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -223,8 +282,9 @@ const SectionList: React.FC<SectionListProps> = ({
   
   return (
     <div className="rounded-lg border section-border overflow-hidden bg-white shadow-sm">
-      <div className="flex justify-between items-center px-4 py-2 section-bg border-b section-border">
-        <h2 className="text-sm font-medium section-title">
+      {/* HEADER - Ahora con nombre y contador de visibles en la misma fila */}
+      <div className="flex items-center justify-between px-4 py-2 section-bg border-b section-border">
+        <h2 className="text-sm font-medium section-text">
           Secciones: {categoryName || 'Comidas'}
         </h2>
         <div className="flex items-center">
@@ -237,10 +297,15 @@ const SectionList: React.FC<SectionListProps> = ({
             className="text-xs section-title hover:section-text flex items-center gap-1"
           >
             {showHiddenSections ? 'Ocultar' : 'Mostrar'} no visibles
+            {showHiddenSections ? 
+              <ChevronDownIcon className="h-3 w-3" /> : 
+              <ChevronDownIcon className="h-3 w-3" />
+            }
           </button>
         </div>
       </div>
 
+      {/* TABLA PRINCIPAL */}
       {onSectionsReorder ? (
         <DragDropContext onDragEnd={handleDragEnd}>
           <Droppable droppableId="sections">
@@ -265,7 +330,7 @@ const SectionList: React.FC<SectionListProps> = ({
                 </thead>
                 <tbody className="bg-white divide-y section-border">
                   {sections.map((section, index) => (
-                    <React.Fragment key={`section-group-${section.section_id}`}>
+                    <React.Fragment key={`section-${section.section_id}`}>
                       <Draggable
                         key={section.section_id.toString()}
                         draggableId={section.section_id.toString()}
@@ -275,37 +340,125 @@ const SectionList: React.FC<SectionListProps> = ({
                           <tr
                             ref={provided.innerRef}
                             {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={`${snapshot.isDragging ? 'grid-item-dragging-section' : ''}`}
+                            className={`${
+                              snapshot.isDragging 
+                                ? "grid-item-dragging-section" 
+                                : expandedSections[section.section_id] 
+                                  ? "section-bg" 
+                                  : "hover:bg-gray-50"
+                            } ${section.status !== 1 ? 'grid-item-hidden' : ''}`}
                           >
-                            <SectionListItem
-                              section={section}
-                              isExpanded={expandedSections[section.section_id] || false}
-                              visibleProductsCount={
-                                products[section.section_id]
-                                  ? products[section.section_id].filter(p => p.status === 1).length
-                                  : section.visible_products_count || 0
-                              }
-                              totalProductsCount={
-                                products[section.section_id]
-                                  ? products[section.section_id].length
-                                  : section.products_count || 0
-                              }
-                              onSectionClick={onSectionClick}
-                              onAddProduct={onAddProduct}
-                              onToggleSectionVisibility={onToggleSectionVisibility}
-                              onEditSection={onEditSection}
-                              onDeleteSection={onDeleteSection}
-                              orderIndex={index}
-                            />
+                            <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
+                              <div className="flex items-center">
+                                <button 
+                                  onClick={() => onSectionClick(section.section_id)}
+                                  className={`p-1 rounded-full transition-colors ${
+                                    expandedSections[section.section_id] 
+                                      ? "bg-teal-100 section-title" 
+                                      : "hover:bg-gray-200 text-gray-500"
+                                  }`}
+                                  aria-label={expandedSections[section.section_id] ? "Colapsar" : "Expandir"}
+                                >
+                                  {expandedSections[section.section_id] ? (
+                                    <ChevronDownIcon className="h-5 w-5" />
+                                  ) : (
+                                    <ChevronRightIcon className="h-4 w-4" />
+                                  )}
+                                </button>
+                              </div>
+                            </td>
+                            <td 
+                              className="px-3 py-2 cursor-pointer"
+                              onClick={() => onSectionClick(section.section_id)}
+                            >
+                              <div className="flex items-center">
+                                <div {...provided.dragHandleProps} className="mr-2">
+                                  <Bars3Icon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                                </div>
+                                <div className="flex items-center">
+                                  <span className={`text-sm font-medium ${
+                                    expandedSections[section.section_id] 
+                                      ? "section-text" 
+                                      : "text-gray-700"
+                                  }`}>{section.name}</span>
+                                  <span className="text-xs text-gray-500 ml-2">
+                                    ({section.visible_products_count || 0}/{section.products_count || 0} productos visibles)
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">{section.display_order || index + 1}</td>
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              <div className="flex justify-center">
+                                <div className="grid-image-container">
+                                  {section.image && (
+                                    <img 
+                                      src={section.image.startsWith('http') ? section.image : `/images/sections/${section.image}`} 
+                                      alt={section.name || ''}
+                                      className="grid-image"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = '/images/placeholder.png';
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-2 py-2 whitespace-nowrap text-center">
+                              <button
+                                onClick={() => onToggleSectionVisibility(section.section_id, section.status)}
+                                className={`inline-flex items-center justify-center h-6 w-6 rounded ${
+                                  section.status === 1
+                                    ? 'section-action section-icon-hover'
+                                    : 'text-gray-400 hover:bg-gray-100'
+                                }`}
+                                disabled={isUpdatingVisibility === section.section_id}
+                              >
+                                {isUpdatingVisibility === section.section_id ? (
+                                  <div className="w-4 h-4 border-2 border-t-transparent border-teal-500 rounded-full animate-spin"></div>
+                                ) : (
+                                  <EyeIcon className="w-4 h-4" />
+                                )}
+                              </button>
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap text-center">
+                              <div className="flex items-center justify-center space-x-1">
+                                <button
+                                  onClick={() => onEditSection(section)}
+                                  className="action-button section-action section-icon-hover"
+                                >
+                                  <PencilIcon className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => onDeleteSection(section)}
+                                  className="section-action-delete"
+                                >
+                                  <TrashIcon className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         )}
                       </Draggable>
-                      
-                      {expandedSections[section.section_id] && renderProducts(section.section_id)}
+                      {renderProducts(section.section_id)}
                     </React.Fragment>
                   ))}
                   {provided.placeholder}
+                  
+                  {/* Botón para agregar sección al final de la lista */}
+                  {categoryId && onAddSectionToCategory && (
+                    <tr className="bg-gray-50">
+                      <td colSpan={6} className="px-3 py-3 text-center">
+                        <button
+                          onClick={() => onAddSectionToCategory(categoryId)}
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded section-button"
+                        >
+                          <PlusIcon className="h-4 w-4 mr-1" />
+                          Agregar sección
+                        </button>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             )}
@@ -332,33 +485,116 @@ const SectionList: React.FC<SectionListProps> = ({
           </thead>
           <tbody className="bg-white divide-y section-border">
             {sections.map((section, index) => (
-              <React.Fragment key={`section-group-${section.section_id}`}>
-                <tr className="section-hover">
-                  <SectionListItem
-                    section={section}
-                    isExpanded={expandedSections[section.section_id] || false}
-                    visibleProductsCount={
-                      products[section.section_id]
-                        ? products[section.section_id].filter(p => p.status === 1).length
-                        : section.visible_products_count || 0
-                    }
-                    totalProductsCount={
-                      products[section.section_id]
-                        ? products[section.section_id].length
-                        : section.products_count || 0
-                    }
-                    onSectionClick={onSectionClick}
-                    onAddProduct={onAddProduct}
-                    onToggleSectionVisibility={onToggleSectionVisibility}
-                    onEditSection={onEditSection}
-                    onDeleteSection={onDeleteSection}
-                    orderIndex={index}
-                  />
+              <React.Fragment key={`section-${section.section_id}`}>
+                <tr className={`hover:bg-gray-50 ${section.status !== 1 ? 'grid-item-hidden' : ''}`}>
+                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
+                    <div className="flex items-center">
+                      <button 
+                        onClick={() => onSectionClick(section.section_id)}
+                        className={`p-1 rounded-full transition-colors ${
+                          expandedSections[section.section_id] 
+                            ? "bg-teal-100 section-title" 
+                            : "hover:bg-gray-200 text-gray-500"
+                        }`}
+                        aria-label={expandedSections[section.section_id] ? "Colapsar" : "Expandir"}
+                      >
+                        {expandedSections[section.section_id] ? (
+                          <ChevronDownIcon className="h-5 w-5" />
+                        ) : (
+                          <ChevronRightIcon className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                  <td 
+                    className="px-3 py-2 cursor-pointer"
+                    onClick={() => onSectionClick(section.section_id)}
+                  >
+                    <div className="flex items-center">
+                      <div className="mr-2">
+                        <Bars3Icon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                      </div>
+                      <div className="flex items-center">
+                        <span className={`text-sm font-medium ${
+                          expandedSections[section.section_id] 
+                            ? "section-text" 
+                            : "text-gray-700"
+                        }`}>{section.name}</span>
+                        <span className="text-xs text-gray-500 ml-2">
+                          ({section.visible_products_count || 0}/{section.products_count || 0} productos visibles)
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">{section.display_order || index + 1}</td>
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    <div className="flex justify-center">
+                      <div className="grid-image-container">
+                        {section.image && (
+                          <img 
+                            src={section.image.startsWith('http') ? section.image : `/images/sections/${section.image}`} 
+                            alt={section.name || ''}
+                            className="grid-image"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/images/placeholder.png';
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-2 py-2 whitespace-nowrap text-center">
+                    <button
+                      onClick={() => onToggleSectionVisibility(section.section_id, section.status)}
+                      className={`inline-flex items-center justify-center h-6 w-6 rounded ${
+                        section.status === 1
+                          ? 'section-action section-icon-hover'
+                          : 'text-gray-400 hover:bg-gray-100'
+                      }`}
+                      disabled={isUpdatingVisibility === section.section_id}
+                    >
+                      {isUpdatingVisibility === section.section_id ? (
+                        <div className="w-4 h-4 border-2 border-t-transparent border-teal-500 rounded-full animate-spin"></div>
+                      ) : (
+                        <EyeIcon className="w-4 h-4" />
+                      )}
+                    </button>
+                  </td>
+                  <td className="px-3 py-2 whitespace-nowrap text-center">
+                    <div className="flex items-center justify-center space-x-1">
+                      <button
+                        onClick={() => onEditSection(section)}
+                        className="action-button section-action section-icon-hover"
+                      >
+                        <PencilIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => onDeleteSection(section)}
+                        className="section-action-delete"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-                
-                {expandedSections[section.section_id] && renderProducts(section.section_id)}
+                {renderProducts(section.section_id)}
               </React.Fragment>
             ))}
+            
+            {/* Botón para agregar sección al final de la lista (versión sin DnD) */}
+            {categoryId && onAddSectionToCategory && (
+              <tr className="bg-gray-50">
+                <td colSpan={6} className="px-3 py-3 text-center">
+                  <button
+                    onClick={() => onAddSectionToCategory(categoryId)}
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded section-button"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-1" />
+                    Agregar sección
+                  </button>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       )}

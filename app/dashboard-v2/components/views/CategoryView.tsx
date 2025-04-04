@@ -196,6 +196,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
           onEditProduct={onEditProduct}
           onDeleteProduct={onDeleteProduct}
           isUpdatingProductVisibility={isUpdatingProductVisibility}
+          onAddCategory={handleAddCategory}
         />
       </div>
 

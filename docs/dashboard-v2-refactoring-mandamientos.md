@@ -90,6 +90,14 @@
   │   ├── useViewState.tsx
   │   ├── useModalState.tsx
   │   └── useVirtualizedList.ts
+  ├── shared/               # Recursos compartidos
+  │   ├── components/       # Componentes compartidos
+  │   │   └── grid/         # Componentes para grids reutilizables
+  │   │       └── GridIcon.tsx # Componente centralizado para íconos
+  │   ├── constants/        # Constantes compartidas
+  │   │   └── iconConfig.ts # Configuración de íconos
+  │   └── hooks/            # Hooks compartidos
+  │       └── useGridIcons.tsx # Hook para manejo de íconos
   ├── styles/               # Estilos
   │   ├── dashboard.css
   │   ├── index.css
@@ -181,3 +189,18 @@
   - `grid-*` para elementos comunes entre los tres tipos
 - Verificar siempre la existencia de clases en `grids.css` antes de crear nuevas
 - Documentar cualquier adición o modificación a los estilos de grid en los comentarios
+
+## 📋 MANDAMIENTO DE COMPONENTES COMPARTIDOS: UTILIZARÁS LOS COMPONENTES GRID
+
+- **UTILIZARÁS los componentes compartidos de grid para todos los íconos de tablas**
+- Centralizar la gestión de íconos en `shared/constants/iconConfig.ts`
+- Utilizar `GridIcon` en lugar de importar íconos directamente en cada componente
+- Implementar `useGridIcons` para obtener íconos de manera consistente
+- Seguir patrones visuales establecidos según el tipo de grid:
+  - Categorías: Indigo
+  - Secciones: Teal
+  - Productos: Yellow
+- **CUANDO NECESITES CAMBIAR UN ÍCONO GLOBALMENTE**, modificarlo en `iconConfig.ts`, no en cada componente
+- **DOCUMENTAR** cualquier adición de nuevo ícono en los comentarios de `iconConfig.ts`
+- **RESPETAR** la estructura definida para componentes de grid
+- **ANTES DE CREAR NUEVO COMPONENTE**, verificar si se puede implementar con los compartidos

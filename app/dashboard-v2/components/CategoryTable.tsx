@@ -32,6 +32,7 @@ interface CategoryTableProps {
   onEditProduct?: (product: Product) => void;
   onDeleteProduct?: (product: Product) => void;
   isUpdatingProductVisibility?: number | null;
+  onAddCategory?: () => void;
 }
 
 const CategoryTable: React.FC<CategoryTableProps> = ({
@@ -56,7 +57,8 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
   onToggleProductVisibility,
   onEditProduct,
   onDeleteProduct,
-  isUpdatingProductVisibility = null
+  isUpdatingProductVisibility = null,
+  onAddCategory
 }) => {
   const [showHiddenCategories, setShowHiddenCategories] = useState(true);
   
@@ -266,6 +268,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                   isUpdatingProductVisibility={isUpdatingProductVisibility}
                                   categoryName={category.name}
                                   categoryId={category.category_id}
+                                  onAddSectionToCategory={onAddSection}
                                 />
                               ) : (
                                 <div className="p-4 text-center text-gray-500 bg-white">
@@ -383,6 +386,21 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                     </td>
                   </tr>
                 ))}
+                
+                {/* Botón para agregar categoría al final de la lista */}
+                {onAddCategory && (
+                  <tr className="bg-gray-50">
+                    <td colSpan={6} className="px-3 py-3 text-center">
+                      <button
+                        onClick={onAddCategory}
+                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded category-button"
+                      >
+                        <PlusIcon className="h-4 w-4 mr-1" />
+                        Agregar categoría
+                      </button>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           )}

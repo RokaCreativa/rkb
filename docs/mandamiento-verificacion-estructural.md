@@ -59,6 +59,14 @@ app/dashboard-v2/
 │   ├── useViewState.tsx
 │   ├── useModalState.tsx
 │   └── useVirtualizedList.ts
+├── shared/               # Recursos compartidos
+│   ├── components/       # Componentes compartidos
+│   │   └── grid/         # Componentes para grids reutilizables
+│   │       └── GridIcon.tsx # Componente centralizado para íconos
+│   ├── constants/        # Constantes compartidas
+│   │   └── iconConfig.ts # Configuración de íconos
+│   └── hooks/            # Hooks compartidos
+│       └── useGridIcons.tsx # Hook para manejo de íconos
 ├── styles/               # Estilos
 │   ├── dashboard.css
 │   ├── theme.css

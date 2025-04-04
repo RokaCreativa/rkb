@@ -147,11 +147,21 @@ Contiene recursos compartidos que pueden ser utilizados en múltiples partes de 
 
 ```
 shared/
-└── components/   # Componentes compartidos
+├── components/          # Componentes compartidos
+│   └── grid/            # Componentes para grids reutilizables
+│       └── GridIcon.tsx # Componente centralizado para íconos en grids
+├── constants/           # Constantes compartidas
+│   └── iconConfig.ts    # Configuración centralizada de íconos
+└── hooks/               # Hooks compartidos
+    └── useGridIcons.tsx # Hook para gestionar íconos en grids
 ```
 
 - **Propósito**: Proporcionar recursos reutilizables
 - **Uso**: Componentes, utilidades o hooks que se utilizan en múltiples partes
+- **Componentes Grid**: Sistema centralizado para manejar grids de categorías, secciones y productos
+  - **GridIcon.tsx**: Componente para renderizar íconos con estilo consistente según tipo de grid
+  - **iconConfig.ts**: Configuración centralizada de todos los íconos del sistema
+  - **useGridIcons.tsx**: Hook para facilitar el uso de íconos en los componentes
 
 ### 📁 `/stores`
 
