@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Category, Section } from '../core/types';
-import { SectionList } from './SectionList';
+import { Category, Section } from '../types';
+import { LegacySection, toLegacySection, toOfficialSection } from '../types/legacy';
+import SectionList from './sections/SectionList';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
@@ -15,15 +16,15 @@ interface CategorySectionsProps {
 
 export default function CategorySections({ category }: CategorySectionsProps) {
   const [sections, setSections] = useState<Section[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isReorderMode, setIsReorderMode] = useState(false);
-  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
+  const [isReorderMode, setIsReorderMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
-  const { 
-    sections: sectionsMap, 
+  const {
+    sections: sectionsMap,
     fetchSectionsByCategory,
     deleteSection
   } = useDataState();
@@ -49,29 +50,25 @@ export default function CategorySections({ category }: CategorySectionsProps) {
   // Actualizar secciones locales cuando cambia el store
   useEffect(() => {
     if (category && sectionsMap && sectionsMap[category.category_id]) {
-      // Convertir las secciones del mapa al tipo Section de dashboard-v2
-      const dashboardSections = sectionsMap[category.category_id]?.map(section => ({
-        section_id: section.section_id,
-        category_id: section.category_id,
-        name: section.name,
-        order: section.display_order || 0,
-        image_url: section.image || '',
-        status: section.status === 1 ? 'active' : 'inactive'
-      } as Section));
-      
-      setSections(dashboardSections || []);
+      // Usar directamente las secciones del store ya que son del tipo Section
+      const dashboardSections = sectionsMap[category.category_id] || [];
+      setSections(dashboardSections);
     }
   }, [category, sectionsMap]);
   
   // Manejador para abrir el modal de edición
-  const handleEditClick = (section: Section) => {
-    setSelectedSection(section);
+  const handleEditClick = (legacySection: LegacySection) => {
+    // Convertir de LegacySection a Section para el estado interno
+    const officialSection = toOfficialSection(legacySection);
+    setSelectedSection(officialSection);
     setIsEditModalOpen(true);
   };
   
   // Manejador para abrir el modal de eliminación
-  const handleDeleteClick = (section: Section) => {
-    setSelectedSection(section);
+  const handleDeleteClick = (legacySection: LegacySection) => {
+    // Convertir de LegacySection a Section para el estado interno
+    const officialSection = toOfficialSection(legacySection);
+    setSelectedSection(officialSection);
     setIsDeleteModalOpen(true);
   };
   
@@ -132,8 +129,8 @@ export default function CategorySections({ category }: CategorySectionsProps) {
     );
   }
   
-  // Ordenar secciones por el campo order
-  const sortedSections = [...sections].sort((a, b) => a.order - b.order);
+  // Ordenar secciones por el campo display_order
+  const sortedSections = [...sections].sort((a, b) => a.display_order - b.display_order);
   
   return (
     <div className="space-y-6">
@@ -191,7 +188,7 @@ export default function CategorySections({ category }: CategorySectionsProps) {
                       className={`${snapshot.isDragging ? 'border-2 border-indigo-300' : ''}`}
                     >
                       <SectionDetail 
-                        section={section}
+                        section={toLegacySection(section)}
                         onEditClick={handleEditClick}
                         onDeleteClick={handleDeleteClick}
                       />

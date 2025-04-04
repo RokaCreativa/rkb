@@ -1,0 +1,87 @@
+/* 
+  Estilos base para el dashboard 
+*/
+
+/* Variables */
+:root {
+  --color-category-border: #cce1f8;
+  --color-category-bg: #edf5fe;
+  --color-category-text: #1a56db;
+  --color-category-title: #2563eb;
+  --color-category-action: #2563eb;
+  
+  --color-section-border: #cce8d9;
+  --color-section-bg: #ecfaf3;
+  --color-section-text: #047857;
+  --color-section-title: #059669;
+  --color-section-action: #059669;
+  
+  --color-product-border: #faebd0;
+  --color-product-bg: #fef9ed;
+  --color-product-text: #c2410c;
+  --color-product-title: #ea580c;
+  --color-product-action: #ea580c;
+}
+
+/* Estilos para categorías */
+.category-text {
+  color: var(--color-category-text);
+}
+
+.category-title {
+  color: var(--color-category-title);
+}
+
+.category-border {
+  border-color: var(--color-category-border);
+}
+
+.category-bg {
+  background-color: var(--color-category-bg);
+}
+
+.category-action {
+  color: var(--color-category-action);
+}
+
+/* Estilos para secciones */
+.section-text {
+  color: var(--color-section-text);
+}
+
+.section-title {
+  color: var(--color-section-title);
+}
+
+.section-border {
+  border-color: var(--color-section-border);
+}
+
+.section-bg {
+  background-color: var(--color-section-bg);
+}
+
+.section-action {
+  color: var(--color-section-action);
+}
+
+/* Estilos para productos */
+.product-text {
+  color: var(--color-product-text);
+}
+
+.product-title {
+  color: var(--color-product-title);
+}
+
+.product-border {
+  border-color: var(--color-product-border);
+}
+
+.product-bg {
+  background-color: var(--color-product-bg);
+}
+
+.product-action {
+  color: var(--color-product-action);
+} 

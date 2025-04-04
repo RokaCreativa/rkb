@@ -489,7 +489,7 @@ export async function PUT(req: Request) {
       where: { product_id: productId },
       data: {
         name,
-        price: price || null,
+        price,
         description: description || null,
         image: imagePath,
         // Otros campos a actualizar si es necesario

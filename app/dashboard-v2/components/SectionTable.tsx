@@ -14,7 +14,7 @@ interface SectionTableProps {
   setExpandedSections?: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
   onEdit?: (section: Section) => void;
   onDelete?: (section: Section) => void;
-  onToggleVisibility: (sectionId: number, currentStatus: number) => void;
+  onToggleVisibility: (sectionId: number, currentStatus: number) => void | Promise<void>;
   isUpdatingVisibility: number | null;
   onSectionClick: (sectionId: number) => void;
   handleAddProduct?: (section: Section) => void;
@@ -22,7 +22,7 @@ interface SectionTableProps {
   setProducts?: React.Dispatch<React.SetStateAction<Record<string, Product[]>>>;
   onEditProduct?: (product: Product) => void;
   onDeleteProduct?: (product: Product) => void;
-  onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => void;
+  onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => void | Promise<void>;
   isUpdatingProductVisibility?: number | null;
   categoryId: number;
   categoryName?: string;

@@ -7,35 +7,32 @@
  * @updated 2024-06-13
  */
 
-import { PlusIcon } from "@heroicons/react/24/outline";
-import { SectionTable } from "../SectionTable";
+import React, { useState, useCallback, useEffect } from 'react';
+import { PlusIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import { Category, Section, Product } from "@/app/types/menu";
 import SectionList from '../sections/SectionList';
+import ProductList from '../sections/ProductList';
+import { ProductTable } from '../ProductTable';
 
 /**
  * Props para el componente SectionView
  */
 interface SectionViewProps {
+  category?: Category;
   sections: Section[];
-  categoryName: string;
-  categoryId: number;
-  expandedSections?: { [key: number]: boolean };
-  isUpdatingVisibility: number | null;
-  onAddSection: () => void;
-  onSectionClick: (section: Section) => void;
-  onToggleSectionVisibility: (sectionId: number, currentStatus: number) => Promise<void>;
+  products: Record<number, Product[]>;
+  onAddSection: (categoryId?: number) => void;
   onEditSection: (section: Section) => void;
   onDeleteSection: (section: Section) => void;
   onAddProduct: (sectionId: number) => void;
-  products?: { [key: number]: Product[] };
-  onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => Promise<void>;
-  onEditProduct?: (product: Product) => void;
-  onDeleteProduct?: (product: Product) => void;
+  onEditProduct: (product: Product) => void;
+  onDeleteProduct: (product: Product) => void;
+  onToggleSectionVisibility: (sectionId: number, currentStatus: number) => void;
+  onToggleProductVisibility: (productId: number, currentStatus: number) => void;
+  onSectionReorder?: (updatedSections: Section[]) => void;
+  onProductReorder?: (sectionId: number, updatedProducts: Product[]) => void;
+  isUpdatingVisibility?: number | null;
   isUpdatingProductVisibility?: number | null;
-  isLoading?: boolean;
-  isReorderModeActive: boolean;
-  handleReorderSection: (sectionId: number, newPosition: number) => void;
-  selectedCategory?: Category;
 }
 
 /**
@@ -50,73 +47,118 @@ interface SectionViewProps {
  * @param {SectionViewProps} props - Propiedades del componente
  * @returns {JSX.Element} La vista de secciones renderizada
  */
-export default function SectionView({
+const SectionView: React.FC<SectionViewProps> = ({
+  category,
   sections,
-  categoryName,
-  categoryId,
-  expandedSections = {},
-  isUpdatingVisibility,
+  products,
   onAddSection,
-  onSectionClick,
-  onToggleSectionVisibility,
   onEditSection,
   onDeleteSection,
   onAddProduct,
-  products = {},
-  onToggleProductVisibility,
   onEditProduct,
   onDeleteProduct,
-  isUpdatingProductVisibility,
-  isLoading = false,
-  isReorderModeActive,
-  handleReorderSection,
-  selectedCategory
-}: SectionViewProps) {
-  // Adaptador para manejar la diferencia de tipos en onSectionClick
-  const handleSectionClick = (sectionId: number) => {
-    // Buscar la sección por id
-    const section = sections.find(s => s.section_id === sectionId);
-    if (section) {
-      onSectionClick(section);
+  onToggleSectionVisibility,
+  onToggleProductVisibility,
+  onSectionReorder,
+  onProductReorder,
+  isUpdatingVisibility,
+  isUpdatingProductVisibility
+}) => {
+  const [expandedSectionIds, setExpandedSectionIds] = useState<number[]>([]);
+
+  const handleSectionClick = useCallback((sectionId: number) => {
+    setExpandedSectionIds((prev) => {
+      if (prev.includes(sectionId)) {
+        return prev.filter((id) => id !== sectionId);
+      } else {
+        return [...prev, sectionId];
+      }
+    });
+  }, []);
+
+  // Convertir el array de secciones expandidas a un Record para SectionList
+  const expandedSectionsRecord = expandedSectionIds.reduce((acc, id) => {
+    acc[id] = true;
+    return acc;
+  }, {} as Record<number, boolean>);
+
+  // Calcular contadores de productos visibles y totales
+  const visibleProductsCounts: Record<number, number> = {};
+  const totalProductsCounts: Record<number, number> = {};
+
+  Object.entries(products).forEach(([sectionId, sectionProducts]) => {
+    const sectionIdNum = parseInt(sectionId);
+    visibleProductsCounts[sectionIdNum] = sectionProducts.filter(p => p.status === 1).length;
+    totalProductsCounts[sectionIdNum] = sectionProducts.length;
+  });
+
+  // Expandir automáticamente si solo hay una sección
+  useEffect(() => {
+    if (sections.length === 1 && expandedSectionIds.length === 0) {
+      setExpandedSectionIds([sections[0].section_id]);
     }
-  };
+  }, [sections, expandedSectionIds.length]);
 
   return (
-    <div className="space-y-4 pb-4">
-      <div className="flex items-center justify-between py-2">
-        <div className="flex items-center space-x-2">
-          <h2 className="text-xl font-semibold text-gray-800">Secciones</h2>
-          <span className="text-sm text-gray-500">
-            ({sections.filter(s => s.status === 1).length}/{sections.length} visibles)
-          </span>
-        </div>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
         <button
-          type="button"
-          onClick={onAddSection}
-          className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          onClick={() => onAddSection(category?.category_id)}
+          className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
         >
-          <PlusIcon className="h-4 w-4 mr-1" />
-          Añadir sección
+          <PlusCircleIcon className="h-5 w-5 mr-1" />
+          Agregar sección
         </button>
       </div>
 
       <SectionList
         sections={sections}
-        expandedSections={expandedSections}
+        expandedSections={expandedSectionsRecord}
         onSectionClick={handleSectionClick}
-        onAddSection={onAddSection}
         onToggleSectionVisibility={onToggleSectionVisibility}
         onEditSection={onEditSection}
         onDeleteSection={onDeleteSection}
         onAddProduct={onAddProduct}
-        products={products}
-        onToggleProductVisibility={onToggleProductVisibility}
-        onEditProduct={onEditProduct}
-        onDeleteProduct={onDeleteProduct}
-        isUpdatingVisibility={isUpdatingVisibility}
+        products={Object.entries(products).reduce((acc, [key, value]) => {
+          acc[key] = value;
+          return acc;
+        }, {} as Record<string, Product[]>)}
+        isUpdatingVisibility={isUpdatingVisibility || null}
         isUpdatingProductVisibility={isUpdatingProductVisibility}
+        categoryName={category?.name || "Comidas"}
+        categoryId={category?.category_id}
+        onSectionsReorder={onSectionReorder}
       />
 
+      {/* Productos de las secciones expandidas */}
+      {expandedSectionIds.map((sectionId) => {
+        const sectionProducts = products[sectionId] || [];
+        const section = sections.find(s => s.section_id === sectionId);
+        
+        if (!section) return null;
+        
+        return (
+          <div key={`section-products-${sectionId}`} className="mt-2 ml-4 pl-2 border-l-2 border-green-200">
+            <ProductList
+              sectionId={sectionId}
+              products={sectionProducts}
+              sectionName={section.name}
+              onAddProduct={() => onAddProduct(sectionId)}
+              onEditProduct={onEditProduct}
+              onDeleteProduct={onDeleteProduct}
+              onToggleProductVisibility={onToggleProductVisibility}
+              isUpdatingVisibility={isUpdatingProductVisibility || null}
+              onProductsReorder={
+                onProductReorder ? 
+                (updatedProducts: Product[]) => onProductReorder(sectionId, updatedProducts) : 
+                undefined
+              }
+            />
+          </div>
+        );
+      })}
     </div>
   );
-} 
+};
+
+export default SectionView; 

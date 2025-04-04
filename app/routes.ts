@@ -2,8 +2,8 @@ import { NextRequest } from 'next/server';
 
 // Routes that should redirect to dashboard-v2
 export const DASHBOARD_ROUTES = [
-  // Comentamos temporalmente esta redirección para solucionar el problema
-  '/dashboard',
+  // Comentado para permitir acceso al dashboard original
+  // '/dashboard',
 ];
 
 // Function to check if a request path should be redirected to dashboard-v2

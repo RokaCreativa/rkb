@@ -1,86 +1,13 @@
 import { useEffect } from 'react';
-import { useDashboardStore } from '../../../core/store/useDashboardStore';
+import { Section } from '../../../types';
 import { apiClient } from '../../../infrastructure/api/apiClient';
-import { Section } from '../../../core/types';
 
+// Nota: Este archivo necesita revisión ya que useDashboardStore no existe en la estructura actual
+// Comentamos temporalmente esta implementación hasta resolver la estructura correcta
+// Esta función debe ser reemplazada usando useSectionManagement y useDashboardState
+
+/*
 export const useSections = (categoryId: number) => {
-  const {
-    sections,
-    setSections,
-    setLoading,
-    setError,
-    addSection,
-    updateSection,
-    deleteSection,
-  } = useDashboardStore();
-
-  // Cargar secciones cuando cambie la categoría
-  useEffect(() => {
-    const loadSections = async () => {
-      if (!categoryId) return;
-
-      try {
-        setLoading(true);
-        const data = await apiClient.getSections(categoryId);
-        setSections(data);
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'Error al cargar las secciones');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSections();
-  }, [categoryId, setSections, setLoading, setError]);
-
-  const handleCreateSection = async (section: Omit<Section, 'section_id'>) => {
-    try {
-      setLoading(true);
-      const newSection = await apiClient.createSection(section);
-      addSection(newSection);
-      return newSection;
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error al crear la sección');
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleUpdateSection = async (section: Section) => {
-    try {
-      setLoading(true);
-      const updatedSection = await apiClient.updateSection(section);
-      updateSection(updatedSection);
-      return updatedSection;
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error al actualizar la sección');
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDeleteSection = async (sectionId: number) => {
-    try {
-      setLoading(true);
-      await apiClient.deleteSection(sectionId);
-      deleteSection(sectionId);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error al eliminar la sección');
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Filtrar secciones por categoría
-  const categorySections = sections.filter(section => section.category_id === categoryId);
-
-  return {
-    sections: categorySections,
-    handleCreateSection,
-    handleUpdateSection,
-    handleDeleteSection,
-  };
-}; 
+  // El código está comentado temporalmente durante la refactorización
+};
+*/ 

@@ -21,14 +21,14 @@ interface CategoryTableProps {
   expandedSections: Record<number, boolean>;
   onAddSection: (categoryId: number) => void;
   onSectionClick: (sectionId: number) => void;
-  onToggleSectionVisibility: (sectionId: number, currentStatus: number) => void;
+  onToggleSectionVisibility: (sectionId: number, currentStatus: number) => void | Promise<void>;
   onEditSection: (section: Section) => void;
   onDeleteSection: (section: Section) => void;
   onAddProduct: (sectionId: number) => void;
   onReorderCategory?: (sourceIndex: number, destinationIndex: number) => void;
   isReorderModeActive?: boolean;
   products?: Record<string, Product[]>;
-  onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => void;
+  onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => void | Promise<void>;
   onEditProduct?: (product: Product) => void;
   onDeleteProduct?: (product: Product) => void;
   isUpdatingProductVisibility?: number | null;

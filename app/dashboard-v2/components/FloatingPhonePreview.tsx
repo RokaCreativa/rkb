@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { XMarkIcon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
-import { handleImageError } from '@/app/dashboard-v2/core/utils/imageUtils';
+import { handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 
 interface CategoryPreview {
   id: number;

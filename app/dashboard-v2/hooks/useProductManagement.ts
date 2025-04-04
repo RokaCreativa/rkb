@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Product } from '@/app/types/menu';
+import { Product, ProductState, ProductActions } from '@/app/dashboard-v2/types';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 

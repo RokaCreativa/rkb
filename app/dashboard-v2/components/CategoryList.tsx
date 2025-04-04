@@ -3,7 +3,8 @@
 import React from 'react';
 import { Category } from '@/app/types/menu';
 import Image from 'next/image';
-import { getImagePath, handleImageError } from '@/app/dashboard-v2/core/utils/imageUtils';
+import { ArrowLongRightIcon } from '@heroicons/react/24/outline';
+import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 
 interface CategoryListProps {
   categories: Category[];

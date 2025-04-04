@@ -364,7 +364,7 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, onClose
         onClose();
       }
     }}>
-      <DraggableComponent nodeRef={nodeRef} handle=".modal-handle" bounds="parent">
+      <DraggableComponent nodeRef={nodeRef as React.RefObject<HTMLElement>} handle=".modal-handle" bounds="parent">
         <div 
           ref={nodeRef}
           className={`absolute bg-white rounded-lg shadow-xl ${expanded ? 'w-full max-w-4xl' : 'w-full max-w-md'} 

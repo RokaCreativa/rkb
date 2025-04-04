@@ -1,22 +1,23 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import { toast } from 'react-hot-toast';
-import { Product, Section } from '../core/types';
+import { Section } from '../types';
+import { LegacySection, LegacyProduct, toLegacyProduct, toOfficialProduct, toOfficialSection } from '../types/legacy';
 import useDataState from '../hooks/useDataState';
 
 interface ProductManagerProps {
-  section: Section;
+  section: LegacySection;
 }
 
 export default function ProductManager({ section }: ProductManagerProps) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalConfirmOpen, setIsDeleteModalConfirmOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<LegacyProduct | null>(null);
   const [isReorderModeActive, setIsReorderModeActive] = useState(false);
-  const [localProducts, setLocalProducts] = useState<Product[]>([]);
+  const [localProducts, setLocalProducts] = useState<LegacyProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
   const {
@@ -34,26 +35,29 @@ export default function ProductManager({ section }: ProductManagerProps) {
       setIsLoading(true);
       
       try {
-        // Usar el parámetro updateLocalState para actualizar directamente el estado localProducts
-        // después de cargar los productos del servidor
+        // Convertir LegacySection a Section para la API
+        const sectionId = section.section_id;
+        
         await fetchProductsBySection(
-          section.section_id,
+          sectionId,
           false, // No forzar recarga
           (loadedProducts) => {
             console.log(`✅ Actualizando estado local con ${loadedProducts.length} productos cargados para sección ${section.section_id}`);
             
-            // Convertir los productos del formato de la API al formato dashboard-v2
-            const dashboardProducts = loadedProducts.map(product => ({
+            // Convertir a formato legacy para compatibilidad
+            const legacyProducts = loadedProducts.map(product => ({
               product_id: product.product_id,
               section_id: product.section_id,
               name: product.name,
               description: product.description || '',
-              price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+              price: product.price,
               image_url: product.image || '',
-              status: product.status === 1 ? 'active' : 'inactive'
-            }));
+              status: product.status === 1 ? 'active' as const : 'inactive' as const,
+              client_id: product.client_id,
+              display_order: product.display_order
+            } as LegacyProduct));
             
-            setLocalProducts(dashboardProducts as unknown as Product[]);
+            setLocalProducts(legacyProducts);
           }
         );
       } catch (error) {
@@ -74,30 +78,31 @@ export default function ProductManager({ section }: ProductManagerProps) {
       const productsForSection = productsMap[sectionIdStr];
       console.log(`🔄 Sincronizando productos locales desde store global para sección ${sectionIdStr}: ${productsForSection.length} productos`);
       
-      // Convertir los productos del formato de la API al formato dashboard-v2
-      const dashboardProducts = productsForSection.map(product => ({
+      // Convertir los productos del formato de la API al formato legacy
+      const legacyProducts = productsForSection.map(product => ({
         product_id: product.product_id,
         section_id: product.section_id,
         name: product.name,
         description: product.description || '',
-        price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+        price: typeof product.price === 'string' ? product.price : String(product.price),
         image_url: product.image || '',
-        status: product.status === 1 ? 'active' : 'inactive'
-      }));
+        status: product.status === 1 ? 'active' as const : 'inactive' as const,
+        client_id: product.client_id,
+        display_order: product.display_order
+      } as LegacyProduct));
       
-      // Actualizar estado local con los productos convertidos
-      setLocalProducts(dashboardProducts as unknown as Product[]);
+      setLocalProducts(legacyProducts);
     }
   }, [section, productsMap]);
   
   // Manejador para abrir el modal de edición
-  const handleEditProduct = (product: Product) => {
+  const handleEditProduct = (product: LegacyProduct) => {
     setSelectedProduct(product);
     setIsEditModalOpen(true);
   };
   
   // Manejador para abrir el modal de confirmación de eliminación
-  const handleDeleteModalOpen = (product: Product) => {
+  const handleDeleteModalOpen = (product: LegacyProduct) => {
     setSelectedProduct(product);
     setIsDeleteModalConfirmOpen(true);
   };
@@ -118,10 +123,9 @@ export default function ProductManager({ section }: ProductManagerProps) {
   };
   
   // Manejador para alternar visibilidad
-  const handleToggleVisibility = async (product: Product) => {
+  const handleToggleVisibility = async (product: LegacyProduct) => {
     try {
       const currentStatus = product.status === 'active' ? 1 : 0;
-      const newStatus = currentStatus === 1 ? 0 : 1;
       
       await toggleProductVisibility(product.product_id, currentStatus, section.section_id);
       

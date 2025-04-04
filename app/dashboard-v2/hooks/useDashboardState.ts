@@ -8,6 +8,13 @@
  */
 
 import { useCallback } from 'react';
+import { 
+  DashboardState, 
+  DashboardActions, 
+  Category, 
+  Section, 
+  Product 
+} from '@/app/dashboard-v2/types';
 import useCategoryManagement from './useCategoryManagement';
 import useSectionManagement from './useSectionManagement';
 import useProductManagement from './useProductManagement';

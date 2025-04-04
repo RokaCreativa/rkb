@@ -8,7 +8,8 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Category, Client } from '@/app/types/menu';
+import { Category, CategoryState, CategoryActions } from '@/app/dashboard-v2/types';
+import { Client } from '@/app/types/menu';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 

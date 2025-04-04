@@ -1,15 +1,15 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { PencilIcon, TrashIcon, PhotoIcon, ArrowsUpDownIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import { toast } from 'react-hot-toast';
-import { Section } from '../core/types';
+import { LegacySection } from '../types/legacy';
 import ProductManager from './ProductManager';
 import useDataState from '../hooks/useDataState';
 
 interface SectionDetailProps {
-  section: Section;
-  onEditClick: (section: Section) => void;
-  onDeleteClick: (section: Section) => void;
+  section: LegacySection;
+  onEditClick: (section: LegacySection) => void;
+  onDeleteClick: (section: LegacySection) => void;
 }
 
 export default function SectionDetail({ 
@@ -22,9 +22,12 @@ export default function SectionDetail({
   
   const handleToggleVisibility = async () => {
     try {
-      const currentStatus = section.status === 'active' ? 1 : 0;
-      await toggleSectionVisibility(section.section_id, currentStatus);
-      toast.success(currentStatus ? 'Sección oculta' : 'Sección visible');
+      // Convertir status string a number para la API
+      const newStatus = section.status === 'active' ? 'inactive' : 'active';
+      // En este punto necesitamos convertir al valor numérico para la API
+      const statusNumber = section.status === 'active' ? 1 : 0;
+      await toggleSectionVisibility(section.section_id, statusNumber);
+      toast.success(section.status === 'active' ? 'Sección oculta' : 'Sección visible');
     } catch (error) {
       console.error('Error al cambiar visibilidad:', error);
       toast.error('Error al cambiar visibilidad');
@@ -68,7 +71,7 @@ export default function SectionDetail({
                 )}
               </h3>
               <p className="text-sm text-gray-500">
-                Orden: {section.order} • ID: {section.section_id}
+                Orden: {section.display_order} • ID: {section.section_id}
               </p>
             </div>
           </div>
