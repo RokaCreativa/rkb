@@ -1,0 +1,139 @@
+/**
+ * @fileoverview Estilos unificados para los grids de categorías, secciones y productos
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @updated 2024-06-19
+ * 
+ * Este archivo centraliza todos los estilos relacionados con los grids 
+ * de datos en el dashboard-v2. Está diseñado para mantener una consistencia
+ * visual entre los tres tipos de grids (categorías, secciones y productos)
+ * mientras preserva la identidad visual de cada tipo.
+ */
+
+/* ===== ESTILOS PARA GRID DE CATEGORÍAS (INDIGO) ===== */
+
+/* Bordes y contenedores */
+.category-border {
+  @apply border-indigo-200;
+}
+
+.category-bg {
+  @apply bg-indigo-50;
+}
+
+/* Tipografía */
+.category-title {
+  @apply text-indigo-700;
+}
+
+.category-text {
+  @apply text-indigo-800;
+}
+
+/* Botones y acciones */
+.category-action {
+  @apply text-indigo-600;
+}
+
+.category-button {
+  @apply bg-indigo-600 text-white hover:bg-indigo-700;
+}
+
+/* ===== ESTILOS PARA GRID DE SECCIONES (TEAL) ===== */
+
+/* Bordes y contenedores */
+.section-border {
+  @apply border-teal-200;
+}
+
+.section-bg {
+  @apply bg-teal-50;
+}
+
+/* Tipografía */
+.section-title {
+  @apply text-teal-700;
+}
+
+.section-text {
+  @apply text-teal-800;
+}
+
+/* Botones y acciones */
+.section-action {
+  @apply text-teal-600;
+}
+
+.section-button {
+  @apply bg-teal-600 text-white hover:bg-teal-700;
+}
+
+/* ===== ESTILOS PARA GRID DE PRODUCTOS (YELLOW) ===== */
+
+/* Bordes y contenedores */
+.product-border {
+  @apply border-yellow-200;
+}
+
+.product-bg {
+  @apply bg-yellow-50;
+}
+
+/* Tipografía */
+.product-title {
+  @apply text-yellow-700;
+}
+
+.product-text {
+  @apply text-yellow-800;
+}
+
+/* Botones y acciones */
+.product-action {
+  @apply text-yellow-600;
+}
+
+.product-button {
+  @apply bg-yellow-600 text-white hover:bg-yellow-700;
+}
+
+/* ===== ESTILOS COMPARTIDOS ===== */
+
+/* Estilos para grids */
+.grid-header {
+  @apply flex justify-between items-center px-4 py-2 border-b;
+}
+
+.grid-table {
+  @apply min-w-full divide-y;
+}
+
+.grid-title {
+  @apply text-sm font-medium;
+}
+
+.grid-subtitle {
+  @apply text-xs;
+}
+
+.grid-container {
+  @apply rounded-lg border overflow-hidden bg-white shadow-sm;
+}
+
+/* Estados de visibilidad */
+.grid-item-hidden {
+  @apply opacity-60;
+}
+
+/* Estilos para drag and drop */
+.grid-item-dragging-category {
+  @apply bg-indigo-50 !important;
+}
+
+.grid-item-dragging-section {
+  @apply bg-teal-50 !important;
+}
+
+.grid-item-dragging-product {
+  @apply bg-yellow-50 !important;
+} 

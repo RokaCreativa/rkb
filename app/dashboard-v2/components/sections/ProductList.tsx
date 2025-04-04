@@ -33,11 +33,11 @@ const ProductList: React.FC<ProductListProps> = ({
   // Si no hay productos, mostrar mensaje
   if (!products || products.length === 0) {
     return (
-      <div className="bg-white p-4 text-center text-gray-500 rounded-lg border border-yellow-200">
+      <div className="bg-white p-4 text-center text-gray-500 rounded-lg border product-border">
         <p>No hay productos en esta sección</p>
         <button
           onClick={onAddProduct}
-          className="mt-2 inline-flex items-center px-2 py-1 text-xs font-medium rounded text-yellow-700 bg-yellow-50 hover:bg-yellow-100"
+          className="mt-2 inline-flex items-center px-2 py-1 text-xs font-medium rounded product-text product-button"
         >
           <PlusCircleIcon className="h-4 w-4 mr-1" />
           Agregar producto
@@ -65,20 +65,20 @@ const ProductList: React.FC<ProductListProps> = ({
 
   return (
     <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <h3 className="text-sm font-medium text-yellow-700">
+      <div className="flex justify-between items-center grid-header">
+        <h3 className="product-title grid-title">
           Productos: {sectionName} ({products.length})
         </h3>
         <button
           onClick={onAddProduct}
-          className="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-yellow-700 bg-yellow-50 hover:bg-yellow-100"
+          className="inline-flex items-center px-2 py-1 text-xs font-medium rounded product-button"
         >
           <PlusCircleIcon className="h-4 w-4 mr-1" />
           Agregar producto
         </button>
       </div>
       
-      <div className="bg-white rounded-lg border border-yellow-200 overflow-hidden shadow-sm">
+      <div className="grid-container product-border">
         {onProductsReorder ? (
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId={`section-products-${sectionId}`}>
@@ -86,7 +86,7 @@ const ProductList: React.FC<ProductListProps> = ({
                 <div
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  className="divide-y divide-yellow-100"
+                  className="divide-y product-border"
                 >
                   {products.map((product, index) => (
                     <Draggable
@@ -94,11 +94,12 @@ const ProductList: React.FC<ProductListProps> = ({
                       draggableId={product.product_id.toString()}
                       index={index}
                     >
-                      {(provided) => (
+                      {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
+                          className={snapshot.isDragging ? "grid-item-dragging-product" : ""}
                         >
                           <ProductListItem
                             product={product}
@@ -118,7 +119,7 @@ const ProductList: React.FC<ProductListProps> = ({
             </Droppable>
           </DragDropContext>
         ) : (
-          <div className="divide-y divide-yellow-100">
+          <div className="divide-y product-border">
             {products.map((product) => (
               <ProductListItem
                 key={product.product_id}

@@ -67,35 +67,35 @@ export default function SectionTable({
   onPageSizeChange,
   onTogglePagination
 }: SectionTableProps) {
-  
+
   const [showHiddenSections, setShowHiddenSections] = useState(false);
-  
+
   // Separar secciones visibles y no visibles
   // Usar conversión de tipos para manejar tanto booleanos como números
-  const visibleSections = sections.filter(sec => 
+  const visibleSections = sections.filter(sec =>
     sec.status === 1 || Boolean(sec.status) === true
   );
-  const hiddenSections = sections.filter(sec => 
+  const hiddenSections = sections.filter(sec =>
     sec.status !== 1 && Boolean(sec.status) !== true
   );
-  
+
   // Determinar el total real de secciones para paginación
-  const effectiveTotalSections = paginationEnabled && totalSections ? 
+  const effectiveTotalSections = paginationEnabled && totalSections ?
     totalSections : sections.length;
-  
+
   // Manejar el evento de drag and drop finalizado
   const handleDragEnd = (result: DropResult) => {
     // Si no hay destino o si el origen y destino son iguales, no hacer nada
     if (!result.destination || result.destination.index === result.source.index) {
       return;
     }
-    
+
     // Llamar a la función de reordenamiento proporcionada por el padre
     if (onReorderSection) {
       onReorderSection(result.source.index, result.destination.index);
     }
   };
-  
+
   return (
     <div className="rounded-lg border border-gray-200 overflow-hidden bg-white w-full">
       <div className="flex items-center justify-between px-4 py-3 bg-teal-50 border-b border-teal-100">
@@ -112,37 +112,36 @@ export default function SectionTable({
             {categoryName || 'Secciones'}
           </h2>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <div className="text-xs text-gray-500">
             ({sections.filter(sec => sec.status === 1 || Boolean(sec.status) === true).length}/{sections.length} Visibles)
           </div>
-          
+
           {onTogglePagination && (
             <button
               onClick={onTogglePagination}
-              className={`px-2 py-1 text-xs rounded-md flex items-center ${
-                paginationEnabled 
-                  ? 'bg-teal-100 text-teal-800' 
+              className={`px-2 py-1 text-xs rounded-md flex items-center ${paginationEnabled
+                  ? 'bg-teal-100 text-teal-800'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {paginationEnabled ? 'Desactivar paginación' : 'Activar paginación'}
             </button>
           )}
         </div>
       </div>
-      
+
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="sections">
           {(provided) => (
-            <table 
-              className="min-w-full" 
-              style={{ 
+            <table
+              className="min-w-full"
+              style={{
                 borderCollapse: 'separate',
                 borderSpacing: 0
               }}
-              {...provided.droppableProps} 
+              {...provided.droppableProps}
               ref={provided.innerRef}
               id="ORIGINAL-SECTION-TABLE"
             >
@@ -164,33 +163,31 @@ export default function SectionTable({
               <tbody>
                 {/* Secciones visibles */}
                 {visibleSections.map((section, index) => (
-                  <Draggable 
-                    key={section.section_id.toString()} 
-                    draggableId={section.section_id.toString()} 
+                  <Draggable
+                    key={section.section_id.toString()}
+                    draggableId={section.section_id.toString()}
                     index={index}
                   >
                     {(provided, snapshot) => (
-                      <tr 
+                      <tr
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`${
-                          snapshot.isDragging 
-                            ? "bg-teal-50" 
-                            : expandedSections[section.section_id] 
-                              ? "bg-teal-50" 
+                        className={`${snapshot.isDragging
+                            ? "bg-teal-50"
+                            : expandedSections[section.section_id]
+                              ? "bg-teal-50"
                               : "hover:bg-teal-50/50"
-                        }`}
+                          }`}
                         style={{ borderBottom: '3px solid #000000' }}
                       >
                         <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                           <div className="flex items-center">
-                            <button 
+                            <button
                               onClick={() => onSectionClick && onSectionClick(section.section_id)}
-                              className={`p-1 rounded-full transition-colors ${
-                                expandedSections[section.section_id] 
-                                  ? "bg-teal-100 text-teal-600" 
+                              className={`p-1 rounded-full transition-colors ${expandedSections[section.section_id]
+                                  ? "bg-teal-100 text-teal-600"
                                   : "hover:bg-teal-50"
-                              }`}
+                                }`}
                               aria-label={expandedSections[section.section_id] ? "Colapsar" : "Expandir"}
                             >
                               {expandedSections[section.section_id] ? (
@@ -201,7 +198,7 @@ export default function SectionTable({
                             </button>
                           </div>
                         </td>
-                        <td 
+                        <td
                           className="px-3 py-2"
                           {...provided.dragHandleProps}
                         >
@@ -209,17 +206,16 @@ export default function SectionTable({
                             <div className="text-gray-400 mr-2">
                               <Bars3Icon className="h-5 w-5" />
                             </div>
-                            <div className={`font-medium text-sm ${
-                              expandedSections[section.section_id] 
-                                ? "text-teal-700" 
+                            <div className={`font-medium text-sm ${expandedSections[section.section_id]
+                                ? "text-teal-700"
                                 : "text-gray-600"
-                            }`}>
+                              }`}>
                               {section.name}
                               {section.products_count !== undefined && (
                                 <span className="ml-2 text-xs text-gray-500">
                                   ({section.visible_products_count !== undefined && section.products_count !== undefined
                                     ? `${section.visible_products_count}/${section.products_count} Productos visibles`
-                                    : section.products_count > 0 
+                                    : section.products_count > 0
                                       ? `${section.products_count} productos`
                                       : 'Sin productos'})
                                 </span>
@@ -249,11 +245,10 @@ export default function SectionTable({
                             <button
                               onClick={() => onToggleVisibility && onToggleVisibility(section.section_id, section.status)}
                               disabled={isUpdatingVisibility === section.section_id}
-                              className={`p-1.5 rounded-full transition-colors ${
-                                section.status === 1 || Boolean(section.status) === true
-                                  ? 'text-teal-600 bg-teal-50 hover:bg-teal-100' 
+                              className={`p-1.5 rounded-full transition-colors ${section.status === 1 || Boolean(section.status) === true
+                                  ? 'text-teal-600 bg-teal-50 hover:bg-teal-100'
                                   : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
-                              }`}
+                                }`}
                               title={section.status === 1 || Boolean(section.status) === true ? "Visible" : "No visible"}
                             >
                               {isUpdatingVisibility === section.section_id ? (
@@ -293,7 +288,7 @@ export default function SectionTable({
                 {hiddenSections.length > 0 && (
                   <tr className="bg-teal-50/30 hover:bg-teal-50/50">
                     <td colSpan={6} className="py-2 px-4">
-                      <button 
+                      <button
                         className="w-full flex items-center justify-between text-xs text-gray-500 hover:text-gray-700"
                         onClick={() => setShowHiddenSections(!showHiddenSections)}
                       >
@@ -306,32 +301,30 @@ export default function SectionTable({
 
                 {/* Secciones no visibles (mostrar solo si está expandido) */}
                 {showHiddenSections && hiddenSections.map((section, index) => (
-                  <Draggable 
-                    key={section.section_id.toString()} 
-                    draggableId={section.section_id.toString()} 
+                  <Draggable
+                    key={section.section_id.toString()}
+                    draggableId={section.section_id.toString()}
                     index={visibleSections.length + index}
                   >
                     {(provided, snapshot) => (
-                      <tr 
+                      <tr
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`${
-                          snapshot.isDragging 
-                            ? "bg-teal-50" 
-                            : expandedSections[section.section_id] 
-                              ? "bg-teal-50" 
+                        className={`${snapshot.isDragging
+                            ? "bg-teal-50"
+                            : expandedSections[section.section_id]
+                              ? "bg-teal-50"
                               : "hover:bg-teal-50/50"
-                        }`}
+                          }`}
                       >
                         <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                           <div className="flex items-center">
-                            <button 
+                            <button
                               onClick={() => onSectionClick && onSectionClick(section.section_id)}
-                              className={`p-1 rounded-full transition-colors ${
-                                expandedSections[section.section_id] 
-                                  ? "bg-teal-100 text-teal-600" 
+                              className={`p-1 rounded-full transition-colors ${expandedSections[section.section_id]
+                                  ? "bg-teal-100 text-teal-600"
                                   : "hover:bg-teal-50"
-                              }`}
+                                }`}
                               aria-label={expandedSections[section.section_id] ? "Colapsar" : "Expandir"}
                             >
                               {expandedSections[section.section_id] ? (
@@ -342,7 +335,7 @@ export default function SectionTable({
                             </button>
                           </div>
                         </td>
-                        <td 
+                        <td
                           className="px-3 py-2"
                           {...provided.dragHandleProps}
                         >
@@ -356,7 +349,7 @@ export default function SectionTable({
                                 <span className="ml-2 text-xs text-gray-500">
                                   ({section.visible_products_count !== undefined && section.products_count !== undefined
                                     ? `${section.visible_products_count}/${section.products_count} Productos visibles`
-                                    : section.products_count > 0 
+                                    : section.products_count > 0
                                       ? `${section.products_count} productos`
                                       : 'Sin productos'})
                                 </span>
@@ -419,7 +412,7 @@ export default function SectionTable({
                     )}
                   </Draggable>
                 ))}
-                
+
                 {provided.placeholder}
               </tbody>
             </table>

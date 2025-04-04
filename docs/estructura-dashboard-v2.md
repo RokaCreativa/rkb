@@ -175,11 +175,18 @@ styles/
 ├── index.css          # Estilos generales
 ├── theme.css          # Variables de tema
 ├── animations.css     # Animaciones
-└── typography.css     # Estilos de tipografía
+├── typography.css     # Estilos de tipografía
+└── grids.css          # Estilos específicos para grids (categorías, secciones, productos)
 ```
 
 - **Propósito**: Proporcionar estilos globales
 - **Uso**: Definir apariencia visual consistente
+- **Estructura**:
+  - `dashboard.css`: Estilos generales para el dashboard
+  - `theme.css`: Variables CSS para personalización de temas
+  - `animations.css`: Animaciones CSS para transiciones y efectos
+  - `typography.css`: Configuración de fuentes y tipografía
+  - `grids.css`: Estilos unificados para los grids de categorías, secciones y productos
 
 ### 📁 `/types`
 

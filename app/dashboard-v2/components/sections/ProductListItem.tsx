@@ -25,7 +25,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   sectionId
 }) => {
   return (
-    <div className="flex items-center justify-between p-3 hover:bg-yellow-50 border-b border-yellow-100">
+    <div className="flex items-center justify-between p-3 hover:product-bg border-b product-border">
       <div className="flex items-center gap-3">
         <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
           <Image
@@ -38,7 +38,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           />
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-medium text-gray-700">{product.name}</span>
+          <span className="text-sm font-medium product-text">{product.name}</span>
           {product.description && (
             <span className="text-xs text-gray-500 truncate max-w-xs">{product.description}</span>
           )}

@@ -5,9 +5,9 @@
  * Fecha: 14/04/2024 - 19:15
  */
 
-@import './theme.css';
-@import './typography.css';
-@import './animations.css';
+@import "./theme.css";
+@import "./typography.css";
+@import "./animations.css";
 
 @tailwind base;
 @tailwind components;
@@ -54,4 +54,4 @@
     /* Desactivado por ahora para mantener coherencia con dashboard original */
     /* --color-background: #1F2937; */
   }
-} 
+}

@@ -92,8 +92,11 @@
   │   └── useVirtualizedList.ts
   ├── styles/               # Estilos
   │   ├── dashboard.css
+  │   ├── index.css
   │   ├── theme.css
-  │   └── typography.css
+  │   ├── animations.css
+  │   ├── typography.css
+  │   └── grids.css
   ├── types/                # Tipos centralizados
   │   ├── index.ts
   │   └── dashboard.ts
@@ -160,3 +163,21 @@
 - Código modular y reutilizable
 - Patrones consistentes
 - Fácil de extender sin modificar
+
+## 🎨 MANDAMIENTO DE ESTILOS Y COHERENCIA VISUAL
+
+- **USARÁS el archivo `styles/grids.css` para todos los estilos relacionados con grids**
+- Centralizar los estilos de categorías, secciones y productos en el archivo dedicado
+- No duplicar estilos de grid en archivos globales ni en componentes individuales
+- Mantener la coherencia visual entre grids con los mismos patrones de diseño
+- Respetar la identidad de color para cada tipo de entidad:
+  - Categorías: Indigo
+  - Secciones: Teal
+  - Productos: Yellow
+- Usar las clases de grid con prefijos específicos:
+  - `category-*` para elementos de categorías
+  - `section-*` para elementos de secciones
+  - `product-*` para elementos de productos
+  - `grid-*` para elementos comunes entre los tres tipos
+- Verificar siempre la existencia de clases en `grids.css` antes de crear nuevas
+- Documentar cualquier adición o modificación a los estilos de grid en los comentarios

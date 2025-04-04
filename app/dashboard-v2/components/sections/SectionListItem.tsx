@@ -40,7 +40,7 @@ const SectionListItem: React.FC<SectionListItemProps> = ({
   // Si sólo queremos mostrar la imagen
   if (showOnlyImage) {
     return (
-      <div className="flex items-center justify-center">
+      <td className="flex items-center justify-center">
         {section.image ? (
           <div 
             className="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200"
@@ -57,20 +57,20 @@ const SectionListItem: React.FC<SectionListItemProps> = ({
             <PhotoIcon className="w-4 h-4" />
           </div>
         )}
-      </div>
+      </td>
     );
   }
 
   // Si sólo queremos mostrar los botones de acción
   if (showOnlyActions) {
     return (
-      <div className="flex items-center justify-center space-x-1">
+      <td className="flex items-center justify-center space-x-1">
         <button
           onClick={() => onEditSection(section)}
           className={`p-1.5 rounded-full transition-colors ${
             isHidden 
               ? 'text-gray-400 hover:bg-gray-100' 
-              : 'section-action hover:bg-green-100'
+              : 'section-action hover:bg-teal-100'
           }`}
           title="Editar sección"
         >
@@ -87,108 +87,114 @@ const SectionListItem: React.FC<SectionListItemProps> = ({
         >
           <TrashIcon className="w-4 h-4" />
         </button>
-      </div>
+      </td>
     );
   }
 
   // Renderizado por defecto (componente completo)
   return (
-    <div className="flex items-center py-2 transition-colors w-full" style={{ 
-      borderBottom: '3px solid #000000'
-    }}>
+    <>
       {/* Toggle para expandir/colapsar */}
-      <div className="w-10 flex items-center justify-center">
-        <button 
-          onClick={() => onSectionClick(section.section_id)}
-          className="p-1 rounded-full transition-colors"
-        >
-          {isExpanded ? (
-            <ChevronDownIcon className="h-5 w-5 text-green-500" />
-          ) : (
-            <ChevronRightIcon className="h-5 w-5 text-green-500" />
-          )}
-        </button>
-      </div>
+      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
+        <div className="flex items-center justify-center">
+          <button 
+            onClick={() => onSectionClick(section.section_id)}
+            className="p-1 rounded-full transition-colors"
+          >
+            {isExpanded ? (
+              <ChevronDownIcon className="h-5 w-5 text-teal-500" />
+            ) : (
+              <ChevronRightIcon className="h-5 w-5 text-teal-500" />
+            )}
+          </button>
+        </div>
+      </td>
       
       {/* Información de la sección */}
-      <div className="flex-1 px-3 flex flex-col">
+      <td className="px-3 py-2 cursor-pointer" onClick={() => onSectionClick(section.section_id)}>
         <div className="flex items-center">
           <span className={`text-sm font-medium ${
             isExpanded 
-              ? "text-green-700" 
+              ? "text-teal-700" 
               : "text-gray-700"
           }`}>{section.name}</span>
           <span className="text-xs text-gray-500 ml-2">
             ({visibleProductsCount}/{totalProductsCount})
           </span>
         </div>
-      </div>
+      </td>
       
       {/* Orden */}
-      <div className="w-16 text-right pr-4 text-sm text-gray-500">
+      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
         {section.display_order || orderIndex + 1}
-      </div>
+      </td>
       
       {/* Imagen */}
-      <div className="w-16 flex items-center justify-center">
-        {section.image ? (
-          <div 
-            className="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200"
-          >
-            <img
-              src={getImagePath(section.image, 'sections')}
-              alt={section.name}
-              onError={handleImageError}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        ) : (
-          <div className="w-8 h-8 rounded-md bg-gray-100 text-gray-400 flex items-center justify-center text-xs border border-gray-200">
-            <PhotoIcon className="w-4 h-4" />
-          </div>
-        )}
-      </div>
+      <td className="px-3 py-2 whitespace-nowrap">
+        <div className="flex justify-center">
+          {section.image ? (
+            <div 
+              className="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200"
+            >
+              <img
+                src={getImagePath(section.image, 'sections')}
+                alt={section.name}
+                onError={handleImageError}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-md bg-gray-100 text-gray-400 flex items-center justify-center text-xs border border-gray-200">
+              <PhotoIcon className="w-4 h-4" />
+            </div>
+          )}
+        </div>
+      </td>
       
       {/* Botón de visibilidad */}
-      <div className="w-12 flex items-center justify-center">
-        <button
-          onClick={() => onToggleSectionVisibility(section.section_id, section.status)}
-          className={`p-1.5 rounded-full transition-colors ${
-            section.status === 1 
-              ? 'text-green-600 bg-green-50 hover:bg-green-100' 
-              : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
-          }`}
-          title={section.status === 1 ? "Visible" : "No visible"}
-        >
-          <EyeIcon className="w-4 h-4" />
-        </button>
-      </div>
+      <td className="px-2 py-2 whitespace-nowrap text-center">
+        <div className="flex justify-center">
+          <button
+            onClick={() => onToggleSectionVisibility(section.section_id, section.status)}
+            className={`p-1.5 rounded-full transition-colors ${
+              section.status === 1 
+                ? 'text-teal-600 bg-teal-50 hover:bg-teal-100' 
+                : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
+            }`}
+            title={section.status === 1 ? "Visible" : "No visible"}
+          >
+            <EyeIcon className="w-4 h-4" />
+          </button>
+        </div>
+      </td>
       
       {/* Botones de acción */}
-      <div className="w-20 flex items-center justify-center space-x-1">
-        <button
-          onClick={() => onAddProduct(section.section_id)}
-          className="p-1.5 rounded-full section-action hover:bg-green-50 transition-colors"
-          title="Agregar producto"
-        >
-          <PlusCircleIcon className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => onEditSection(section)}
-          className="p-1.5 rounded-full section-action hover:bg-green-50 transition-colors"
-          title="Editar sección"
-        >
-          <PencilIcon className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => onDeleteSection(section)}
-          className="p-1.5 rounded-full text-red-500 hover:bg-red-50 transition-colors"
-          title="Eliminar sección"
-        >
-          <TrashIcon className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
+      <td className="px-3 py-2 whitespace-nowrap text-center">
+        <div className="flex justify-center space-x-1">
+          <button
+            onClick={() => onAddProduct(section.section_id)}
+            className="p-1.5 rounded-full section-action hover:bg-teal-50 transition-colors"
+            title="Agregar producto"
+          >
+            <PlusCircleIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onEditSection(section)}
+            className="p-1.5 rounded-full section-action hover:bg-teal-50 transition-colors"
+            title="Editar sección"
+          >
+            <PencilIcon className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onDeleteSection(section)}
+            className="p-1.5 rounded-full text-red-500 hover:bg-red-50 transition-colors"
+            title="Eliminar sección"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        </div>
+      </td>
+    </>
   );
 };
 

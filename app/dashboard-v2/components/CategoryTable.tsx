@@ -244,25 +244,11 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         <td colSpan={6} className="p-0">
                           <div className="px-4 py-4 border-t border-gray-100">
                             <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-                              <div className="flex justify-between items-center px-4 py-2 bg-gray-50 border-b border-gray-200">
-                                <h3 className="text-sm font-medium text-gray-700">
-                                  Secciones: {category.name}
-                                </h3>
-                                <button
-                                  onClick={() => onAddSection(category.category_id)}
-                                  className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded category-button hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                                >
-                                  <PlusIcon className="h-4 w-4 mr-1" />
-                                  Agregar sección
-                                </button>
-                              </div>
-                              
                               {sections[category.category_id] && sections[category.category_id].length > 0 ? (
                                 <SectionList
                                   sections={sections[category.category_id]}
                                   expandedSections={expandedSections}
                                   onSectionClick={onSectionClick}
-                                  onAddSection={() => onAddSection(category.category_id)}
                                   onToggleSectionVisibility={onToggleSectionVisibility}
                                   onEditSection={onEditSection}
                                   onDeleteSection={onDeleteSection}
@@ -281,7 +267,6 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                   No hay secciones disponibles
                                 </div>
                               )}
-                              
                             </div>
                           </div>
                         </td>

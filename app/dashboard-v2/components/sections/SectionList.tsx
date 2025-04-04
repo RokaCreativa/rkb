@@ -9,7 +9,6 @@ interface SectionListProps {
   sections: Section[];
   expandedSections: Record<number, boolean>;
   onSectionClick: (sectionId: number) => void;
-  onAddSection?: () => void;
   onToggleSectionVisibility: (sectionId: number, currentStatus: number) => void | Promise<void>;
   onEditSection: (section: Section) => void;
   onDeleteSection: (section: Section) => void;
@@ -33,7 +32,6 @@ const SectionList: React.FC<SectionListProps> = ({
   sections,
   expandedSections,
   onSectionClick,
-  onAddSection,
   onToggleSectionVisibility,
   onEditSection,
   onDeleteSection,
@@ -72,65 +70,67 @@ const SectionList: React.FC<SectionListProps> = ({
 
   if (!sections || sections.length === 0) {
     return (
-      <div className="bg-white p-4 text-center text-gray-500 rounded-lg border border-gray-200">
+      <div className="bg-white p-4 text-center text-gray-500 rounded-lg border border-teal-200">
         No hay secciones disponibles
       </div>
     );
   }
   
   return (
-    <div className="space-y-2">
-      {/* Botón de agregar sección flotante */}
-      {onAddSection && (
-        <div className="flex justify-end">
+    <div className="rounded-lg border section-border overflow-hidden bg-white shadow-sm">
+      <div className="flex justify-between items-center px-4 py-2 section-bg border-b section-border">
+        <h2 className="text-sm font-medium text-teal-700">
+          Secciones: {categoryName || 'Comidas'}
+        </h2>
+        <div className="flex items-center">
+          <div className="text-xs section-title mr-4">
+            ({visibleSections.length}/{sections.length} visibles)
+          </div>
           <button
             type="button"
-            onClick={onAddSection}
-            className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded shadow-sm"
+            onClick={() => setShowHiddenSections(!showHiddenSections)}
+            className="text-xs section-title hover:text-teal-700 flex items-center gap-1"
           >
-            <PlusIcon className="h-5 w-5 mr-1" />
-            Agregar sección
+            {showHiddenSections ? 'Ocultar' : 'Mostrar'} no visibles
           </button>
         </div>
-      )}
-      
-      <div className="bg-white rounded-lg border section-border overflow-hidden shadow-sm">
-        <div className="flex justify-between items-center px-4 py-2 section-bg border-b section-border">          
-          <div className="flex items-center space-x-3">
-            <div className="text-xs section-title">
-              ({visibleSections.length}/{sections.length} visibles)
-            </div>
-            
-            <button
-              type="button"
-              onClick={() => setShowHiddenSections(!showHiddenSections)}
-              className="text-xs section-title hover:text-green-700 flex items-center gap-1"
-            >
-              {showHiddenSections ? 'Ocultar' : 'Mostrar'} no visibles
-            </button>
-          </div>
-        </div>
-        
-        {onSectionsReorder ? (
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="sections">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="bg-white divide-y divide-gray-200"
-                >
+      </div>
+
+      {onSectionsReorder ? (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="sections">
+            {(provided) => (
+              <table className="min-w-full divide-y section-border" {...provided.droppableProps} ref={provided.innerRef}>
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-2 py-2 text-left text-xs font-medium section-title uppercase tracking-wider w-10"></th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-medium section-title uppercase tracking-wider">
+                      <div className="flex items-center gap-1">
+                        <ViewColumnsIcon className="h-3 w-3 section-title" />
+                        <span>Nombre</span>
+                      </div>
+                    </th>
+                    <th scope="col" className="px-2 py-2 text-center text-xs font-medium section-title uppercase tracking-wider w-16">Orden</th>
+                    <th scope="col" className="px-3 py-2 text-center text-xs font-medium section-title uppercase tracking-wider w-16">Foto</th>
+                    <th scope="col" className="px-2 py-2 text-center text-xs font-medium section-title uppercase tracking-wider w-16">
+                      <EyeIcon className="h-4 w-4 mx-auto section-title" />
+                    </th>
+                    <th scope="col" className="px-3 py-2 text-center text-xs font-medium section-title uppercase tracking-wider w-20">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y section-border">
                   {sections.map((section, index) => (
                     <Draggable
                       key={section.section_id.toString()}
                       draggableId={section.section_id.toString()}
                       index={index}
                     >
-                      {(provided) => (
-                        <div
+                      {(provided, snapshot) => (
+                        <tr
                           ref={provided.innerRef}
                           {...provided.draggableProps}
                           {...provided.dragHandleProps}
+                          className={`${snapshot.isDragging ? 'bg-teal-50' : ''}`}
                         >
                           <SectionListItem
                             section={section}
@@ -152,43 +152,63 @@ const SectionList: React.FC<SectionListProps> = ({
                             onDeleteSection={onDeleteSection}
                             orderIndex={index}
                           />
-                        </div>
+                        </tr>
                       )}
                     </Draggable>
                   ))}
                   {provided.placeholder}
+                </tbody>
+              </table>
+            )}
+          </Droppable>
+        </DragDropContext>
+      ) : (
+        <table className="min-w-full divide-y section-border">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-2 py-2 text-left text-xs font-medium section-title uppercase tracking-wider w-10"></th>
+              <th scope="col" className="px-3 py-2 text-left text-xs font-medium section-title uppercase tracking-wider">
+                <div className="flex items-center gap-1">
+                  <ViewColumnsIcon className="h-3 w-3 section-title" />
+                  <span>Nombre</span>
                 </div>
-              )}
-            </Droppable>
-          </DragDropContext>
-        ) : (
-          <div className="bg-white divide-y divide-gray-200">
+              </th>
+              <th scope="col" className="px-2 py-2 text-center text-xs font-medium section-title uppercase tracking-wider w-16">Orden</th>
+              <th scope="col" className="px-3 py-2 text-center text-xs font-medium section-title uppercase tracking-wider w-16">Foto</th>
+              <th scope="col" className="px-2 py-2 text-center text-xs font-medium section-title uppercase tracking-wider w-16">
+                <EyeIcon className="h-4 w-4 mx-auto section-title" />
+              </th>
+              <th scope="col" className="px-3 py-2 text-center text-xs font-medium section-title uppercase tracking-wider w-20">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y section-border">
             {sections.map((section, index) => (
-              <SectionListItem
-                key={section.section_id}
-                section={section}
-                isExpanded={expandedSections[section.section_id] || false}
-                visibleProductsCount={
-                  products[section.section_id]
-                    ? products[section.section_id].filter(p => p.status === 1).length
-                    : section.visible_products_count || 0
-                }
-                totalProductsCount={
-                  products[section.section_id]
-                    ? products[section.section_id].length
-                    : section.products_count || 0
-                }
-                onSectionClick={onSectionClick}
-                onAddProduct={onAddProduct}
-                onToggleSectionVisibility={onToggleSectionVisibility}
-                onEditSection={onEditSection}
-                onDeleteSection={onDeleteSection}
-                orderIndex={index}
-              />
+              <tr key={section.section_id} className="hover:bg-gray-50">
+                <SectionListItem
+                  section={section}
+                  isExpanded={expandedSections[section.section_id] || false}
+                  visibleProductsCount={
+                    products[section.section_id]
+                      ? products[section.section_id].filter(p => p.status === 1).length
+                      : section.visible_products_count || 0
+                  }
+                  totalProductsCount={
+                    products[section.section_id]
+                      ? products[section.section_id].length
+                      : section.products_count || 0
+                  }
+                  onSectionClick={onSectionClick}
+                  onAddProduct={onAddProduct}
+                  onToggleSectionVisibility={onToggleSectionVisibility}
+                  onEditSection={onEditSection}
+                  onDeleteSection={onDeleteSection}
+                  orderIndex={index}
+                />
+              </tr>
             ))}
-          </div>
-        )}
-      </div>
+          </tbody>
+        </table>
+      )}
     </div>
   );
 };

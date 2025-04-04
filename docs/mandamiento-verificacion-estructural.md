@@ -62,7 +62,9 @@ app/dashboard-v2/
 ├── styles/               # Estilos
 │   ├── dashboard.css
 │   ├── theme.css
-│   └── typography.css
+│   ├── animations.css
+│   ├── typography.css
+│   └── grids.css        # Estilos de grids (categorías, secciones, productos)
 ├── types/                # Tipos centralizados
 │   ├── index.ts
 │   └── dashboard.ts

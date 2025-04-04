@@ -63,7 +63,7 @@ export const SectionTable: React.FC<SectionTableProps> = ({
 
   if (!sections || sections.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500 bg-white rounded-md border border-green-200">
+      <div className="text-center py-4 text-gray-500 bg-white rounded-md border border-teal-200">
         No hay secciones disponibles
       </div>
     );
@@ -80,7 +80,6 @@ export const SectionTable: React.FC<SectionTableProps> = ({
       sections={sections}
       expandedSections={normalizedExpandedSections}
       onSectionClick={handleSectionClick}
-      onAddSection={() => {}} // No se usa desde aquí
       onToggleSectionVisibility={onToggleVisibility}
       onEditSection={onEditSection}
       onDeleteSection={onDeleteSection}
