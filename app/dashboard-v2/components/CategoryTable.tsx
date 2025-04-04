@@ -183,13 +183,13 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                           <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">{category.display_order || index + 1}</td>
                           <td className="px-3 py-2 whitespace-nowrap">
                             <div className="flex justify-center">
-                              <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+                              <div className="grid-image-container">
                                 <Image
                                   src={getImagePath(category.image, 'categories')}
                                   alt={category.name || ''}
                                   width={32}
                                   height={32}
-                                  className="object-cover w-full h-full"
+                                  className="grid-image"
                                   onError={handleImageError}
                                 />
                               </div>
@@ -200,21 +200,19 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                               <button
                                 onClick={() => onToggleCategoryVisibility(category.category_id, category.status)}
                                 disabled={isUpdatingVisibility === category.category_id}
-                                className={`p-1.5 rounded-full transition-colors ${
+                                className={`action-button ${
                                   category.status === 1 
-                                    ? 'category-title bg-indigo-50 hover:bg-indigo-100' 
-                                    : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
+                                    ? 'category-action category-icon-hover' 
+                                    : 'text-gray-400 hover:bg-gray-100'
                                 }`}
                                 title={category.status === 1 ? "Visible" : "No visible"}
                               >
                                 {isUpdatingVisibility === category.category_id ? (
-                                  <div className="w-5 h-5 flex items-center justify-center">
-                                    <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
-                                  </div>
+                                  <div className="w-4 h-4 border-2 border-t-transparent border-indigo-500 rounded-full animate-spin"></div>
                                 ) : category.status === 1 ? (
-                                  <EyeIcon className="w-5 h-5" />
+                                  <EyeIcon className="w-4 h-4" />
                                 ) : (
-                                  <EyeSlashIcon className="w-5 h-5" />
+                                  <EyeSlashIcon className="w-4 h-4" />
                                 )}
                               </button>
                             </div>
@@ -222,16 +220,23 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                           <td className="px-3 py-2 whitespace-nowrap text-center">
                             <div className="flex justify-center space-x-1">
                               <button
-                                onClick={() => onEditCategory(category)}
-                                className="p-1 category-title hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                                onClick={() => onAddSection(category.category_id)}
+                                className="action-button category-action category-icon-hover"
+                                title="Agregar sección"
                               >
-                                <PencilIcon className="h-4 w-4" />
+                                <PlusIcon className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => onEditCategory(category)}
+                                className="action-button category-action-edit"
+                              >
+                                <PencilIcon className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => onDeleteCategory(category.category_id)}
-                                className="p-1 category-title hover:text-indigo-900 rounded-full hover:bg-indigo-50"
+                                className="category-action-delete"
                               >
-                                <TrashIcon className="h-4 w-4" />
+                                <TrashIcon className="w-4 h-4" />
                               </button>
                             </div>
                           </td>
@@ -323,13 +328,13 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                     <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-center">{category.display_order || index + 1 + visibleCategories.length}</td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex justify-center">
-                        <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+                        <div className="grid-image-container">
                           <Image
                             src={getImagePath(category.image, 'categories')}
                             alt={category.name || ''}
                             width={32}
                             height={32}
-                            className="object-cover w-full h-full opacity-50 grayscale"
+                            className="grid-image opacity-50 grayscale"
                             onError={handleImageError}
                           />
                         </div>
@@ -355,6 +360,13 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-center">
                       <div className="flex justify-center space-x-1">
+                        <button
+                          onClick={() => onAddSection(category.category_id)}
+                          className="action-button category-action category-icon-hover"
+                          title="Agregar sección"
+                        >
+                          <PlusIcon className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => onEditCategory(category)}
                           className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"

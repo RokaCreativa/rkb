@@ -42,18 +42,16 @@ const SectionListItem: React.FC<SectionListItemProps> = ({
     return (
       <td className="flex items-center justify-center">
         {section.image ? (
-          <div 
-            className="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200"
-          >
+          <div className="grid-image-container">
             <img
               src={getImagePath(section.image, 'sections')}
               alt={section.name}
               onError={handleImageError}
-              className="w-full h-full object-cover"
+              className="grid-image"
             />
           </div>
         ) : (
-          <div className="w-8 h-8 rounded-md bg-gray-100 text-gray-400 flex items-center justify-center text-xs border border-gray-200">
+          <div className="grid-image-placeholder">
             <PhotoIcon className="w-4 h-4" />
           </div>
         )}
@@ -67,10 +65,10 @@ const SectionListItem: React.FC<SectionListItemProps> = ({
       <td className="flex items-center justify-center space-x-1">
         <button
           onClick={() => onEditSection(section)}
-          className={`p-1.5 rounded-full transition-colors ${
+          className={`action-button ${
             isHidden 
               ? 'text-gray-400 hover:bg-gray-100' 
-              : 'section-action hover:bg-teal-100'
+              : 'section-action section-icon-hover'
           }`}
           title="Editar sección"
         >
@@ -78,11 +76,7 @@ const SectionListItem: React.FC<SectionListItemProps> = ({
         </button>
         <button
           onClick={() => onDeleteSection(section)}
-          className={`p-1.5 rounded-full transition-colors ${
-            isHidden 
-              ? 'text-gray-400 hover:bg-gray-100' 
-              : 'text-red-500 hover:bg-red-50'
-          }`}
+          className="section-action-delete"
           title="Eliminar sección"
         >
           <TrashIcon className="w-4 h-4" />
@@ -95,16 +89,16 @@ const SectionListItem: React.FC<SectionListItemProps> = ({
   return (
     <>
       {/* Toggle para expandir/colapsar */}
-      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
+      <td className="px-2 py-2 whitespace-nowrap text-sm w-10">
         <div className="flex items-center justify-center">
           <button 
             onClick={() => onSectionClick(section.section_id)}
             className="p-1 rounded-full transition-colors"
           >
             {isExpanded ? (
-              <ChevronDownIcon className="h-5 w-5 text-teal-500" />
+              <ChevronDownIcon className="h-5 w-5 section-text" />
             ) : (
-              <ChevronRightIcon className="h-5 w-5 text-teal-500" />
+              <ChevronRightIcon className="h-5 w-5 section-text" />
             )}
           </button>
         </div>
@@ -115,7 +109,7 @@ const SectionListItem: React.FC<SectionListItemProps> = ({
         <div className="flex items-center">
           <span className={`text-sm font-medium ${
             isExpanded 
-              ? "text-teal-700" 
+              ? "section-text" 
               : "text-gray-700"
           }`}>{section.name}</span>
           <span className="text-xs text-gray-500 ml-2">
@@ -133,18 +127,16 @@ const SectionListItem: React.FC<SectionListItemProps> = ({
       <td className="px-3 py-2 whitespace-nowrap">
         <div className="flex justify-center">
           {section.image ? (
-            <div 
-              className="w-8 h-8 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200"
-            >
+            <div className="grid-image-container">
               <img
                 src={getImagePath(section.image, 'sections')}
                 alt={section.name}
                 onError={handleImageError}
-                className="w-full h-full object-cover"
+                className="grid-image"
               />
             </div>
           ) : (
-            <div className="w-8 h-8 rounded-md bg-gray-100 text-gray-400 flex items-center justify-center text-xs border border-gray-200">
+            <div className="grid-image-placeholder">
               <PhotoIcon className="w-4 h-4" />
             </div>
           )}
@@ -156,14 +148,18 @@ const SectionListItem: React.FC<SectionListItemProps> = ({
         <div className="flex justify-center">
           <button
             onClick={() => onToggleSectionVisibility(section.section_id, section.status)}
-            className={`p-1.5 rounded-full transition-colors ${
+            className={`action-button ${
               section.status === 1 
-                ? 'text-teal-600 bg-teal-50 hover:bg-teal-100' 
-                : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
+                ? 'section-action section-icon-hover' 
+                : 'text-gray-400 hover:bg-gray-100'
             }`}
             title={section.status === 1 ? "Visible" : "No visible"}
           >
-            <EyeIcon className="w-4 h-4" />
+            {section.status === 1 ? (
+              <EyeIcon className="w-4 h-4" />
+            ) : (
+              <EyeSlashIcon className="w-4 h-4" />
+            )}
           </button>
         </div>
       </td>
@@ -173,21 +169,21 @@ const SectionListItem: React.FC<SectionListItemProps> = ({
         <div className="flex justify-center space-x-1">
           <button
             onClick={() => onAddProduct(section.section_id)}
-            className="p-1.5 rounded-full section-action hover:bg-teal-50 transition-colors"
+            className="action-button section-action section-icon-hover"
             title="Agregar producto"
           >
-            <PlusCircleIcon className="w-4 h-4" />
+            <PlusIcon className="w-4 h-4" />
           </button>
           <button
             onClick={() => onEditSection(section)}
-            className="p-1.5 rounded-full section-action hover:bg-teal-50 transition-colors"
+            className="action-button section-action-edit"
             title="Editar sección"
           >
             <PencilIcon className="w-4 h-4" />
           </button>
           <button
             onClick={() => onDeleteSection(section)}
-            className="p-1.5 rounded-full text-red-500 hover:bg-red-50 transition-colors"
+            className="section-action-delete"
             title="Eliminar sección"
           >
             <TrashIcon className="w-4 h-4" />

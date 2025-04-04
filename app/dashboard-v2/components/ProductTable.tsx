@@ -47,7 +47,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
 
   if (!products || products.length === 0) {
     return (
-      <div className="text-center py-4 text-gray-500 bg-white rounded-md border border-yellow-100 shadow-sm">
+      <div className="text-center py-4 text-gray-500 bg-white rounded-md border product-border shadow-sm">
         No hay productos disponibles para esta sección
       </div>
     );
@@ -135,7 +135,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       <tr 
                         ref={provided.innerRef}
                         {...provided.draggableProps}
-                        className={`${snapshot.isDragging ? "bg-yellow-50" : "hover:bg-gray-50"}`}
+                        className={`${snapshot.isDragging ? "grid-item-dragging-product" : "product-hover"}`}
                       >
                         <td 
                           className="px-3 py-2 whitespace-nowrap"
@@ -203,13 +203,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                           <div className="flex justify-center space-x-1">
                             <button
                               onClick={() => onEditProduct(product)}
-                              className="p-1 text-yellow-600 hover:text-yellow-800 rounded-full hover:bg-yellow-50"
+                              className="action-button product-action-edit"
                             >
                               <PencilIcon className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => onDeleteProduct(product.id || product.product_id || 0)}
-                              className="p-1 text-yellow-600 hover:text-yellow-800 rounded-full hover:bg-yellow-50"
+                              className="product-action-delete"
                             >
                               <TrashIcon className="h-4 w-4" />
                             </button>
@@ -285,13 +285,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       <div className="flex justify-center space-x-1">
                         <button
                           onClick={() => onEditProduct(product)}
-                          className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                          className="action-button product-action-edit"
                         >
                           <PencilIcon className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => onDeleteProduct(product.id || product.product_id || 0)}
-                          className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                          className="product-action-delete"
                         >
                           <TrashIcon className="h-4 w-4" />
                         </button>
