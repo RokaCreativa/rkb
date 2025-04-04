@@ -78,13 +78,13 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       onReorderProduct(result.source.index, result.destination.index);
     }
   };
-
+  
   return (
     <div className="rounded-lg border border-yellow-100 overflow-hidden bg-white shadow-sm">
       <div className="flex items-center justify-between px-4 py-2 bg-yellow-50 border-b border-yellow-100">
         <h2 className="text-sm font-medium text-yellow-700">
           Productos: {sectionName}
-        </h2>
+          </h2>
         <div className="flex items-center">
           <div className="text-xs text-yellow-600 mr-4">
             ({visibleProducts.length}/{products.length} Visibles)
@@ -256,8 +256,8 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                             height={32}
                             className="object-cover w-full h-full opacity-50 grayscale"
                             onError={handleImageError}
-                          />
-                        </div>
+          />
+        </div>
                       </div>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-400 text-center font-medium">

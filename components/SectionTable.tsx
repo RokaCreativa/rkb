@@ -136,9 +136,18 @@ export default function SectionTable({
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="sections">
           {(provided) => (
-            <table className="min-w-full divide-y divide-teal-100" {...provided.droppableProps} ref={provided.innerRef}>
+            <table 
+              className="min-w-full" 
+              style={{ 
+                borderCollapse: 'separate',
+                borderSpacing: 0
+              }}
+              {...provided.droppableProps} 
+              ref={provided.innerRef}
+              id="ORIGINAL-SECTION-TABLE"
+            >
               <thead className="bg-gray-50">
-                <tr>
+                <tr style={{ borderBottom: '3px solid #000000' }}>
                   <th scope="col" className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10"></th>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
@@ -152,7 +161,7 @@ export default function SectionTable({
                   <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-teal-100">
+              <tbody>
                 {/* Secciones visibles */}
                 {visibleSections.map((section, index) => (
                   <Draggable 
@@ -171,6 +180,7 @@ export default function SectionTable({
                               ? "bg-teal-50" 
                               : "hover:bg-teal-50/50"
                         }`}
+                        style={{ borderBottom: '3px solid #000000' }}
                       >
                         <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                           <div className="flex items-center">

@@ -10,6 +10,7 @@
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { SectionTable } from "../SectionTable";
 import { Category, Section, Product } from "@/app/types/menu";
+import SectionList from '../sections/SectionList';
 
 /**
  * Props para el componente SectionView
@@ -71,59 +72,51 @@ export default function SectionView({
   handleReorderSection,
   selectedCategory
 }: SectionViewProps) {
+  // Adaptador para manejar la diferencia de tipos en onSectionClick
+  const handleSectionClick = (sectionId: number) => {
+    // Buscar la sección por id
+    const section = sections.find(s => s.section_id === sectionId);
+    if (section) {
+      onSectionClick(section);
+    }
+  };
+
   return (
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">
-          Secciones: {categoryName}
-        </h1>
-        
+    <div className="space-y-4 pb-4">
+      <div className="flex items-center justify-between py-2">
+        <div className="flex items-center space-x-2">
+          <h2 className="text-xl font-semibold text-gray-800">Secciones</h2>
+          <span className="text-sm text-gray-500">
+            ({sections.filter(s => s.status === 1).length}/{sections.length} visibles)
+          </span>
+        </div>
         <button
+          type="button"
           onClick={onAddSection}
-          className="inline-flex items-center px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-medium rounded-md shadow-sm"
+          className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
-          <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
+          <PlusIcon className="h-4 w-4 mr-1" />
           Añadir sección
         </button>
       </div>
-      
-      {isLoading ? (
-        <div className="flex justify-center items-center h-40 bg-white rounded-lg border border-gray-200">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-        </div>
-      ) : (
-        <SectionTable
-          sections={sections || []}
-          expandedSections={expandedSections}
-          onSectionClick={(sectionId) => {
-            const section = sections.find(s => s.section_id === sectionId);
-            if (section) {
-              onSectionClick(section);
-            }
-          }}
-          onToggleVisibility={onToggleSectionVisibility}
-          onAddProduct={onAddProduct}
-          onEditSection={onEditSection}
-          onDeleteSection={onDeleteSection}
-          isUpdatingVisibility={isUpdatingVisibility}
-          categoryId={selectedCategory?.category_id || 0}
-          isReorderModeActive={isReorderModeActive}
-          onReorderSection={handleReorderSection}
-          products={products || {}}
-          onToggleProductVisibility={onToggleProductVisibility}
-          onEditProduct={onEditProduct}
-          onDeleteProduct={onDeleteProduct}
-          isUpdatingProductVisibility={isUpdatingProductVisibility}
-          client={{}}
-          loading={false}
-          setLoading={() => {}}
-          setSections={() => {}}
-          setExpandedSections={() => {}}
-          onEdit={onEditSection}
-          handleAddProduct={(section) => onAddProduct(section.section_id)}
-          setProducts={() => {}}
-        />
-      )}
-    </>
+
+      <SectionList
+        sections={sections}
+        expandedSections={expandedSections}
+        onSectionClick={handleSectionClick}
+        onAddSection={onAddSection}
+        onToggleSectionVisibility={onToggleSectionVisibility}
+        onEditSection={onEditSection}
+        onDeleteSection={onDeleteSection}
+        onAddProduct={onAddProduct}
+        products={products}
+        onToggleProductVisibility={onToggleProductVisibility}
+        onEditProduct={onEditProduct}
+        onDeleteProduct={onDeleteProduct}
+        isUpdatingVisibility={isUpdatingVisibility}
+        isUpdatingProductVisibility={isUpdatingProductVisibility}
+      />
+
+    </div>
   );
 } 

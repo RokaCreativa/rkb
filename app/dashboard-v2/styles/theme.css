@@ -40,6 +40,42 @@
   --color-border-light: #F3F4F6; /* Gray-100 - Bordes sutiles */
   --color-border-focus: #4F46E5; /* Indigo-600 - Bordes para elementos con focus */
 
+  /* Variables de personalización del dashboard */
+  /* Categorías (Indigo) */
+  --category-bg-color: #EEF2FF;         /* Indigo-50 */
+  --category-border-color: #E0E7FF;     /* Indigo-100 */
+  --category-title-color: #4F46E5;      /* Indigo-600 */
+  --category-text-color: #4338CA;       /* Indigo-700 */
+  --category-hover-color: #C7D2FE;      /* Indigo-200 */
+  --category-button-bg: #4F46E5;        /* Indigo-600 */
+  --category-button-hover: #4338CA;     /* Indigo-700 */
+  
+  /* Secciones (Verde) */
+  --section-bg-color: #ECFDF5;          /* Green-50 */
+  --section-border-color: #D1FAE5;      /* Green-100 */
+  --section-title-color: #059669;       /* Green-600 */
+  --section-text-color: #047857;        /* Green-700 */
+  --section-hover-color: #A7F3D0;       /* Green-200 */
+  --section-button-bg: #059669;         /* Green-600 */
+  --section-button-hover: #047857;      /* Green-700 */
+  --section-accent-border: #10B981;     /* Green-500 */
+  
+  /* Productos (Amarillo) */
+  --product-bg-color: #FFFBEB;          /* Yellow-50 */
+  --product-border-color: #FEF3C7;      /* Yellow-100 */
+  --product-title-color: #D97706;       /* Yellow-600 */
+  --product-text-color: #B45309;        /* Yellow-700 */
+  --product-hover-color: #FDE68A;       /* Yellow-200 */
+  --product-button-bg: #D97706;         /* Yellow-600 */
+  --product-button-hover: #B45309;      /* Yellow-700 */
+  
+  /* Iconos */
+  --icon-add-color: currentColor;       /* Hereda del contexto */
+  --icon-edit-color: currentColor;      /* Hereda del contexto */
+  --icon-delete-color: currentColor;    /* Hereda del contexto */
+  --icon-visibility-color: currentColor; /* Hereda del contexto */
+  --icon-size: 1rem;                    /* Tamaño predeterminado */
+
   /* Espaciado */
   --spacing-xs: 0.25rem;         /* 4px - Espaciado extra pequeño */
   --spacing-sm: 0.5rem;          /* 8px - Espaciado pequeño */
@@ -92,6 +128,29 @@
 .border-primary {
   border-color: var(--color-primary);
 }
+
+/* Clases de personalización del dashboard */
+.category-bg { background-color: var(--category-bg-color); }
+.category-border { border-color: var(--category-border-color); }
+.category-title { color: var(--category-title-color); }
+.category-text { color: var(--category-text-color); }
+.category-button { background-color: var(--category-button-bg); color: white; }
+.category-button:hover { background-color: var(--category-button-hover); }
+
+.section-bg { background-color: var(--section-bg-color); }
+.section-border { border-color: var(--section-border-color); }
+.section-title { color: var(--section-title-color); }
+.section-text { color: var(--section-text-color); }
+.section-button { background-color: var(--section-button-bg); color: white; }
+.section-button:hover { background-color: var(--section-button-hover); }
+.section-accent-border { border-color: var(--section-accent-border); }
+
+.product-bg { background-color: var(--product-bg-color); }
+.product-border { border-color: var(--product-border-color); }
+.product-title { color: var(--product-title-color); }
+.product-text { color: var(--product-text-color); }
+.product-button { background-color: var(--product-button-bg); color: white; }
+.product-button:hover { background-color: var(--product-button-hover); }
 
 /* Estilos base para el body */
 .base-body-styles {

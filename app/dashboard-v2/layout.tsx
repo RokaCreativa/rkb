@@ -1,6 +1,7 @@
 "use client";
 
 import '../globals.css';
+import './styles/theme.css'; // Importar el archivo de tema con variables de colores
 import './styles/animations.css'; // Importar el archivo de animaciones
 import { Inter } from 'next/font/google';
 import AuthDebugLayout from './AuthDebugLayout';
