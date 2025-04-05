@@ -91,6 +91,17 @@ Componentes principales (nivel raíz):
 - `RoleSelector.tsx` - Selector de roles
 - `Header.tsx` - Cabecera
 
+### 📦 Vistas
+
+Las vistas (`/components/views/`) son componentes principales que representan páginas o secciones completas:
+
+- **CategoryView.tsx**: Vista para gestionar categorías
+- **SectionView.tsx**: Vista para gestionar secciones dentro de una categoría
+- **ProductView.tsx**: Vista para gestionar productos dentro de una sección
+- **OptimizedCategoryView.tsx**: Versión optimizada para mostrar muchas categorías
+
+> **IMPORTANTE**: Todos los componentes de vista DEBEN estar en la carpeta `/components/views/` para mantener la coherencia de la estructura. No debe existir ningún componente de vista en la raíz de `/components/`.
+
 ### 📁 `/features`
 
 Contiene módulos organizados por funcionalidad o característica específica del negocio. Cada carpeta agrupa todo lo relacionado con una entidad específica.
@@ -243,15 +254,6 @@ utils/
 - **Uso**: Utilizado durante el desarrollo para verificar el estado de autenticación
 
 ## 🧩 Componentes Clave
-
-### 📦 Vistas
-
-Las vistas (`/components/views/`) son componentes principales que representan páginas o secciones completas:
-
-- **CategoryView.tsx**: Vista para gestionar categorías
-- **SectionView.tsx**: Vista para gestionar secciones dentro de una categoría
-- **ProductView.tsx**: Vista para gestionar productos dentro de una sección
-- **OptimizedCategoryView.tsx**: Versión optimizada para mostrar muchas categorías
 
 ### 📦 Modales
 

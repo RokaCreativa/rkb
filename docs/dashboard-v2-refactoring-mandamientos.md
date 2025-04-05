@@ -3,6 +3,7 @@
 > "No tocarás el código original, ni harás daño a la funcionalidad existente"
 > "Conocerás lo que existe antes de crear algo nuevo"
 > "Utilizarás componentes compartidos siempre que sea posible"
+> "No duplicarás interfaces, tipos o componentes que ya existen"
 
 ## 🎯 Objetivo Principal
 
@@ -20,9 +21,10 @@
 ## 🚫 MANDAMIENTO SUPREMO: RESPETARÁS LA REFACTORIZACIÓN REALIZADA
 
 - **NUNCA volverás a mezclar responsabilidades que han sido separadas**
+- **NUNCA duplicarás interfaces, tipos o componentes en diferentes ubicaciones**
 - Honrarás la estructura de carpetas establecida:
   - Modales en `dashboard-v2/components/modals/`
-  - Componentes de vista en `dashboard-v2/components/views/`
+  - Componentes de vista en `dashboard-v2/components/views/` (**TODOS los componentes de vista deben estar aquí**)
   - Hooks específicos en `dashboard-v2/hooks/`
   - Tipos en `dashboard-v2/types/`
   - Utilidades en `dashboard-v2/utils/`

@@ -44,10 +44,16 @@ app/dashboard-v2/
 │   └── hooks/
 │       └── useGridIcons.ts         // Hook personalizado para gestionar íconos
 └── components/
+    ├── views/
+    │   ├── CategoryView.tsx        // Vista principal para categorías (usa CategoryTable)
+    │   ├── SectionView.tsx         // Vista principal para secciones (usa SectionList)
+    │   └── ProductView.tsx         // Vista principal para productos (usa ProductTable)
     ├── CategoryTable.tsx           // Ahora usa componentes compartidos
     ├── SectionTable.tsx            // Ahora usa componentes compartidos
     └── ProductTable.tsx            // Ahora usa componentes compartidos
 ```
+
+> **IMPORTANTE**: Todos los componentes de vista (CategoryView, SectionView, ProductView) deben estar en la carpeta `/components/views/`. No debe existir ningún componente de vista en la raíz de `/components/`.
 
 ### 2. Componentes Compartidos
 

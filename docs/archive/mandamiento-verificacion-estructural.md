@@ -1,6 +1,7 @@
 # 📋 MANDAMIENTO DE VERIFICACIÓN ESTRUCTURAL
 
 > "Conocerás lo que existe antes de crear algo nuevo"
+> "No duplicarás lo que ya está creado"
 
 ## 🔍 Propósito
 
@@ -13,6 +14,21 @@ Este mandamiento establece la obligación absoluta de verificar la estructura ex
 3. **CONSULTARÁS** regularmente la documentación de estructura
 4. **EXPLORARÁS** el código base utilizando herramientas de búsqueda
 5. **DOCUMENTARÁS** cualquier adición a la estructura
+6. **VERIFICARÁS** que no existan archivos o interfaces con propósitos similares en ubicaciones diferentes
+
+## 🔄 Regla Anti-Duplicidad
+
+Es **ESTRICTAMENTE PROHIBIDO** crear:
+
+- Componentes duplicados con el mismo nombre en diferentes ubicaciones
+- Interfaces duplicadas o similares para los mismos propósitos
+- Hooks con funcionalidades similares en diferentes ubicaciones
+- Utilidades que duplican funcionalidad existente
+
+Por ejemplo:
+
+- **INCORRECTO**: Tener `ProductView.tsx` en `/components/` y otro en `/components/views/`
+- **CORRECTO**: Tener un único `ProductView.tsx` en `/components/views/`
 
 ## 🗺️ Mapa Estructural del Dashboard v2
 
@@ -97,6 +113,7 @@ Antes de crear cualquier elemento nuevo, seguirás este procedimiento:
    - Utilizar `list_dir` para explorar las carpetas relevantes
    - Verificar qué archivos y componentes ya existen
    - Entender la organización y convenciones de nomenclatura
+   - **Buscar archivos con nombres similares o propósitos similares**
 
 3. **Buscar elementos similares**:
 
