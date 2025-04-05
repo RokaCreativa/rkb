@@ -21,18 +21,26 @@ interface SectionViewProps {
   category?: Category;
   sections: Section[];
   products: Record<number, Product[]>;
+  categoryName?: string;
+  categoryId?: number;
+  expandedSections?: Record<number, boolean>;
+  isReorderModeActive?: boolean;
+  selectedCategory?: Category;
+  handleReorderSection?: (sectionId: number, newPosition: number) => void;
   onAddSection: (categoryId?: number) => void;
   onEditSection: (section: Section) => void;
   onDeleteSection: (section: Section) => void;
+  onSectionClick?: (sectionId: number) => void;
   onAddProduct: (sectionId: number) => void;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (product: Product) => void;
   onToggleSectionVisibility: (sectionId: number, currentStatus: number) => void;
-  onToggleProductVisibility: (productId: number, currentStatus: number) => void;
+  onToggleProductVisibility: (productId: number, currentStatus: number, sectionId: number) => void;
   onSectionReorder?: (updatedSections: Section[]) => void;
   onProductReorder?: (sectionId: number, updatedProducts: Product[]) => void;
   isUpdatingVisibility?: number | null;
   isUpdatingProductVisibility?: number | null;
+  isLoading?: boolean;
 }
 
 /**
@@ -51,9 +59,16 @@ const SectionView: React.FC<SectionViewProps> = ({
   category,
   sections,
   products,
+  categoryName,
+  categoryId,
+  expandedSections,
+  isReorderModeActive,
+  selectedCategory,
+  handleReorderSection,
   onAddSection,
   onEditSection,
   onDeleteSection,
+  onSectionClick,
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
@@ -62,7 +77,8 @@ const SectionView: React.FC<SectionViewProps> = ({
   onSectionReorder,
   onProductReorder,
   isUpdatingVisibility,
-  isUpdatingProductVisibility
+  isUpdatingProductVisibility,
+  isLoading
 }) => {
   const [expandedSectionIds, setExpandedSectionIds] = useState<number[]>([]);
 

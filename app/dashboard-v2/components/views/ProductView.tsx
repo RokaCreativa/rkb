@@ -25,6 +25,7 @@ export interface ProductViewProps {
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (product: Product) => Promise<boolean> | void;
   isLoading?: boolean;
+  onProductsReorder?: (updatedProducts: Product[]) => void;
 }
 
 /**
@@ -42,7 +43,8 @@ export default function ProductView({
   onToggleProductVisibility,
   onEditProduct,
   onDeleteProduct,
-  isLoading = false
+  isLoading = false,
+  onProductsReorder
 }: ProductViewProps) {
   // Usamos la inicialización directa para el estado local
   const [localProducts, setLocalProducts] = useState<Product[]>(products || []);
@@ -253,6 +255,24 @@ export default function ProductView({
             }
             return true;
           }}
+          onReorderProduct={onProductsReorder ? (sourceIndex, destinationIndex) => {
+            if (!onProductsReorder) return;
+            
+            // Manejar reordenamiento
+            const updatedProducts = [...localProducts];
+            const [movedItem] = updatedProducts.splice(sourceIndex, 1);
+            updatedProducts.splice(destinationIndex, 0, movedItem);
+            
+            // Actualizar el display_order
+            const productsWithUpdatedOrder = updatedProducts.map((product, index) => ({
+              ...product,
+              display_order: index + 1
+            }));
+            
+            // Llamar a la función de reordenamiento
+            onProductsReorder(productsWithUpdatedOrder);
+          } : undefined}
+          isReorderModeActive={!!onProductsReorder}
         />
       )}
     </>

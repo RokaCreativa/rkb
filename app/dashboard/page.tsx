@@ -628,23 +628,21 @@ export default function DashboardPage() {
   // Función para reordenar secciones (drag and drop)
   const handleReorderSectionAdapter = async (sourceIndex: number, destinationIndex: number) => {
     if (!selectedCategory) return;
-      
+    
     console.log("handleReorderSectionAdapter invocado con índices:", sourceIndex, destinationIndex);
     
-    // Este método ahora actúa como punto de entrada para recibir las solicitudes
-    // de reordenamiento. La lógica real ocurre en SectionList, que ya tiene
-    // la lista completa de secciones reordenadas.
+    // Este método recibe sourceIndex y destinationIndex por compatibilidad
+    // pero actualmente la función handleSectionsReorder pasa todas las secciones ya reordenadas.
     
-    // Los parámetros sourceIndex y destinationIndex no se usan directamente,
-    // pero el componente aún espera recibir una función con esta firma.
+    // Lo que realmente importa son las secciones actuales en la categoría seleccionada
+    const sectionsList = sections[selectedCategory.category_id] || [];
+    console.log("Secciones actuales:", sectionsList.length, "secciones");
     
-    // La implementación real ocurre en SectionList.tsx, que luego pasa las secciones 
-    // reordenadas a través de handleSectionsReorder en SectionTable.tsx
+    // Las secciones serán reordenadas dentro de SectionList, y el resultado 
+    // será pasado a través de handleSectionsReorder en SectionTable.
     
-    // Dejamos este método como punto de entrada para mantener la compatibilidad.
-    console.log("handleReorderSectionAdapter: secciones en categoría", 
-      selectedCategory.category_id, 
-      ":", sections[selectedCategory.category_id]?.length || 0);
+    // Este método actúa como un stub para mantener la compatibilidad con el código antiguo.
+    // El reordenamiento real se procesa en SectionList y en el handler de eventos en sectionEventHandlers.ts
   };
 
   // Función para reordenar productos (drag and drop)

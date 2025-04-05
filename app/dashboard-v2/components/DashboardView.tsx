@@ -409,6 +409,49 @@ export default function DashboardView() {
     }
   }, [sections, toggleSectionVisibility]);
   
+  // Manejador para reordenar productos dentro de una sección
+  const handleReorderProducts = async (sectionId: number, updatedProducts: Product[]) => {
+    console.log(`🔄 Reordenando ${updatedProducts.length} productos en sección ${sectionId}`);
+    try {
+      // Preparar productos con índices actualizados
+      const productsWithOrder = updatedProducts.map((product, index) => ({
+        ...product,
+        display_order: index + 1
+      }));
+      
+      // Llamar a la API para guardar el nuevo orden
+      const response = await fetch('/api/products/reorder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          products: productsWithOrder.map(p => ({ 
+            id: p.product_id, 
+            order: p.display_order 
+          }))
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al reordenar productos');
+      }
+      
+      // Actualizar el estado local con el nuevo orden
+      setProducts(prev => ({
+        ...prev,
+        [sectionId]: productsWithOrder
+      }));
+      
+      toast.success('Productos reordenados correctamente');
+      return true;
+    } catch (error) {
+      console.error('Error al reordenar productos:', error);
+      toast.error('Error al reordenar productos');
+      return false;
+    }
+  };
+  
   // Renderizado condicional para estados de carga y error
   if (isLoading || isDataLoading) {
     return <Loader />;
@@ -524,10 +567,8 @@ export default function DashboardView() {
                   }}
                   onCategoryClick={(category) => goToCategory(category)}
                   products={products}
-                  onToggleProductVisibility={(productId, status, sectionId) => {
-                    if (sectionId) {
-                      toggleProductVisibility(productId, status, sectionId);
-                    }
+                  onToggleProductVisibility={(productId: number, currentStatus: number, sectionId: number) => {
+                    void toggleProductVisibility(productId, currentStatus, sectionId);
                   }}
                   onEditProduct={(product) => handleEditProduct(product)}
                   onDeleteProduct={(product) => handleDeleteProduct(product)}
@@ -559,17 +600,20 @@ export default function DashboardView() {
                   isLoading={false}
                   // Pasar propiedades de productos
                   products={products}
-                  onToggleProductVisibility={toggleProductVisibility}
+                  onToggleProductVisibility={(productId: number, currentStatus: number, sectionId: number) => {
+                    void toggleProductVisibility(productId, currentStatus, sectionId);
+                  }}
                   onEditProduct={handleEditProduct}
                   onDeleteProduct={handleDeleteProduct}
                   isUpdatingProductVisibility={isUpdatingVisibility}
                   expandedSections={expandedSections}
                   isReorderModeActive={false}
-                  handleReorderSection={(sectionId, newPosition) => {
+                  handleReorderSection={(sectionId: number, newPosition: number) => {
                     console.log('Reordering section', sectionId, 'to position', newPosition);
                     // Implementar la lógica real de reordenamiento aquí cuando sea necesario
                   }}
                   selectedCategory={selectedCategory}
+                  onProductReorder={handleReorderProducts}
                 />
               )}
 
@@ -636,8 +680,11 @@ export default function DashboardView() {
                       onAddProduct={() => handleAddProduct(selectedSection.section_id)}
                       onEditProduct={handleEditProduct}
                       onDeleteProduct={handleDeleteProduct}
-                      onToggleProductVisibility={toggleProductVisibility}
+                      onToggleProductVisibility={(productId: number, currentStatus: number, sectionId: number) => {
+                        void toggleProductVisibility(productId, currentStatus, sectionId);
+                      }}
                       isLoading={!sectionProducts || sectionProducts.length === 0}
+                      onProductsReorder={(updatedProducts) => handleReorderProducts(selectedSection.section_id, updatedProducts)}
                     />
                   </>
                 );

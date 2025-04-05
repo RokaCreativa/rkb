@@ -165,16 +165,32 @@
 }
 
 /* Estilos para drag and drop */
+.drag-handle {
+  @apply cursor-grab flex items-center justify-center rounded transition-colors;
+}
+
+.category-drag-handle {
+  @apply drag-handle text-indigo-500 hover:text-indigo-700 hover:bg-indigo-100;
+}
+
+.section-drag-handle {
+  @apply drag-handle text-teal-500 hover:text-teal-700 hover:bg-teal-100;
+}
+
+.product-drag-handle {
+  @apply drag-handle text-yellow-500 hover:text-yellow-700 hover:bg-yellow-100;
+}
+
 .grid-item-dragging-category {
-  @apply bg-indigo-50 !important;
+  @apply bg-indigo-50 shadow-md border-indigo-300 !important;
 }
 
 .grid-item-dragging-section {
-  @apply bg-teal-50 !important;
+  @apply bg-teal-50 shadow-md border-teal-300 !important;
 }
 
 .grid-item-dragging-product {
-  @apply bg-yellow-50 !important;
+  @apply bg-yellow-50 shadow-md border-yellow-300 !important;
 }
 
 /* Acciones genéricas para elementos */

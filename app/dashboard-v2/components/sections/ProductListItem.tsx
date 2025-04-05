@@ -1,11 +1,9 @@
 import React, { useEffect } from 'react';
-import { PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import { Product } from '@/app/types/menu';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 import { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
-import { useGridIcons } from '@/app/dashboard-v2/shared/hooks/useGridIcons';
 import { GridIcon } from '@/app/dashboard-v2/shared/components/grid/GridIcon';
 
 interface ProductListItemProps {
@@ -32,13 +30,11 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   dragHandleProps,
   showDragHandle = false
 }) => {
-  const { renderIcon } = useGridIcons();
-  
   // Efecto para depurar props
   useEffect(() => {
     console.log(`ProductListItem for ${product.name}:`, { 
       showDragHandle, 
-      hasDragHandleProps: !!dragHandleProps 
+      hasDragHandleProps: !!dragHandleProps
     });
   }, [product.name, showDragHandle, dragHandleProps]);
 
@@ -49,15 +45,24 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
         {showDragHandle ? (
           <div 
             {...(dragHandleProps || {})}
-            className="cursor-grab flex items-center justify-center self-stretch px-2 -ml-2 hover:bg-yellow-50 rounded-lg"
+            className="product-drag-handle px-2 -ml-2"
             title="Arrastrar para reordenar"
           >
-            <Bars3Icon className="h-6 w-6 text-yellow-500 hover:text-yellow-600" />
+            <GridIcon 
+              type="product" 
+              icon="drag" 
+              size="large" 
+            />
           </div>
         ) : (
           // Icono visual pero sin funcionalidad para depuración
           <div className="flex items-center justify-center self-stretch px-2 -ml-2 opacity-40">
-            <Bars3Icon className="h-6 w-6 text-yellow-300" />
+            <GridIcon 
+              type="product" 
+              icon="drag" 
+              size="medium" 
+              className="text-yellow-300"
+            />
           </div>
         )}
         <div className="grid-image-container">
@@ -99,7 +104,11 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             {isUpdatingProductVisibility === product.product_id ? (
               <div className="w-4 h-4 border-2 border-t-transparent border-yellow-500 rounded-full animate-spin"></div>
             ) : (
-              renderIcon("product", product.status === 1 ? "visibility" : "hidden")
+              <GridIcon 
+                type="product" 
+                icon={product.status === 1 ? "visibility" : "hidden"} 
+                size="medium"
+              />
             )}
           </button>
         )}
@@ -112,7 +121,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             className="p-1 rounded product-action product-icon-hover ml-1"
             title="Editar producto"
           >
-            {renderIcon("product", "edit")}
+            <GridIcon type="product" icon="edit" size="medium" />
           </button>
         )}
         {onDeleteProduct && (
@@ -124,7 +133,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             className="p-1 rounded text-red-500 hover:bg-red-50 ml-1"
             title="Eliminar producto"
           >
-            {renderIcon("product", "delete")}
+            <GridIcon type="product" icon="delete" size="medium" />
           </button>
         )}
       </div>

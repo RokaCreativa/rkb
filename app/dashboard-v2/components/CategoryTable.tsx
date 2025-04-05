@@ -8,6 +8,7 @@ import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUt
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import Image from 'next/image';
 import SectionList from './sections/SectionList';
+import { GridIcon } from '@/app/dashboard-v2/shared/components/grid/GridIcon';
 
 interface CategoryTableProps {
   categories: Category[];
@@ -167,9 +168,9 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                 aria-expanded={expandedCategories[category.category_id]}
                               >
                                 {expandedCategories[category.category_id] ? (
-                                  <ChevronDownIcon className="h-5 w-5" />
+                                  <GridIcon type="category" icon="collapse" size="large" />
                                 ) : (
-                                  <ChevronRightIcon className="h-4 w-4" />
+                                  <GridIcon type="category" icon="expand" size="large" />
                                 )}
                               </button>
                             </div>
@@ -179,8 +180,8 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                             onClick={() => onCategoryClick(category)}
                           >
                             <div className="flex items-center">
-                              <div {...provided.dragHandleProps} className="mr-2 cursor-grab flex items-center justify-center self-stretch px-1 hover:bg-indigo-50 rounded-lg" title="Arrastrar para reordenar">
-                                <Bars3Icon className="h-5 w-5 text-indigo-500 hover:text-indigo-600" />
+                              <div {...provided.dragHandleProps} className="category-drag-handle mr-2 px-1" title="Arrastrar para reordenar">
+                                <GridIcon type="category" icon="drag" size="large" />
                               </div>
                               <div className="flex items-center">
                                 <span className={`text-sm font-medium ${
@@ -221,9 +222,13 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                               aria-label={category.status === 1 ? "Ocultar categoría" : "Mostrar categoría"}
                             >
                               {isUpdatingVisibility === category.category_id ? (
-                                <div className="w-4 h-4 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
+                                <div className="w-4 h-4 border-2 border-t-transparent border-indigo-500 rounded-full animate-spin"></div>
                               ) : (
-                                <EyeIcon className="w-4 h-4" />
+                                <GridIcon 
+                                  type="category" 
+                                  icon={category.status === 1 ? "visibility" : "hidden"} 
+                                  size="medium" 
+                                />
                               )}
                             </button>
                           </td>
@@ -234,19 +239,19 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                 className="action-button category-action category-icon-hover"
                                 title="Agregar sección"
                               >
-                                <PlusIcon className="w-4 h-4" />
+                                <GridIcon type="category" icon="add" size="medium" />
                               </button>
                               <button
                                 onClick={() => onEditCategory(category)}
-                                className="action-button category-action-edit"
+                                className="action-button category-action category-icon-hover"
                               >
-                                <PencilIcon className="w-4 h-4" />
+                                <GridIcon type="category" icon="edit" size="medium" />
                               </button>
                               <button
                                 onClick={() => onDeleteCategory(category.category_id)}
                                 className="category-action-delete"
                               >
-                                <TrashIcon className="w-4 h-4" />
+                                <GridIcon type="category" icon="delete" size="medium" />
                               </button>
                             </div>
                           </td>
@@ -303,9 +308,9 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                           aria-label={expandedCategories[category.category_id] ? "Colapsar" : "Expandir"}
                         >
                           {expandedCategories[category.category_id] ? (
-                            <ChevronDownIcon className="h-5 w-5" />
+                            <GridIcon type="category" icon="collapse" size="large" />
                           ) : (
-                            <ChevronRightIcon className="h-4 w-4" />
+                            <GridIcon type="category" icon="expand" size="large" />
                           )}
                         </button>
                       </div>
@@ -316,7 +321,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                     >
                       <div className="flex items-center">
                         <div className="mr-2">
-                          <Bars3Icon className="h-5 w-5 text-gray-300 flex-shrink-0" />
+                          <GridIcon type="category" icon="drag" size="large" />
                         </div>
                         <div className="flex items-center">
                           <span className="text-sm font-medium text-gray-400">{category.name}</span>
@@ -353,7 +358,11 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                             <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
                           </div>
                         ) : (
-                          <EyeSlashIcon className="w-5 h-5" />
+                          <GridIcon 
+                            type="category" 
+                            icon={category.status === 1 ? "visibility" : "hidden"} 
+                            size="medium" 
+                          />
                         )}
                       </button>
                     </td>
@@ -364,19 +373,19 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                           className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
                           title="Agregar sección"
                         >
-                          <PlusIcon className="w-4 h-4" />
+                          <GridIcon type="category" icon="add" size="medium" />
                         </button>
                         <button
                           onClick={() => onEditCategory(category)}
                           className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
                         >
-                          <PencilIcon className="h-4 w-4" />
+                          <GridIcon type="category" icon="edit" size="medium" />
                         </button>
                         <button
                           onClick={() => onDeleteCategory(category.category_id)}
                           className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
                         >
-                          <TrashIcon className="h-4 w-4" />
+                          <GridIcon type="category" icon="delete" size="medium" />
                         </button>
                       </div>
                     </td>
@@ -391,7 +400,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         onClick={onAddCategory}
                         className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded category-button"
                       >
-                        <PlusIcon className="h-4 w-4 mr-1" />
+                        <GridIcon type="category" icon="add" size="medium" />
                         Agregar categoría
                       </button>
                     </td>

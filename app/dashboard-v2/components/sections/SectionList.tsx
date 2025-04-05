@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 import ProductList from './ProductList';
 import { useGridIcons } from '@/app/dashboard-v2/shared/hooks/useGridIcons';
+import { GridIcon } from '@/app/dashboard-v2/shared/components/grid/GridIcon';
 
 /**
  * Propiedades del componente SectionList
@@ -96,24 +97,44 @@ const SectionList: React.FC<SectionListProps> = ({
     
     console.log("Drag end in SectionList", result);
     
-    // Solo reordenar secciones visibles
-    const items = Array.from(visibleSections);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    // Obtenemos todas las secciones completas
+    const allSections = [...sections];
     
-    // Actualiza el display_order solo en las secciones visibles
-    const updatedVisibleItems = items.map((item, index) => ({
+    // Solo reordenamos las secciones visibles
+    const visibleSectionsArray = Array.from(visibleSections);
+    const [reorderedItem] = visibleSectionsArray.splice(result.source.index, 1);
+    visibleSectionsArray.splice(result.destination.index, 0, reorderedItem);
+    
+    // Actualizar el display_order de todas las secciones visibles
+    const updatedVisibleSections = visibleSectionsArray.map((item: Section, index: number) => ({
       ...item,
       display_order: index + 1
     }));
     
-    // Combinar las secciones visibles actualizadas con las no visibles sin modificar
-    const updatedItems = [...updatedVisibleItems, ...hiddenSections];
+    // Buscamos las secciones visibles actualizadas en todas las secciones
+    // y actualizamos sus display_order, manteniendo las ocultas sin cambios
+    const finalSections = allSections.map(section => {
+      // Si la sección es visible (está en updatedVisibleSections), actualizamos su display_order
+      const updatedSection = updatedVisibleSections.find(
+        (s: Section) => s.section_id === section.section_id
+      );
+      
+      if (updatedSection) {
+        return {
+          ...section,
+          display_order: updatedSection.display_order
+        };
+      }
+      
+      // Si la sección no está en updatedVisibleSections, es una sección oculta
+      // y no modificamos su display_order
+      return section;
+    });
     
-    console.log("Items reordenados enviados a onSectionsReorder:", updatedItems);
+    console.log("Final reordered sections:", finalSections);
     
     // Llamar a la función de reordenación con todas las secciones
-    onSectionsReorder(updatedItems);
+    onSectionsReorder(finalSections);
   };
 
   // Mostrar mensaje cuando no hay secciones
@@ -247,7 +268,11 @@ const SectionList: React.FC<SectionListProps> = ({
                           {isUpdatingProductVisibility === product.product_id ? (
                             <div className="w-4 h-4 border-2 border-t-transparent border-yellow-500 rounded-full animate-spin"></div>
                           ) : (
-                            <EyeIcon className="w-4 h-4" />
+                            <GridIcon 
+                              type="product" 
+                              icon={product.status === 1 ? "visibility" : "hidden"} 
+                              size="medium"
+                            />
                           )}
                         </button>
                       </td>
@@ -257,13 +282,13 @@ const SectionList: React.FC<SectionListProps> = ({
                             onClick={() => onEditProduct && onEditProduct(product)}
                             className="action-button product-action product-icon-hover"
                           >
-                            <PencilIcon className="w-4 h-4" />
+                            <GridIcon type="product" icon="edit" size="medium" />
                           </button>
                           <button
                             onClick={() => onDeleteProduct && onDeleteProduct(product)}
                             className="product-action-delete"
                           >
-                            <TrashIcon className="w-4 h-4" />
+                            <GridIcon type="product" icon="delete" size="medium" />
                           </button>
                         </div>
                       </td>
@@ -373,9 +398,9 @@ const SectionList: React.FC<SectionListProps> = ({
                                   aria-label={expandedSections[section.section_id] ? "Colapsar" : "Expandir"}
                                 >
                                   {expandedSections[section.section_id] ? (
-                                    <ChevronDownIcon className="h-5 w-5" />
+                                    <GridIcon type="section" icon="collapse" size="large" />
                                   ) : (
-                                    <ChevronRightIcon className="h-4 w-4" />
+                                    <GridIcon type="section" icon="expand" size="large" />
                                   )}
                                 </button>
                               </div>
@@ -385,8 +410,8 @@ const SectionList: React.FC<SectionListProps> = ({
                               onClick={() => onSectionClick(section.section_id)}
                             >
                               <div className="flex items-center">
-                                <div {...provided.dragHandleProps} className="mr-2 cursor-grab flex items-center justify-center self-stretch px-1 hover:bg-teal-50 rounded-lg" title="Arrastrar para reordenar">
-                                  <Bars3Icon className="h-5 w-5 text-teal-500 hover:text-teal-600" />
+                                <div {...provided.dragHandleProps} className="section-drag-handle mr-2 px-1" title="Arrastrar para reordenar">
+                                  <GridIcon type="section" icon="drag" size="large" />
                                 </div>
                                 <div className="flex flex-col">
                                   <span className={`text-sm font-medium ${
@@ -430,31 +455,30 @@ const SectionList: React.FC<SectionListProps> = ({
                                 {isUpdatingVisibility === section.section_id ? (
                                   <div className="w-4 h-4 border-2 border-t-transparent border-teal-500 rounded-full animate-spin"></div>
                                 ) : (
-                                  <EyeIcon className="w-4 h-4" />
+                                  <GridIcon type="section" icon={section.status === 1 ? "visibility" : "hidden"} size="medium" />
                                 )}
                               </button>
                             </td>
                             <td className="px-3 py-2 whitespace-nowrap text-center">
                               <div className="flex items-center justify-center space-x-1">
-                                {/* Botón para agregar producto (nuevo) */}
                                 <button
                                   onClick={() => onAddProduct(section.section_id)}
                                   className="action-button section-action section-icon-hover"
                                   title="Agregar producto"
                                 >
-                                  <PlusIcon className="w-4 h-4" />
+                                  <GridIcon type="section" icon="add" size="medium" />
                                 </button>
                                 <button
                                   onClick={() => onEditSection(section)}
                                   className="action-button section-action section-icon-hover"
                                 >
-                                  <PencilIcon className="w-4 h-4" />
+                                  <GridIcon type="section" icon="edit" size="medium" />
                                 </button>
                                 <button
                                   onClick={() => onDeleteSection(section)}
                                   className="section-action-delete"
                                 >
-                                  <TrashIcon className="w-4 h-4" />
+                                  <GridIcon type="section" icon="delete" size="medium" />
                                 </button>
                               </div>
                             </td>
@@ -482,9 +506,9 @@ const SectionList: React.FC<SectionListProps> = ({
                               aria-label={expandedSections[section.section_id] ? "Colapsar" : "Expandir"}
                             >
                               {expandedSections[section.section_id] ? (
-                                <ChevronDownIcon className="h-5 w-5" />
+                                <GridIcon type="section" icon="collapse" size="large" />
                               ) : (
-                                <ChevronRightIcon className="h-4 w-4" />
+                                <GridIcon type="section" icon="expand" size="large" />
                               )}
                             </button>
                           </div>
@@ -494,8 +518,8 @@ const SectionList: React.FC<SectionListProps> = ({
                           onClick={() => onSectionClick(section.section_id)}
                         >
                           <div className="flex items-center">
-                            <div className="mr-2">
-                              <Bars3Icon className="h-5 w-5 text-gray-300 flex-shrink-0" />
+                            <div className="mr-2 opacity-40">
+                              <GridIcon type="section" icon="drag" size="large" className="text-gray-300" />
                             </div>
                             <div className="flex items-center">
                               <span className="text-sm font-medium text-gray-400">{section.name}</span>
@@ -539,25 +563,24 @@ const SectionList: React.FC<SectionListProps> = ({
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center space-x-1">
-                            {/* Botón para agregar producto (nuevo) */}
                             <button
                               onClick={() => onAddProduct(section.section_id)}
                               className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
                               title="Agregar producto"
                             >
-                              <PlusIcon className="w-4 h-4" />
+                              <GridIcon type="section" icon="add" size="medium" />
                             </button>
                             <button
                               onClick={() => onEditSection(section)}
                               className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
                             >
-                              <PencilIcon className="w-4 h-4" />
+                              <GridIcon type="section" icon="edit" size="medium" />
                             </button>
                             <button
                               onClick={() => onDeleteSection(section)}
                               className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
                             >
-                              <TrashIcon className="w-4 h-4" />
+                              <GridIcon type="section" icon="delete" size="medium" />
                             </button>
                           </div>
                         </td>
@@ -574,7 +597,7 @@ const SectionList: React.FC<SectionListProps> = ({
                           onClick={() => onAddSectionToCategory(categoryId)}
                           className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded section-button"
                         >
-                          <PlusIcon className="h-4 w-4 mr-1" />
+                          <GridIcon type="section" icon="add" size="medium" className="mr-1" />
                           Agregar sección
                         </button>
                       </td>
@@ -620,9 +643,9 @@ const SectionList: React.FC<SectionListProps> = ({
                         aria-label={expandedSections[section.section_id] ? "Colapsar" : "Expandir"}
                       >
                         {expandedSections[section.section_id] ? (
-                          <ChevronDownIcon className="h-5 w-5" />
+                          <GridIcon type="section" icon="collapse" size="large" />
                         ) : (
-                          <ChevronRightIcon className="h-4 w-4" />
+                          <GridIcon type="section" icon="expand" size="large" />
                         )}
                       </button>
                     </div>
@@ -633,7 +656,7 @@ const SectionList: React.FC<SectionListProps> = ({
                   >
                     <div className="flex items-center">
                       <div className="mr-2">
-                        <Bars3Icon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        <GridIcon type="section" icon="drag" size="large" className="text-gray-400 flex-shrink-0" />
                       </div>
                       <div className="flex items-center">
                         <span className={`text-sm font-medium ${
@@ -677,31 +700,30 @@ const SectionList: React.FC<SectionListProps> = ({
                       {isUpdatingVisibility === section.section_id ? (
                         <div className="w-4 h-4 border-2 border-t-transparent border-teal-500 rounded-full animate-spin"></div>
                       ) : (
-                        <EyeIcon className="w-4 h-4" />
+                        <GridIcon type="section" icon={section.status === 1 ? "visibility" : "hidden"} size="medium" />
                       )}
                     </button>
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap text-center">
                     <div className="flex items-center justify-center space-x-1">
-                      {/* Botón para agregar producto (nuevo) */}
                       <button
                         onClick={() => onAddProduct(section.section_id)}
                         className="action-button section-action section-icon-hover"
                         title="Agregar producto"
                       >
-                        <PlusIcon className="w-4 h-4" />
+                        <GridIcon type="section" icon="add" size="medium" />
                       </button>
                       <button
                         onClick={() => onEditSection(section)}
                         className="action-button section-action section-icon-hover"
                       >
-                        <PencilIcon className="w-4 h-4" />
+                        <GridIcon type="section" icon="edit" size="medium" />
                       </button>
                       <button
                         onClick={() => onDeleteSection(section)}
                         className="section-action-delete"
                       >
-                        <TrashIcon className="w-4 h-4" />
+                        <GridIcon type="section" icon="delete" size="medium" />
                       </button>
                     </div>
                   </td>
@@ -718,7 +740,7 @@ const SectionList: React.FC<SectionListProps> = ({
                     onClick={() => onAddSectionToCategory(categoryId)}
                     className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded section-button"
                   >
-                    <PlusIcon className="h-4 w-4 mr-1" />
+                    <GridIcon type="section" icon="add" size="medium" className="mr-1" />
                     Agregar sección
                   </button>
                 </td>

@@ -62,26 +62,47 @@ const ProductList: React.FC<ProductListProps> = ({
     
     console.log("Drag end in ProductList", result);
     
-    // Solo reordenar productos visibles
-    const items = Array.from(visibleProducts);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    // Obtenemos todos los productos (tanto visibles como ocultos)
+    const allProducts = Array.from(products);
     
-    // Actualiza el display_order solo en los productos visibles
-    const updatedVisibleItems = items.map((item, index) => ({
+    // Solo reordenamos los productos visibles
+    const visibleProductsArray = Array.from(visibleProducts);
+    const [reorderedItem] = visibleProductsArray.splice(result.source.index, 1);
+    visibleProductsArray.splice(result.destination.index, 0, reorderedItem);
+    
+    // Actualizar el display_order solo en los productos visibles
+    const updatedVisibleProducts = visibleProductsArray.map((item, index) => ({
       ...item,
       display_order: index + 1
     }));
     
-    // Combinar los productos visibles actualizados con los no visibles sin modificar
-    const updatedItems = [...updatedVisibleItems, ...hiddenProducts];
+    // Crear una nueva lista con todos los productos, manteniendo los no visibles sin cambios
+    // y actualizando los visibles con sus nuevos órdenes
+    const updatedProducts = allProducts.map(product => {
+      // Si el producto es visible (está en updatedVisibleProducts), actualizamos su display_order
+      const updatedProduct = updatedVisibleProducts.find(
+        p => p.product_id === product.product_id
+      );
+      
+      if (updatedProduct) {
+        return {
+          ...product,
+          display_order: updatedProduct.display_order
+        };
+      }
+      
+      // Si el producto no está en updatedVisibleProducts, es un producto oculto
+      // y no modificamos su display_order
+      return product;
+    });
     
-    console.log("Reordering products:", updatedItems.length, "items");
-    console.log("updatedVisibleItems:", updatedVisibleItems.length, "items");
+    console.log("Reordering products:", updatedProducts.length, "items");
+    console.log("updatedVisibleProducts:", updatedVisibleProducts.length, "items");
     console.log("hiddenProducts:", hiddenProducts.length, "items");
     console.log("onProductsReorder available:", !!onProductsReorder);
     
-    onProductsReorder(updatedItems);
+    // Aplicar reordenamiento mediante la función proporcionada por el padre
+    onProductsReorder(updatedProducts);
   };
 
   // Helper para manejar el tipado de dragHandleProps
