@@ -61,6 +61,49 @@ export const SectionTable: React.FC<SectionTableProps> = ({
     onSectionClick(sectionId);
   };
 
+  // Adaptador para el reordenamiento de secciones
+  const handleSectionsReorder = (reorderedSections: Section[]) => {
+    if (!onReorderSection) return;
+    
+    console.log("SectionTable - Recibida solicitud de reordenamiento:", reorderedSections);
+    
+    // Verificar que tengamos secciones para reordenar
+    if (reorderedSections && reorderedSections.length > 0) {
+      // Usar directamente el adaptador del dashboard para manejar la sección
+      // El método dashboard/page.tsx handleReorderSection espera:
+      // - La lista original de secciones
+      // - Una función para actualizar las secciones
+      // - La lista reordenada
+      import('@/lib/handlers/sectionEventHandlers').then(async ({ handleReorderSection }) => {
+        try {
+          const originalSections = sections || [];
+          
+          // Función de actualización
+          const updateSections = (updatedSections: Section[]) => {
+            console.log("updateSections llamado con:", updatedSections.length, "secciones");
+            // Esta función es llamada por handleReorderSection para actualizar el estado local
+            if (categoryId) {
+              // Forzamos el llamado a onReorderSection para mantener la compatibilidad
+              // aunque realmente no necesitamos los índices
+              onReorderSection(0, 0);
+            }
+          };
+          
+          // Llamar a la función de manejo de reordenamiento
+          console.log("Llamando a handleReorderSection");
+          await handleReorderSection(
+            originalSections,
+            updateSections,
+            reorderedSections
+          );
+          
+        } catch (error) {
+          console.error("Error al reordenar secciones:", error);
+        }
+      });
+    }
+  };
+
   if (!sections || sections.length === 0) {
     return (
       <div className="text-center py-4 text-gray-500 bg-white rounded-md border border-teal-200">
@@ -92,6 +135,7 @@ export const SectionTable: React.FC<SectionTableProps> = ({
       isUpdatingProductVisibility={isUpdatingProductVisibility}
       categoryName={categoryName}
       categoryId={categoryId}
+      onSectionsReorder={onReorderSection ? handleSectionsReorder : undefined}
     />
   );
 }; 

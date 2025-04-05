@@ -68,13 +68,24 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
   const visibleCategoriesCount = visibleCategories.length;
   const totalCategories = categories.length;
   
+  /**
+   * Maneja el fin del arrastre para reordenar categorías
+   * @param {DropResult} result - Resultado del arrastre
+   */
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || result.destination.index === result.source.index) {
       return;
     }
     
-    if (onReorderCategory) {
-      onReorderCategory(result.source.index, result.destination.index);
+    console.log("Drag end in CategoryTable", result);
+    
+    // Solo procesar si tenemos una función de reordenamiento y el modo está activo
+    if (onReorderCategory && isReorderModeActive) {
+      const sourceIndex = result.source.index;
+      const destinationIndex = result.destination.index;
+      
+      // Llamar directamente a la función de reordenamiento con los índices correctos
+      onReorderCategory(sourceIndex, destinationIndex);
     }
   };
 
@@ -129,7 +140,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                       key={category.category_id.toString()} 
                       draggableId={category.category_id.toString()} 
                       index={index}
-                      isDragDisabled={!onReorderCategory || !isReorderModeActive}
+                      isDragDisabled={false}
                     >
                       {(provided, snapshot) => (
                         <tr 
@@ -137,7 +148,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                           {...provided.draggableProps}
                           className={`${
                             snapshot.isDragging 
-                              ? "bg-blue-50" 
+                              ? "grid-item-dragging-category" 
                               : expandedCategories[category.category_id] 
                                 ? "category-bg" 
                                 : "hover:bg-gray-50"
@@ -153,6 +164,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                                     : "hover:bg-gray-200 text-gray-500"
                                 }`}
                                 aria-label={expandedCategories[category.category_id] ? "Colapsar" : "Expandir"}
+                                aria-expanded={expandedCategories[category.category_id]}
                               >
                                 {expandedCategories[category.category_id] ? (
                                   <ChevronDownIcon className="h-5 w-5" />
@@ -167,8 +179,8 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                             onClick={() => onCategoryClick(category)}
                           >
                             <div className="flex items-center">
-                              <div {...provided.dragHandleProps} className="mr-2">
-                                <Bars3Icon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                              <div {...provided.dragHandleProps} className="mr-2 cursor-grab flex items-center justify-center self-stretch px-1 hover:bg-indigo-50 rounded-lg" title="Arrastrar para reordenar">
+                                <Bars3Icon className="h-5 w-5 text-indigo-500 hover:text-indigo-600" />
                               </div>
                               <div className="flex items-center">
                                 <span className={`text-sm font-medium ${
@@ -198,26 +210,22 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                             </div>
                           </td>
                           <td className="px-2 py-2 whitespace-nowrap text-center">
-                            <div className="flex justify-center">
-                              <button
-                                onClick={() => onToggleCategoryVisibility(category.category_id, category.status)}
-                                disabled={isUpdatingVisibility === category.category_id}
-                                className={`action-button ${
-                                  category.status === 1 
-                                    ? 'category-action category-icon-hover' 
-                                    : 'text-gray-400 hover:bg-gray-100'
-                                }`}
-                                title={category.status === 1 ? "Visible" : "No visible"}
-                              >
-                                {isUpdatingVisibility === category.category_id ? (
-                                  <div className="w-4 h-4 border-2 border-t-transparent border-indigo-500 rounded-full animate-spin"></div>
-                                ) : category.status === 1 ? (
-                                  <EyeIcon className="w-4 h-4" />
-                                ) : (
-                                  <EyeSlashIcon className="w-4 h-4" />
-                                )}
-                              </button>
-                            </div>
+                            <button
+                              onClick={() => onToggleCategoryVisibility(category.category_id, category.status)}
+                              className={`inline-flex items-center justify-center h-6 w-6 rounded ${
+                                category.status === 1
+                                  ? 'category-action category-icon-hover'
+                                  : 'text-gray-400 hover:bg-gray-100'
+                              }`}
+                              disabled={isUpdatingVisibility === category.category_id}
+                              aria-label={category.status === 1 ? "Ocultar categoría" : "Mostrar categoría"}
+                            >
+                              {isUpdatingVisibility === category.category_id ? (
+                                <div className="w-4 h-4 border-2 border-t-transparent border-blue-500 rounded-full animate-spin"></div>
+                              ) : (
+                                <EyeIcon className="w-4 h-4" />
+                              )}
+                            </button>
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap text-center">
                             <div className="flex justify-center space-x-1">
@@ -286,23 +294,13 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                 {provided.placeholder}
                 
                 {showHiddenCategories && hiddenCategories.map((category, index) => (
-                  <tr 
-                    key={`hidden-${category.category_id}`}
-                    className={`${
-                      expandedCategories[category.category_id] 
-                        ? "bg-gray-50 opacity-80" 
-                        : "hover:bg-gray-50 opacity-70"
-                    }`}
-                  >
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 w-10">
+                  <tr key={`hidden-category-${category.category_id}`} className="grid-item-hidden hover:bg-gray-50">
+                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                       <div className="flex items-center">
                         <button 
                           onClick={() => onCategoryClick(category)}
-                          className={`p-1 rounded-full transition-colors ${
-                            expandedCategories[category.category_id] 
-                              ? "bg-gray-200 text-gray-500" 
-                              : "hover:bg-gray-200 text-gray-400"
-                          }`}
+                          className={`p-1 rounded-full transition-colors hover:bg-gray-200 text-gray-400`}
+                          aria-label={expandedCategories[category.category_id] ? "Colapsar" : "Expandir"}
                         >
                           {expandedCategories[category.category_id] ? (
                             <ChevronDownIcon className="h-5 w-5" />
@@ -328,44 +326,42 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         </div>
                       </div>
                     </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-center">{category.display_order || index + 1 + visibleCategories.length}</td>
+                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-center">{category.display_order || visibleCategories.length + index + 1}</td>
                     <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex justify-center">
                         <div className="grid-image-container">
-                          <Image
-                            src={getImagePath(category.image, 'categories')}
-                            alt={category.name || ''}
-                            width={32}
-                            height={32}
-                            className="grid-image opacity-50 grayscale"
-                            onError={handleImageError}
-                          />
+                          {category.image && (
+                            <img 
+                              src={getImagePath(category.image, 'categories')}
+                              alt={category.name || ''}
+                              className="grid-image opacity-50 grayscale"
+                              onError={handleImageError}
+                            />
+                          )}
                         </div>
                       </div>
                     </td>
                     <td className="px-2 py-2 whitespace-nowrap text-center">
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => onToggleCategoryVisibility(category.category_id, category.status)}
-                          disabled={isUpdatingVisibility === category.category_id}
-                          className="p-1.5 rounded-full text-gray-400 bg-gray-50 hover:bg-gray-100"
-                          title="No visible"
-                        >
-                          {isUpdatingVisibility === category.category_id ? (
-                            <div className="w-5 h-5 flex items-center justify-center">
-                              <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
-                            </div>
-                          ) : (
-                            <EyeSlashIcon className="w-5 h-5" />
-                          )}
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => onToggleCategoryVisibility(category.category_id, category.status)}
+                        className="p-1.5 rounded-full text-gray-400 bg-gray-50 hover:bg-gray-100"
+                        title="No visible"
+                        disabled={isUpdatingVisibility === category.category_id}
+                      >
+                        {isUpdatingVisibility === category.category_id ? (
+                          <div className="w-5 h-5 flex items-center justify-center">
+                            <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
+                          </div>
+                        ) : (
+                          <EyeSlashIcon className="w-5 h-5" />
+                        )}
+                      </button>
                     </td>
                     <td className="px-3 py-2 whitespace-nowrap text-center">
                       <div className="flex justify-center space-x-1">
                         <button
                           onClick={() => onAddSection(category.category_id)}
-                          className="action-button category-action category-icon-hover"
+                          className="p-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
                           title="Agregar sección"
                         >
                           <PlusIcon className="w-4 h-4" />

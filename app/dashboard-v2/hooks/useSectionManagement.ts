@@ -8,24 +8,25 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Section, SectionState, SectionActions } from '@/app/dashboard-v2/types';
+import { Section } from '@/app/types/menu';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
+import { DashboardService } from '@/lib/services/dashboardService';
 
 /**
  * Hook para gestionar las secciones del menú
  * 
- * Proporciona funciones para cargar, crear, actualizar y eliminar secciones,
- * además de manejar estados relacionados como carga y errores.
+ * Proporciona funcionalidad para listar, crear, editar, eliminar y
+ * cambiar visibilidad de secciones en el menú.
  * 
- * @returns Funciones y estados para la gestión de secciones
+ * @returns Objeto con funciones y estado para gestionar secciones
  */
 export default function useSectionManagement() {
   const { data: session } = useSession();
-  // Usamos un objeto para organizar secciones por categoría
   const [sections, setSections] = useState<{ [key: number]: Section[] }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState<number | null>(null);
+  const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
   /**
@@ -288,6 +289,35 @@ export default function useSectionManagement() {
     }
   }, [sections]);
 
+  /**
+   * Reordena las secciones
+   * @param {Section[]} updatedSections - Lista completa de secciones reordenadas
+   */
+  const reorderSections = async (updatedSections: Section[]) => {
+    setIsLoading(true);
+    try {
+      const result = await DashboardService.reorderSections(updatedSections);
+      if (result.success) {
+        // Actualizar el estado local
+        const categoryId = updatedSections[0]?.category_id;
+        if (categoryId) {
+          setSections(prev => ({
+            ...prev,
+            [categoryId]: updatedSections
+          }));
+        }
+        toast.success("Secciones reordenadas correctamente");
+      } else {
+        toast.error("Error al reordenar secciones");
+      }
+    } catch (error) {
+      console.error("Error al reordenar secciones:", error);
+      toast.error("Error al reordenar secciones");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     sections,
     setSections,
@@ -298,6 +328,7 @@ export default function useSectionManagement() {
     createSection,
     updateSection,
     deleteSection,
-    toggleSectionVisibility
+    toggleSectionVisibility,
+    reorderSections
   };
 } 
