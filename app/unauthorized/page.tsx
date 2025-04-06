@@ -51,7 +51,7 @@ export default function UnauthorizedPage() {
           </Link>
           
           <Link 
-            href="/login"
+            href="/auth/signin"
             className="text-blue-600 hover:text-blue-800 transition-colors"
           >
             Iniciar sesión con otra cuenta

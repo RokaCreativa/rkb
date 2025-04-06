@@ -1,25 +1,21 @@
 # Los Mandamientos de la Refactorización 📜
 
-> "No tocarás el código original, ni harás daño a la funcionalidad existente"
 > "Conocerás lo que existe antes de crear algo nuevo"
 > "Utilizarás componentes compartidos siempre que sea posible"
 > "No duplicarás interfaces, tipos o componentes que ya existen"
+> "Al cambiar funcionalidad, no tocarás la estética ni los estilos"
 
 ## 🎯 Objetivo Principal
 
-- **NO TOCARÁS** el dashboard original
-- Refactorizar = Reorganizar código existente
 - Mantener EXACTAMENTE la misma funcionalidad
 - Aplicar patrones modernos SIN sobre-ingenierizar
 - Implementar arquitectura limpia
 - **VERIFICAR LA ESTRUCTURA EXISTENTE** antes de crear cualquier componente nuevo
-- **PROHIBIDO USAR COMPONENTES DEL DASHBOARD ORIGINAL**
-  - Si necesitas un componente similar, cópialo y adáptalo en dashboard-v2
-  - Mantén total separación entre las dos implementaciones
-  - No mezclar importaciones entre dashboard y dashboard-v2
+- Mantener total separación de responsabilidades
 
 ## 🚫 MANDAMIENTO SUPREMO: RESPETARÁS LA REFACTORIZACIÓN REALIZADA
 
+- **NUNCA crearás duplicados de componentes o hooks existentes**
 - **NUNCA volverás a mezclar responsabilidades que han sido separadas**
 - **NUNCA duplicarás interfaces, tipos o componentes en diferentes ubicaciones**
 - Honrarás la estructura de carpetas establecida:
@@ -40,9 +36,21 @@
   - Utilidades de rendimiento (debounce, throttle, cache)
 - **TODA NUEVA FUNCIONALIDAD** debe seguir los mismos patrones establecidos
 
+## 🔍 MANDAMIENTO DE PUREZA FUNCIONAL: SEPARARÁS FUNCIONALIDAD DE ESTÉTICA
+
+- **Cuando se solicite cambiar solo la funcionalidad, NO TOCARÁS aspectos estéticos**
+- **NUNCA cambiarás colores, márgenes, padding o diseño si solo se pide cambiar lógica**
+- **RESPETARÁS el ámbito de los cambios solicitados sin modificar otros aspectos**
+- Utilizarás componentes existentes con sus estilos actuales
+- Mantendrás consistencia visual incluso cuando añadas nuevas funcionalidades
+- Documentarás claramente los cambios funcionales realizados
+- Separás estrictamente lógica de presentación en cada componente
+- **Cuando debas añadir nueva funcionalidad, mantendrás el estilo visual existente**
+
 ## 📋 MANDAMIENTO CRÍTICO: CONOCERÁS LA ESTRUCTURA ANTES DE CREAR
 
 - **SIEMPRE VERIFICARÁS lo que ya existe antes de crear cualquier nuevo componente o archivo**
+- **NUNCA crearás un componente o hook si ya existe uno con la misma funcionalidad**
 - Consultarás el siguiente mapa de estructura regularmente para evitar duplicidades:
   ```
   app/dashboard-v2/

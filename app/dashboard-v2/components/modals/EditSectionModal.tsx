@@ -17,7 +17,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { Section, Category, SectionWithFileUpload } from '@/app/types/menu';
-import useSections from '@/app/hooks/useSections';
+import useSectionManagement from '@/app/dashboard-v2/hooks/useSectionManagement';
 import { PlusIcon as PlusIconMini } from '@heroicons/react/20/solid';
 import { getImagePath } from '@/app/dashboard-v2/utils/imageUtils';
 
@@ -78,10 +78,10 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
   const [isUpdatingSectionName, setIsUpdatingSectionName] = useState(false);
   
   /**
-   * Hook personalizado para operaciones CRUD de secciones
+   * Hook personalizado que proporciona operaciones CRUD para secciones.
    * Proporciona métodos optimizados y manejo de estado/notificaciones
    */
-  const { updateSection: useSectionsUpdateSection } = useSections(section?.client_id || 0);
+  const { updateSection: useSectionsUpdateSection } = useSectionManagement();
 
   /**
    * Efectos para cargar y establecer valores iniciales

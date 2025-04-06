@@ -11,12 +11,12 @@
  * e imagen del producto.
  */
 
-import React, { Fragment, useState, useRef, useEffect, FormEvent } from 'react';
+import React, { Fragment, useState, useRef, useEffect, FormEvent, useCallback } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
 import { Section, Product, Client } from '@/app/types/menu';
-import useProducts from '@/app/hooks/useProducts';
+import useProductManagement from '@/app/dashboard-v2/hooks/useProductManagement';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 /**
@@ -53,7 +53,7 @@ export interface EditProductModalProps {
  * - Comunicación con la API mediante FormData para manejar archivos
  * - Notificaciones de éxito/error usando toast
  * 
- * El componente utiliza el hook personalizado useProducts para gestionar
+ * El componente utiliza el hook personalizado useProductManagement para gestionar
  * las operaciones CRUD relacionadas con productos.
  * 
  * @param {EditProductModalProps} props - Propiedades del componente
@@ -83,14 +83,14 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Usar el hook de productos
-  const { updateProduct } = useProducts({
-    onSuccess: () => {
-      if (onSuccess) {
-        console.log("Ejecutando onSuccess después de actualizar producto");
-        onSuccess();
-      }
+  const { updateProduct } = useProductManagement();
+  
+  // Después definimos onUpdateSuccess para manejar el éxito de la actualización
+  const onUpdateSuccess = useCallback(() => {
+    if (onSuccess) {
+      onSuccess();
     }
-  });
+  }, [onSuccess]);
 
   /**
    * Efecto para cargar los datos del producto cuando se abre el modal

@@ -172,10 +172,10 @@ export default function SystemCheckPage() {
         </button>
         
         <button
-          onClick={() => window.location.href = '/auth-test'}
+          onClick={() => window.location.href = '/dashboard-v2'}
           className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
         >
-          Probar Autenticación
+          Ver Dashboard
         </button>
         
         {status !== 'authenticated' && (

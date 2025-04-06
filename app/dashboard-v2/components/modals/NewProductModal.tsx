@@ -18,8 +18,8 @@ import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { Section, Product } from '@/app/types/menu';
 import { PrismaClient } from '@prisma/client';
-import eventBus from '@/app/lib/eventBus';
-import { Events } from '@/app/lib/eventBus';
+import eventBus, { Events } from '@/app/lib/eventBus';
+
 
 /**
  * Props para el componente NewProductModal
