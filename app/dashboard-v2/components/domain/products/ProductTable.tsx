@@ -14,13 +14,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon, ChevronDownIcon, ChevronRightIcon, ViewColumnsIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/solid';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import Image from 'next/image';
-import { GridIcon } from '@/app/dashboard-v2/shared/components/grid/GridIcon';
-import { useGridIcons } from '@/app/dashboard-v2/shared/hooks/useGridIcons';
+import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
+import { useGridIcons } from '@/app/dashboard-v2/hooks/ui/useGridIcons';
 
 /**
  * Interfaz para los productos en la tabla
@@ -351,7 +351,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
                       >
                         {renderIcon('product', 'delete', { className: 'text-gray-400' })}
                       </button>
-        </div>
+                    </div>
                   </td>
                 </tr>
               ))}

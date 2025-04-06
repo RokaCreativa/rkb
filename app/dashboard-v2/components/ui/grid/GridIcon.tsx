@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { ICONS, IconType } from '../../constants/iconConfig';
+import { ICONS, IconType } from '../../../constants/iconConfig';
 
 /**
  * Tipos de grid disponibles en el sistema

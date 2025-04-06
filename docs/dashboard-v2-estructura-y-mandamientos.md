@@ -8,6 +8,8 @@
 
 **La estructura del proyecto ha sido completamente refactorizada siguiendo un diseño orientado a dominio (Domain-Driven Design).** La nueva estructura organiza el código por áreas funcionales en lugar de por tipos de archivos, mejorando significativamente la mantenibilidad y comprensión del código.
 
+**ACTUALIZACIÓN (10/04/2025)**: Se ha completado una limpieza exhaustiva eliminando carpetas que no seguían el patrón DDD (`shared`, `infrastructure`, `features`, `stores`) y moviendo todos los archivos a sus ubicaciones correctas. La estructura ahora sigue estrictamente el diseño orientado a dominios.
+
 **Consulta el archivo `app/dashboard-v2/README.md` para obtener la documentación más actualizada sobre la nueva estructura.**
 
 ## 🔍 MANDAMIENTOS DE DESARROLLO Y REFACTORIZACIÓN
@@ -33,6 +35,31 @@ Es **ESTRICTAMENTE PROHIBIDO** crear:
 - Interfaces duplicadas o similares para los mismos propósitos
 - Hooks con funcionalidades similares en diferentes ubicaciones
 - Utilidades que duplican funcionalidad existente
+
+### 📌 Mandamiento de Ubicación Correcta
+
+Este mandamiento es crítico para mantener la estructura limpia y evitar confusión:
+
+- ✅ **NUNCA coloques** archivos en la raíz de `components/` o `hooks/`
+- ✅ **SIEMPRE coloca** cada archivo en su subdirectorio específico:
+  - Hooks principales → `hooks/core/`
+  - Hooks de UI → `hooks/ui/`
+  - Estados globales → `hooks/ui/state/`
+  - Hooks específicos de dominio → `hooks/domain/category/`, `hooks/domain/section/` o `hooks/domain/product/`
+  - Componentes principales → `components/core/`
+  - Componentes específicos de dominio → `components/domain/categories/`, `components/domain/sections/` o `components/domain/products/`
+  - Modales → `components/modals/`
+  - Componentes de UI → `components/ui/`
+  - Componentes de vistas → `components/views/`
+- ✅ **NUNCA crees** carpetas que no sigan el patrón establecido
+- ✅ **NUNCA crees** estructuras paralelas como `shared/`, `infrastructure/`, `features/` o `stores/`
+
+La violación de este mandamiento genera:
+
+- Duplicidad de archivos
+- Confusión sobre qué versión es la correcta
+- Dificultad para encontrar los archivos adecuados
+- Mayor complejidad para mantener el código
 
 #### 📋 Procedimiento de Verificación
 
@@ -87,12 +114,18 @@ dashboard-v2/
 ├── components/             # Componentes de la UI
 │   ├── core/               # Componentes principales y organizadores
 │   ├── domain/             # Componentes específicos de dominio
-│   │   ├── category/       # Componentes específicos para categorías
-│   │   ├── section/        # Componentes específicos para secciones
-│   │   └── product/        # Componentes específicos para productos
+│   │   ├── categories/     # Componentes específicos para categorías
+│   │   ├── sections/       # Componentes específicos para secciones
+│   │   └── products/       # Componentes específicos para productos
 │   ├── modals/             # Modales (creación, edición, eliminación)
 │   ├── ui/                 # Componentes de UI reutilizables
+│   │   ├── Button/         # Componentes de botones
+│   │   ├── Form/           # Componentes de formularios
+│   │   ├── Modal/          # Componentes base para modales
+│   │   ├── Table/          # Componentes de tablas
+│   │   └── grid/           # Componentes específicos para grids
 │   └── views/              # Vistas principales de la aplicación
+├── constants/              # Constantes y configuraciones
 ├── hooks/                  # Hooks personalizados para la lógica
 │   ├── core/               # Hooks principales (fachadas, coordinación)
 │   ├── domain/             # Hooks específicos de dominio
@@ -100,6 +133,8 @@ dashboard-v2/
 │   │   ├── section/        # Hooks para gestión de secciones
 │   │   └── product/        # Hooks para gestión de productos
 │   └── ui/                 # Hooks relacionados con la UI
+│       └── state/          # Estados globales (stores)
+├── services/               # Servicios de API y externos
 ├── types/                  # Definiciones de tipos
 │   ├── domain/             # Tipos específicos de dominio
 │   │   ├── category.ts     # Tipos para categorías
@@ -124,6 +159,7 @@ Cada dominio de negocio (categorías, secciones, productos) tiene su propia carp
 - **hooks/domain/**: Contiene toda la lógica de negocio específica por dominio
 - **hooks/core/**: Contiene hooks integradores como useDashboardState que actúa como fachada
 - **hooks/ui/**: Contiene hooks específicos para la interfaz de usuario
+- **hooks/ui/state/**: Contiene estados globales de la aplicación
 
 #### 📁 Sistema de Tipos por Dominio
 
@@ -147,8 +183,23 @@ El flujo de datos en el dashboard-v2 sigue el siguiente patrón:
 4. Los **componentes individuales** reciben datos y callbacks a través de props.
 5. Las **acciones del usuario** desencadenan operaciones que actualizan tanto el estado local como el backend a través de llamadas API.
 
+### 🧩 Sistema de Componentes Grid
+
+Para los componentes de grid (tablas de categorías, secciones, productos) se ha implementado un sistema especializado:
+
+- **GridIcon**: Componente centralizado para gestionar todos los íconos del sistema
+- **useGridIcons**: Hook para acceder y gestionar los íconos de manera programática
+- **Identidad Visual por Tipo**:
+  - Categorías: Esquema de color indigo
+  - Secciones: Esquema de color teal
+  - Productos: Esquema de color yellow
+
+Para cambiar un ícono en toda la aplicación, simplemente se modifica en el archivo `constants/iconConfig.ts`.
+
 ## 📢 RECORDATORIO CRÍTICO
 
 **NUNCA** asumas que conoces la estructura completa. **SIEMPRE** verifica antes de crear. La documentación y exploración son pasos obligatorios que no pueden ser omitidos bajo ninguna circunstancia.
+
+**IMPORTANTE (10/04/2025)**: Se han eliminado todas las carpetas que no seguían el patrón DDD (`shared`, `infrastructure`, `features`, `stores`) y se han movido todos los archivos a sus ubicaciones correctas. La estructura ahora sigue estrictamente el diseño orientado a dominios.
 
 > "Un minuto de verificación ahorra horas de corrección y refactorización"

@@ -1,8 +1,8 @@
 "use client";
 
 import React from 'react';
-import { IconType, ICONS } from '../constants/iconConfig';
-import { GridIcon, GridType } from '../components/grid/GridIcon';
+import { IconType, ICONS } from '../../constants/iconConfig';
+import { GridIcon, GridType } from '../../components/ui/grid/GridIcon';
 
 /**
  * Tipos de resultado del hook useGridIcons

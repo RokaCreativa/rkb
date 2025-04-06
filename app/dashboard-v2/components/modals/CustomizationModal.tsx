@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { XMarkIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, StarIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
-import { useClient } from '@/app/dashboard-v2/hooks/useClient';
-import { useCustomizationStore, FavoriteTheme } from '@/app/dashboard-v2/stores/customizationStore';
+import { useClient } from '@/app/dashboard-v2/hooks/core/useClient';
+import { useCustomizationStore, FavoriteTheme } from '@/app/dashboard-v2/hooks/ui/state/customizationStore';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
-import { useTheme } from '@/app/dashboard-v2/hooks/useTheme';
+import { useTheme } from '@/app/dashboard-v2/hooks/ui/useTheme';
 import { default as DraggableComponent } from 'react-draggable';
 
 interface CustomizationModalProps {

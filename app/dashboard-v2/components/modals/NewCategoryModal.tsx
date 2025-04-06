@@ -197,6 +197,8 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
    * - Limpia todos los campos del formulario
    * - Elimina cualquier vista previa de imagen
    * - Cierra el modal sin crear la categoría
+   * 
+   * Se utiliza cuando el usuario decide cancelar manualmente la operación.
    */
   const handleCancel = () => {
     setCategoryName('');
@@ -208,161 +210,202 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
   };
 
   return (
-    <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-10" onClose={handleCancel}>
-        <Transition.Child
-          as={Fragment}
-          enter="ease-out duration-300"
-          enterFrom="opacity-0"
-          enterTo="opacity-100"
-          leave="ease-in duration-200"
-          leaveFrom="opacity-100"
-          leaveTo="opacity-0"
-        >
-          <div className="fixed inset-0 bg-black bg-opacity-25" />
-        </Transition.Child>
+    <Transition.Root show={isOpen} as={Fragment}>
+      <Dialog as="div" className="fixed inset-0 z-10 overflow-y-auto" onClose={handleCancel}>
+        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          {/* Capa de fondo oscura */}
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+          </Transition.Child>
 
-        <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center">
-            <Transition.Child
-              as={Fragment}
-              enter="ease-out duration-300"
-              enterFrom="opacity-0 scale-95"
-              enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
-              leaveFrom="opacity-100 scale-100"
-              leaveTo="opacity-0 scale-95"
-            >
-              <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
-                <Dialog.Title
-                  as="h3"
-                  className="text-lg font-medium leading-6 text-gray-900"
-                >
-                  Crear Nueva Categoría
-                </Dialog.Title>
-
-                <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                  <div>
-                    <label htmlFor="categoryName" className="block text-sm font-medium text-gray-700">
-                      Nombre de la Categoría
-                    </label>
-                    <input
-                      type="text"
-                      id="categoryName"
-                      name="categoryName"
-                      value={categoryName}
-                      onChange={(e) => setCategoryName(e.target.value)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      placeholder="Ejemplo: Platos Principales"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Imagen (opcional)
-                    </label>
-                    <div className="mt-1 flex items-center">
-                      <div className="flex-shrink-0 h-20 w-20 rounded-md overflow-hidden bg-gray-100 border border-gray-200">
-                        {imagePreview ? (
-                          <Image
-                            src={imagePreview}
-                            alt="Vista previa"
-                            className="h-full w-full object-cover"
-                            width={80}
-                            height={80}
-                          />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center bg-gray-50">
-                            <span className="text-gray-400 text-xs text-center">
-                              Sin imagen
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        className="ml-4 bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        onClick={triggerFileInput}
-                      >
-                        Seleccionar Imagen
-                      </button>
+          {/* Truco para centrar el modal verticalmente */}
+          <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+          
+          {/* Contenido del modal con animación */}
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            enterTo="opacity-100 translate-y-0 sm:scale-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+            leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+          >
+            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                  <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
+                    Crear nueva categoría
+                  </Dialog.Title>
+                  
+                  <form onSubmit={handleSubmit} className="mt-4">
+                    {/* Campo de nombre de categoría */}
+                    <div className="mb-4">
+                      <label htmlFor="category-name" className="block text-sm font-medium text-gray-700">
+                        Nombre de la categoría
+                      </label>
                       <input
-                        ref={fileInputRef}
+                        type="text"
+                        id="category-name"
+                        name="category-name"
+                        value={categoryName}
+                        onChange={(e) => setCategoryName(e.target.value)}
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        placeholder="Escribe el nombre de la categoría"
+                        required
+                      />
+                    </div>
+                    
+                    {/* Campo de imagen de categoría */}
+                    <div className="mb-4">
+                      <label htmlFor="category-image" className="block text-sm font-medium text-gray-700">
+                        Imagen de la categoría (opcional)
+                      </label>
+                      
+                      <input
                         type="file"
-                        id="categoryImage"
-                        name="categoryImage"
+                        id="category-image"
+                        name="category-image"
+                        ref={fileInputRef}
                         onChange={handleCategoryImageChange}
                         className="hidden"
                         accept="image/*"
                       />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="categoryStatus" className="block text-sm font-medium text-gray-700">
-                      Estado
-                    </label>
-                    <select
-                      id="categoryStatus"
-                      name="categoryStatus"
-                      value={status}
-                      onChange={(e) => setStatus(parseInt(e.target.value))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    >
-                      <option value={1}>Visible</option>
-                      <option value={0}>No visible</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label htmlFor="displayOrder" className="block text-sm font-medium text-gray-700">
-                      Orden de visualización (opcional)
-                    </label>
-                    <input
-                      type="number"
-                      id="displayOrder"
-                      name="displayOrder"
-                      min="1"
-                      value={displayOrder || ''}
-                      onChange={(e) => setDisplayOrder(e.target.value ? parseInt(e.target.value) : null)}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                      placeholder="Ejemplo: 1"
-                    />
-                  </div>
-
-                  <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3">
-                    <button
-                      type="submit"
-                      className="inline-flex justify-center w-full rounded-md border border-transparent px-4 py-2 bg-indigo-600 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm"
-                      disabled={isCreating}
-                    >
-                      {isCreating ? (
-                        <div className="flex items-center">
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          Creando...
+                      
+                      <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                        <div className="space-y-1 text-center">
+                          {imagePreview ? (
+                            <div className="mb-3">
+                              <Image
+                                src={imagePreview} 
+                                alt="Vista previa"
+                                width={200}
+                                height={200}
+                                className="mx-auto object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCategoryImage(null);
+                                  setImagePreview(null);
+                                }}
+                                className="mt-2 text-sm text-red-600 hover:text-red-900"
+                              >
+                                Eliminar imagen
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <svg
+                                className="mx-auto h-12 w-12 text-gray-400"
+                                stroke="currentColor"
+                                fill="none"
+                                viewBox="0 0 48 48"
+                                aria-hidden="true"
+                              >
+                                <path
+                                  d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                  strokeWidth={2}
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                              <div className="flex text-sm text-gray-600">
+                                <button
+                                  type="button"
+                                  onClick={triggerFileInput}
+                                  className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                                >
+                                  Subir una imagen
+                                </button>
+                                <p className="pl-1">o arrastra y suelta</p>
+                              </div>
+                              <p className="text-xs text-gray-500">PNG, JPG, GIF hasta 10MB</p>
+                            </>
+                          )}
                         </div>
-                      ) : "Crear Categoría"}
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex justify-center w-full rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mt-3 sm:mt-0 sm:col-start-1 sm:text-sm"
-                      onClick={handleCancel}
-                      disabled={isCreating}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </form>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
+                      </div>
+                    </div>
+                    
+                    {/* Selector de estado */}
+                    <div className="mb-4">
+                      <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+                        Estado
+                      </label>
+                      <select
+                        id="status"
+                        name="status"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        value={status}
+                        onChange={(e) => setStatus(parseInt(e.target.value))}
+                      >
+                        <option value={1}>Visible</option>
+                        <option value={0}>Oculto</option>
+                      </select>
+                    </div>
+                    
+                    {/* Campo de orden */}
+                    <div className="mb-4">
+                      <label htmlFor="display_order" className="block text-sm font-medium text-gray-700">
+                        Orden (opcional)
+                      </label>
+                      <input
+                        type="number"
+                        id="display_order"
+                        name="display_order"
+                        min="1"
+                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        value={displayOrder || ''}
+                        onChange={(e) => setDisplayOrder(e.target.value ? parseInt(e.target.value) : null)}
+                      />
+                    </div>
+                    
+                    {/* Botones de acción */}
+                    <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
+                      <button
+                        type="submit"
+                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm ${
+                          isCreating ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        disabled={isCreating}
+                      >
+                        {isCreating ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Creando...
+                          </>
+                        ) : (
+                          'Crear categoría'
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                        onClick={handleCancel}
+                        disabled={isCreating}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </Transition.Child>
         </div>
       </Dialog>
-    </Transition>
+    </Transition.Root>
   );
 };
 

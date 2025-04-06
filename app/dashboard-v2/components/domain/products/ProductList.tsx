@@ -4,8 +4,8 @@ import { Bars3Icon } from '@heroicons/react/24/solid';
 import { Product } from '@/app/types/menu';
 import ProductListItem from './ProductListItem';
 import { Droppable, Draggable, DropResult, DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
-import { useGridIcons } from '@/app/dashboard-v2/shared/hooks/useGridIcons';
-import { GridIcon } from '@/app/dashboard-v2/shared/components/grid/GridIcon';
+import { useGridIcons } from '@/app/dashboard-v2/hooks/ui/useGridIcons';
+import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
 
 interface ProductListProps {
   products: Product[];

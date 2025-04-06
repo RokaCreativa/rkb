@@ -3,8 +3,8 @@ import { Bars3Icon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import { Product } from '@/app/types/menu';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
-import { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
-import { GridIcon } from '@/app/dashboard-v2/shared/components/grid/GridIcon';
+import { Draggable, DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
+import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
 
 interface ProductListItemProps {
   product: Product;

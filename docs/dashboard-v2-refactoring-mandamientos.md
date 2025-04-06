@@ -4,10 +4,13 @@
 > "Utilizarás componentes compartidos siempre que sea posible"
 > "No duplicarás interfaces, tipos o componentes que ya existen"
 > "Al cambiar funcionalidad, no tocarás la estética ni los estilos"
+> "Garantizarás que todo funcione perfectamente en móviles y tabletas"
 
 ## 📢 IMPORTANTE: REFACTORIZACIÓN COMPLETADA
 
 **La refactorización del dashboard ha sido completada exitosamente.** Se ha implementado una estructura orientada a dominios que mejora significativamente la organización y mantenibilidad del código. Para obtener la documentación más actualizada sobre la nueva estructura, consulta el archivo `app/dashboard-v2/README.md`.
+
+**ACTUALIZACIÓN (10/04/2025)**: Se ha completado una limpieza exhaustiva eliminando carpetas que no seguían el patrón DDD (`shared`, `infrastructure`, `features`, `stores`) y moviendo todos los archivos a sus ubicaciones correctas. La estructura ahora sigue estrictamente el diseño orientado a dominios.
 
 ## 🌟 Resumen del Proyecto RokaMenu
 
@@ -40,11 +43,15 @@ Los siguientes principios ya han sido implementados en la nueva estructura:
   - Componentes de dominio en `dashboard-v2/components/domain/` (categorías, secciones, productos)
   - Modales en `dashboard-v2/components/modals/`
   - Componentes de vista en `dashboard-v2/components/views/`
+  - Componentes de UI en `dashboard-v2/components/ui/`
   - Hooks principales en `dashboard-v2/hooks/core/`
   - Hooks de dominio en `dashboard-v2/hooks/domain/` (categoría, sección, producto)
   - Hooks de UI en `dashboard-v2/hooks/ui/`
+  - Estados de UI en `dashboard-v2/hooks/ui/state/`
   - Tipos en `dashboard-v2/types/` organizados por dominio, API y UI
   - Utilidades en `dashboard-v2/utils/`
+  - Servicios en `dashboard-v2/services/`
+  - Constantes en `dashboard-v2/constants/`
 
 ## 🔍 MANDAMIENTO DE PUREZA FUNCIONAL: SEPARARÁS FUNCIONALIDAD DE ESTÉTICA
 
@@ -72,12 +79,18 @@ app/dashboard-v2/
 ├── components/             # Componentes de la UI
 │   ├── core/               # Componentes principales y organizadores
 │   ├── domain/             # Componentes específicos de dominio
-│   │   ├── category/       # Componentes específicos para categorías
-│   │   ├── section/        # Componentes específicos para secciones
-│   │   └── product/        # Componentes específicos para productos
+│   │   ├── categories/     # Componentes específicos para categorías
+│   │   ├── sections/       # Componentes específicos para secciones
+│   │   └── products/       # Componentes específicos para productos
 │   ├── modals/             # Modales (creación, edición, eliminación)
 │   ├── ui/                 # Componentes de UI reutilizables
+│   │   ├── Button/         # Componentes de botones
+│   │   ├── Form/           # Componentes de formularios
+│   │   ├── Modal/          # Componentes base para modales
+│   │   ├── Table/          # Componentes de tablas
+│   │   └── grid/           # Componentes específicos para grids
 │   └── views/              # Vistas principales de la aplicación
+├── constants/              # Constantes y configuraciones
 ├── hooks/                  # Hooks personalizados para la lógica
 │   ├── core/               # Hooks principales (fachadas, coordinación)
 │   ├── domain/             # Hooks específicos de dominio
@@ -85,6 +98,8 @@ app/dashboard-v2/
 │   │   ├── section/        # Hooks para gestión de secciones
 │   │   └── product/        # Hooks para gestión de productos
 │   └── ui/                 # Hooks relacionados con la UI
+│       └── state/          # Estados globales (stores)
+├── services/               # Servicios de API y externos
 ├── types/                  # Definiciones de tipos
 │   ├── domain/             # Tipos específicos de dominio
 │   ├── ui/                 # Tipos para componentes de UI
@@ -104,6 +119,31 @@ Este principio debe seguirse para todas las futuras adiciones al dashboard:
   3. **Buscar elementos similares** antes de crear nuevos
   4. **Comprobar hooks y utilidades disponibles** antes de crear nuevos
   5. **Validar ubicación y nomenclatura** para mantener coherencia
+
+## 📁 MANDAMIENTO DE UBICACIÓN CORRECTA: NUNCA PONDRÁS ARCHIVOS EN EL LUGAR EQUIVOCADO
+
+Este mandamiento es crítico para mantener la estructura limpia y evitar confusión:
+
+- ✅ **NUNCA coloques** archivos en la raíz de `components/` o `hooks/`
+- ✅ **SIEMPRE coloca** cada archivo en su subdirectorio específico:
+  - Hooks principales → `hooks/core/`
+  - Hooks de UI → `hooks/ui/`
+  - Estados globales → `hooks/ui/state/`
+  - Hooks específicos de dominio → `hooks/domain/category/`, `hooks/domain/section/` o `hooks/domain/product/`
+  - Componentes principales → `components/core/`
+  - Componentes específicos de dominio → `components/domain/categories/`, `components/domain/sections/` o `components/domain/products/`
+  - Modales → `components/modals/`
+  - Componentes de UI → `components/ui/`
+  - Componentes de vistas → `components/views/`
+- ✅ **NUNCA crees** carpetas que no sigan el patrón establecido
+- ✅ **NUNCA crees** estructuras paralelas como `shared/`, `infrastructure/`, `features/` o `stores/`
+
+La violación de este mandamiento genera:
+
+- Duplicidad de archivos
+- Confusión sobre qué versión es la correcta
+- Dificultad para encontrar los archivos adecuados
+- Mayor complejidad para mantener el código
 
 ## 🧩 MANDAMIENTO DE REUTILIZACIÓN: UTILIZARÁS EL SISTEMA DE COMPONENTES COMPARTIDOS
 
@@ -125,7 +165,7 @@ Para los componentes de grid (tablas de categorías, secciones, productos) se ha
   - Secciones: Esquema de color teal
   - Productos: Esquema de color yellow
 
-Para cambiar un ícono en toda la aplicación, simplemente se modifica en el archivo `iconConfig.ts`.
+Para cambiar un ícono en toda la aplicación, simplemente se modifica en el archivo `constants/iconConfig.ts`.
 
 ## 📊 MANDAMIENTO DE ESTRUCTURA DE DATOS: RESPETARÁS EL MODELO DE DATOS
 
@@ -212,7 +252,7 @@ Cuando se realicen cambios importantes en la estructura, funcionalidad o patrone
 - ✅ Se documentará cualquier nuevo componente, hook o utilidad compartida
 - ✅ Se mantendrá la lista de mandamientos actualizada y relevante
 
-La última actualización de este documento es del **6 de abril de 2025**.
+La última actualización de este documento es del **10 de abril de 2025**.
 
 ## 🚀 PRÓXIMOS PASOS
 
@@ -235,3 +275,73 @@ Para obtener información detallada sobre la nueva estructura:
 
 > "Un proyecto ordenado es un proyecto mantenible"
 > "Conocer la estructura es el primer paso para respetarla"
+
+## 📱 MANDAMIENTO DE RESPONSIVIDAD: GARANTIZARÁS EXPERIENCIA PERFECTA EN MÚLTIPLES DISPOSITIVOS
+
+Este mandamiento es FUNDAMENTAL y no puede ser ignorado bajo ninguna circunstancia. La aplicación DEBE funcionar perfectamente en todos los dispositivos:
+
+- ✅ **SIEMPRE probarás** cualquier cambio en múltiples tamaños de pantalla:
+
+  - Móviles: 320px - 480px
+  - Tabletas: 481px - 1024px
+  - Escritorio: 1025px y superior
+
+- ✅ **NUNCA implementarás** estilos que funcionen solo en escritorio
+- ✅ **SIEMPRE utilizarás** unidades relativas (rem, em, %, vh/vw) en lugar de píxeles fijos
+- ✅ **SIEMPRE seguirás** el enfoque "mobile-first" para el desarrollo de CSS
+- ✅ **SIEMPRE implementarás** controles adaptados para interacción táctil:
+  - Áreas de toque suficientemente grandes (mínimo 44px × 44px)
+  - Acciones de arrastrar y soltar optimizadas para pantallas táctiles
+  - Menús y controles adaptados para diferentes tamaños de pantalla
+
+### Patrones de Diseño Responsivo Obligatorios
+
+1. **Layout Fluido**: Todos los contenedores principales deben usar porcentajes o unidades flexibles
+2. **CSS Grid y Flexbox**: Utiliza estas tecnologías para crear layouts responsivos
+3. **Media Queries**: Define puntos de quiebre consistentes para adaptarse a diferentes dispositivos:
+
+   ```css
+   /* Móvil (por defecto) */
+   .component {
+     ...;
+   }
+
+   /* Tablet */
+   @media (min-width: 481px) {
+     ...;
+   }
+
+   /* Desktop */
+   @media (min-width: 1025px) {
+     ...;
+   }
+   ```
+
+4. **Imágenes Responsivas**: Utiliza `srcset` y `sizes` para cargar imágenes apropiadas según el dispositivo
+5. **Componentes Adaptables**: Cada componente debe modificar su presentación según el espacio disponible
+
+### Consideraciones Específicas para la UI de RokaMenu
+
+- **Tablas y Grids**: Deben adaptarse en móviles mostrando información crítica y permitiendo ver detalles adicionales mediante expansión
+- **Controles de Arrastrar y Soltar**: Deben funcionar con gestos táctiles, con controles alternativos cuando sea necesario
+- **Menús Expandibles**: En móviles, los menús laterales deben ocultarse y ser accesibles mediante un botón de hamburguesa
+- **Formularios**: Deben reorganizarse verticalmente en pantallas pequeñas, con controles de tamaño adecuado para entrada táctil
+- **Modales y Popups**: Deben redimensionarse apropiadamente, nunca excediendo los límites de la pantalla del dispositivo
+
+### Reglas Técnicas para Garantizar Responsividad
+
+1. **Meta Viewport Correcto**: Siempre debe estar presente en todas las páginas
+   ```html
+   <meta
+     name="viewport"
+     content="width=device-width, initial-scale=1.0, maximum-scale=5.0"
+   />
+   ```
+2. **Testing Obligatorio**: Cada nueva característica o cambio DEBE ser probado en:
+   - Al menos 2 tamaños de móvil diferentes
+   - Al menos 1 tamaño de tableta
+   - Escritorio estándar
+3. **Herramientas de Desarrollo**: Utiliza constantemente las herramientas de emulación de dispositivo del navegador
+4. **Optimización de Rendimiento**: La carga y rendimiento en dispositivos móviles debe ser prioritaria
+
+La violación de este mandamiento es considerada CRÍTICA, ya que la mayoría de los usuarios finales accederán a los menús desde dispositivos móviles. Una experiencia deficiente en estos dispositivos impacta directamente en la satisfacción del cliente y el valor del producto.

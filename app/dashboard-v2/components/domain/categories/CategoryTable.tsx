@@ -8,7 +8,7 @@ import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUt
 import { Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import Image from 'next/image';
 import SectionList from './sections/SectionList';
-import { GridIcon } from '@/app/dashboard-v2/shared/components/grid/GridIcon';
+import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
 
 interface CategoryTableProps {
   categories: Category[];

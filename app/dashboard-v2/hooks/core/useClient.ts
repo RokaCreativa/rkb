@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { useCustomizationStore } from '../stores/customizationStore';
+import { useCustomizationStore } from '../ui/state/customizationStore';
 
 interface Client {
   id: string;
