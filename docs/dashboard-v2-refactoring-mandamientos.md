@@ -19,10 +19,14 @@
 - **NUNCA volverás a mezclar responsabilidades que han sido separadas**
 - **NUNCA duplicarás interfaces, tipos o componentes en diferentes ubicaciones**
 - Honrarás la estructura de carpetas establecida:
+  - Componentes principales en `dashboard-v2/components/core/`
+  - Componentes de dominio en `dashboard-v2/components/domain/` (categorías, secciones, productos)
   - Modales en `dashboard-v2/components/modals/`
   - Componentes de vista en `dashboard-v2/components/views/` (**TODOS los componentes de vista deben estar aquí**)
-  - Hooks específicos en `dashboard-v2/hooks/`
-  - Tipos en `dashboard-v2/types/`
+  - Hooks principales en `dashboard-v2/hooks/core/`
+  - Hooks de dominio en `dashboard-v2/hooks/domain/` (categoría, sección, producto)
+  - Hooks de UI en `dashboard-v2/hooks/ui/`
+  - Tipos en `dashboard-v2/types/` organizados por dominio, API y UI
   - Utilidades en `dashboard-v2/utils/`
 - Preservarás la separación de responsabilidades:
   - Hooks por dominio: useCategoryManagement, useSectionManagement, useProductManagement
@@ -59,6 +63,22 @@
   │       └── reorder/      # API para reordenar categorías
   ├── components/           # Componentes UI
   │   ├── actions/          # Componentes para acciones
+  │   ├── core/             # Componentes principales
+  │   │   ├── DashboardView.tsx     # Vista principal del dashboard
+  │   │   ├── TopNavbar.tsx         # Barra de navegación superior
+  │   │   └── DashboardProvider.tsx # Proveedor de contexto del dashboard
+  │   ├── domain/           # Componentes específicos de dominio
+  │   │   ├── categories/   # Componentes de categorías
+  │   │   │   ├── CategoryList.tsx      # Lista de categorías
+  │   │   │   ├── CategoryTable.tsx     # Tabla de categorías
+  │   │   │   └── CategorySections.tsx  # Secciones de una categoría
+  │   │   ├── sections/     # Componentes de secciones
+  │   │   │   ├── SectionList.tsx       # Lista de secciones
+  │   │   │   ├── SectionTable.tsx      # Tabla de secciones
+  │   │   │   └── SectionDetail.tsx     # Detalle de sección
+  │   │   └── products/     # Componentes de productos
+  │   │       ├── ProductTable.tsx      # Tabla de productos
+  │   │       └── ProductManager.tsx    # Gestor de productos
   │   ├── hooks/            # Hooks específicos de componentes
   │   │   └── useTogglePreview.ts
   │   ├── layout/           # Componentes de layout
@@ -69,32 +89,36 @@
   │   │   ├── NewSectionModal.tsx, EditSectionModal.tsx
   │   │   ├── NewProductModal.tsx, EditProductModal.tsx
   │   │   └── DeleteCategoryModal.tsx, DeleteSectionModal.tsx, DeleteProductModal.tsx
-  │   ├── sections/         # Componentes de secciones
-  │   │   ├── SectionList.tsx
-  │   │   ├── SectionListItem.tsx
-  │   │   ├── ProductList.tsx
-  │   │   └── ProductListItem.tsx
+  │   ├── sections/         # Componentes de secciones (antigua estructura)
   │   ├── ui/               # Componentes UI reutilizables
   │   │   ├── VirtualizedList.tsx
   │   │   ├── Loader.tsx
   │   │   └── SuccessMessage.tsx
-  │   ├── views/            # Vistas principales
-  │   │   ├── CategoryView.tsx
-  │   │   ├── SectionView.tsx
-  │   │   ├── ProductView.tsx
-  │   │   └── OptimizedCategoryView.tsx
-  │   ├── CategoryList.tsx
-  │   ├── DashboardView.tsx
-  │   ├── TopNavbar.tsx
-  │   └── Breadcrumbs.tsx
+  │   └── views/            # Vistas principales
+  │       ├── CategoryView.tsx
+  │       ├── SectionView.tsx
+  │       ├── ProductView.tsx
+  │       ├── OptimizedCategoryView.tsx
+  │       └── FloatingPhonePreview.tsx
   ├── hooks/                # Hooks globales
-  │   ├── useCategoryManagement.ts
-  │   ├── useSectionManagement.ts
-  │   ├── useProductManagement.ts
-  │   ├── useDashboardState.ts
-  │   ├── useViewState.tsx
-  │   ├── useModalState.tsx
-  │   └── useVirtualizedList.ts
+  │   ├── core/             # Hooks principales
+  │   │   ├── useDashboardState.ts    # Estado global del dashboard
+  │   │   ├── useClient.ts            # Información de cliente
+  │   │   └── useDragAndDrop.ts       # Funcionalidad de drag & drop
+  │   ├── domain/           # Hooks específicos de dominio
+  │   │   ├── category/     # Hooks de categorías
+  │   │   │   ├── useCategoryManagement.ts   # Gestión de categorías
+  │   │   │   └── useCategoryReorder.tsx     # Reordenamiento de categorías
+  │   │   ├── section/      # Hooks de secciones
+  │   │   │   └── useSectionManagement.ts    # Gestión de secciones
+  │   │   └── product/      # Hooks de productos
+  │   │       └── useProductManagement.ts    # Gestión de productos
+  │   └── ui/               # Hooks relacionados con UI
+  │       ├── useTheme.ts              # Gestión de temas
+  │       ├── useVirtualizedList.ts    # Listas virtualizadas
+  │       ├── useViewState.tsx         # Estado de vista
+  │       ├── useModalState.tsx        # Estado de modales
+  │       └── useExpansionState.tsx    # Estado de expansión
   ├── shared/               # Recursos compartidos
   │   ├── components/       # Componentes compartidos
   │   │   └── grid/         # Componentes para grids reutilizables
@@ -111,8 +135,12 @@
   │   ├── typography.css
   │   └── grids.css
   ├── types/                # Tipos centralizados
+  │   ├── domain/           # Tipos del dominio
+  │   ├── api/              # Tipos de API
+  │   ├── ui/               # Tipos de UI
   │   ├── index.ts
-  │   └── dashboard.ts
+  │   ├── dashboard.ts
+  │   └── type-adapters.ts
   └── utils/                # Utilidades
       ├── performance.ts
       ├── dashboardHelpers.tsx
@@ -397,12 +425,12 @@ Al rediseñar componentes existentes (como SectionList, CategoryTable, etc.):
 
 Para obtener información detallada sobre temas específicos, consultar los siguientes documentos:
 
-- `docs/archive/estructura-dashboard-v2.md` - Estructura completa del proyecto
+- `docs/dashboard-v2-estructura-y-mandamientos.md` - Estructura completa y mandamientos del proyecto
 - `docs/archive/dashboard-v2-modelo-datos.md` - Modelo de datos detallado
 - `docs/archive/sistema-componentes-compartidos.md` - Sistema de componentes compartidos
 - `docs/archive/GridComponents-Documentation.md` - Documentación detallada del sistema de grid
 - `docs/archive/SectionList-Redesign-Documentation.md` - Documentación del rediseño de SectionList
-- `docs/archive/mandamiento-verificacion-estructural.md` - Verificación estructural
+- `docs/dashboard-v2-mejoras-estructura.md` - Propuesta de mejoras en la estructura
 
 > "Un proyecto ordenado es un proyecto mantenible"
 > "Conocer la estructura es el primer paso para respetarla"
