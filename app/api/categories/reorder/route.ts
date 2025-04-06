@@ -86,4 +86,52 @@ export async function PUT(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+interface Category {
+  id: number;
+  order: number;
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const body = await request.json();
+    
+    if (!body || !body.categories || !Array.isArray(body.categories)) {
+      return NextResponse.json({ error: 'Invalid request format. Expected categories array.' }, { status: 400 });
+    }
+    
+    const categories: Category[] = body.categories;
+    
+    console.log('Reordenando categorías:', categories);
+    
+    // Aquí iría la lógica para actualizar las categorías en la base de datos
+    
+    // Ejemplo de implementación (simulado):
+    // Construir la consulta SQL o llamada a la API
+    const updatePromises = categories.map(category => {
+      // Simulamos la actualización 
+      console.log(`Actualizando categoría ${category.id} a orden ${category.order}`);
+      // En un entorno real, aquí irían las llamadas a la base de datos
+      return Promise.resolve();
+    });
+    
+    await Promise.all(updatePromises);
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Categories reordered successfully',
+      updated: categories.length
+    });
+    
+  } catch (error) {
+    console.error('Error reordenando categorías:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
 } 

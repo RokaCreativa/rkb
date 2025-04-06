@@ -14,7 +14,7 @@
 
 /* Bordes y contenedores */
 .category-border {
-  @apply border-indigo-200;
+  @apply border-indigo-100;
 }
 
 .category-bg {
@@ -23,11 +23,11 @@
 
 /* Tipografía */
 .category-title {
-  @apply text-indigo-700;
+  @apply text-indigo-600;
 }
 
 .category-text {
-  @apply text-indigo-800;
+  @apply text-indigo-700;
 }
 
 /* Botones y acciones */
@@ -40,23 +40,23 @@
 }
 
 /* Estados de elementos */
-.category-hover {
-  @apply hover:bg-indigo-50;
+.category-hover:hover {
+  @apply bg-indigo-100;
 }
 
 .category-active {
   @apply bg-indigo-100;
 }
 
-.category-icon-hover {
-  @apply hover:bg-indigo-100 hover:text-indigo-800;
+.category-icon-hover:hover {
+  @apply bg-indigo-100;
 }
 
 /* ===== ESTILOS PARA GRID DE SECCIONES (TEAL) ===== */
 
 /* Bordes y contenedores */
 .section-border {
-  @apply border-teal-200;
+  @apply border-teal-100;
 }
 
 .section-bg {
@@ -65,11 +65,11 @@
 
 /* Tipografía */
 .section-title {
-  @apply text-teal-700;
+  @apply text-teal-600;
 }
 
 .section-text {
-  @apply text-teal-800;
+  @apply text-teal-700;
 }
 
 /* Botones y acciones */
@@ -82,69 +82,101 @@
 }
 
 /* Estados de elementos */
-.section-hover {
-  @apply hover:bg-teal-50;
+.section-hover:hover {
+  @apply bg-teal-100;
 }
 
 .section-active {
   @apply bg-teal-100;
 }
 
-.section-icon-hover {
-  @apply hover:bg-teal-100 hover:text-teal-800;
+.section-icon-hover:hover {
+  @apply bg-teal-100;
 }
 
 /* ===== ESTILOS PARA GRID DE PRODUCTOS (YELLOW) ===== */
 
 /* Bordes y contenedores */
 .product-border {
-  @apply border-yellow-200;
+  @apply border-amber-100 !important;
 }
 
 .product-bg {
-  @apply bg-yellow-50;
+  @apply bg-amber-50 !important;
 }
 
 /* Tipografía */
 .product-title {
-  @apply text-yellow-700;
+  @apply text-amber-600 !important;
 }
 
 .product-text {
-  @apply text-yellow-800;
+  @apply text-amber-700 !important;
 }
 
 /* Botones y acciones */
 .product-action {
-  @apply text-yellow-600;
+  @apply text-amber-600 !important;
 }
 
 .product-button {
-  @apply bg-yellow-600 text-white hover:bg-yellow-700;
+  @apply bg-amber-600 text-white hover:bg-amber-700 !important;
 }
 
 /* Estados de elementos */
-.product-hover {
-  @apply hover:bg-yellow-50;
+.product-hover:hover {
+  @apply bg-amber-100 !important;
 }
 
 .product-active {
-  @apply bg-yellow-100;
+  @apply bg-amber-100 !important;
 }
 
-.product-icon-hover {
-  @apply hover:bg-yellow-100 hover:text-yellow-800;
+.product-icon-hover:hover {
+  @apply bg-amber-100 !important;
+}
+
+/* IMPORTANTE: Definición específica para contraste visual */
+.product-bg-light {
+  @apply bg-amber-50/50 !important;
+}
+
+/* Manejo específico del drag handle para productos */
+.product-drag-handle {
+  @apply drag-handle text-amber-500 hover:text-amber-700 hover:bg-amber-100 cursor-grab !important;
+}
+
+.product-drag-handle:active {
+  @apply cursor-grabbing bg-amber-200 !important;
+}
+
+/* Asegurarnos que el item en arrastre tiene estilo correcto */
+.grid-item-dragging-product {
+  @apply shadow-lg bg-amber-50 border border-amber-200 z-[9999] !important;
+}
+
+/* Clases específicas para tablas de productos */
+table.product-table {
+  @apply w-full divide-y divide-amber-100 !important;
+}
+
+table.product-table thead {
+  @apply bg-amber-50 !important;
+}
+
+table.product-table tbody {
+  @apply bg-white divide-y divide-amber-100 !important;
 }
 
 /* ===== ESTILOS COMPARTIDOS ===== */
 
 /* Estilos para grids */
-.grid-header {
-  @apply flex justify-between items-center px-4 py-2 border-b;
+.grid-container {
+  @apply border rounded-lg shadow-sm mb-4 overflow-hidden;
 }
 
-.grid-table {
-  @apply min-w-full divide-y;
+.grid-header {
+  @apply flex justify-between items-center p-4 border-b;
 }
 
 .grid-title {
@@ -155,8 +187,24 @@
   @apply text-xs;
 }
 
-.grid-container {
-  @apply rounded-lg border overflow-hidden bg-white shadow-sm;
+.grid-table {
+  @apply min-w-full divide-y;
+}
+
+.grid-cell {
+  @apply px-3 py-2 whitespace-nowrap;
+}
+
+.grid-cell-center {
+  @apply px-3 py-2 whitespace-nowrap text-center;
+}
+
+.grid-image-container {
+  @apply h-10 w-10 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center;
+}
+
+.grid-image {
+  @apply h-10 w-10 object-cover;
 }
 
 /* Estados de visibilidad */
@@ -167,6 +215,11 @@
 /* Estilos para drag and drop */
 .drag-handle {
   @apply cursor-grab flex items-center justify-center rounded transition-colors;
+  touch-action: none !important; 
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
 }
 
 .category-drag-handle {
@@ -175,6 +228,9 @@
 
 .section-drag-handle {
   @apply drag-handle text-teal-500 hover:text-teal-700 hover:bg-teal-100;
+  /* Aislamiento específico para secciones debido a problemas encontrados */
+  position: relative !important;
+  z-index: 10 !important;
 }
 
 .product-drag-handle {
@@ -182,20 +238,20 @@
 }
 
 .grid-item-dragging-category {
-  @apply bg-indigo-50 shadow-md border-indigo-300 !important;
+  @apply bg-indigo-50 shadow-md;
 }
 
 .grid-item-dragging-section {
-  @apply bg-teal-50 shadow-md border-teal-300 !important;
+  @apply bg-teal-50 shadow-md;
 }
 
 .grid-item-dragging-product {
-  @apply bg-yellow-50 shadow-md border-yellow-300 !important;
+  @apply bg-yellow-50 shadow-md !important;
 }
 
 /* Acciones genéricas para elementos */
 .action-button {
-  @apply p-1.5 rounded-full transition-colors;
+  @apply p-1.5 rounded-full;
 }
 
 .action-button-edit {
@@ -216,7 +272,7 @@
 }
 
 .action-button-delete {
-  @apply action-button text-red-500 hover:bg-red-50;
+  @apply p-1.5 rounded-full text-red-500 hover:bg-red-50;
 }
 
 /* Añado clases específicas para cada tipo de botón eliminar */
@@ -287,4 +343,39 @@
 
 .grid-image {
   @apply object-cover w-full h-full;
+  width: auto;
+  height: auto;
+}
+
+/* Estilos para las tablas */
+.table-container {
+  @apply bg-white rounded-lg border overflow-hidden shadow-sm mb-4;
+}
+
+.table-header {
+  @apply flex justify-between items-center p-4 border-b;
+}
+
+.table-title {
+  @apply text-base font-medium;
+}
+
+.table-subtitle {
+  @apply text-sm text-gray-500;
+}
+
+.table-action-btn {
+  @apply inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm;
+}
+
+.category-drag-handle:active {
+  @apply cursor-grabbing bg-indigo-200;
+}
+
+.section-drag-handle:active {
+  @apply cursor-grabbing bg-teal-200;
+}
+
+.product-drag-handle:active {
+  @apply cursor-grabbing bg-yellow-200 !important;
 } 

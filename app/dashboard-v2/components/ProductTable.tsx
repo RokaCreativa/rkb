@@ -1,12 +1,30 @@
+/**
+ * @fileoverview Componente ProductTable - Tabla de productos con soporte para arrastrar y soltar (drag and drop)
+ * Este componente muestra los productos de una sección específica en formato de tabla
+ * y permite arrastrar y reordenar los productos visibles.
+ * 
+ * IMPORTANTE: Este componente NO incluye su propio DragDropContext.
+ * Debe ser usado dentro del DragDropContext global definido en DashboardView.tsx.
+ * 
+ * @autor RokaMenu Team
+ * @version 2.0
+ * @updated 2024-06-20
+ */
+
 "use client";
 
 import React, { useState } from 'react';
 import { PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/solid';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { Droppable, Draggable } from '@hello-pangea/dnd';
 import Image from 'next/image';
+import { GridIcon } from '@/app/dashboard-v2/shared/components/grid/GridIcon';
+import { useGridIcons } from '@/app/dashboard-v2/shared/hooks/useGridIcons';
 
+/**
+ * Interfaz para los productos en la tabla
+ */
 interface Product {
   id: number;
   product_id?: number;
@@ -20,290 +38,330 @@ interface Product {
   section_id?: number;
 }
 
+/**
+ * Props para el componente ProductTable
+ */
 interface ProductTableProps {
+  /** Lista de productos a mostrar */
   products: Product[];
-  sectionName: string;
-  sectionId: number;
-  isUpdatingVisibility: number | null;
-  onEditProduct: (product: Product) => void;
-  onDeleteProduct: (productId: number) => Promise<boolean>;
-  onToggleVisibility: (productId: number, status: number, sectionId: number) => Promise<void> | void;
-  isReorderModeActive?: boolean;
+  /** ID de la sección a la que pertenecen los productos */
+  sectionId?: number;
+  /** Nombre de la sección a la que pertenecen los productos */
+  sectionName?: string;
+  /** ID del producto cuya visibilidad está siendo actualizada */
+  isUpdatingVisibility?: number | null;
+  /** Función para alternar la visibilidad de un producto */
+  onToggleVisibility?: (productId: number, status: number, sectionId?: number) => void;
+  /** Función para editar un producto */
+  onEditProduct?: (product: Product) => void;
+  /** Función para eliminar un producto */
+  onDeleteProduct?: (productId: number) => Promise<boolean>;
+  /** Función para reordenar productos (arrastrar y soltar) */
   onReorderProduct?: (sourceIndex: number, destinationIndex: number) => void;
+  /** Indica si el modo de reordenamiento está activo */
+  isReorderModeActive?: boolean;
 }
 
+/**
+ * Componente ProductTable - Muestra productos en formato de tabla con soporte para drag & drop
+ * 
+ * Este componente recibe una lista de productos y los muestra en una tabla interactiva.
+ * Cada producto puede ser:
+ * - Arrastrado para cambiar su orden
+ * - Editado, eliminado o se puede cambiar su visibilidad
+ * 
+ * IMPORTANTE: Este componente NO incluye su propio DragDropContext,
+ * debe ser utilizado dentro del DragDropContext global en DashboardView.
+ */
 export const ProductTable: React.FC<ProductTableProps> = ({
   products,
-  sectionName,
   sectionId,
+  sectionName,
   isUpdatingVisibility,
+  onToggleVisibility,
   onEditProduct,
   onDeleteProduct,
-  onToggleVisibility,
-  isReorderModeActive = false,
-  onReorderProduct
+  onReorderProduct,
+  isReorderModeActive = false
 }) => {
+  // Estado local para mostrar/ocultar productos no visibles
   const [showHiddenProducts, setShowHiddenProducts] = useState(true);
-
-  if (!products || products.length === 0) {
-    return (
-      <div className="text-center py-4 text-gray-500 bg-white rounded-md border product-border shadow-sm">
-        No hay productos disponibles para esta sección
-      </div>
-    );
-  }
-
-  // Obtener productos visibles y no visibles
-  const visibleProducts = products.filter(p => p.status === 1);
-  const hiddenProducts = products.filter(p => p.status !== 1);
-
-  // Formateador de precio
-  const formatPrice = (price: number | string) => {
-    if (typeof price === 'string') {
-      return price;
-    }
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(price);
-  };
+  const { renderIcon } = useGridIcons();
   
-  // Manejar el evento de drag and drop finalizado
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination || result.destination.index === result.source.index) {
-      return;
-    }
-    
-    if (onReorderProduct) {
-      onReorderProduct(result.source.index, result.destination.index);
-    }
-  };
+  // Separar productos visibles y ocultos
+  const visibleProducts = products.filter(product => product.status === 1);
+  const hiddenProducts = products.filter(product => product.status === 0);
+  
+  // ID único para el Droppable de esta lista de productos, basado en la sección
+  const droppableId = `products-section-${sectionId || "default"}`;
+  
+  // Debug log para verificar que estamos renderizando correctamente
+  console.log("ProductTable - renderizando con productos:", {
+    visibles: visibleProducts.length,
+    ocultos: hiddenProducts.length,
+    total: products.length,
+    dragEnabled: isReorderModeActive
+  });
   
   return (
-    <div className="rounded-lg border border-yellow-100 overflow-hidden bg-white shadow-sm">
-      <div className="flex items-center justify-between px-4 py-2 bg-yellow-50 border-b border-yellow-100">
-        <h2 className="text-sm font-medium text-yellow-700">
-          Productos: {sectionName}
+    <div className="grid-container product-border">
+      <div className="grid-header product-bg product-border">
+        <h2 className="grid-title product-title">
+          {sectionName ? `Productos en ${sectionName}` : 'Productos'} ({products.length})
           </h2>
-        <div className="flex items-center">
-          <div className="text-xs text-yellow-600 mr-4">
-            ({visibleProducts.length}/{products.length} Visibles)
-          </div>
+        <div className="flex items-center space-x-3">
+          <span className="grid-subtitle product-text">
+            ({visibleProducts.length}/{products.length} visibles)
+          </span>
           <button
             onClick={() => setShowHiddenProducts(!showHiddenProducts)}
-            className="text-xs text-yellow-600 hover:text-yellow-800 flex items-center gap-1"
+            className="text-xs product-action hover:product-text flex items-center"
           >
             {showHiddenProducts ? 'Ocultar' : 'Mostrar'} no visibles
-            {showHiddenProducts ? 
-              <ChevronDownIcon className="h-3 w-3" /> : 
-              <ChevronDownIcon className="h-3 w-3" />
-            }
+            {renderIcon('product', 'expand', { className: "ml-1" })}
           </button>
         </div>
       </div>
       
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="products">
-          {(provided) => (
-            <table className="min-w-full divide-y divide-yellow-100" {...provided.droppableProps} ref={provided.innerRef}>
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-yellow-600 uppercase tracking-wider">
-                    <div className="flex items-center gap-1">
-                      <span>Nombre</span>
-                    </div>
-                  </th>
-                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-yellow-600 uppercase tracking-wider w-16">Orden</th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-600 uppercase tracking-wider w-16">Foto</th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-600 uppercase tracking-wider w-28">Precio</th>
-                  <th scope="col" className="px-2 py-2 text-center text-xs font-medium text-yellow-600 uppercase tracking-wider w-16">
-                    <EyeIcon className="h-4 w-4 mx-auto text-yellow-500" />
-                  </th>
-                  <th scope="col" className="px-3 py-2 text-center text-xs font-medium text-yellow-600 uppercase tracking-wider w-20">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-yellow-100">
-                {/* Productos visibles */}
-                {visibleProducts.map((product, index) => (
-                  <Draggable 
-                    key={(product.id || product.product_id || index).toString()} 
-                    draggableId={(product.id || product.product_id || index).toString()} 
-                    index={index}
-                    isDragDisabled={!onReorderProduct || !isReorderModeActive}
-                  >
-                    {(provided, snapshot) => (
-                      <tr 
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className={`${snapshot.isDragging ? "grid-item-dragging-product" : "product-hover"}`}
-                      >
-                        <td 
-                          className="px-3 py-2 whitespace-nowrap"
-                          {...provided.dragHandleProps}
-                        >
-                          <div className="flex items-center">
-                            <div className="mr-2">
-                              <Bars3Icon className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                            </div>
-                            <div>
-                              <div className="text-sm font-medium text-gray-700">{product.name}</div>
-                              {product.description && (
-                                <div className="text-xs text-gray-500 max-w-md truncate">
-                                  {product.description}
-                                </div>
-                              )}
-                            </div>
+      {/* IMPORTANTE: No hay DragDropContext aquí, solo Droppable */}
+      <Droppable droppableId={droppableId} type="PRODUCT" isDropDisabled={!isReorderModeActive}>
+        {(provided) => (
+          <table className="grid-table product-border" {...provided.droppableProps} ref={provided.innerRef}>
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-3 py-2 text-left text-xs font-medium product-title uppercase tracking-wider">
+                  <div className="flex items-center gap-1">
+                    <span>Nombre</span>
+                  </div>
+                </th>
+                <th scope="col" className="px-2 py-2 text-center text-xs font-medium product-title uppercase tracking-wider w-16">Orden</th>
+                <th scope="col" className="px-3 py-2 text-center text-xs font-medium product-title uppercase tracking-wider w-16">Foto</th>
+                <th scope="col" className="px-3 py-2 text-center text-xs font-medium product-title uppercase tracking-wider w-28">Precio</th>
+                <th scope="col" className="px-2 py-2 text-center text-xs font-medium product-title uppercase tracking-wider w-16">
+                  {renderIcon('product', 'visibility', { className: "mx-auto" })}
+                </th>
+                <th scope="col" className="px-3 py-2 text-center text-xs font-medium product-title uppercase tracking-wider w-20">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y product-border">
+              {/* Primero renderizar los productos visibles (arrastrables) */}
+              {visibleProducts.map((product, index) => (
+                <Draggable 
+                  key={`product-${product.id || product.product_id}`}
+                  draggableId={`product-${product.id || product.product_id}`}
+                  index={index}
+                  isDragDisabled={!isReorderModeActive}
+                >
+                  {(provided, snapshot) => (
+                    <tr
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      className={`${snapshot.isDragging ? 'grid-item-dragging-product !bg-amber-50' : 'product-hover !bg-white hover:!bg-amber-50'}`}
+                    >
+                      <td className="grid-cell">
+                        <div className="flex items-center">
+                          {/* IMPORTANTE: Handle de arrastre con stopPropagation y estilos robustos */}
+                          <div 
+                            {...provided.dragHandleProps} 
+                            className="product-drag-handle mr-2 p-2 !bg-amber-50 hover:!bg-amber-100 rounded-lg cursor-grab"
+                            title="Arrastrar para reordenar"
+                            style={{
+                              touchAction: 'none',
+                              userSelect: 'none',
+                              WebkitUserSelect: 'none',
+                              MozUserSelect: 'none',
+                              msUserSelect: 'none'
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                            }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                            }}
+                            onTouchStart={(e) => {
+                              e.stopPropagation();
+                            }}
+                          >
+                            <Bars3Icon className="h-5 w-5 !text-amber-600" />
                           </div>
-                        </td>
-                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
-                          {product.display_order || index + 1}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          <div className="flex justify-center">
-                            <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+                          <div className="ml-1">
+                            <div className="text-sm font-medium product-text !text-amber-700">{product.name}</div>
+                            {product.description && (
+                              <div className="text-xs text-gray-500 truncate max-w-xs">{product.description}</div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="grid-cell-center text-sm text-gray-500">
+                        {product.display_order || index + 1}
+                      </td>
+                      <td className="grid-cell-center">
+                        <div className="flex justify-center">
+                          <div className="grid-image-container">
+                            {product.image ? (
                               <Image
                                 src={getImagePath(product.image, 'products')}
-                                alt={product.name || ''}
-                                width={32}
-                                height={32}
-                                className="object-cover w-full h-full"
+                                alt={product.name}
+                                width={40}
+                                height={40}
+                                className="grid-image"
                                 onError={handleImageError}
                               />
-                            </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">Sin img</span>
+                            )}
                           </div>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-700 text-center font-medium">
-                          {formatPrice(product.price)}
-                        </td>
-                        <td className="px-2 py-2 whitespace-nowrap text-center">
-                          <div className="flex justify-center">
-                            <button
-                              onClick={() => onToggleVisibility(product.id || product.product_id || 0, product.status === 1 ? 0 : 1, sectionId)}
-                              disabled={isUpdatingVisibility === (product.id || product.product_id)}
-                              className={`p-1.5 rounded-full transition-colors ${
-                                product.status === 1 
-                                  ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
-                                  : 'text-gray-400 bg-gray-50 hover:bg-gray-100'
-                              }`}
-                              title={product.status === 1 ? "Visible" : "No visible"}
-                            >
-                              {isUpdatingVisibility === (product.id || product.product_id) ? (
-                                <div className="w-5 h-5 flex items-center justify-center">
-                                  <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
-                                </div>
-                              ) : product.status === 1 ? (
-                                <EyeIcon className="w-5 h-5" />
-                              ) : (
-                                <EyeSlashIcon className="w-5 h-5" />
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center">
-                          <div className="flex justify-center space-x-1">
-                            <button
-                              onClick={() => onEditProduct(product)}
-                              className="action-button product-action-edit"
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => onDeleteProduct(product.id || product.product_id || 0)}
-                              className="product-action-delete"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Draggable>
-                ))}
-
-                {provided.placeholder}
-
-                {/* Productos ocultos */}
-                {showHiddenProducts && hiddenProducts.map((product, index) => (
-                  <tr 
-                    key={`hidden-${product.id || product.product_id || index}`}
-                    className="hover:bg-gray-50 opacity-70"
-                  >
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="mr-2">
-                          <Bars3Icon className="h-5 w-5 text-gray-300 flex-shrink-0" />
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-400">{product.name}</div>
-                          {product.description && (
-                            <div className="text-xs text-gray-400 max-w-md truncate">
-                              {product.description}
-                            </div>
+                      </td>
+                      <td className="grid-cell-center text-sm">
+                        <div className="flex flex-col items-center">
+                          <span className="font-medium product-text !text-amber-700">
+                            {typeof product.price === 'number' 
+                              ? `$${(product.price as number).toFixed(2)}` 
+                              : `$${product.price}`}
+                          </span>
+                          {product.discount_price && (
+                            <span className="text-xs text-gray-500 line-through">
+                              ${product.discount_price}
+                            </span>
                           )}
                         </div>
+                      </td>
+                      <td className="grid-cell-center">
+                        <button
+                          onClick={() => onToggleVisibility && onToggleVisibility(
+                            product.id || (product.product_id as number), 
+                            product.status,
+                            sectionId
+                          )}
+                          className="action-button product-action product-icon-hover !text-amber-600 hover:!bg-amber-100"
+                          disabled={isUpdatingVisibility === product.id || isUpdatingVisibility === product.product_id}
+                        >
+                          {isUpdatingVisibility === product.id || isUpdatingVisibility === product.product_id ? (
+                            <div className="w-4 h-4 border-2 border-t-transparent !border-amber-500 rounded-full animate-spin"></div>
+                          ) : (
+                            renderIcon('product', 'visibility', { size: 'large', className: '!text-amber-600' })
+                          )}
+                        </button>
+                      </td>
+                      <td className="grid-cell-center">
+                        <div className="flex justify-center space-x-2">
+                          <button
+                            onClick={() => onEditProduct && onEditProduct(product)}
+                            className="product-action-edit !text-amber-600 hover:!bg-amber-100"
+                          >
+                            {renderIcon('product', 'edit', { className: '!text-amber-600' })}
+                          </button>
+                          <button
+                            onClick={() => onDeleteProduct && onDeleteProduct(product.id || (product.product_id as number))}
+                            className="action-button-delete"
+                          >
+                            {renderIcon('product', 'delete')}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Draggable>
+              ))}
+
+              {/* Luego renderizar los productos ocultos (no arrastrables) */}
+              {showHiddenProducts && hiddenProducts.map((product) => (
+                <tr
+                  key={`hidden-product-${product.id || product.product_id}`}
+                  className="grid-item-hidden hover:bg-gray-50"
+                >
+                  <td className="grid-cell">
+                    <div className="flex items-center">
+                      <div className="mr-2 p-2 rounded-lg bg-gray-50 text-gray-300">
+                        <Bars3Icon className="h-5 w-5" />
                       </div>
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-center">
-                      {product.display_order || index + 1 + visibleProducts.length}
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <div className="flex justify-center">
-                        <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200">
+                      <div className="ml-1">
+                        <div className="text-sm font-medium">{product.name}</div>
+                        {product.description && (
+                          <div className="text-xs truncate max-w-xs">{product.description}</div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="grid-cell-center text-sm">
+                    {product.display_order || "-"}
+                  </td>
+                  <td className="grid-cell-center">
+                    <div className="flex justify-center">
+                      <div className="grid-image-container">
+                        {product.image ? (
                           <Image
                             src={getImagePath(product.image, 'products')}
-                            alt={product.name || ''}
-                            width={32}
-                            height={32}
-                            className="object-cover w-full h-full opacity-50 grayscale"
+                            alt={product.name}
+                            width={40}
+                            height={40}
+                            className="grid-image opacity-50 grayscale"
                             onError={handleImageError}
-          />
+                          />
+                        ) : (
+                          <span className="text-xs text-gray-400">Sin img</span>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="grid-cell-center text-sm">
+                    <div className="flex flex-col items-center">
+                      <span className="font-medium">
+                        {typeof product.price === 'number' 
+                          ? `$${(product.price as number).toFixed(2)}` 
+                          : `$${product.price}`}
+                      </span>
+                      {product.discount_price && (
+                        <span className="text-xs line-through">
+                          ${product.discount_price}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="grid-cell-center">
+                    <button
+                      onClick={() => onToggleVisibility && onToggleVisibility(
+                        product.id || (product.product_id as number), 
+                        product.status,
+                        sectionId
+                      )}
+                      className="action-button text-gray-400 hover:bg-gray-100"
+                      disabled={isUpdatingVisibility === product.id || isUpdatingVisibility === product.product_id}
+                    >
+                      {isUpdatingVisibility === product.id || isUpdatingVisibility === product.product_id ? (
+                        <div className="w-4 h-4 border-2 border-t-transparent border-gray-300 rounded-full animate-spin"></div>
+                      ) : (
+                        renderIcon('product', 'hidden')
+                      )}
+                    </button>
+                  </td>
+                  <td className="grid-cell-center">
+                    <div className="flex justify-center space-x-2">
+                      <button
+                        onClick={() => onEditProduct && onEditProduct(product)}
+                        className="action-button text-gray-400 hover:bg-gray-100"
+                      >
+                        {renderIcon('product', 'edit', { className: 'text-gray-400' })}
+                      </button>
+                      <button
+                        onClick={() => onDeleteProduct && onDeleteProduct(product.id || (product.product_id as number))}
+                        className="action-button text-gray-400 hover:text-red-400 hover:bg-red-50"
+                      >
+                        {renderIcon('product', 'delete', { className: 'text-gray-400' })}
+                      </button>
         </div>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-400 text-center font-medium">
-                      {formatPrice(product.price)}
-                    </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-center">
-                      <div className="flex justify-center">
-                        <button
-                          onClick={() => onToggleVisibility(product.id || product.product_id || 0, product.status === 1 ? 0 : 1, sectionId)}
-                          disabled={isUpdatingVisibility === (product.id || product.product_id)}
-                          className="p-1.5 rounded-full text-gray-400 bg-gray-50 hover:bg-gray-100"
-                          title="No visible"
-                        >
-                          {isUpdatingVisibility === (product.id || product.product_id) ? (
-                            <div className="w-5 h-5 flex items-center justify-center">
-                              <div className="w-3 h-3 border-2 border-current border-t-transparent animate-spin rounded-full"></div>
-                            </div>
-                          ) : (
-                            <EyeSlashIcon className="w-5 h-5" />
-                          )}
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 whitespace-nowrap text-center">
-                      <div className="flex justify-center space-x-1">
-                        <button
-                          onClick={() => onEditProduct(product)}
-                          className="action-button product-action-edit"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => onDeleteProduct(product.id || product.product_id || 0)}
-                          className="product-action-delete"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </Droppable>
-      </DragDropContext>
+                  </td>
+                </tr>
+              ))}
+              
+              {/* Placeholder para drag and drop */}
+              {provided.placeholder}
+            </tbody>
+          </table>
+        )}
+      </Droppable>
     </div>
   );
 }; 

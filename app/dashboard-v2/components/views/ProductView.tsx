@@ -25,7 +25,7 @@ export interface ProductViewProps {
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (product: Product) => Promise<boolean> | void;
   isLoading?: boolean;
-  onProductsReorder?: (updatedProducts: Product[]) => void;
+  onProductsReorder?: (sourceIndex: number, destinationIndex: number) => void;
 }
 
 /**
@@ -256,21 +256,9 @@ export default function ProductView({
             return true;
           }}
           onReorderProduct={onProductsReorder ? (sourceIndex, destinationIndex) => {
-            if (!onProductsReorder) return;
-            
-            // Manejar reordenamiento
-            const updatedProducts = [...localProducts];
-            const [movedItem] = updatedProducts.splice(sourceIndex, 1);
-            updatedProducts.splice(destinationIndex, 0, movedItem);
-            
-            // Actualizar el display_order
-            const productsWithUpdatedOrder = updatedProducts.map((product, index) => ({
-              ...product,
-              display_order: index + 1
-            }));
-            
-            // Llamar a la función de reordenamiento
-            onProductsReorder(productsWithUpdatedOrder);
+            if (onProductsReorder) {
+              onProductsReorder(sourceIndex, destinationIndex);
+            }
           } : undefined}
           isReorderModeActive={!!onProductsReorder}
         />

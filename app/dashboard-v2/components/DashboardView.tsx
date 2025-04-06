@@ -11,6 +11,7 @@ import { Category, Section, Product } from "@/app/types/menu";
 import useDataState from "../hooks/useDataState";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
+import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 
 // Importar nuevos componentes de vistas
 import CategoryView from "./views/CategoryView";
@@ -18,6 +19,7 @@ import SectionView from "./views/SectionView";
 import ProductView from "./views/ProductView";
 import Breadcrumbs from "./views/Breadcrumbs";
 import MobilePreview from "./views/MobilePreview";
+import FloatingPhonePreview from "./views/FloatingPhonePreview";
 
 // Importar modales
 import NewCategoryModal from "./modals/NewCategoryModal";
@@ -52,6 +54,9 @@ export default function DashboardView() {
   
   // IMPORTANTE: Estado para vistas - siempre al inicio de todos los useState
   const [currentView, setCurrentView] = useState<ViewType>('CATEGORIES');
+  
+  // NUEVO: Estado explícito para controlar el modo de reordenamiento global
+  const [isReorderModeActive, setIsReorderModeActive] = useState(false);
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -152,6 +157,30 @@ export default function DashboardView() {
       window.removeEventListener('offline', () => setOfflineMode(true));
     };
   }, []);
+  
+  // Agregar efecto de diagnóstico para la detección de problemas de drag and drop
+  useEffect(() => {
+    if (DEBUG) {
+      console.log('🧪 [DRAG DEBUG] Verificando configuración de drag and drop...');
+      
+      // Comprobar si react-beautiful-dnd o hello-pangea/dnd está correctamente inicializado
+      console.log('🔍 DragDropContext:', typeof DragDropContext, 'Disponible:', !!DragDropContext);
+      
+      // Registrar funciones de reordenamiento
+      console.log('🔄 handleReorderCategories:', typeof handleReorderCategories, 
+                  'handleReorderSections:', typeof handleReorderSections,
+                  'handleReorderProducts:', typeof handleReorderProducts);
+      
+      // Verificar si las secciones están disponibles para el drag and drop
+      console.log('📊 Secciones disponibles:', Object.keys(sections).length > 0 ? 'Sí' : 'No', 
+                  'Total categorías con secciones:', Object.keys(sections).length);
+      
+      const totalSections = Object.values(sections).reduce((acc, secs) => acc + secs.length, 0);
+      console.log('📈 Total de secciones en todas las categorías:', totalSections);
+      
+      console.log('🚀 Sistema de drag and drop inicializado correctamente');
+    }
+  }, [sections]);
   
   // Handlers para navegación
   const goToHome = useCallback(() => {
@@ -410,23 +439,51 @@ export default function DashboardView() {
   }, [sections, toggleSectionVisibility]);
   
   // Manejador para reordenar productos dentro de una sección
-  const handleReorderProducts = async (sectionId: number, updatedProducts: Product[]) => {
-    console.log(`🔄 Reordenando ${updatedProducts.length} productos en sección ${sectionId}`);
+  const handleReorderProducts = async (sectionId: number, sourceIndex: number, destinationIndex: number) => {
+    console.log(`🔄 Reordenando producto en sección ${sectionId} de índice ${sourceIndex} a ${destinationIndex}`);
+    
     try {
-      // Preparar productos con índices actualizados
-      const productsWithOrder = updatedProducts.map((product, index) => ({
+      // Obtener los productos de la sección específica del estado
+      const sectionProducts = products[sectionId] || [];
+      if (sectionProducts.length === 0) {
+        console.error(`No hay productos en la sección ${sectionId} para reordenar`);
+        return false;
+      }
+      
+      // Obtener solo los productos visibles (status 1) de esa sección
+      const visibleProducts = sectionProducts.filter(prod => prod.status === 1);
+      if (visibleProducts.length === 0) {
+        console.error(`No hay productos visibles en la sección ${sectionId} para reordenar`);
+        return false;
+      }
+      
+      // Crear una copia del array de visibles para manipular
+      const updatedVisibleProducts = [...visibleProducts];
+      
+      // Mover el producto de la posición origen a la posición destino dentro de visibles
+      const [movedProduct] = updatedVisibleProducts.splice(sourceIndex, 1);
+      updatedVisibleProducts.splice(destinationIndex, 0, movedProduct);
+      
+      // Actualizar el display_order de todos los productos visibles
+      const visibleWithOrder = updatedVisibleProducts.map((product, index) => ({
         ...product,
         display_order: index + 1
       }));
       
-      // Llamar a la API para guardar el nuevo orden
+      console.log("Productos visibles reordenados:", visibleWithOrder.map(p => `${p.name} (${p.display_order})`));
+      
+      // Combinar con los no visibles para obtener el array final de la sección
+      const nonVisibleProducts = sectionProducts.filter(prod => prod.status !== 1);
+      const finalSectionProducts = [...visibleWithOrder, ...nonVisibleProducts];
+      
+      // Llamar a la API para guardar el nuevo orden de los visibles
       const response = await fetch('/api/products/reorder', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          products: productsWithOrder.map(p => ({ 
+          products: visibleWithOrder.map(p => ({ 
             id: p.product_id, 
             order: p.display_order 
           }))
@@ -434,21 +491,252 @@ export default function DashboardView() {
       });
       
       if (!response.ok) {
-        throw new Error('Error al reordenar productos');
+        throw new Error('Error al reordenar productos en la API');
       }
       
-      // Actualizar el estado local con el nuevo orden
+      // Actualizar el estado local con el array final de la sección
       setProducts(prev => ({
         ...prev,
-        [sectionId]: productsWithOrder
+        [sectionId]: finalSectionProducts
       }));
       
       toast.success('Productos reordenados correctamente');
       return true;
     } catch (error) {
-      console.error('Error al reordenar productos:', error);
+      console.error(`Error al reordenar productos en sección ${sectionId}:`, error);
       toast.error('Error al reordenar productos');
       return false;
+    }
+  };
+  
+  // Manejador para reordenar categorías
+  const handleReorderCategories = async (sourceIndex: number, destinationIndex: number) => {
+    console.log(`🔄 Reordenando categoría de índice ${sourceIndex} a ${destinationIndex}`);
+    
+    try {
+      // Obtener solo las categorías visibles (status 1)
+      const visibleCategories = categories.filter(cat => cat.status === 1);
+      
+      if (visibleCategories.length === 0) {
+        console.error("No hay categorías visibles para reordenar");
+        return false;
+      }
+      
+      // Crear una copia del array para manipular
+      const updatedCategories = [...visibleCategories];
+      
+      // Mover la categoría de la posición origen a la posición destino
+      const [movedCategory] = updatedCategories.splice(sourceIndex, 1);
+      updatedCategories.splice(destinationIndex, 0, movedCategory);
+      
+      // Actualizar el display_order de todas las categorías
+      const categoriesWithUpdatedOrder = updatedCategories.map((category, index) => ({
+        ...category,
+        display_order: index + 1
+      }));
+      
+      console.log("Categorías reordenadas:", categoriesWithUpdatedOrder.map(c => `${c.name} (${c.display_order})`));
+      
+      // Llamar a la API para guardar el nuevo orden
+      const response = await fetch('/api/categories/reorder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          categories: categoriesWithUpdatedOrder.map(c => ({ 
+            id: c.category_id, 
+            order: c.display_order 
+          }))
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al reordenar categorías');
+      }
+      
+      // Actualizar el estado local combinando categorías visibles actualizadas con no visibles sin cambios
+      const nonVisibleCategories = categories.filter(cat => cat.status !== 1);
+      const allUpdatedCategories = [...categoriesWithUpdatedOrder, ...nonVisibleCategories];
+      
+      setCategories(allUpdatedCategories);
+      
+      toast.success('Categorías reordenadas correctamente');
+      return true;
+    } catch (error) {
+      console.error('Error al reordenar categorías:', error);
+      toast.error('Error al reordenar categorías');
+      return false;
+    }
+  };
+  
+  // Manejador para reordenar secciones dentro de una categoría
+  const handleReorderSections = async (categoryId: number, sourceIndex: number, destinationIndex: number) => {
+    console.log(`🔄 Reordenando sección de categoría ${categoryId} desde índice ${sourceIndex} a ${destinationIndex}`);
+    
+    try {
+      // Obtener la categoría por ID en lugar de usar selectedCategory
+      const targetCategory = categories.find(cat => cat.category_id === categoryId);
+      if (!targetCategory) {
+        console.error(`No se encontró la categoría con ID ${categoryId}`);
+        return false;
+      }
+      
+      // Obtener solo las secciones visibles (status 1) de esa categoría
+      const currentCategorySections = sections[categoryId] || [];
+      const visibleSections = currentCategorySections.filter(sec => sec.status === 1);
+      if (visibleSections.length === 0) {
+        console.error(`No hay secciones visibles para reordenar en categoría ${categoryId}`);
+        return false;
+      }
+      
+      // Crear una copia del array de visibles para manipular
+      const updatedVisibleSections = [...visibleSections];
+      
+      // Mover la sección de la posición origen a la posición destino
+      const [movedSection] = updatedVisibleSections.splice(sourceIndex, 1);
+      updatedVisibleSections.splice(destinationIndex, 0, movedSection);
+      
+      // Actualizar el display_order de todas las secciones visibles
+      const visibleWithOrder = updatedVisibleSections.map((section, index) => ({
+        ...section,
+        display_order: index + 1
+      }));
+      
+      console.log(`Secciones visibles reordenadas en categoría ${categoryId}:`, 
+        visibleWithOrder.map(s => `${s.name} (${s.display_order})`));
+      
+      // Combinar con las no visibles para obtener el array final de la categoría
+      const nonVisibleSections = currentCategorySections.filter(sec => sec.status !== 1);
+      const finalCategorySections = [...visibleWithOrder, ...nonVisibleSections];
+      
+      // Llamar a la API para guardar el nuevo orden
+      const response = await fetch('/api/sections/reorder', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          sections: visibleWithOrder.map(s => ({ 
+            id: s.section_id, 
+            order: s.display_order 
+          }))
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Error al reordenar secciones en la API');
+      }
+      
+      // Actualizar el estado local con el array final de la categoría
+      setSections(prev => ({
+        ...prev,
+        [categoryId]: finalCategorySections
+      }));
+      
+      toast.success('Secciones reordenadas correctamente');
+      return true;
+    } catch (error) {
+      console.error(`Error al reordenar secciones en categoría ${categoryId}:`, error);
+      toast.error('Error al reordenar secciones');
+      return false;
+    }
+  };
+  
+  // *** NUEVA FUNCIÓN GLOBAL ON DRAG END ***
+  const handleGlobalDragEnd = (result: DropResult) => {
+    const { source, destination, type, draggableId } = result;
+
+    // NUEVO: Log detallado en CONSOLA para depuración
+    console.warn("🚨 === DRAG AND DROP DETECTADO === 🚨", { 
+      source, 
+      destination, 
+      type,
+      draggableId,
+      sourceDroppableId: source?.droppableId,
+      destinationDroppableId: destination?.droppableId,
+      completeResult: JSON.stringify(result)
+    });
+
+    console.log("🌍 Global Drag End - DETALLADO", { 
+      source, 
+      destination, 
+      type,
+      draggableId,
+      sourceDroppableId: source?.droppableId,
+      destinationDroppableId: destination?.droppableId,
+      completeResult: JSON.stringify(result)
+    });
+
+    // Salir si no hay destino o no se movió
+    if (!destination || !source) {
+      console.log("⚠️ Drag cancelado (sin destino o sin origen)");
+      return;
+    }
+    
+    if (destination.droppableId === source.droppableId && destination.index === source.index) {
+      console.log("⚠️ Posición no cambió");
+      return;
+    }
+
+    try {
+      // Lógica para distintos tipos de elementos
+      switch (type) {
+        case "CATEGORY":
+          if (handleReorderCategories) {
+            console.log("📊 Reordenando categorías:", { source: source.index, destination: destination.index });
+            handleReorderCategories(source.index, destination.index);
+            toast.success("Categoría reordenada con éxito");
+          } else {
+            console.error("❌ Error: handleReorderCategories no está disponible");
+          }
+          break;
+        case "SECTION":
+          {
+            const sourceId = source.droppableId.split("-")[2]; // sections-category-ID
+            const destId = destination.droppableId.split("-")[2];
+            
+            console.log("📋 Reordenando secciones:", { 
+              categoryId: sourceId, 
+              source: source.index, 
+              destination: destination.index,
+              mismaCategoria: sourceId === destId
+            });
+
+            if (sourceId === destId && handleReorderSections) {
+              handleReorderSections(parseInt(sourceId), source.index, destination.index);
+              toast.success("Sección reordenada con éxito");
+            } else {
+              console.error("❌ Cambio entre categorías no soportado o handleReorderSections no disponible");
+            }
+          }
+          break;
+        case "PRODUCT":
+          {
+            const sourceId = source.droppableId.split("-")[2]; // products-section-ID
+            const destId = destination.droppableId.split("-")[2];
+            
+            console.log("🍔 Reordenando productos:", { 
+              sectionId: sourceId, 
+              source: source.index, 
+              destination: destination.index,
+              mismaSeccion: sourceId === destId
+            });
+
+            if (sourceId === destId && handleReorderProducts) {
+              handleReorderProducts(parseInt(sourceId), source.index, destination.index);
+              toast.success("Producto reordenado con éxito");
+            } else {
+              console.error("❌ Cambio entre secciones no soportado o handleReorderProducts no disponible");
+            }
+          }
+          break;
+        default:
+          console.error("❓ Tipo desconocido:", type);
+      }
+    } catch (error) {
+      console.error("❌ Error al reordenar:", error);
+      toast.error("Error al reordenar. Inténtalo de nuevo.");
     }
   };
   
@@ -479,6 +767,8 @@ export default function DashboardView() {
       <TopNavbar
         clientLogo={client?.main_logo || null}
         clientName={client?.name || 'Dashboard'}
+        isReorderModeActive={isReorderModeActive}
+        onToggleReorderMode={() => setIsReorderModeActive(prev => !prev)}
       />
       
       {offlineMode && (
@@ -493,210 +783,203 @@ export default function DashboardView() {
         </div>
       )}
       
-      <div className="container mx-auto px-4 py-6 flex-1">
-        {/* Breadcrumbs y navegación */}
-        <Breadcrumbs
-          currentView={currentView}
-          selectedCategory={selectedCategory}
-          selectedSection={selectedSection}
-          onHomeClick={goToHome}
-          onCategoryClick={goToCategory}
-          onSectionClick={goToSection}
-        />
-        
-        {/* Contenido principal */}
-        <div className="w-full">
-          {isLoading || isDataLoading ? (
-            <Loader message="Cargando datos..." />
-          ) : error || dataError ? (
-            <div className="rounded-lg bg-red-50 p-4 text-red-800">
-              <h3 className="text-lg font-semibold mb-2">Error</h3>
-              <p>{error || dataError}</p>
-            </div>
-          ) : (
-            <>
-              {currentView === 'CATEGORIES' && (
-                <CategoryView
-                  categories={categories}
-                  sections={sections}
-                  expandedCategories={expandedCategories}
-                  expandedSections={expandedSections}
-                  isUpdatingVisibility={isUpdatingVisibility}
-                  onToggleCategoryVisibility={(categoryId, status) => toggleCategoryExpansion(categoryId)}
-                  onEditCategorySubmit={(category) => {
-                    if (category.category_id) {
-                      handleEditCategory(category as Category);
-                    }
-                  }}
-                  onDeleteCategorySubmit={(categoryId) => {
-                    const category = categories.find(c => c.category_id === categoryId);
-                    if (category) {
-                      handleDeleteCategory(category);
-                    }
-                  }}
-                  onAddCategorySubmit={handleAddCategory}
-                  onToggleSectionVisibility={(sectionId, status) => handleSectionClick(sectionId)}
-                  onEditSectionSubmit={(section) => {
-                    if (section.section_id) {
-                      handleEditSection(section as Section);
-                    }
-                  }}
-                  onDeleteSectionSubmit={(sectionId) => {
-                    Object.values(sections).flat().forEach(section => {
-                      if (section.section_id === sectionId) {
-                        handleDeleteSection(section);
+      {/* *** ENVOLVER CONTENIDO PRINCIPAL CON DragDropContext *** */}
+      <DragDropContext onDragEnd={handleGlobalDragEnd}>
+        <div className="container mx-auto px-4 py-6 flex-1">
+          {/* Breadcrumbs y navegación */}
+          <Breadcrumbs
+            currentView={currentView}
+            selectedCategory={selectedCategory}
+            selectedSection={selectedSection}
+            onHomeClick={goToHome}
+            onCategoryClick={goToCategory}
+            onSectionClick={goToSection}
+          />
+          
+          {/* Contenido principal */}
+          <div className="w-full">
+            {isLoading || isDataLoading ? (
+              <Loader message="Cargando datos..." />
+            ) : error || dataError ? (
+              <div className="rounded-lg bg-red-50 p-4 text-red-800">
+                <h3 className="text-lg font-semibold mb-2">Error</h3>
+                <p>{error || dataError}</p>
+              </div>
+            ) : (
+              <>
+                {currentView === 'CATEGORIES' && (
+                  <CategoryView
+                    categories={categories}
+                    sections={sections}
+                    expandedCategories={expandedCategories}
+                    expandedSections={expandedSections}
+                    isUpdatingVisibility={isUpdatingVisibility}
+                    onToggleCategoryVisibility={(categoryId, status) => toggleCategoryExpansion(categoryId)}
+                    onEditCategorySubmit={(category) => {
+                      if (category.category_id) {
+                        handleEditCategory(category as Category);
                       }
-                    });
-                  }}
-                  onAddSectionSubmit={(section) => {
-                    if (section.category_id) {
-                      setSelectedCategory(categories.find(c => c.category_id === section.category_id) || null);
-                      handleAddSection();
-                    }
-                  }}
-                  onReorderCategory={(sourceIndex, destinationIndex) => {
-                    // Implementar lógica de reordenación
-                    console.log(`Reordenando categoría de ${sourceIndex} a ${destinationIndex}`);
-                  }}
-                  onSectionClick={(sectionId) => {
-                    Object.values(sections).flat().forEach(section => {
-                      if (section.section_id === sectionId) {
-                        goToSection(section);
+                    }}
+                    onDeleteCategorySubmit={(categoryId) => {
+                      const category = categories.find(c => c.category_id === categoryId);
+                      if (category) {
+                        handleDeleteCategory(category);
                       }
-                    });
-                  }}
-                  onCategoryClick={(category) => goToCategory(category)}
-                  products={products}
-                  onToggleProductVisibility={(productId: number, currentStatus: number, sectionId: number) => {
-                    void toggleProductVisibility(productId, currentStatus, sectionId);
-                  }}
-                  onEditProduct={(product) => handleEditProduct(product)}
-                  onDeleteProduct={(product) => handleDeleteProduct(product)}
-                  onAddProductSubmit={(product) => {
-                    if (product.section_id) {
-                      handleAddProduct(product.section_id);
+                    }}
+                    onAddCategorySubmit={handleAddCategory}
+                    onToggleSectionVisibility={(sectionId, status) => handleSectionClick(sectionId)}
+                    onEditSectionSubmit={(section) => {
+                      if (section.section_id) {
+                        handleEditSection(section as Section);
+                      }
+                    }}
+                    onDeleteSectionSubmit={(sectionId) => {
+                      Object.values(sections).flat().forEach(section => {
+                        if (section.section_id === sectionId) {
+                          handleDeleteSection(section);
+                        }
+                      });
+                    }}
+                    onAddSectionSubmit={(section) => {
+                      if (section.category_id) {
+                        setSelectedCategory(categories.find(c => c.category_id === section.category_id) || null);
+                        handleAddSection();
+                      }
+                    }}
+                    onSectionClick={goToSection}
+                    onCategoryClick={goToCategory}
+                    products={products}
+                    onToggleProductVisibility={(productId: number, currentStatus: number, sectionId: number) => {
+                      void toggleProductVisibility(productId, currentStatus, sectionId);
+                    }}
+                    onEditProduct={(product) => handleEditProduct(product)}
+                    onDeleteProduct={(product) => handleDeleteProduct(product)}
+                    onAddProductSubmit={(product) => {
+                      if (product.section_id) {
+                        handleAddProduct(product.section_id);
+                      }
+                    }}
+                    isUpdatingProductVisibility={isUpdatingVisibility}
+                    isReorderModeActive={isReorderModeActive}
+                  />
+                )}
+
+                {/* 
+                  Mantener SectionView y ProductView como vistas separadas para navegación directa, 
+                  pero el flujo principal debe ser a través de expansión/colapso 
+                */}
+                {currentView === 'SECTIONS' && selectedCategory && (
+                  <SectionView
+                    sections={sections[selectedCategory.category_id] || []}
+                    category={selectedCategory}
+                    products={products}
+                    onAddSection={() => handleAddSection()}
+                    onEditSection={handleEditSection}
+                    onDeleteSection={handleDeleteSection}
+                    onAddProduct={handleAddProduct}
+                    onToggleSectionVisibility={toggleSectionVisibility}
+                    onToggleProductVisibility={(productId: number, currentStatus: number, sectionId: number) => {
+                      void toggleProductVisibility(productId, currentStatus, sectionId);
+                    }}
+                    onEditProduct={handleEditProduct}
+                    onDeleteProduct={handleDeleteProduct}
+                    isUpdatingVisibility={isUpdatingVisibility}
+                    isUpdatingProductVisibility={isUpdatingVisibility}
+                    onSectionReorder={isReorderModeActive ? handleReorderSections : undefined}
+                    onProductReorder={isReorderModeActive ? 
+                      (sectionId: number, sourceIndex: number, destinationIndex: number) => {
+                        handleReorderProducts(sectionId, sourceIndex, destinationIndex);
+                      } : undefined
                     }
-                  }}
-                  isUpdatingProductVisibility={isUpdatingVisibility}
-                />
-              )}
+                    isReorderModeActive={isReorderModeActive}
+                  />
+                )}
 
-              {/* 
-                Mantener SectionView y ProductView como vistas separadas para navegación directa, 
-                pero el flujo principal debe ser a través de expansión/colapso 
-              */}
-              {currentView === 'SECTIONS' && selectedCategory && (
-                <SectionView
-                  sections={sections[selectedCategory.category_id] || []}
-                  categoryName={selectedCategory.name || ''}
-                  categoryId={selectedCategory.category_id}
-                  isUpdatingVisibility={isUpdatingVisibility}
-                  onAddSection={() => handleAddSection()}
-                  onEditSection={handleEditSection}
-                  onDeleteSection={handleDeleteSection}
-                  onSectionClick={goToSection}
-                  onToggleSectionVisibility={toggleSectionVisibility}
-                  onAddProduct={handleAddProduct}
-                  isLoading={false}
-                  // Pasar propiedades de productos
-                  products={products}
-                  onToggleProductVisibility={(productId: number, currentStatus: number, sectionId: number) => {
-                    void toggleProductVisibility(productId, currentStatus, sectionId);
-                  }}
-                  onEditProduct={handleEditProduct}
-                  onDeleteProduct={handleDeleteProduct}
-                  isUpdatingProductVisibility={isUpdatingVisibility}
-                  expandedSections={expandedSections}
-                  isReorderModeActive={false}
-                  handleReorderSection={(sectionId: number, newPosition: number) => {
-                    console.log('Reordering section', sectionId, 'to position', newPosition);
-                    // Implementar la lógica real de reordenamiento aquí cuando sea necesario
-                  }}
-                  selectedCategory={selectedCategory}
-                  onProductReorder={handleReorderProducts}
-                />
-              )}
-
-              {/* El ProductView solo se debe mostrar cuando hay una sección seleccionada y estamos en vista PRODUCTS */}
-              {currentView === 'PRODUCTS' && selectedSection && (() => {
-                // Obtener el sectionId como string para acceder al objeto products
-                const sectionIdStr = selectedSection.section_id.toString();
-                
-                // Verificar el objeto products con más detalle
-                console.log(`📊 [CRITICAL] ANTES de renderizar ProductView:`, {
-                  todasLasKeys: Object.keys(products),
-                  tieneKeySection: sectionIdStr in products,
-                  valorDirecto: products[sectionIdStr],
-                  tipoDeValor: products[sectionIdStr] ? typeof products[sectionIdStr] : 'undefined',
-                  esArray: Array.isArray(products[sectionIdStr]),
-                  contieneDatos: products[sectionIdStr]?.length > 0
-                });
-                
-                // SOLUCIÓN TEMPORAL: Si no hay productos en el state global, cargarlos ahora
-                if (!products[sectionIdStr] || products[sectionIdStr].length === 0) {
-                  console.log(`⚠️ [CRITICAL] NO hay productos en el state, intentando cargar ahora...`);
+                {/* El ProductView solo se debe mostrar cuando hay una sección seleccionada y estamos en vista PRODUCTS */}
+                {currentView === 'PRODUCTS' && selectedSection && (() => {
+                  // Obtener el sectionId como string para acceder al objeto products
+                  const sectionIdStr = selectedSection.section_id.toString();
                   
-                  // Este es un último recurso - idealmente no debería ser necesario
-                  fetchProductsBySection(selectedSection.section_id, true)
-                    .then(loadedProducts => {
-                      console.log(`✅ Carga de emergencia completada: ${loadedProducts.length} productos`);
-                    })
-                    .catch(err => {
-                      console.error(`❌ Error en carga de emergencia:`, err);
-                    });
-                }
-                
-                // Obtener productos para esta sección - intentamos todas las opciones posibles
-                let sectionProducts: Product[] = [];
-                
-                // Opción 1: Productos en el state global
-                if (products[sectionIdStr] && products[sectionIdStr].length > 0) {
-                  sectionProducts = products[sectionIdStr];
-                  console.log(`✅ Usando productos del state global: ${sectionProducts.length}`);
-                } 
-                // Si no hay productos, mandamos un array vacío pero lo registramos
-                else {
-                  console.log(`⚠️ [CRITICAL] No hay productos disponibles para mostrar`);
-                }
-                
-                return (
-                  <>
-                    {/* Debug info visible solo en desarrollo */}
-                    {process.env.NODE_ENV === 'development' && (
-                      <div className="p-2 mb-4 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                        <div className="font-bold">Debug info:</div>
-                        <div>Sección: {selectedSection.name} (ID: {selectedSection.section_id})</div>
-                        <div>Productos cargados: {sectionProducts.length}</div>
-                        <div>Keys en state: {Object.keys(products).join(', ')}</div>
-                        <div>Tiene key {sectionIdStr}: {sectionIdStr in products ? 'Sí' : 'No'}</div>
-                      </div>
-                    )}
+                  // Verificar el objeto products con más detalle
+                  console.log(`📊 [CRITICAL] ANTES de renderizar ProductView:`, {
+                    todasLasKeys: Object.keys(products),
+                    tieneKeySection: sectionIdStr in products,
+                    valorDirecto: products[sectionIdStr],
+                    tipoDeValor: products[sectionIdStr] ? typeof products[sectionIdStr] : 'undefined',
+                    esArray: Array.isArray(products[sectionIdStr]),
+                    contieneDatos: products[sectionIdStr]?.length > 0
+                  });
+                  
+                  // SOLUCIÓN TEMPORAL: Si no hay productos en el state global, cargarlos ahora
+                  if (!products[sectionIdStr] || products[sectionIdStr].length === 0) {
+                    console.log(`⚠️ [CRITICAL] NO hay productos en el state, intentando cargar ahora...`);
                     
-                    <ProductView
-                      products={sectionProducts}
-                      sectionName={selectedSection.name || ''}
-                      sectionId={selectedSection.section_id}
-                      isUpdatingVisibility={isUpdatingVisibility}
-                      onAddProduct={() => handleAddProduct(selectedSection.section_id)}
-                      onEditProduct={handleEditProduct}
-                      onDeleteProduct={handleDeleteProduct}
-                      onToggleProductVisibility={(productId: number, currentStatus: number, sectionId: number) => {
-                        void toggleProductVisibility(productId, currentStatus, sectionId);
-                      }}
-                      isLoading={!sectionProducts || sectionProducts.length === 0}
-                      onProductsReorder={(updatedProducts) => handleReorderProducts(selectedSection.section_id, updatedProducts)}
-                    />
-                  </>
-                );
-              })()}
-            </>
-          )}
+                    // Este es un último recurso - idealmente no debería ser necesario
+                    fetchProductsBySection(selectedSection.section_id, true)
+                      .then(loadedProducts => {
+                        console.log(`✅ Carga de emergencia completada: ${loadedProducts.length} productos`);
+                      })
+                      .catch(err => {
+                        console.error(`❌ Error en carga de emergencia:`, err);
+                      });
+                  }
+                  
+                  // Obtener productos para esta sección - intentamos todas las opciones posibles
+                  let sectionProducts: Product[] = [];
+                  
+                  // Opción 1: Productos en el state global
+                  if (products[sectionIdStr] && products[sectionIdStr].length > 0) {
+                    sectionProducts = products[sectionIdStr];
+                    console.log(`✅ Usando productos del state global: ${sectionProducts.length}`);
+                  } 
+                  // Si no hay productos, mandamos un array vacío pero lo registramos
+                  else {
+                    console.log(`⚠️ [CRITICAL] No hay productos disponibles para mostrar`);
+                  }
+                  
+                  return (
+                    <>
+                      {/* Debug info visible solo en desarrollo */}
+                      {process.env.NODE_ENV === 'development' && (
+                        <div className="p-2 mb-4 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                          <div className="font-bold">Debug info:</div>
+                          <div>Sección: {selectedSection.name} (ID: {selectedSection.section_id})</div>
+                          <div>Productos cargados: {sectionProducts.length}</div>
+                          <div>Keys en state: {Object.keys(products).join(', ')}</div>
+                          <div>Tiene key {sectionIdStr}: {sectionIdStr in products ? 'Sí' : 'No'}</div>
+                        </div>
+                      )}
+                      
+                      <ProductView
+                        products={sectionProducts}
+                        sectionName={selectedSection.name || ''}
+                        sectionId={selectedSection.section_id}
+                        isUpdatingVisibility={isUpdatingVisibility}
+                        onAddProduct={() => handleAddProduct(selectedSection.section_id)}
+                        onEditProduct={handleEditProduct}
+                        onDeleteProduct={handleDeleteProduct}
+                        onToggleProductVisibility={(productId: number, currentStatus: number, sectionId: number) => {
+                          void toggleProductVisibility(productId, currentStatus, sectionId);
+                        }}
+                        isLoading={!sectionProducts || sectionProducts.length === 0}
+                        onProductsReorder={isReorderModeActive ? (sourceIndex: number, destinationIndex: number) => {
+                          if (selectedSection) {
+                            handleReorderProducts(selectedSection.section_id, sourceIndex, destinationIndex);
+                          }
+                        } : undefined}
+                      />
+                    </>
+                  );
+                })()}
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      </DragDropContext> { /* Fin del DragDropContext global */ }
       
       {/* Vista previa móvil */}
       {client && (
-        <MobilePreview 
+        <FloatingPhonePreview 
           clientName={client?.name || 'RokaMenu'}
           categories={categories}
           sections={sections}

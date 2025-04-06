@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { PaintBrushIcon } from '@heroicons/react/24/outline';
+import { PaintBrushIcon, PhoneIcon } from '@heroicons/react/24/outline';
 import CustomizationModal from './modals/CustomizationModal';
 
 interface TopNavbarProps {
@@ -18,6 +18,12 @@ export function TopNavbar({
   clientName = 'RokaMenu'
 }: TopNavbarProps) {
   const [isCustomizationModalOpen, setIsCustomizationModalOpen] = useState(false);
+  
+  // Función para mostrar/ocultar la vista previa
+  const handleTogglePreview = () => {
+    // Disparar evento personalizado para activar la vista previa
+    window.dispatchEvent(new Event('toggle-preview'));
+  };
   
   return (
     <div className="bg-white shadow-sm border-b border-gray-200">
@@ -37,11 +43,21 @@ export function TopNavbar({
           
           {/* Menú derecho */}
           <div className="flex items-center">
+            {/* Botón de vista previa */}
+            <button
+              type="button"
+              onClick={handleTogglePreview}
+              className="inline-flex items-center px-3 py-2 border border-indigo-100 shadow-sm text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <PhoneIcon className="h-5 w-5 mr-2 text-indigo-500" />
+              Live Preview
+            </button>
+            
             {/* Botón de personalización */}
             <button
               type="button"
               onClick={() => setIsCustomizationModalOpen(true)}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="ml-3 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <PaintBrushIcon className="h-5 w-5 mr-2 text-gray-500" />
               Personalizar Dashboard

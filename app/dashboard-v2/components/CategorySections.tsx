@@ -4,227 +4,250 @@ import React, { useState, useEffect } from 'react';
 import { Category, Section } from '../types';
 import { LegacySection, toLegacySection, toOfficialSection } from '../types/legacy';
 import SectionList from './sections/SectionList';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { PlusIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon } from '@heroicons/react/24/solid';
 import { toast } from 'react-hot-toast';
 import SectionDetail from './SectionDetail';
 import useDataState from '../hooks/useDataState';
 
+/**
+ * Props para el componente CategorySections
+ */
 interface CategorySectionsProps {
+  /** Categoría a mostrar */
   category: Category;
 }
 
+/**
+ * Componente que muestra las secciones de una categoría específica
+ * 
+ * IMPORTANTE: Este componente NO incluye su propio DragDropContext,
+ * debe ser utilizado dentro del DragDropContext global en DashboardView.
+ */
 export default function CategorySections({ category }: CategorySectionsProps) {
   const [sections, setSections] = useState<Section[]>([]);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState<Section | null>(null);
   const [isReorderMode, setIsReorderMode] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const {
-    sections: sectionsMap,
-    fetchSectionsByCategory,
-    deleteSection
+
+  // Usar el hook de estado global
+  const { 
+    sections: allSections, 
+    setSections: setAllSections, 
+    fetchSectionsByCategory, 
+    deleteSection 
   } = useDataState();
-  
-  // Cargar secciones cuando cambia la categoría
+
   useEffect(() => {
-    const loadSections = async () => {
-      if (!category) return;
+    // Solo cargar secciones si tenemos una categoría válida
+    if (category && category.category_id) {
+      const loadSections = async () => {
+        try {
+          setIsLoading(true);
+          await fetchSectionsByCategory(category.category_id);
+          setIsLoading(false);
+        } catch (error) {
+          console.error("Error cargando secciones:", error);
+          setError("Error al cargar las secciones");
+          setIsLoading(false);
+        }
+      };
       
-      setIsLoading(true);
-      try {
-        await fetchSectionsByCategory(category.category_id);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error al cargar secciones:', error);
-        setIsLoading(false);
-      }
-    };
-    
-    loadSections();
-  }, [category, fetchSectionsByCategory]);
-  
-  // Actualizar secciones locales cuando cambia el store
-  useEffect(() => {
-    if (category && sectionsMap && sectionsMap[category.category_id]) {
-      // Usar directamente las secciones del store ya que son del tipo Section
-      const dashboardSections = sectionsMap[category.category_id] || [];
-      setSections(dashboardSections);
+      loadSections();
     }
-  }, [category, sectionsMap]);
-  
-  // Manejador para abrir el modal de edición
-  const handleEditClick = (legacySection: LegacySection) => {
-    // Convertir de LegacySection a Section para el estado interno
-    const officialSection = toOfficialSection(legacySection);
-    setSelectedSection(officialSection);
-    setIsEditModalOpen(true);
+  }, [category, fetchSectionsByCategory]);
+
+  // Actualizar las secciones locales cuando cambien en el estado global
+  useEffect(() => {
+    if (category && allSections[category.category_id]) {
+      setSections(allSections[category.category_id]);
+    }
+  }, [category, allSections]);
+
+  // Manejar el clic en editar sección
+  const handleEditClick = (section: LegacySection) => {
+    // Implementar lógica para editar sección
+    console.log("Editar sección:", section);
+    // Aquí se abriría un modal o se navegaría a una vista de edición
   };
-  
-  // Manejador para abrir el modal de eliminación
-  const handleDeleteClick = (legacySection: LegacySection) => {
-    // Convertir de LegacySection a Section para el estado interno
-    const officialSection = toOfficialSection(legacySection);
-    setSelectedSection(officialSection);
-    setIsDeleteModalOpen(true);
+
+  // Manejar el clic en eliminar sección
+  const handleDeleteClick = (section: LegacySection) => {
+    setSectionToDelete(toOfficialSection(section));
+    setShowDeleteModal(true);
   };
-  
-  // Manejador para confirmar eliminación
-  const handleConfirmDelete = async () => {
-    if (!selectedSection) return;
+
+  // Confirmar eliminación de sección
+  const confirmDelete = async () => {
+    if (!sectionToDelete) return;
     
     try {
-      await deleteSection(selectedSection.section_id, category.category_id);
-      setIsDeleteModalOpen(false);
-      setSelectedSection(null);
-      toast.success('Sección eliminada correctamente');
+      await deleteSection(sectionToDelete.section_id, category.category_id);
+      toast.success("Sección eliminada correctamente");
+      setShowDeleteModal(false);
+      setSectionToDelete(null);
     } catch (error) {
-      console.error('Error al eliminar la sección:', error);
-      toast.error('Error al eliminar la sección');
+      console.error("Error eliminando sección:", error);
+      toast.error("Error al eliminar la sección");
     }
   };
-  
-  // Manejador para drag and drop
+
+  // Ordenar secciones por display_order
+  const sortedSections = [...sections].sort((a, b) => 
+    (a.display_order || 999) - (b.display_order || 999)
+  );
+
+  // Manejar evento de reordenamiento (arrastrar y soltar)
   const handleDragEnd = (result: any) => {
+    // Esta función ya no necesita implementar un onDragEnd completo
+    // porque será manejado por el DragDropContext global
+    // Solo conservamos la lógica para actualizar la vista local
+    console.log("Reordenar secciones:", result);
+    
     if (!result.destination) return;
     
-    const sourceIndex = result.source.index;
-    const destinationIndex = result.destination.index;
+    const items = Array.from(sortedSections);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
     
-    if (sourceIndex === destinationIndex) return;
+    // Actualizar el orden de visualización
+    const updatedItems = items.map((item, index) => ({
+      ...item,
+      display_order: index + 1
+    }));
     
-    // Aquí iría la lógica para reordenar secciones
-    toast.success('Orden actualizado');
+    // Actualizar estado local
+    if (category.category_id) {
+      setAllSections({
+        ...allSections,
+        [category.category_id]: updatedItems
+      });
+    }
   };
-  
+
+  // ID único para el Droppable basado en la categoría
+  const droppableId = `sections-category-${category.category_id}`;
+
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <div>Cargando secciones...</div>;
   }
-  
-  if (!sections || sections.length === 0) {
-    return (
-      <div className="text-center py-12 px-4">
-        <h3 className="text-lg font-medium text-gray-900">No hay secciones en esta categoría</h3>
-        <p className="mt-1 text-sm text-gray-500">
-          Crea una nueva sección para mostrar productos.
-        </p>
-        <div className="mt-6">
-          <button
-            type="button"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-            Nueva Sección
-          </button>
-        </div>
-      </div>
-    );
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
   }
-  
-  // Ordenar secciones por el campo display_order
-  const sortedSections = [...sections].sort((a, b) => a.display_order - b.display_order);
-  
+
   return (
-    <div className="space-y-6">
-      {/* Header con botones de acción */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-medium text-gray-900">
+    <div className="grid-container section-border">
+      <div className="grid-header section-border section-bg">
+        <h2 className="grid-title section-title">
           Secciones de {category.name}
         </h2>
-        
-        <div className="flex space-x-3">
+        <div className="flex space-x-2">
           <button
-            type="button"
-            className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-md ${
-              isReorderMode 
-                ? 'bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200' 
-                : 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'
-            }`}
             onClick={() => setIsReorderMode(!isReorderMode)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+              isReorderMode 
+              ? 'section-button' 
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
           >
-            {isReorderMode ? 'Terminar Reordenación' : 'Reordenar Secciones'}
+            {isReorderMode ? 'Guardar orden' : 'Reordenar secciones'}
           </button>
-          
           <button
-            type="button"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            onClick={() => setIsCreateModalOpen(true)}
+            onClick={() => {
+              // Implementar lógica para agregar sección
+              console.log("Agregar sección a categoría:", category.category_id);
+            }}
+            className="px-3 py-1.5 text-sm font-medium rounded-md section-button flex items-center"
           >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
-            Nueva Sección
+            <PlusIcon className="h-4 w-4 mr-1" />
+            Agregar sección
           </button>
         </div>
       </div>
       
-      {/* Lista de secciones con drag and drop */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="sections" isDropDisabled={!isReorderMode}>
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="space-y-4"
-            >
-              {sortedSections.map((section, index) => (
-                <Draggable
-                  key={section.section_id}
-                  draggableId={`section-${section.section_id}`}
-                  index={index}
-                  isDragDisabled={!isReorderMode}
-                >
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                      className={`${snapshot.isDragging ? 'border-2 border-indigo-300' : ''}`}
-                    >
+      {/* IMPORTANTE: No hay DragDropContext aquí, solo Droppable */}
+      <Droppable droppableId={droppableId} type="SECTION" isDropDisabled={!isReorderMode}>
+        {(provided) => (
+          <div
+            {...provided.droppableProps}
+            ref={provided.innerRef}
+            className="space-y-4 p-4"
+          >
+            {sortedSections.map((section, index) => (
+              <Draggable
+                key={section.section_id}
+                draggableId={section.section_id.toString()}
+                index={index}
+                isDragDisabled={!isReorderMode}
+              >
+                {(provided, snapshot) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    className={`grid-row ${snapshot.isDragging ? 'grid-item-dragging-section' : 'section-hover'}`}
+                  >
+                    <div className="flex items-center mb-2">
+                      {/* Handle de arrastre separado */}
+                      <div 
+                        {...provided.dragHandleProps}
+                        className="section-drag-handle mr-2 p-2 rounded-lg bg-teal-50 hover:bg-teal-100 cursor-grab"
+                        title="Arrastrar para reordenar"
+                        aria-label="Arrastrar para reordenar"
+                        style={{
+                          touchAction: 'none',
+                          userSelect: 'none',
+                          WebkitUserSelect: 'none',
+                          MozUserSelect: 'none',
+                          msUserSelect: 'none'
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                        }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                        }}
+                        onTouchStart={(e) => {
+                          e.stopPropagation();
+                        }}
+                      >
+                        <Bars3Icon className="h-5 w-5 text-teal-600" />
+                      </div>
                       <SectionDetail 
                         section={toLegacySection(section)}
                         onEditClick={handleEditClick}
                         onDeleteClick={handleDeleteClick}
                       />
                     </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+                  </div>
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
       
       {/* Modal de confirmación de eliminación */}
-      {isDeleteModalOpen && selectedSection && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-            <h3 className="text-lg font-medium text-gray-900">Confirmar eliminación</h3>
-            <p className="mt-2 text-sm text-gray-500">
-              ¿Estás seguro de que deseas eliminar la sección "{selectedSection.name}"? Esta acción no se puede deshacer y se eliminarán todos los productos asociados.
-            </p>
-            <div className="mt-4 flex justify-end space-x-2">
-              <button
-                type="button"
-                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  setSelectedSection(null);
-                }}
+      {showDeleteModal && sectionToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-semibold mb-4">Eliminar sección</h3>
+            <p className="mb-6">¿Está seguro que desea eliminar la sección "{sectionToDelete.name}"? Esta acción no se puede deshacer.</p>
+            <div className="flex justify-end space-x-3">
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
                 Cancelar
               </button>
-              <button
-                type="button"
-                className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
-                onClick={handleConfirmDelete}
+              <button 
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
               >
                 Eliminar
               </button>
@@ -232,8 +255,6 @@ export default function CategorySections({ category }: CategorySectionsProps) {
           </div>
         </div>
       )}
-      
-      {/* Implementar modales de creación y edición según sea necesario */}
     </div>
   );
 } 

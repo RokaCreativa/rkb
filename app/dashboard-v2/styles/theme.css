@@ -50,24 +50,25 @@
   --category-button-bg: #4F46E5;        /* Indigo-600 */
   --category-button-hover: #4338CA;     /* Indigo-700 */
   
-  /* Secciones (Verde) */
-  --section-bg-color: #ECFDF5;          /* Green-50 */
-  --section-border-color: #D1FAE5;      /* Green-100 */
-  --section-title-color: #059669;       /* Green-600 */
-  --section-text-color: #047857;        /* Green-700 */
-  --section-hover-color: #A7F3D0;       /* Green-200 */
-  --section-button-bg: #059669;         /* Green-600 */
-  --section-button-hover: #047857;      /* Green-700 */
+  /* Secciones (Teal) */
+  --section-bg-color: #F0FDFA;          /* Teal-50 */
+  --section-border-color: #CCFBF1;      /* Teal-100 */
+  --section-title-color: #0D9488;       /* Teal-600 */
+  --section-text-color: #0F766E;        /* Teal-700 */
+  --section-hover-color: #99F6E4;       /* Teal-200 */
+  --section-button-bg: #0D9488;         /* Teal-600 */
+  --section-button-hover: #0F766E;      /* Teal-700 */
   --section-accent-border: #10B981;     /* Green-500 */
   
-  /* Productos (Amarillo) */
-  --product-bg-color: #FFFBEB;          /* Yellow-50 */
-  --product-border-color: #FEF3C7;      /* Yellow-100 */
-  --product-title-color: #D97706;       /* Yellow-600 */
-  --product-text-color: #B45309;        /* Yellow-700 */
-  --product-hover-color: #FDE68A;       /* Yellow-200 */
-  --product-button-bg: #D97706;         /* Yellow-600 */
-  --product-button-hover: #B45309;      /* Yellow-700 */
+  /* Productos (Amber/Yellow) */
+  --product-bg-color: #FFFBEB;          /* Amber-50 */
+  --product-border-color: #FEF3C7;      /* Amber-100 */
+  --product-title-color: #D97706;       /* Amber-600 */
+  --product-text-color: #B45309;        /* Amber-700 */
+  --product-hover-color: #FDE68A;       /* Amber-200 */
+  --product-button-bg: #D97706;         /* Amber-600 */
+  --product-button-hover: #B45309;      /* Amber-700 */
+  --product-bg-light: #FEF3C7;          /* Amber-100 - color de fondo claro para drag */
   
   /* Iconos */
   --icon-add-color: currentColor;       /* Hereda del contexto */
@@ -214,4 +215,92 @@
 
 .badge-error {
   @apply bg-red-100 text-red-800;
+}
+
+/* Clases para Categorías */
+.category-bg { @apply bg-indigo-50; }
+.category-bg-light { @apply bg-indigo-50/50; }
+.category-border { @apply border-indigo-100; }
+.category-title { @apply text-indigo-600; }
+.category-text { @apply text-indigo-700; }
+.category-action { @apply text-indigo-500; }
+.category-button { @apply bg-indigo-600 text-white; }
+.category-button-hover { @apply bg-indigo-700; }
+.category-icon-hover:hover { @apply text-indigo-700 bg-indigo-100; }
+.category-hover:hover { @apply bg-indigo-50; }
+
+/* Clases para Secciones */
+.section-bg { @apply bg-teal-50; }
+.section-bg-light { @apply bg-teal-50/50; }
+.section-border { @apply border-teal-100; }
+.section-title { @apply text-teal-600; }
+.section-text { @apply text-teal-700; }
+.section-action { @apply text-teal-500; }
+.section-button { @apply bg-teal-600 text-white; }
+.section-button-hover { @apply bg-teal-700; }
+.section-icon-hover:hover { @apply text-teal-700 bg-teal-100; }
+.section-hover:hover { @apply bg-teal-50; }
+
+/* Clases para Productos */
+.product-bg { @apply bg-amber-50; }
+.product-bg-light { @apply bg-amber-50/50; }
+.product-border { @apply border-amber-100; }
+.product-title { @apply text-amber-600; }
+.product-text { @apply text-amber-700; }
+.product-action { @apply text-amber-500; }
+.product-button { @apply bg-amber-600 text-white; }
+.product-button-hover { @apply bg-amber-700; }
+.product-icon-hover:hover { @apply text-amber-700 bg-amber-100; }
+.product-hover:hover { @apply bg-amber-50; }
+.product-action-edit { @apply p-1 rounded text-amber-500 hover:text-amber-700 hover:bg-amber-100; }
+.product-drag-handle { @apply text-amber-500 hover:text-amber-700 hover:bg-amber-100 cursor-grab; }
+
+/* Clases para Modificadores */
+.modifier-bg { @apply bg-fuchsia-50; }
+.modifier-bg-light { @apply bg-fuchsia-50/50; }
+.modifier-border { @apply border-fuchsia-100; }
+.modifier-title { @apply text-fuchsia-600; }
+.modifier-text { @apply text-fuchsia-700; }
+.modifier-action { @apply text-fuchsia-500; }
+.modifier-button { @apply bg-fuchsia-600 text-white; }
+.modifier-button-hover { @apply bg-fuchsia-700; }
+.modifier-icon-hover:hover { @apply text-fuchsia-700 bg-fuchsia-100; }
+.modifier-hover:hover { @apply bg-fuchsia-50; }
+
+/* Clases de utilidad para botones */
+.button-sm {
+  @apply inline-flex items-center px-2 py-1 text-xs font-medium rounded;
+}
+
+.button-md {
+  @apply inline-flex items-center px-3 py-2 text-sm font-medium rounded;
+}
+
+.action-button {
+  @apply p-1 rounded hover:bg-gray-100;
+}
+
+.action-button-delete {
+  @apply p-1 rounded text-red-500 hover:bg-red-50;
+}
+
+/* Clases para estados de arrastre */
+.grid-item-dragging-category {
+  @apply shadow-lg bg-indigo-50 !important;
+}
+
+.grid-item-dragging-section {
+  @apply shadow-lg bg-teal-50 !important;
+}
+
+.grid-item-dragging-product {
+  @apply shadow-lg bg-amber-50 !important;
+}
+
+.grid-item-dragging-modifier {
+  @apply shadow-lg bg-fuchsia-50 !important;
+}
+
+.grid-item-hidden {
+  @apply opacity-60 !important;
 } 

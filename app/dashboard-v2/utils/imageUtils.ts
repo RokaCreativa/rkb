@@ -9,70 +9,37 @@
  */
 
 /**
- * Obtiene la ruta correcta para una imagen según su tipo
+ * Obtiene la ruta de imagen adecuada para un tipo específico
  * 
- * Esta función:
- * 1. Maneja casos donde la imagen es nula devolviendo un placeholder
- * 2. Evita duplicación de rutas
- * 3. Construye correctamente las rutas según el tipo de imagen
- * 
- * @param imagePath Ruta o nombre de la imagen
- * @param type Tipo de imagen (categoría, producto, sección, etc.)
- * @returns Ruta completa y correcta de la imagen
+ * @param imageUrl URL o nombre de archivo de la imagen
+ * @param type Tipo de imagen ('products', 'sections', 'categories', etc.)
+ * @returns URL completa de la imagen
  */
-export function getImagePath(
-  imagePath: string | null | undefined, 
-  type: 'categories' | 'products' | 'sections' | 'clients' | 'main_logo' = 'categories'
-): string {
-  // Si no hay imagen, devolver placeholder
-  if (!imagePath || imagePath.trim() === '') {
-    return '/images/no-image.png';
+export const getImagePath = (imageUrl: string | null, type: string): string => {
+  if (!imageUrl) {
+    console.log(`No image provided for ${type}, using placeholder`);
+    return '/images/placeholder.png';
   }
-  
-  // Si es una URL completa, devolverla tal cual
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath;
+
+  // Si ya es una URL completa, devolverla directamente
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('/')) {
+    return imageUrl;
   }
-  
-  // Mapeo de tipos a directorios
-  const typeToDir: Record<string, string> = {
-    'categories': 'categories',
-    'products': 'products',
-    'sections': 'sections',
-    'clients': 'clientes',
-    'main_logo': 'main_logo'
-  };
-  
-  // Si la ruta ya incluye el prefijo completo, devolverla tal cual
-  if (imagePath.startsWith('/images/')) {
-    return imagePath;
-  }
-  
-  // Construir la ruta correcta
-  return `/images/${typeToDir[type]}/${imagePath}`;
+
+  // Construir la ruta según el tipo
+  return `/images/${type}/${imageUrl}`;
 }
 
 /**
- * Maneja errores de carga de imágenes
+ * Maneja errores al cargar imágenes, estableciendo una imagen de marcador de posición
  * 
- * Esta función se asigna al evento onError de imágenes para mostrar
- * una imagen de fallback cuando la imagen original no se puede cargar.
- * También incluye logging para facilitar la depuración.
- * 
- * @param event Evento de error de imagen
+ * @param event Evento de error de la imagen
  */
-export function handleImageError(event: React.SyntheticEvent<HTMLImageElement>): void {
-  const target = event.target as HTMLImageElement;
-  console.debug(`[dashboard-v2] Error cargando imagen: ${target.src}`);
-  
-  // Comprobar si ya estamos mostrando la imagen de fallback
-  if (target.src.includes('no-image.png')) {
-    return; // Evitar bucle infinito
-  }
-  
-  // Establecer imagen de fallback
-  target.src = '/images/no-image.png';
-  target.onerror = null; // Evitar bucle infinito
+export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement, Event>): void => {
+  console.error('Error loading image:', event.currentTarget.src);
+  event.currentTarget.src = '/images/placeholder.png';
+  // Añadir clases para indicar que es una imagen de reemplazo
+  event.currentTarget.classList.add('placeholder-image');
 }
 
 /**

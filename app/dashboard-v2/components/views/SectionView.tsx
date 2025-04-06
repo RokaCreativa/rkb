@@ -36,8 +36,8 @@ interface SectionViewProps {
   onDeleteProduct: (product: Product) => void;
   onToggleSectionVisibility: (sectionId: number, currentStatus: number) => void;
   onToggleProductVisibility: (productId: number, currentStatus: number, sectionId: number) => void;
-  onSectionReorder?: (updatedSections: Section[]) => void;
-  onProductReorder?: (sectionId: number, updatedProducts: Product[]) => void;
+  onSectionReorder?: (categoryId: number, sourceIndex: number, destinationIndex: number) => void;
+  onProductReorder?: (sectionId: number, sourceIndex: number, destinationIndex: number) => void;
   isUpdatingVisibility?: number | null;
   isUpdatingProductVisibility?: number | null;
   isLoading?: boolean;
@@ -143,7 +143,13 @@ const SectionView: React.FC<SectionViewProps> = ({
         isUpdatingProductVisibility={isUpdatingProductVisibility}
         categoryName={category?.name || "Comidas"}
         categoryId={category?.category_id}
-        onSectionsReorder={onSectionReorder}
+        onSectionsReorder={
+          category?.category_id && onSectionReorder
+            ? (sourceIndex, destinationIndex) => {
+                onSectionReorder(category.category_id, sourceIndex, destinationIndex);
+              }
+            : undefined
+        }
       />
 
       {/* Productos de las secciones expandidas */}
@@ -163,10 +169,12 @@ const SectionView: React.FC<SectionViewProps> = ({
               onEditProduct={onEditProduct}
               onDeleteProduct={onDeleteProduct}
               onToggleProductVisibility={onToggleProductVisibility}
-              isUpdatingVisibility={isUpdatingProductVisibility || null}
+              isUpdatingProductVisibility={isUpdatingProductVisibility || null}
               onProductsReorder={
                 onProductReorder ? 
-                (updatedProducts: Product[]) => onProductReorder(sectionId, updatedProducts) : 
+                (sourceIndex: number, destinationIndex: number) => {
+                  onProductReorder(sectionId, sourceIndex, destinationIndex);
+                } : 
                 undefined
               }
             />

@@ -13,7 +13,7 @@ interface ProductListItemProps {
   onDeleteProduct?: (product: Product) => void;
   isUpdatingProductVisibility?: number | null;
   sectionId: number;
-  dragHandleProps?: DraggableProvidedDragHandleProps;
+  dragHandleProps?: DraggableProvidedDragHandleProps | null;
   showDragHandle?: boolean;
 }
 
@@ -33,36 +33,45 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   // Efecto para depurar props
   useEffect(() => {
     console.log(`ProductListItem for ${product.name}:`, { 
-      showDragHandle, 
-      hasDragHandleProps: !!dragHandleProps
+      hasDragHandleProps: !!dragHandleProps,
+      dragHandleProps: dragHandleProps ? "Present" : "Missing",
+      productId: product.product_id,
+      productStatus: product.status
     });
-  }, [product.name, showDragHandle, dragHandleProps]);
+  }, [product.name, product.product_id, product.status, dragHandleProps]);
 
   return (
-    <div className={`flex items-center justify-between p-3 product-hover border-b product-border ${product.status !== 1 ? 'opacity-70' : ''}`}>
+    <div className={`flex items-center justify-between p-3 product-hover border-b product-border !bg-white hover:!bg-amber-50 !border-amber-100 ${product.status !== 1 ? 'opacity-70' : ''}`}>
       <div className="flex items-center gap-3">
-        {/* Icono de arrastre siempre presente para depuración */}
-        {showDragHandle ? (
+        {/* Icono de arrastre - IMPORTANTE para drag and drop */}
+        {dragHandleProps ? (
           <div 
-            {...(dragHandleProps || {})}
-            className="product-drag-handle px-2 -ml-2"
+            {...dragHandleProps}
+            className="product-drag-handle px-2 -ml-2 p-2 cursor-grab !bg-amber-50 hover:!bg-amber-100 rounded-lg"
             title="Arrastrar para reordenar"
+            style={{
+              touchAction: 'none',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none'
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+            onMouseDown={(e) => {
+              e.stopPropagation();
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+            }}
           >
-            <GridIcon 
-              type="product" 
-              icon="drag" 
-              size="large" 
-            />
+            <Bars3Icon className="h-5 w-5 !text-amber-600" />
           </div>
         ) : (
-          // Icono visual pero sin funcionalidad para depuración
-          <div className="flex items-center justify-center self-stretch px-2 -ml-2 opacity-40">
-            <GridIcon 
-              type="product" 
-              icon="drag" 
-              size="medium" 
-              className="text-yellow-300"
-            />
+          <div className="flex items-center justify-center self-stretch px-2 -ml-2">
+            <Bars3Icon className="h-5 w-5 !text-amber-300" />
           </div>
         )}
         <div className="grid-image-container">
@@ -76,7 +85,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           />
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-medium product-text">{product.name}</span>
+          <span className="text-sm font-medium product-text !text-amber-700">{product.name}</span>
           {product.description && (
             <span className="text-xs text-gray-500 truncate max-w-xs">{product.description}</span>
           )}
@@ -84,7 +93,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
       </div>
       
       <div className="flex items-center">
-        <span className="text-sm font-medium mr-4">{product.price}</span>
+        <span className="text-sm font-medium mr-4 product-text !text-amber-700">${product.price}</span>
         {onToggleProductVisibility && (
           <button
             onClick={(e) => {
@@ -96,18 +105,19 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
               isUpdatingProductVisibility === product.product_id
                 ? 'opacity-50 cursor-not-allowed'
                 : product.status === 1
-                  ? 'product-action product-icon-hover'
+                  ? 'product-action product-icon-hover !text-amber-600 hover:!bg-amber-100'
                   : 'text-gray-400 hover:bg-gray-100'
             }`}
             title={product.status === 1 ? "Ocultar producto" : "Mostrar producto"}
           >
             {isUpdatingProductVisibility === product.product_id ? (
-              <div className="w-4 h-4 border-2 border-t-transparent border-yellow-500 rounded-full animate-spin"></div>
+              <div className="w-4 h-4 border-2 border-t-transparent !border-amber-500 rounded-full animate-spin"></div>
             ) : (
               <GridIcon 
                 type="product" 
                 icon={product.status === 1 ? "visibility" : "hidden"} 
                 size="medium"
+                className={product.status === 1 ? "!text-amber-600" : ""}
               />
             )}
           </button>
@@ -118,10 +128,10 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
               e.stopPropagation();
               onEditProduct(product);
             }}
-            className="p-1 rounded product-action product-icon-hover ml-1"
+            className="p-1 rounded product-action product-icon-hover ml-1 !text-amber-600 hover:!bg-amber-100"
             title="Editar producto"
           >
-            <GridIcon type="product" icon="edit" size="medium" />
+            <GridIcon type="product" icon="edit" size="medium" className="!text-amber-600" />
           </button>
         )}
         {onDeleteProduct && (

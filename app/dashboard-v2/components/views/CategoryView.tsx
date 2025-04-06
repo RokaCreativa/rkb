@@ -38,7 +38,6 @@ interface CategoryViewProps {
   onEditSectionSubmit: (section: Partial<Section>) => void;
   onDeleteSectionSubmit: (sectionId: number) => void;
   onAddSectionSubmit: (section: Partial<Section>) => void;
-  onReorderCategory: (sourceIndex: number, destinationIndex: number) => void;
   onSectionClick: (sectionId: number) => void;
   onCategoryClick: (category: Category) => void;
   products?: { [key: number]: Product[] };
@@ -47,6 +46,7 @@ interface CategoryViewProps {
   onDeleteProduct?: (product: Product) => void;
   onAddProductSubmit?: (product: Partial<Product>) => void;
   isUpdatingProductVisibility?: number | null;
+  isReorderModeActive?: boolean;
 }
 
 /**
@@ -75,7 +75,6 @@ const CategoryView: React.FC<CategoryViewProps> = ({
   onEditSectionSubmit,
   onDeleteSectionSubmit,
   onAddSectionSubmit,
-  onReorderCategory,
   onSectionClick,
   onCategoryClick,
   products = {},
@@ -112,12 +111,9 @@ const CategoryView: React.FC<CategoryViewProps> = ({
     setIsEditCategoryModalOpen(true);
   };
   
-  const handleDeleteCategory = (categoryId: number) => {
-    const category = categories.find(c => c.category_id === categoryId);
-    if (category) {
-      setSelectedCategory(category);
-      setIsDeleteCategoryModalOpen(true);
-    }
+  const handleDeleteCategory = (category: Category) => {
+    setSelectedCategory(category);
+    setIsDeleteCategoryModalOpen(true);
   };
   
   // Section modal handlers
@@ -189,14 +185,12 @@ const CategoryView: React.FC<CategoryViewProps> = ({
           onEditSection={handleEditSection}
           onDeleteSection={handleDeleteSection}
           onAddProduct={handleAddProduct}
-          onReorderCategory={onReorderCategory}
           isReorderModeActive={isReorderModeActive}
           products={products}
           onToggleProductVisibility={onToggleProductVisibility}
           onEditProduct={onEditProduct}
           onDeleteProduct={onDeleteProduct}
           isUpdatingProductVisibility={isUpdatingProductVisibility}
-          onAddCategory={handleAddCategory}
         />
       </div>
 
