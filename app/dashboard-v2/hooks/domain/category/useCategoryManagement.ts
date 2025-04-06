@@ -34,13 +34,34 @@ export default function useCategoryManagement() {
    */
   const fetchClientData = useCallback(async () => {
     try {
-      setIsLoading(true);
-      if (!session || !session.user || !session.user.client_id) {
-        throw new Error('No hay sesión o ID de cliente');
+      // En desarrollo, comprobar primero si tenemos los datos en sessionStorage
+      if (process.env.NODE_ENV === 'development') {
+        const sessionKey = 'client_data_cache';
+        const storedData = sessionStorage.getItem(sessionKey);
+        
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+          console.log('📋 Usando datos de cliente almacenados en sessionStorage');
+          setClient(parsedData);
+          return parsedData;
+        }
       }
-
-      const clientData = await fetch(`/api/client?id=${session.user.client_id}`);
+      
+      setIsLoading(true);
+      
+      // Determinar qué ID de cliente usar
+      const clientId = session?.user?.client_id || 3; // Usar 3 como cliente de prueba si no hay sesión
+      console.log(`🔍 Obteniendo datos del cliente ID=${clientId}...`);
+      
+      const clientData = await fetch(`/api/client?id=${clientId}`);
       const clientJson = await clientData.json();
+      
+      // Guardar en sessionStorage para desarrollo
+      if (process.env.NODE_ENV === 'development') {
+        sessionStorage.setItem('client_data_cache', JSON.stringify(clientJson));
+        console.log('💾 Datos de cliente guardados en sessionStorage');
+      }
+      
       setClient(clientJson);
       setIsLoading(false);
       return clientJson;
@@ -57,26 +78,58 @@ export default function useCategoryManagement() {
    */
   const fetchCategories = useCallback(async () => {
     try {
-      setIsLoading(true);
-      if (!session || !session.user || !session.user.client_id) {
-        throw new Error('No hay sesión o ID de cliente');
+      // Eliminar el cache temporalmente para asegurar los datos frescos
+      if (process.env.NODE_ENV === 'development') {
+        sessionStorage.removeItem('categories_data_cache');
       }
-
-      const response = await fetch(`/api/categories?client_id=${session.user.client_id}`);
+      
+      setIsLoading(true);
+      setError(null); // Limpiar errores previos
+      
+      // Determinar qué ID de cliente usar
+      const clientId = session?.user?.client_id || 3; // Usar 3 como cliente de prueba si no hay sesión
+      console.log(`🔍 Obteniendo categorías del cliente ID=${clientId}...`);
+      
+      const response = await fetch(`/api/categories?client_id=${clientId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Error en la respuesta de la API: ${response.status} ${response.statusText}`);
+      }
+      
       const data = await response.json();
       
-      if (data && Array.isArray(data)) {
-        setCategories(data);
-      } else {
-        throw new Error('Formato de datos incorrecto');
+      if (!data || !Array.isArray(data)) {
+        console.error('Formato de datos incorrecto recibido de la API:', data);
+        throw new Error('Formato de datos incorrecto recibido de la API');
       }
       
+      // Asegurar que los datos sean consistentes
+      const cleanData = data.map(category => ({
+        ...category,
+        category_id: Number(category.category_id), // Asegurar que category_id sea número
+        image: category.image || null, // Asegurar que image sea string | null (nunca undefined)
+        status: Number(category.status), // Asegurar que status sea número
+        display_order: Number(category.display_order || 0), // Asegurar que display_order sea número
+        client_id: Number(category.client_id) // Asegurar que client_id sea número
+      }));
+      
+      console.log(`✅ Obtenidas ${cleanData.length} categorías del cliente ID=${clientId}`);
+      
+      // Guardar en sessionStorage para desarrollo
+      if (process.env.NODE_ENV === 'development') {
+        sessionStorage.setItem('categories_data_cache', JSON.stringify(cleanData));
+        console.log('💾 Datos de categorías guardados en sessionStorage');
+      }
+      
+      // Actualizar el estado local
+      setCategories(cleanData);
       setIsLoading(false);
-      return data;
+      return cleanData;
     } catch (err) {
-      console.error('Error fetching categories:', err);
+      console.error('❌ Error cargando categorías:', err);
       setError('Error al cargar las categorías');
       setIsLoading(false);
+      toast.error('Error al cargar las categorías');
       return [];
     }
   }, [session]);

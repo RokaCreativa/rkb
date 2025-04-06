@@ -8,39 +8,38 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { PlusIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, PlusCircleIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { Category, Section, Product } from "@/app/types/menu";
 import SectionList from '@/app/dashboard-v2/components/domain/sections/SectionList';
 import ProductList from '@/app/dashboard-v2/components/domain/products/ProductList';
 import { ProductTable } from '@/app/dashboard-v2/components/domain/products/ProductTable';
+import { DragDropContext, DropResult } from '@hello-pangea/dnd';
+import { useGridIcons } from '@/app/dashboard-v2/hooks/ui/useGridIcons';
 
 /**
  * Props para el componente SectionView
  */
-interface SectionViewProps {
-  category?: Category;
+export interface SectionViewProps {
+  // Datos
+  selectedCategory: Category;
   sections: Section[];
-  products: Record<number, Product[]>;
-  categoryName?: string;
-  categoryId?: number;
-  expandedSections?: Record<number, boolean>;
-  isReorderModeActive?: boolean;
-  selectedCategory?: Category;
-  handleReorderSection?: (sectionId: number, newPosition: number) => void;
-  onAddSection: (categoryId?: number) => void;
+  
+  // Navegación
+  onBackToCategories: () => void;
+  
+  // Acciones de sección
+  onAddSection: () => void;
+  onSectionClick: (section: Section) => void;
+  onToggleSectionVisibility: (sectionId: number, currentStatus: number, categoryId?: number) => Promise<void>;
   onEditSection: (section: Section) => void;
-  onDeleteSection: (section: Section) => void;
-  onSectionClick?: (sectionId: number) => void;
-  onAddProduct: (sectionId: number) => void;
-  onEditProduct: (product: Product) => void;
-  onDeleteProduct: (product: Product) => void;
-  onToggleSectionVisibility: (sectionId: number, currentStatus: number) => void;
-  onToggleProductVisibility: (productId: number, currentStatus: number, sectionId: number) => void;
-  onSectionReorder?: (categoryId: number, sourceIndex: number, destinationIndex: number) => void;
-  onProductReorder?: (sectionId: number, sourceIndex: number, destinationIndex: number) => void;
-  isUpdatingVisibility?: number | null;
-  isUpdatingProductVisibility?: number | null;
-  isLoading?: boolean;
+  onDeleteSection: (sectionId: number) => void;
+  
+  // Estado
+  isUpdatingVisibility: number | null;
+  
+  // Drag and drop
+  isReorderModeActive?: boolean;
+  onReorderSection?: (sourceIndex: number, destIndex: number) => void;
 }
 
 /**
@@ -78,7 +77,8 @@ const SectionView: React.FC<SectionViewProps> = ({
   onProductReorder,
   isUpdatingVisibility,
   isUpdatingProductVisibility,
-  isLoading
+  isLoading,
+  onBackToCategories
 }) => {
   const [expandedSectionIds, setExpandedSectionIds] = useState<number[]>([]);
 

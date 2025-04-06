@@ -7,7 +7,7 @@ import { Category, Section, Product } from '@/app/types/menu';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 import { Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import Image from 'next/image';
-import SectionList from './sections/SectionList';
+import SectionList from '@/app/dashboard-v2/components/domain/sections/SectionList';
 import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
 
 interface CategoryTableProps {
@@ -258,45 +258,39 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                     )}
                   </Draggable>
                   
-                  {expandedCategories[category.category_id] && sections[category.category_id] ? (
-                    <tr key={`sections-${category.category_id}`} className="bg-white">
+                  {/* Render sections if category is expanded */}
+                  {expandedCategories[category.category_id] && (
+                    <tr>
                       <td colSpan={6} className="p-0">
-                        <div className="px-4 py-4 border-t border-gray-100">
-                          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-                            {sections[category.category_id] && sections[category.category_id].length > 0 ? (
-                              <SectionList
-                                sections={sections[category.category_id]}
-                                expandedSections={expandedSections}
-                                onSectionClick={onSectionClick}
-                                onToggleSectionVisibility={onToggleSectionVisibility}
-                                onEditSection={onEditSection}
-                                onDeleteSection={onDeleteSection}
-                                onAddProduct={onAddProduct}
-                                products={products}
-                                onToggleProductVisibility={onToggleProductVisibility}
-                                onEditProduct={onEditProduct}
-                                onDeleteProduct={onDeleteProduct}
-                                isUpdatingVisibility={isUpdatingVisibility}
-                                isUpdatingProductVisibility={isUpdatingProductVisibility}
-                                categoryName={category.name}
-                                categoryId={category.category_id}
-                                onAddSectionToCategory={(catId) => onAddSection(catId)}
-                                onSectionsReorder={onReorderCategory ? 
-                                  (categoryId, sourceIndex, destIndex) => onReorderCategory(sourceIndex, destIndex) 
-                                  : undefined
+                        <div className="ml-8 mb-4">
+                          <SectionList 
+                            sections={sections[category.category_id] || []}
+                            expandedSections={expandedSections}
+                            onSectionClick={onSectionClick}
+                            onToggleSectionVisibility={onToggleSectionVisibility}
+                            onEditSection={onEditSection}
+                            onDeleteSection={onDeleteSection}
+                            onAddProduct={onAddProduct}
+                            products={products}
+                            onToggleProductVisibility={onToggleProductVisibility}
+                            onEditProduct={onEditProduct}
+                            onDeleteProduct={onDeleteProduct}
+                            categoryName={category.name}
+                            categoryId={category.category_id}
+                            isUpdatingVisibility={isUpdatingVisibility}
+                            isUpdatingProductVisibility={isUpdatingProductVisibility}
+                            onSectionsReorder={
+                              onReorderCategory
+                                ? (catId: number, sourceIndex: number, destinationIndex: number) => {
+                                  console.log("CategoryTable - reordering sections", {categoryId: catId, sourceIndex, destinationIndex});
                                 }
-                                isReorderModeActive={isReorderModeActive}
-                              />
-                            ) : (
-                              <div className="p-4 text-center text-gray-500 bg-white">
-                                No hay secciones disponibles
-                              </div>
-                            )}
-                          </div>
+                                : undefined
+                            }
+                          />
                         </div>
                       </td>
                     </tr>
-                  ) : null}
+                  )}
                 </React.Fragment>
               ))}
               

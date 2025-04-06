@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { PaintBrushIcon, PhoneIcon } from '@heroicons/react/24/outline';
-import CustomizationModal from './modals/CustomizationModal';
+import CustomizationModal from '@/app/dashboard-v2/components/modals/CustomizationModal';
 
 interface TopNavbarProps {
   isReorderModeActive?: boolean;

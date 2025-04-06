@@ -16,7 +16,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
 import { Section, Product, Client } from '@/app/types/menu';
-import useProductManagement from '@/app/dashboard-v2/hooks/useProductManagement';
+import useProductManagement from '@/app/dashboard-v2/hooks/domain/product/useProductManagement';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 /**

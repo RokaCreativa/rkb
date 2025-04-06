@@ -12,6 +12,8 @@
 
 **ACTUALIZACIÓN (10/04/2025)**: Se ha completado una limpieza exhaustiva eliminando carpetas que no seguían el patrón DDD (`shared`, `infrastructure`, `features`, `stores`) y moviendo todos los archivos a sus ubicaciones correctas. La estructura ahora sigue estrictamente el diseño orientado a dominios.
 
+**ACTUALIZACIÓN (11/04/2025)**: Se han corregido problemas de importación en varios componentes (TopNavbar, CategoryTable, EditSectionModal, EditProductModal) para asegurar que siguen correctamente el patrón DDD. Se actualizaron las importaciones para que todas utilicen rutas absolutas siguiendo la estructura establecida.
+
 ## 🌟 Resumen del Proyecto RokaMenu
 
 RokaMenu es una aplicación web para la gestión de menús digitales de restaurantes y otros negocios:

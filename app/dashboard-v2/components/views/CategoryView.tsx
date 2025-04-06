@@ -7,8 +7,10 @@
  * @updated 2024-06-13
  */
 
-import React, { useState } from 'react';
-import { PlusIcon } from "@heroicons/react/24/outline";
+import React, { useState, useEffect } from 'react';
+import { PlusIcon, ArrowsUpDownIcon } from '@heroicons/react/24/outline';
+import { motion } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 import CategoryTable from "../domain/categories/CategoryTable";
 import { Category, Section, Product } from "@/app/types/menu";
 
@@ -20,6 +22,7 @@ import NewSectionModal from '../modals/NewSectionModal';
 import EditSectionModal from '../modals/EditSectionModal';
 import DeleteSectionModal from '../modals/DeleteSectionModal';
 import NewProductModal from '../modals/NewProductModal';
+import SectionList from '@/app/dashboard-v2/components/domain/sections/SectionList';
 
 /**
  * Props para el componente CategoryView
@@ -47,6 +50,7 @@ interface CategoryViewProps {
   onAddProductSubmit?: (product: Partial<Product>) => void;
   isUpdatingProductVisibility?: number | null;
   isReorderModeActive?: boolean;
+  onSectionsReorder?: (sections: Section[]) => void;
 }
 
 /**
@@ -82,7 +86,8 @@ const CategoryView: React.FC<CategoryViewProps> = ({
   onEditProduct,
   onDeleteProduct,
   onAddProductSubmit,
-  isUpdatingProductVisibility
+  isUpdatingProductVisibility,
+  onSectionsReorder
 }) => {
   // Modal states
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
@@ -138,6 +143,19 @@ const CategoryView: React.FC<CategoryViewProps> = ({
     setIsAddProductModalOpen(true);
   };
 
+  // Añadir useEffect para log de secciones cuando cambia la categoría seleccionada
+  useEffect(() => {
+    if (selectedCategory) {
+      console.log("🔍 [DEBUG] Secciones pasadas a SectionList:", {
+        selectedCategoryId: selectedCategory.category_id,
+        sectionsDisponibles: sections[selectedCategory.category_id] ? "Sí" : "No",
+        cantidadSecciones: sections[selectedCategory.category_id]?.length || 0,
+        sectionsMuestra: sections[selectedCategory.category_id]?.slice(0, 2) || [],
+        expandedSections: expandedSections
+      });
+    }
+  }, [selectedCategory, sections, expandedSections]);
+
   return (
     <div className="flex flex-col w-full min-h-0 p-4 bg-indigo-50/30">
       <div className="flex justify-between items-center mb-4">
@@ -191,6 +209,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
           onEditProduct={onEditProduct}
           onDeleteProduct={onDeleteProduct}
           isUpdatingProductVisibility={isUpdatingProductVisibility}
+          onAddCategory={handleAddCategory}
         />
       </div>
 
@@ -207,89 +226,89 @@ const CategoryView: React.FC<CategoryViewProps> = ({
         }}
       />
       
-      {selectedCategory && (
-        <>
-          <EditCategoryModal
-            isOpen={isEditCategoryModalOpen}
-            onClose={() => setIsEditCategoryModalOpen(false)}
-            categoryToEdit={selectedCategory}
-            client={null}
-            setCategories={(cats) => {
-              if (onEditCategorySubmit && selectedCategory) {
-                // Buscar la categoría editada y enviarla al callback
-                const updatedCategory = Array.isArray(cats) ? 
-                  cats.find(c => c.category_id === selectedCategory.category_id) : null;
-                if (updatedCategory) onEditCategorySubmit(updatedCategory);
-              }
-            }}
-          />
-          
-          <DeleteCategoryModal 
-            isOpen={isDeleteCategoryModalOpen}
-            onClose={() => setIsDeleteCategoryModalOpen(false)}
-            categoryId={selectedCategory.category_id}
-            categoryName={selectedCategory.name || 'esta categoría'}
-            onConfirm={async () => {
-              if (onDeleteCategorySubmit) {
-                onDeleteCategorySubmit(selectedCategory.category_id);
-              }
-              return Promise.resolve();
-            }}
-          />
-        </>
+      {isEditCategoryModalOpen && selectedCategory && (
+        <EditCategoryModal
+          isOpen={isEditCategoryModalOpen}
+          onClose={() => setIsEditCategoryModalOpen(false)}
+          categoryToEdit={selectedCategory}
+          client={null}
+          setCategories={(cats) => {
+            if (onEditCategorySubmit && selectedCategory) {
+              // Buscar la categoría editada y enviarla al callback
+              const updatedCategory = Array.isArray(cats) ? 
+                cats.find(c => c.category_id === selectedCategory.category_id) : null;
+              if (updatedCategory) onEditCategorySubmit(updatedCategory);
+            }
+          }}
+        />
       )}
       
-      <NewSectionModal
-        isOpen={isAddSectionModalOpen}
-        onClose={() => setIsAddSectionModalOpen(false)}
-        categoryId={selectedCategoryId || 0}
-        setSections={(sections: any) => {
-          if (onAddSectionSubmit && selectedCategoryId) {
-            // Extraer la última sección añadida
-            const sectionId = selectedCategoryId.toString();
-            const sectionList = sections[sectionId] || [];
-            const lastSection = sectionList.length > 0 ? sectionList[sectionList.length - 1] : null;
-            if (lastSection) {
-              onAddSectionSubmit({
-                ...lastSection,
+      {isDeleteCategoryModalOpen && selectedCategory && (
+        <DeleteCategoryModal
+          isOpen={isDeleteCategoryModalOpen}
+          onClose={() => setIsDeleteCategoryModalOpen(false)}
+          categoryId={selectedCategory.category_id}
+          categoryName={selectedCategory.name}
+          onConfirm={() => {
+            setIsDeleteCategoryModalOpen(false);
+            onDeleteCategorySubmit(selectedCategory.category_id);
+            return Promise.resolve();
+          }}
+        />
+      )}
+      
+      {isAddSectionModalOpen && selectedCategoryId !== null && (
+        <NewSectionModal
+          isOpen={isAddSectionModalOpen}
+          onClose={() => setIsAddSectionModalOpen(false)}
+          categoryId={selectedCategoryId || 0}
+          setSections={(sections: any) => {
+            if (onAddSectionSubmit && selectedCategoryId) {
+              // Extraer la última sección añadida
+              const sectionId = selectedCategoryId.toString();
+              const sectionList = sections[sectionId] || [];
+              const lastSection = sectionList.length > 0 ? sectionList[sectionList.length - 1] : null;
+              if (lastSection) {
+               onAddSectionSubmit({
+                  ...lastSection,
                 category_id: selectedCategoryId
               });
+              }
             }
-          }
-        }}
-      />
-      
-      {selectedSection && (
-        <>
-          <EditSectionModal
-            isOpen={isEditSectionModalOpen}
-            onClose={() => setIsEditSectionModalOpen(false)}
-            section={selectedSection}
-            updateSection={async (formData, sectionId, categoryId) => {
-              if (onEditSectionSubmit && selectedSection) {
-                // Simplemente llamar al callback con la sección seleccionada
-                onEditSectionSubmit(selectedSection);
-              }
-              return true;
-            }}
-          />
-          
-          <DeleteSectionModal
-            isOpen={isDeleteSectionModalOpen}
-            onClose={() => setIsDeleteSectionModalOpen(false)}
-            sectionId={selectedSection.section_id}
-            sectionName={selectedSection.name || 'esta sección'}
-            onConfirm={async () => {
-              if (onDeleteSectionSubmit) {
-                onDeleteSectionSubmit(selectedSection.section_id);
-              }
-              return Promise.resolve();
-            }}
-          />
-        </>
+          }}
+        />
       )}
       
-      {selectedSectionIdForProduct && onAddProductSubmit && (
+      {isEditSectionModalOpen && selectedSection && (
+        <EditSectionModal
+          isOpen={isEditSectionModalOpen}
+          onClose={() => setIsEditSectionModalOpen(false)}
+          section={selectedSection}
+          updateSection={async (formData, sectionId, categoryId) => {
+            if (onEditSectionSubmit && selectedSection) {
+              // Simplemente llamar al callback con la sección seleccionada
+              onEditSectionSubmit(selectedSection);
+            }
+            return true;
+          }}
+        />
+      )}
+      
+      {isDeleteSectionModalOpen && selectedSection && (
+        <DeleteSectionModal
+          isOpen={isDeleteSectionModalOpen}
+          onClose={() => setIsDeleteSectionModalOpen(false)}
+          sectionId={selectedSection.section_id}
+          sectionName={selectedSection.name}
+          onConfirm={() => {
+            setIsDeleteSectionModalOpen(false);
+            onDeleteSectionSubmit(selectedSection.section_id);
+            return Promise.resolve();
+          }}
+        />
+      )}
+      
+      {isAddProductModalOpen && selectedSectionIdForProduct !== null && (
         <NewProductModal
           isOpen={isAddProductModalOpen}
           onClose={() => setIsAddProductModalOpen(false)}
@@ -301,14 +320,48 @@ const CategoryView: React.FC<CategoryViewProps> = ({
               const productList = products[sectionId] || [];
               const lastProduct = productList.length > 0 ? productList[productList.length - 1] : null;
               if (lastProduct) {
-                onAddProductSubmit({
+               onAddProductSubmit({
                   ...lastProduct,
-                  section_id: selectedSectionIdForProduct
-                });
+                section_id: selectedSectionIdForProduct
+              });
               }
             }
           }}
         />
+      )}
+
+      {/* Añadir logs de diagnóstico para debug */}
+      {selectedCategory && (
+        <div className="mt-2 ml-4">
+          <SectionList 
+            sections={sections[selectedCategory.category_id] || []}
+            expandedSections={expandedSections}
+            onSectionClick={onSectionClick}
+            onToggleSectionVisibility={onToggleSectionVisibility}
+            onEditSection={(section) => onEditSectionSubmit(section)}
+            onDeleteSection={(section) => onDeleteSectionSubmit(section.section_id)}
+            onAddProduct={(sectionId) => onAddProductSubmit && onAddProductSubmit({ section_id: sectionId } as any)}
+            products={products}
+            onToggleProductVisibility={onToggleProductVisibility}
+            onEditProduct={onEditProduct}
+            onDeleteProduct={onDeleteProduct}
+            isUpdatingVisibility={isUpdatingVisibility}
+            isUpdatingProductVisibility={isUpdatingProductVisibility}
+            categoryName={selectedCategory.name || ''}
+            categoryId={selectedCategory.category_id}
+            onSectionsReorder={onSectionsReorder ? (categoryId, sourceIndex, destinationIndex) => {
+              // Implementación básica para adaptarse a la interfaz
+              const categorySections = sections[categoryId] || [];
+              const reorderedSections = [...categorySections];
+              const [movedSection] = reorderedSections.splice(sourceIndex, 1);
+              reorderedSections.splice(destinationIndex, 0, movedSection);
+              onSectionsReorder(reorderedSections);
+            } : undefined}
+            onAddSectionToCategory={() => onAddSectionSubmit && onAddSectionSubmit({ category_id: selectedCategory.category_id } as any)}
+            isReorderModeActive={isReorderModeActive}
+            key={`section-list-${selectedCategory.category_id}`}
+          />
+        </div>
       )}
     </div>
   );

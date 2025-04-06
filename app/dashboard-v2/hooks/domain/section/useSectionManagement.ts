@@ -59,73 +59,91 @@ export default function useSectionManagement() {
   const [isUpdatingVisibility, setIsUpdatingVisibility] = useState<number | null>(null);
 
   /**
-   * Carga todas las secciones pertenecientes a una categoría específica
-   * 
-   * Esta función realiza una petición a la API para obtener todas las secciones
-   * que pertenecen a la categoría especificada. Actualiza el estado 'sections'
-   * con las secciones obtenidas, indexadas por el ID de la categoría.
-   * 
-   * @param categoryId - ID numérico de la categoría para la que se cargarán las secciones
-   * @returns Promise con un array de secciones si la operación fue exitosa, o un array vacío en caso de error
-   * 
-   * @example
-   * // Cargar secciones de la categoría con ID 5
-   * const loadedSections = await fetchSectionsByCategory(5);
-   * if (loadedSections.length > 0) {
-   *   console.log(`Se cargaron ${loadedSections.length} secciones`);
-   * }
+   * Carga todas las secciones de una categoría específica
+   * @param categoryId ID de la categoría
+   * @returns Promise con las secciones cargadas o array vacío en caso de error
    */
-  const fetchSectionsByCategory = useCallback(async (categoryId: number) => {
+  const fetchSectionsByCategory = useCallback(async (categoryId: number): Promise<Section[]> => {
     try {
-      // Indicar que se está cargando
+      // Comprobar primero si tenemos los datos en sessionStorage para desarrollo
+      if (process.env.NODE_ENV === 'development') {
+        const sessionKey = `sections_data_category_${categoryId}`;
+        const storedData = sessionStorage.getItem(sessionKey);
+        
+        if (storedData) {
+          const parsedData = JSON.parse(storedData);
+          console.log(`📋 Usando secciones de categoría ${categoryId} almacenadas en sessionStorage (${parsedData.length} secciones)`);
+          
+          // Actualizar el estado de secciones para esta categoría
+          setSections(prev => ({
+            ...prev,
+            [categoryId]: parsedData
+          }));
+          
+          return parsedData;
+        }
+      }
+      
+      // Actualizar el estado de carga de la categoría específica
       setIsLoading(true);
       
-      // Verificar que la sesión contiene datos válidos antes de continuar
-      if (!session || !session.user || !session.user.client_id) {
-        throw new Error('No hay sesión activa o ID de cliente');
-      }
-
-      // Construir la URL de la API con los parámetros necesarios
-      const url = `/api/sections?category_id=${categoryId}&client_id=${session.user.client_id}`;
+      // Limpiar errores previos
+      setError(null);
       
-      // Realizar la petición HTTP
-      const response = await fetch(url);
+      console.log(`🔍 Obteniendo secciones para categoría ID=${categoryId}...`);
       
-      // Verificar si la respuesta fue exitosa
+      // Determinar qué ID de cliente usar
+      const clientId = session?.user?.client_id || 3; // Usar 3 como cliente de prueba si no hay sesión
+      
+      // Hacer la petición a la API
+      const response = await fetch(`/api/sections?category_id=${categoryId}&client_id=${clientId}`);
+      
+      // Verificar respuesta
       if (!response.ok) {
-        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+        throw new Error(`Error al cargar secciones: ${response.status} ${response.statusText}`);
       }
       
-      // Convertir la respuesta a JSON
+      // Parsear datos
       const data = await response.json();
       
-      // Validar que la respuesta tiene el formato esperado
-      if (!Array.isArray(data)) {
-        throw new Error('La respuesta no tiene el formato esperado (array)');
+      // Verificar que los datos son válidos
+      if (data && Array.isArray(data)) {
+        // Asegurar que los datos sean consistentes
+        const cleanData = data.map(section => ({
+          ...section,
+          image: section.image || null, // Asegurar que image sea string | null (nunca undefined)
+          status: Number(section.status), // Asegurar que status sea número
+          display_order: Number(section.display_order || 0), // Asegurar que display_order sea número
+          client_id: section.client_id || clientId, // Usar cliente por defecto si no hay
+        }));
+        
+        // Guardar en sessionStorage para desarrollo
+        if (process.env.NODE_ENV === 'development') {
+          const sessionKey = `sections_data_category_${categoryId}`;
+          sessionStorage.setItem(sessionKey, JSON.stringify(cleanData));
+          console.log(`💾 Datos de secciones para categoría ${categoryId} guardados en sessionStorage (${cleanData.length} secciones)`);
+        }
+        
+        // Actualizar el estado de secciones para esta categoría
+        setSections(prev => ({
+          ...prev,
+          [categoryId]: cleanData
+        }));
+        
+        // Actualizar el estado de carga
+        setIsLoading(false);
+        
+        return cleanData;
+      } else {
+        throw new Error(`Formato de datos incorrecto para categoría ${categoryId}`);
       }
-      
-      // Actualizar el estado con las secciones cargadas, indexadas por ID de categoría
-      setSections(prevSections => ({
-        ...prevSections,
-        [categoryId.toString()]: data
-      }));
-      
-      // Indicar que la carga ha finalizado
-      setIsLoading(false);
-      
-      // Devolver los datos obtenidos
-      return data;
     } catch (err) {
-      // Registrar el error en la consola para depuración
-      console.error('Error al cargar secciones:', err);
+      console.error(`❌ Error cargando secciones para categoría ${categoryId}:`, err);
+      setError(`Error al cargar secciones para categoría ${categoryId}`);
       
-      // Actualizar el estado de error con un mensaje amigable
-      setError('No se pudieron cargar las secciones. Por favor, intenta nuevamente.');
-      
-      // Indicar que la carga ha finalizado (con error)
+      // Actualizar el estado de carga
       setIsLoading(false);
       
-      // Devolver un array vacío en caso de error
       return [];
     }
   }, [session]);

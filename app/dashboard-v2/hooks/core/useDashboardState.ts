@@ -32,16 +32,12 @@
  */
 
 import { useState, useCallback } from 'react';
-import { toast } from 'react-hot-toast';
 import { 
-  DashboardState, 
-  DashboardActions,
-  Category,
-  Section,
-  Product,
-  Client,
-  ViewType
+  Category, 
+  Client, 
+  DashboardState
 } from '@/app/dashboard-v2/types';
+import { toast } from 'react-hot-toast';
 import useCategoryManagement from '../domain/category/useCategoryManagement';
 import useSectionManagement from '../domain/section/useSectionManagement';
 import useProductManagement from '../domain/product/useProductManagement';
@@ -71,311 +67,124 @@ import useProductManagement from '../domain/product/useProductManagement';
  *   dashboard.handleCategoryClick(category);
  * };
  */
-export default function useDashboardState(clientId?: number) {
-  // Estados compartidos por todos los dominios
-  /**
-   * La vista actual que se muestra en el dashboard
-   * Valores posibles: 'CATEGORIES', 'SECTIONS', 'PRODUCTS'
-   */
-  const [currentView, setCurrentView] = useState<ViewType>('CATEGORIES');
+export default function useDashboardState() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [client, setClient] = useState<Client | null>(null);
+  const [categorySections, setCategorySections] = useState<Record<string, any>>({});
+  const [sectionsProducts, setSectionsProducts] = useState<Record<string, any>>({});
+  const [currentCategoryId, setCurrentCategoryId] = useState<number | null>(null);
+  const [currentSectionId, setCurrentSectionId] = useState<number | null>(null);
   
-  /**
-   * La categoría seleccionada actualmente
-   * Se utiliza para cargar secciones relacionadas y como contexto para diversas operaciones
-   */
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  
-  /**
-   * La sección seleccionada actualmente
-   * Se utiliza para cargar productos relacionados y como contexto para diversas operaciones
-   */
-  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
-  
-  /**
-   * Registro de categorías expandidas
-   * Formato: { 1: true, 2: false, ... } donde la clave es el ID de la categoría
-   * y el valor es un booleano que indica si está expandida (true) o colapsada (false)
-   */
-  const [expandedCategories, setExpandedCategories] = useState<Record<number, boolean>>({});
-  
-  /**
-   * Registro de secciones expandidas
-   * Formato: { 1: true, 2: false, ... } donde la clave es el ID de la sección
-   * y el valor es un booleano que indica si está expandida (true) o colapsada (false)
-   */
-  const [expandedSections, setExpandedSections] = useState<Record<number, boolean>>({});
-  
-  /**
-   * Indica si el modo de reordenamiento está activo
-   * Cuando está activo, los elementos pueden ser arrastrados para cambiar su orden
-   */
-  const [isReorderModeActive, setIsReorderModeActive] = useState(false);
-  
-  // Integrar hooks específicos de dominio
-  /**
-   * Hook para la gestión de categorías
-   * Proporciona funcionalidades específicas para categorías como crear, actualizar, eliminar, etc.
-   */
+  // Hooks de gestión
   const categoryManagement = useCategoryManagement();
-  
-  /**
-   * Hook para la gestión de secciones
-   * Proporciona funcionalidades específicas para secciones como crear, actualizar, eliminar, etc.
-   */
   const sectionManagement = useSectionManagement();
-  
-  /**
-   * Hook para la gestión de productos
-   * Proporciona funcionalidades específicas para productos como crear, actualizar, eliminar, etc.
-   */
   const productManagement = useProductManagement();
-  
-  // Extracción de estados comunes para simplificar acceso
-  /**
-   * Información del cliente actual
-   * Se extrae de categoryManagement.client para facilitar el acceso desde los componentes
-   */
-  const client = categoryManagement.client;
-  
-  /**
-   * Lista de categorías disponibles
-   * Se extrae de categoryManagement.categories para facilitar el acceso desde los componentes
-   */
-  const categories = categoryManagement.categories;
-  
-  /**
-   * Mapa de secciones agrupadas por ID de categoría
-   * Se extrae de sectionManagement.sections para facilitar el acceso desde los componentes
-   */
-  const sections = sectionManagement.sections;
-  
-  /**
-   * Mapa de productos agrupados por ID de sección
-   * Se extrae de productManagement.products para facilitar el acceso desde los componentes
-   */
-  const products = productManagement.products;
-  
-  // Estado de carga consolidado
-  /**
-   * Indica si cualquiera de los hooks de dominio está cargando datos
-   * Se consolida a partir de los estados de carga de todos los hooks de dominio
-   */
-  const isLoading = categoryManagement.isLoading || 
-                   sectionManagement.isLoading || 
-                   productManagement.isLoading;
-  
-  // Consolidar el estado de actualización de visibilidad
-  /**
-   * Indica qué elemento está actualizando su visibilidad (si hay alguno)
-   * Se consolida a partir de los estados de visibilidad de todos los hooks de dominio
-   */
-  const isUpdatingVisibility = categoryManagement.isUpdatingVisibility || 
-                              sectionManagement.isUpdatingVisibility || 
-                              productManagement.isUpdatingVisibility;
-  
-  // Consolidar errores
-  /**
-   * Mensaje de error actual (si hay alguno)
-   * Se consolida a partir de los estados de error de todos los hooks de dominio
-   */
-  const error = categoryManagement.error || 
-                sectionManagement.error || 
-                productManagement.error;
-  
-  /**
-   * Carga los datos del cliente actual desde el servidor.
-   * 
-   * Esta función delega la carga al hook de categorías y proporciona
-   * información de registro para seguimiento y depuración.
-   * 
-   * @returns Promise con datos del cliente o null en caso de error
-   * 
-   * @example
-   * // Cargar datos del cliente al iniciar
-   * useEffect(() => {
-   *   fetchClientData();
-   * }, []);
-   */
+
+  // Cargar datos del cliente (información básica)
   const fetchClientData = useCallback(async () => {
-    console.log('🔄 Iniciando carga de datos del cliente...');
     try {
-      // Delegamos la carga a categoryManagement.fetchClientData
+      // Forzar recarga ignorando la caché
+      sessionStorage.removeItem('dashboard_client_data');
+      
+      console.log('🔄 Cargando datos del cliente...');
+      setIsLoading(true);
+      
+      // Usar categoryManagement para cargar los datos del cliente
       const clientData = await categoryManagement.fetchClientData();
       
-      // Verificamos si se obtuvieron datos
-      if (!clientData) {
-        throw new Error('No se pudieron cargar los datos del cliente');
+      if (clientData) {
+        // Almacenar en sessionStorage para desarrollo
+        sessionStorage.setItem('dashboard_client_data', JSON.stringify(clientData));
+        setClient(clientData);
+        setIsLoading(false);
+        console.log('✅ Datos del cliente cargados correctamente');
+        return clientData;
+      } else {
+        throw new Error('No se pudo cargar la información del cliente');
       }
-      
-      console.log('✅ Datos del cliente cargados correctamente:', clientData?.business_name || clientData?.name);
-      return clientData;
-    } catch (error) {
-      console.error('❌ Error en fetchClientData:', error);
-      toast.error('No se pudieron cargar los datos del cliente');
+    } catch (err) {
+      console.error('❌ Error al cargar datos del cliente:', err);
+      toast.error('Error al cargar los datos del cliente');
+      setIsLoading(false);
       return null;
     }
   }, [categoryManagement]);
 
-  /**
-   * Cambia el estado de expansión de una categoría (expandir/colapsar).
-   * 
-   * @param categoryId - ID de la categoría cuyo estado de expansión se cambiará
-   * 
-   * @example
-   * // Expandir o colapsar una categoría al hacer clic en un botón
-   * <button onClick={() => toggleCategoryExpansion(category.category_id)}>
-   *   {expandedCategories[category.category_id] ? 'Colapsar' : 'Expandir'}
-   * </button>
-   */
-  const toggleCategoryExpansion = useCallback((categoryId: number) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [categoryId]: !prev[categoryId]
-    }));
-  }, []);
-
-  /**
-   * Cambia el estado de expansión de una sección (expandir/colapsar).
-   * 
-   * @param sectionId - ID de la sección cuyo estado de expansión se cambiará
-   * 
-   * @example
-   * // Expandir o colapsar una sección al hacer clic en un botón
-   * <button onClick={() => toggleSectionExpansion(section.section_id)}>
-   *   {expandedSections[section.section_id] ? 'Colapsar' : 'Expandir'}
-   * </button>
-   */
-  const toggleSectionExpansion = useCallback((sectionId: number) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [sectionId]: !prev[sectionId]
-    }));
-  }, []);
-
-  /**
-   * Maneja el clic en una categoría, cambiando la selección y cargando sus secciones.
-   * 
-   * Esta función tiene múltiples responsabilidades:
-   * 1. Establece la categoría seleccionada
-   * 2. Cambia el estado de expansión de la categoría
-   * 3. Carga las secciones asociadas si la categoría se está expandiendo
-   * 
-   * @param category - Objeto de categoría en la que se ha hecho clic
-   * 
-   * @example
-   * // Manejar clic en una categoría
-   * <CategoryItem category={category} onClick={handleCategoryClick} />
-   */
-  const handleCategoryClick = useCallback(async (category: Category) => {
-    // Actualizar la categoría seleccionada
-    setSelectedCategory(category);
-    
-    // Cambiar estado de expansión
-    toggleCategoryExpansion(category.category_id);
-    
-    // Si la categoría se está expandiendo (no estaba expandida antes) y no se han cargado sus secciones, cargarlas
-    if (!expandedCategories[category.category_id]) {
-      await sectionManagement.fetchSectionsByCategory(category.category_id);
+  // Cargar categorías del cliente
+  const fetchCategories = useCallback(async () => {
+    try {
+      // Comprobar si ya tenemos datos en sessionStorage para desarrollo
+      const sessionKey = 'dashboard_categories_data';
+      const storedData = sessionStorage.getItem(sessionKey);
+      
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        console.log('Usando categorías almacenadas en sesión');
+        setCategories(parsedData);
+        return parsedData;
+      }
+      
+      console.log('Cargando categorías...');
+      setIsLoading(true);
+      
+      const categoriesData = await categoryManagement.fetchCategories();
+      
+      if (categoriesData && categoriesData.length > 0) {
+        // Almacenar en sessionStorage para desarrollo
+        sessionStorage.setItem(sessionKey, JSON.stringify(categoriesData));
+        setCategories(categoriesData);
+        setIsLoading(false);
+        console.log('Categorías cargadas correctamente');
+        return categoriesData;
+      } else {
+        console.warn('No se encontraron categorías');
+        setIsLoading(false);
+        return [];
+      }
+    } catch (err) {
+      console.error('Error al cargar categorías:', err);
+      toast.error('Error al cargar las categorías');
+      setIsLoading(false);
+      return [];
     }
-  }, [expandedCategories, sectionManagement, toggleCategoryExpansion]);
+  }, [categoryManagement]);
 
-  /**
-   * Maneja el clic en una sección, cambiando la selección y cargando sus productos.
-   * 
-   * Esta función tiene múltiples responsabilidades:
-   * 1. Establece la sección seleccionada
-   * 2. Cambia el estado de expansión de la sección
-   * 3. Carga los productos asociados si la sección se está expandiendo
-   * 
-   * @param section - Objeto de sección en la que se ha hecho clic
-   * 
-   * @example
-   * // Manejar clic en una sección
-   * <SectionItem section={section} onClick={handleSectionClick} />
-   */
-  const handleSectionClick = useCallback((section: Section) => {
-    // Actualizar la sección seleccionada
-    setSelectedSection(section);
-    
-    // Cambiar estado de expansión
-    toggleSectionExpansion(section.section_id);
-    
-    // Si la sección se está expandiendo (no estaba expandida antes), cargar sus productos
-    if (!expandedSections[section.section_id]) {
-      productManagement.fetchProductsBySection(section.section_id);
-    }
-  }, [expandedSections, productManagement, toggleSectionExpansion]);
-
-  /**
-   * Activa o desactiva el modo de reordenamiento de elementos.
-   * 
-   * Cuando el modo de reordenamiento está activo, los elementos pueden
-   * ser arrastrados y soltados para cambiar su orden.
-   * 
-   * @example
-   * // Botón para activar/desactivar modo de reordenamiento
-   * <button onClick={toggleReorderMode}>
-   *   {isReorderModeActive ? 'Salir del modo reordenamiento' : 'Reordenar elementos'}
-   * </button>
-   */
-  const toggleReorderMode = useCallback(() => {
-    setIsReorderModeActive(prev => !prev);
-  }, []);
-
-  // Combinar toda la funcionalidad en un único objeto de retorno
-  // Esto implementa el patrón Facade, proporcionando una interfaz unificada
+  // Devolver objeto con estados y funciones
   return {
     // Estados
-    currentView,          // Estado de la vista actual (CATEGORIES, SECTIONS, PRODUCTS)
-    client,               // Información del cliente actual
-    categories,           // Lista de categorías
-    sections,             // Mapa de secciones por categoría
-    products,             // Mapa de productos por sección
-    selectedCategory,     // Categoría seleccionada actualmente
-    selectedSection,      // Sección seleccionada actualmente
-    expandedCategories,   // Registro de qué categorías están expandidas
-    expandedSections,     // Registro de qué secciones están expandidas
-    isReorderModeActive,  // Si el modo de reordenamiento está activo
+    client,
+    categories,
+    sections: categorySections,
+    products: sectionsProducts,
+    isLoading,
+    isUpdatingVisibility: categoryManagement.isUpdatingVisibility || 
+                          sectionManagement.isUpdatingVisibility || 
+                          productManagement.isUpdatingVisibility,
+    error: categoryManagement.error || 
+           sectionManagement.error || 
+           productManagement.error,
     
-    // Estados de carga y error
-    isLoading,            // Si hay alguna operación de carga en curso
-    isSectionsLoading: sectionManagement.isLoading,  // Si se están cargando secciones
-    isProductsLoading: productManagement.isLoading,  // Si se están cargando productos
-    isUpdatingVisibility, // ID del elemento que está actualizando visibilidad (o null)
-    error,                // Mensaje de error (si hay alguno)
+    // Funciones
+    fetchClientData,
+    fetchCategories,
+    fetchSectionsByCategory: sectionManagement.fetchSectionsByCategory,
+    fetchProductsBySection: productManagement.fetchProductsBySection,
     
-    // Funciones compartidas
-    setCurrentView,       // Cambiar la vista actual
-    setSelectedCategory,  // Cambiar la categoría seleccionada
-    setSelectedSection,   // Cambiar la sección seleccionada
-    setExpandedCategories, // Actualizar registro de categorías expandidas
-    setExpandedSections,  // Actualizar registro de secciones expandidas
-    toggleCategoryExpansion, // Expandir/colapsar una categoría
-    toggleSectionExpansion,  // Expandir/colapsar una sección
-    toggleReorderMode,    // Activar/desactivar modo de reordenamiento
-    handleCategoryClick,  // Manejar clic en una categoría
-    handleSectionClick,   // Manejar clic en una sección
+    // Operaciones CRUD
+    createCategory: categoryManagement.createCategory,
+    updateCategory: categoryManagement.updateCategory,
+    deleteCategory: categoryManagement.deleteCategory,
+    toggleCategoryVisibility: categoryManagement.toggleCategoryVisibility,
     
-    // Funciones de categoría (delegadas a categoryManagement)
-    fetchClientData,                     // Cargar datos del cliente
-    fetchCategories: categoryManagement.fetchCategories,        // Cargar todas las categorías
-    createCategory: categoryManagement.createCategory,          // Crear nueva categoría
-    updateCategory: categoryManagement.updateCategory,          // Actualizar categoría existente
-    deleteCategory: categoryManagement.deleteCategory,          // Eliminar categoría
-    toggleCategoryVisibility: categoryManagement.toggleCategoryVisibility, // Cambiar visibilidad de categoría
+    createSection: sectionManagement.createSection,
+    updateSection: sectionManagement.updateSection,
+    deleteSection: sectionManagement.deleteSection,
+    toggleSectionVisibility: sectionManagement.toggleSectionVisibility,
     
-    // Funciones de sección (delegadas a sectionManagement)
-    fetchSectionsByCategory: sectionManagement.fetchSectionsByCategory, // Cargar secciones de una categoría
-    createSection: sectionManagement.createSection,             // Crear nueva sección
-    updateSection: sectionManagement.updateSection,             // Actualizar sección existente
-    deleteSection: sectionManagement.deleteSection,             // Eliminar sección
-    toggleSectionVisibility: sectionManagement.toggleSectionVisibility, // Cambiar visibilidad de sección
-    
-    // Funciones de producto (delegadas a productManagement)
-    fetchProductsBySection: productManagement.fetchProductsBySection, // Cargar productos de una sección
-    createProduct: productManagement.createProduct,             // Crear nuevo producto
-    updateProduct: productManagement.updateProduct,             // Actualizar producto existente
-    deleteProduct: productManagement.deleteProduct,             // Eliminar producto
-    toggleProductVisibility: productManagement.toggleProductVisibility // Cambiar visibilidad de producto
+    createProduct: productManagement.createProduct,
+    updateProduct: productManagement.updateProduct,
+    deleteProduct: productManagement.deleteProduct,
+    toggleProductVisibility: productManagement.toggleProductVisibility
   };
 }

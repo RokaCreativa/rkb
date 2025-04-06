@@ -245,4 +245,103 @@ export function convertProductsToDashboard(products: Record<string, MenuProduct[
   });
   
   return result;
+}
+
+// Asegurémonos de que los tipos domain se conviertan correctamente a los tipos menu
+
+/**
+ * Adapta una categoría del dominio al formato menu.ts
+ * @param domainCategory Categoría del dominio
+ * @returns Categoría en formato menu.ts
+ */
+export function adaptDomainCategoryToMenu(domainCategory: import('./domain/category').Category): import('@/app/types/menu').Category {
+  return {
+    category_id: domainCategory.category_id,
+    name: domainCategory.name,
+    image: domainCategory.image || null,
+    status: domainCategory.status,
+    display_order: domainCategory.display_order,
+    client_id: domainCategory.client_id,
+    ...(domainCategory.sections_count !== undefined && { sections_count: domainCategory.sections_count }),
+    ...(domainCategory.visible_sections_count !== undefined && { visible_sections_count: domainCategory.visible_sections_count })
+  };
+}
+
+/**
+ * Adapta un array de categorías del dominio al formato menu.ts
+ * @param domainCategories Categorías del dominio
+ * @returns Categorías en formato menu.ts
+ */
+export function adaptDomainCategoriesToMenu(domainCategories: import('./domain/category').Category[]): import('@/app/types/menu').Category[] {
+  return domainCategories.map(adaptDomainCategoryToMenu);
+}
+
+/**
+ * Adapta una sección del dominio al formato menu.ts
+ * @param domainSection Sección del dominio
+ * @returns Sección en formato menu.ts
+ */
+export function adaptDomainSectionToMenu(domainSection: import('./domain/section').Section): import('@/app/types/menu').Section {
+  return {
+    section_id: domainSection.section_id,
+    name: domainSection.name,
+    image: domainSection.image || null,
+    category_id: domainSection.category_id,
+    client_id: domainSection.client_id || 0,
+    display_order: domainSection.display_order,
+    status: domainSection.status,
+    created_at: domainSection.created_at,
+    updated_at: domainSection.updated_at,
+    products_count: domainSection.products_count,
+    visible_products_count: domainSection.visible_products_count
+  };
+}
+
+/**
+ * Adapta un mapa de secciones del dominio al formato menu.ts
+ * @param domainSections Mapa de secciones del dominio
+ * @returns Mapa de secciones en formato menu.ts
+ */
+export function adaptDomainSectionsToMenu(domainSections: Record<string, import('./domain/section').Section[]>): Record<string, import('@/app/types/menu').Section[]> {
+  const result: Record<string, import('@/app/types/menu').Section[]> = {};
+  
+  Object.entries(domainSections).forEach(([key, sectionArray]) => {
+    result[key] = sectionArray.map(adaptDomainSectionToMenu);
+  });
+  
+  return result;
+}
+
+/**
+ * Adapta un producto del dominio al formato menu.ts
+ * @param domainProduct Producto del dominio
+ * @returns Producto en formato menu.ts
+ */
+export function adaptDomainProductToMenu(domainProduct: import('./domain/product').Product): import('@/app/types/menu').Product {
+  return {
+    product_id: domainProduct.product_id,
+    name: domainProduct.name,
+    image: domainProduct.image || null,
+    status: domainProduct.status,
+    price: String(domainProduct.price), // Convertir a string si es necesario
+    section_id: domainProduct.section_id,
+    client_id: domainProduct.client_id || 0,
+    display_order: domainProduct.display_order,
+    description: domainProduct.description
+  };
+}
+
+/**
+ * Adapta un mapa de productos del dominio al formato menu.ts
+ * @param domainProducts Mapa de productos del dominio
+ * @returns Mapa de productos en formato menu.ts
+ */
+export function adaptDomainProductsToMenu(domainProducts: Record<string, import('./domain/product').Product[]>): Record<string, import('@/app/types/menu').Product[]> {
+  const result: Record<string, import('@/app/types/menu').Product[]> = {};
+  
+  Object.entries(domainProducts).forEach(([key, productArray]) => {
+    result[key] = productArray.map(adaptDomainProductToMenu);
+  });
+  
+  return result;
 } 

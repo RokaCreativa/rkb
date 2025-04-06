@@ -17,7 +17,7 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { Section, Category, SectionWithFileUpload } from '@/app/types/menu';
-import useSectionManagement from '@/app/dashboard-v2/hooks/useSectionManagement';
+import useSectionManagement from '@/app/dashboard-v2/hooks/domain/section/useSectionManagement';
 import { PlusIcon as PlusIconMini } from '@heroicons/react/20/solid';
 import { getImagePath } from '@/app/dashboard-v2/utils/imageUtils';
 

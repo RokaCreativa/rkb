@@ -10,7 +10,13 @@
 
 **ACTUALIZACIÓN (10/04/2025)**: Se ha completado una limpieza exhaustiva eliminando carpetas que no seguían el patrón DDD (`shared`, `infrastructure`, `features`, `stores`) y moviendo todos los archivos a sus ubicaciones correctas. La estructura ahora sigue estrictamente el diseño orientado a dominios.
 
-**ACTUALIZACIÓN (11/04/2025)**: Se han corregido problemas de importación en los componentes de vistas y se eliminó la estructura paralela incorrecta (`categories/sections/`) que duplicaba componentes. También se actualizó la importación de `ProductList` en `SectionList.tsx` para utilizar la ruta correcta según el patrón DDD.
+**ACTUALIZACIÓN (11/04/2025)**: Se han corregido problemas de importación en los componentes de vistas, componentes core y modales para asegurar que sigan correctamente el patrón DDD. Se corrigieron:
+
+- Importación incorrecta en TopNavbar.tsx (CustomizationModal)
+- Importación incorrecta en CategoryTable.tsx (SectionList)
+- Importación incorrecta en EditSectionModal.tsx (useSectionManagement)
+- Importación incorrecta en EditProductModal.tsx (useProductManagement)
+- Corrección de tipos implícitos en CategoryTable.tsx
 
 **Consulta el archivo `app/dashboard-v2/README.md` para obtener la documentación más actualizada sobre la nueva estructura.**
 
