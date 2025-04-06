@@ -211,3 +211,153 @@ Para cambiar un ícono en toda la aplicación, simplemente se modifica en el arc
 **IMPORTANTE (10/04/2025)**: Se han eliminado todas las carpetas que no seguían el patrón DDD (`shared`, `infrastructure`, `features`, `stores`) y se han movido todos los archivos a sus ubicaciones correctas. La estructura ahora sigue estrictamente el diseño orientado a dominios.
 
 > "Un minuto de verificación ahorra horas de corrección y refactorización"
+
+## 📘 GUÍA PARA DUMMIES: PROPÓSITO DE CADA ARCHIVO
+
+Esta sección explica en lenguaje sencillo qué hace cada archivo del proyecto. Úsala como referencia rápida para entender el propósito de cada componente sin necesidad de revisar el código.
+
+### 🗂️ ARCHIVOS PRINCIPALES
+
+- **page.tsx**: La página principal del dashboard. Es el punto de entrada que muestra todo el panel de administración.
+- **layout.tsx**: Define la estructura general de la página, incluyendo elementos comunes como la navegación principal.
+- **globals.css**: Estilos globales que se aplican a toda la aplicación del dashboard.
+- **AuthDebugLayout.tsx**: Componente de depuración para verificar el estado de autenticación durante el desarrollo.
+
+### 📁 COMPONENTES CORE
+
+- **DashboardView.tsx**: El controlador central que orquesta todo el dashboard. Gestiona la navegación entre vistas, estados de selección y coordina todas las operaciones.
+- **TopNavbar.tsx**: Barra de navegación superior que muestra el logo, nombre del cliente y controles principales.
+- **Sidebar.tsx**: Menú lateral con opciones de navegación y herramientas.
+- **Dashboard.tsx**: Contenedor principal que integra todas las partes del dashboard.
+
+### 📁 COMPONENTES VISTAS
+
+- **CategoryView.tsx**: Vista principal para mostrar y gestionar categorías de menú.
+- **SectionView.tsx**: Vista para mostrar y gestionar secciones dentro de una categoría.
+- **ProductView.tsx**: Vista para mostrar y gestionar productos dentro de una sección.
+- **Breadcrumbs.tsx**: Muestra la ruta de navegación actual (Inicio > Categoría > Sección).
+- **MobilePreview.tsx**: Muestra una vista previa de cómo se verá el menú en dispositivos móviles.
+- **FloatingPhonePreview.tsx**: Vista previa flotante del menú en formato móvil que sigue al usuario mientras navega.
+
+### 📁 COMPONENTES DE DOMINIO: CATEGORÍAS
+
+- **CategoryList.tsx**: Lista todas las categorías del menú en formato de tabla.
+- **CategoryListItem.tsx**: Representa una fila individual en la tabla de categorías.
+- **CategoryTable.tsx**: Tabla completa de categorías con soporte para arrastrar y soltar.
+- **CategoryActions.tsx**: Botones y controles para acciones sobre categorías (editar, eliminar, añadir).
+
+### 📁 COMPONENTES DE DOMINIO: SECCIONES
+
+- **SectionList.tsx**: Lista todas las secciones de una categoría en formato de tabla.
+- **SectionListItem.tsx**: Representa una fila individual en la tabla de secciones.
+- **SectionTable.tsx**: Tabla completa de secciones con soporte para arrastrar y soltar.
+- **SectionActions.tsx**: Botones y controles para acciones sobre secciones (editar, eliminar, añadir).
+
+### 📁 COMPONENTES DE DOMINIO: PRODUCTOS
+
+- **ProductList.tsx**: Lista todos los productos de una sección en formato de tabla.
+- **ProductListItem.tsx**: Representa una fila individual en la tabla de productos.
+- **ProductTable.tsx**: Tabla completa de productos con soporte para arrastrar y soltar.
+- **ProductActions.tsx**: Botones y controles para acciones sobre productos (editar, eliminar, añadir).
+- **ProductGrid.tsx**: Muestra productos en formato de cuadrícula con imágenes.
+
+### 📁 COMPONENTES UI
+
+- **Button/Button.tsx**: Botón personalizado con diferentes variantes (primario, secundario, peligro).
+- **Form/Input.tsx**: Campo de entrada de texto personalizado.
+- **Form/TextArea.tsx**: Campo de texto multilínea personalizado.
+- **Form/Select.tsx**: Selector desplegable personalizado.
+- **Form/FileUpload.tsx**: Componente para subir archivos e imágenes.
+- **Modal/Modal.tsx**: Base para todos los diálogos modales de la aplicación.
+- **Modal/ModalHeader.tsx**: Encabezado estándar para modales.
+- **Modal/ModalFooter.tsx**: Pie estándar para modales con botones de acción.
+- **Table/Table.tsx**: Componente base para todas las tablas del sistema.
+- **Loader.tsx**: Indicador de carga para operaciones asíncronas.
+- **Badge.tsx**: Etiqueta pequeña para mostrar estados (activo, inactivo, etc.).
+- **Icon.tsx**: Wrapper para íconos del sistema.
+- **grid/GridIcon.tsx**: Sistema centralizado de íconos para las tablas y grids.
+
+### 📁 COMPONENTES MODALES
+
+- **NewCategoryModal.tsx**: Modal para crear una nueva categoría.
+- **EditCategoryModal.tsx**: Modal para editar una categoría existente.
+- **DeleteCategoryModal.tsx**: Modal de confirmación para eliminar una categoría.
+- **NewSectionModal.tsx**: Modal para crear una nueva sección.
+- **EditSectionModal.tsx**: Modal para editar una sección existente.
+- **DeleteSectionModal.tsx**: Modal de confirmación para eliminar una sección.
+- **NewProductModal.tsx**: Modal para crear un nuevo producto.
+- **EditProductModal.tsx**: Modal para editar un producto existente.
+- **DeleteProductModal.tsx**: Modal de confirmación para eliminar un producto.
+- **CustomizationModal.tsx**: Modal para personalizar la apariencia del menú.
+
+### 📁 HOOKS CORE
+
+- **useDashboardState.tsx**: Hook principal que actúa como fachada para todos los hooks de dominio. Centraliza el estado y las operaciones.
+- **useInitialData.tsx**: Gestiona la carga inicial de datos al abrir el dashboard.
+- **useNavigation.tsx**: Controla la navegación entre diferentes vistas del dashboard.
+- **useAuthentication.tsx**: Gestiona el estado de autenticación del usuario.
+
+### 📁 HOOKS DE DOMINIO: CATEGORÍA
+
+- **useCategoryManagement.ts**: Gestiona todas las operaciones CRUD para categorías (crear, leer, actualizar, eliminar).
+- **useCategoryVisibility.ts**: Controla la visibilidad de las categorías en el menú.
+- **useCategoryReordering.ts**: Maneja la reordenación de categorías mediante arrastrar y soltar.
+
+### 📁 HOOKS DE DOMINIO: SECCIÓN
+
+- **useSectionManagement.ts**: Gestiona todas las operaciones CRUD para secciones (crear, leer, actualizar, eliminar).
+- **useSectionVisibility.ts**: Controla la visibilidad de las secciones en el menú.
+- **useSectionReordering.ts**: Maneja la reordenación de secciones mediante arrastrar y soltar.
+
+### 📁 HOOKS DE DOMINIO: PRODUCTO
+
+- **useProductManagement.ts**: Gestiona todas las operaciones CRUD para productos (crear, leer, actualizar, eliminar).
+- **useProductVisibility.ts**: Controla la visibilidad de los productos en el menú.
+- **useProductReordering.ts**: Maneja la reordenación de productos mediante arrastrar y soltar.
+- **useProductImage.ts**: Gestiona la carga y visualización de imágenes de productos.
+
+### 📁 HOOKS UI
+
+- **useGridIcons.ts**: Proporciona acceso centralizado a los íconos utilizados en tablas y grids.
+- **useModal.ts**: Controla el estado y comportamiento de los modales.
+- **useToast.ts**: Gestiona las notificaciones y mensajes emergentes.
+- **useDragAndDrop.ts**: Hook centralizado para todas las operaciones de arrastrar y soltar.
+- **state/useUIState.ts**: Almacena y gestiona el estado global de la interfaz de usuario.
+
+### 📁 TIPOS
+
+- **type-adapters.ts**: Funciones para convertir entre diferentes sistemas de tipos (API, UI, dominio).
+- **common.ts**: Tipos comunes utilizados en toda la aplicación.
+- **dashboard.ts**: Tipos específicos para el dashboard.
+- **menu.ts**: Definiciones de tipos para el menú (categorías, secciones, productos).
+- **domain/category.ts**: Tipos específicos para el dominio de categorías.
+- **domain/section.ts**: Tipos específicos para el dominio de secciones.
+- **domain/product.ts**: Tipos específicos para el dominio de productos.
+- **ui/modals.ts**: Tipos para los componentes de modales.
+
+### 📁 UTILIDADES
+
+- **imageUtils.ts**: Funciones para manipular y optimizar imágenes.
+- **formatUtils.ts**: Funciones para formatear datos (fechas, precios, etc.).
+- **validationUtils.ts**: Funciones para validar datos de formularios.
+- **apiUtils.ts**: Utilidades para comunicación con la API.
+- **dragUtils.ts**: Funciones auxiliares para las operaciones de arrastrar y soltar.
+
+### 📁 SERVICIOS
+
+- **dashboardService.ts**: Servicio principal para operaciones de dashboard.
+- **categoryService.ts**: Servicio para operaciones específicas de categorías.
+- **sectionService.ts**: Servicio para operaciones específicas de secciones.
+- **productService.ts**: Servicio para operaciones específicas de productos.
+- **imageService.ts**: Servicio para gestión de imágenes y uploads.
+- **authService.ts**: Servicio para autenticación y autorización.
+
+### 📁 CONSTANTES
+
+- **iconConfig.ts**: Configuración centralizada de íconos para toda la aplicación.
+- **routes.ts**: Definición de rutas y URLs de la aplicación.
+- **apiEndpoints.ts**: Lista de endpoints de la API.
+- **colors.ts**: Paleta de colores y esquemas visuales.
+- **settings.ts**: Configuraciones generales de la aplicación.
+
+Recuerda, antes de crear cualquier archivo nuevo, revisa esta guía para ver si ya existe algo similar que puedas utilizar o extender. Seguir esta regla te ahorrará mucho tiempo y evitará la duplicación de código.
