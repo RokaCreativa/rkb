@@ -48,7 +48,8 @@
 
     // Configuración de alias para rutas más limpias en imports.
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@/prisma/*": ["./prisma/*"]
     }
   },
 

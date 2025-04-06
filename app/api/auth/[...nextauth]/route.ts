@@ -1,8 +1,5 @@
 import NextAuth from "next-auth"
-import { authOptions } from "@/lib/auth"
-import { PrismaClient } from "@prisma/client"
-
-const prisma = new PrismaClient()
+import { authOptions } from "../../../../lib/auth"
 
 declare module "next-auth" {
   interface User {

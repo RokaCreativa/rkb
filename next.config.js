@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
   images: {
     unoptimized: true,
@@ -24,6 +26,14 @@ const nextConfig = {
         ignored: /node_modules/, // Ignorar node_modules para reducir reconstrucciones
       };
     }
+
+    // Agregar alias para @/ y @/prisma
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.join(__dirname),
+      '@/prisma': path.join(__dirname, 'prisma'),
+    };
+
     return config;
   },
 }

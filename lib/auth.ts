@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import prisma from "@/prisma/prisma";
+import prisma from "./prisma";
+import { compare } from "bcrypt";
 // O la ruta relativa que corresponda
 
 
@@ -41,7 +42,7 @@ export const authOptions: NextAuthOptions = {
     signIn: "/auth/signin",
   },
   session: {
-    strategy: "jwt" as const,
+    strategy: "jwt",
   },
   providers: [
     CredentialsProvider({
@@ -52,25 +53,47 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials): Promise<CustomUser | null> {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new Error("Email y contraseña son requeridos");
         }
 
-        // Buscar usuario por email en la base de datos
+        // Buscar usuario por email
         const user = await prisma.users.findFirst({
           where: { email: credentials.email },
+          select: {
+            user_id: true,
+            username: true,
+            email: true,
+            password: true,
+            profile: true,
+            client_id: true,
+            status: true
+          }
         });
 
-        // Validar credenciales
-        if (!user || user.password !== credentials.password) {
-          return null;
+        if (!user) {
+          throw new Error("Usuario no encontrado");
+        }
+
+        if (typeof user.status === 'number' && user.status !== 1) {
+          throw new Error("Usuario inactivo");
+        }
+
+        // Verificar contraseña
+        if (!user.password) {
+          throw new Error("Error en las credenciales");
+        }
+
+        const passwordMatch = await compare(credentials.password, user.password);
+        if (!passwordMatch) {
+          throw new Error("Contraseña incorrecta");
         }
 
         return {
           id: user.user_id,
-          name: user.username ?? "",
-          email: user.email ?? "",
-          role: user.profile ?? "user",
-          client_id: user.client_id ?? undefined,
+          name: user.username || "",
+          email: user.email,
+          role: user.profile || "user",
+          client_id: user.client_id || undefined,
         };
       },
     }),
