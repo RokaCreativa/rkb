@@ -27,6 +27,7 @@ export default function useCategoryManagement() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [client, setClient] = useState<Client | null>(null);
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState<number | null>(null);
 
   /**
    * Carga los datos del cliente actual
@@ -198,6 +199,9 @@ export default function useCategoryManagement() {
    */
   const toggleCategoryVisibility = useCallback(async (categoryId: number, currentStatus: number) => {
     try {
+      // Marcar que estamos actualizando la visibilidad de esta categoría
+      setIsUpdatingVisibility(categoryId);
+      
       // Actualización optimista en UI
       const newStatus = currentStatus === 1 ? 0 : 1;
       
@@ -223,6 +227,8 @@ export default function useCategoryManagement() {
         throw new Error('Error al actualizar la visibilidad');
       }
       
+      // Marcar que hemos completado la actualización
+      setIsUpdatingVisibility(null);
       return true;
     } catch (err) {
       console.error('Error toggling category visibility:', err);
@@ -237,6 +243,8 @@ export default function useCategoryManagement() {
         })
       );
       
+      // Marcar que hemos completado la actualización (con error)
+      setIsUpdatingVisibility(null);
       toast.error('Error al cambiar la visibilidad de la categoría');
       return false;
     }
@@ -248,6 +256,7 @@ export default function useCategoryManagement() {
     isLoading,
     error,
     client,
+    isUpdatingVisibility,
     fetchClientData,
     fetchCategories,
     createCategory,

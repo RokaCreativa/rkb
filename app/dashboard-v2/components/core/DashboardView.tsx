@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { TopNavbar } from "./TopNavbar";
-import { Loader } from "./ui/Loader";
+import { Loader } from "../ui/Loader";
 import { Category, Section, Product, Client } from "@/app/types/menu";
-import useDashboardState from "../hooks/useDashboardState";
+import useDashboardState from "../../hooks/core/useDashboardState";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
@@ -20,33 +20,33 @@ import {
   toPreviewCategory, toPreviewSection, toPreviewProduct,
   MenuCategory, MenuSection, MenuProduct, MenuClient,
   convertCategoriesToDashboard, convertSectionsToDashboard, convertProductsToDashboard
-} from "../types/type-adapters";
-import { DashboardCategory, DashboardSection, DashboardProduct, DashboardClient } from "../types/type-adapters";
+} from "../../types/type-adapters";
+import { DashboardCategory, DashboardSection, DashboardProduct, DashboardClient } from "../../types/type-adapters";
 
 // Importar nuevos componentes de vistas
-import CategoryView from "./views/CategoryView";
-import SectionView from "./views/SectionView";
-import ProductView from "./views/ProductView";
-import Breadcrumbs from "./views/Breadcrumbs";
-import MobilePreview from "./views/MobilePreview";
-import FloatingPhonePreview from "./views/FloatingPhonePreview";
+import CategoryView from "../views/CategoryView";
+import SectionView from "../views/SectionView";
+import ProductView from "../views/ProductView";
+import Breadcrumbs from "../views/Breadcrumbs";
+import MobilePreview from "../views/MobilePreview";
+import FloatingPhonePreview from "../views/FloatingPhonePreview";
 
 // Importar modales
-import NewCategoryModal from "./modals/NewCategoryModal";
-import NewSectionModal from "./modals/NewSectionModal";
-import NewProductModal from "./modals/NewProductModal";
-import EditCategoryModal from "./modals/EditCategoryModal";
-import EditSectionModal from "./modals/EditSectionModal";
-import EditProductModal from "./modals/EditProductModal";
-import DeleteCategoryModal from "./modals/DeleteCategoryModal";
-import DeleteSectionModal from "./modals/DeleteSectionModal";
-import DeleteProductModal from "./modals/DeleteProductModal";
+import NewCategoryModal from "../modals/NewCategoryModal";
+import NewSectionModal from "../modals/NewSectionModal";
+import NewProductModal from "../modals/NewProductModal";
+import EditCategoryModal from "../modals/EditCategoryModal";
+import EditSectionModal from "../modals/EditSectionModal";
+import EditProductModal from "../modals/EditProductModal";
+import DeleteCategoryModal from "../modals/DeleteCategoryModal";
+import DeleteSectionModal from "../modals/DeleteSectionModal";
+import DeleteProductModal from "../modals/DeleteProductModal";
 
 // Importar tipos
-import { ViewType } from "../types/dashboard";
+import { ViewType } from "../../types/dashboard";
 
 // Importar el nuevo hook useDragAndDrop
-import useDragAndDrop from "../hooks/useDragAndDrop";
+import useDragAndDrop from "../../hooks/ui/useDragAndDrop";
 
 // Constante para habilitar logs de depuración
 const DEBUG = process.env.NODE_ENV === 'development';
