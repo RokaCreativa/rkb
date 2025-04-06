@@ -9,7 +9,7 @@
 
 import { ChevronLeftIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { Product, Section } from "@/app/dashboard-v2/types";
-import { ProductTable } from "../ProductTable";
+import { ProductTable } from "@/app/dashboard-v2/components/domain/products/ProductTable";
 import { useEffect, useState, useRef, useCallback } from "react";
 
 /**
@@ -117,7 +117,7 @@ export default function ProductView({
     id: p.product_id,
     name: p.name,
     description: p.description,
-    image: p.image,
+    image: p.image || null,
     price: p.price,
     discount_price: p.discount_price,
     status: p.status,
@@ -239,23 +239,23 @@ export default function ProductView({
           sectionId={sectionId}
           sectionName={sectionName}
           isUpdatingVisibility={isUpdatingVisibility}
-          onToggleVisibility={(productId, status, sectionIdParam) => 
+          onToggleVisibility={(productId: number, status: number, sectionIdParam?: number) => 
             onToggleProductVisibility(productId, status, sectionIdParam || sectionId)
           }
-          onEditProduct={(productFromTable) => {
+          onEditProduct={(productFromTable: { id: number }) => {
             const originalProduct = localProducts.find(p => p.product_id === productFromTable.id);
             if (originalProduct) {
               onEditProduct(originalProduct);
             }
           }}
-          onDeleteProduct={async (productId) => {
+          onDeleteProduct={async (productId: number) => {
             const originalProduct = localProducts.find(p => p.product_id === productId);
             if (originalProduct) {
               await Promise.resolve(onDeleteProduct(originalProduct));
             }
             return true;
           }}
-          onReorderProduct={onProductsReorder ? (sourceIndex, destinationIndex) => {
+          onReorderProduct={onProductsReorder ? (sourceIndex: number, destinationIndex: number) => {
             if (onProductsReorder) {
               onProductsReorder(sourceIndex, destinationIndex);
             }

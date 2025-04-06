@@ -42,106 +42,77 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
 
   return (
     <div className={`flex items-center justify-between p-3 product-hover border-b product-border !bg-white hover:!bg-amber-50 !border-amber-100 ${product.status !== 1 ? 'opacity-70' : ''}`}>
-      <div className="flex items-center gap-3">
-        {/* Icono de arrastre - IMPORTANTE para drag and drop */}
-        {dragHandleProps ? (
+      <div className="flex items-center flex-1 min-w-0">
+        {showDragHandle && dragHandleProps && (
           <div 
-            {...dragHandleProps}
-            className="product-drag-handle px-2 -ml-2 p-2 cursor-grab !bg-amber-50 hover:!bg-amber-100 rounded-lg"
-            title="Arrastrar para reordenar"
-            style={{
-              touchAction: 'none',
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
-              MozUserSelect: 'none',
-              msUserSelect: 'none'
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-            onMouseDown={(e) => {
-              e.stopPropagation();
-            }}
-            onTouchStart={(e) => {
-              e.stopPropagation();
-            }}
+            {...dragHandleProps} 
+            className="pr-2 cursor-move product-drag-handle"
           >
-            <Bars3Icon className="h-5 w-5 !text-amber-600" />
-          </div>
-        ) : (
-          <div className="flex items-center justify-center self-stretch px-2 -ml-2">
-            <Bars3Icon className="h-5 w-5 !text-amber-300" />
+            <GridIcon type="product" icon="drag" size="medium" />
           </div>
         )}
-        <div className="grid-image-container">
+        
+        <div className="h-10 w-10 relative flex-shrink-0 rounded overflow-hidden bg-gray-100 mr-3">
           <Image
-            src={getImagePath(product.image, 'products')}
-            alt={product.name || ''}
-            width={32}
-            height={32}
-            className={`grid-image ${product.status !== 1 ? 'grayscale' : ''}`}
+            src={getImagePath(product.image, "products")}
+            alt={product.name || ""}
+            width={40}
+            height={40}
+            className="object-cover object-center"
             onError={handleImageError}
           />
         </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-medium product-text !text-amber-700">{product.name}</span>
-          {product.description && (
-            <span className="text-xs text-gray-500 truncate max-w-xs">{product.description}</span>
-          )}
+        
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-gray-900 truncate">{product.name}</span>
+            <div className="flex items-center text-xs text-gray-500 space-x-1">
+              <span className="whitespace-nowrap">{product.price} €</span>
+            </div>
+          </div>
         </div>
       </div>
       
-      <div className="flex items-center">
-        <span className="text-sm font-medium mr-4 product-text !text-amber-700">${product.price}</span>
+      <div className="flex items-center space-x-2 flex-shrink-0">
         {onToggleProductVisibility && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleProductVisibility(product.product_id, product.status, sectionId);
-            }}
-            disabled={isUpdatingProductVisibility === product.product_id}
-            className={`p-1 rounded ${
-              isUpdatingProductVisibility === product.product_id
-                ? 'opacity-50 cursor-not-allowed'
-                : product.status === 1
-                  ? 'product-action product-icon-hover !text-amber-600 hover:!bg-amber-100'
-                  : 'text-gray-400 hover:bg-gray-100'
+            onClick={() => onToggleProductVisibility(product.product_id, product.status, sectionId)}
+            className={`rounded-full p-1 ${product.status === 1
+              ? 'product-action hover:product-bg !text-amber-500 hover:!bg-amber-100'
+              : 'text-gray-400 hover:bg-gray-100'
             }`}
-            title={product.status === 1 ? "Ocultar producto" : "Mostrar producto"}
+            aria-label={product.status === 1 ? "Ocultar producto" : "Mostrar producto"}
+            disabled={isUpdatingProductVisibility === product.product_id}
           >
             {isUpdatingProductVisibility === product.product_id ? (
-              <div className="w-4 h-4 border-2 border-t-transparent !border-amber-500 rounded-full animate-spin"></div>
+              <div className="w-5 h-5 flex items-center justify-center">
+                <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+              </div>
             ) : (
               <GridIcon 
                 type="product" 
                 icon={product.status === 1 ? "visibility" : "hidden"} 
-                size="medium"
-                className={product.status === 1 ? "!text-amber-600" : ""}
+                size="medium" 
               />
             )}
           </button>
         )}
+        
         {onEditProduct && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onEditProduct(product);
-            }}
-            className="p-1 rounded product-action product-icon-hover ml-1 !text-amber-600 hover:!bg-amber-100"
-            title="Editar producto"
+            onClick={() => onEditProduct(product)}
+            className="rounded-full p-1 product-action hover:product-bg !text-amber-500 hover:!bg-amber-100"
+            aria-label="Editar producto"
           >
-            <GridIcon type="product" icon="edit" size="medium" className="!text-amber-600" />
+            <GridIcon type="product" icon="edit" size="medium" />
           </button>
         )}
+        
         {onDeleteProduct && (
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteProduct(product);
-            }}
-            className="p-1 rounded text-red-500 hover:bg-red-50 ml-1"
-            title="Eliminar producto"
+            onClick={() => onDeleteProduct(product)}
+            className="rounded-full p-1 product-action hover:product-bg !text-amber-500 hover:!bg-amber-100"
+            aria-label="Eliminar producto"
           >
             <GridIcon type="product" icon="delete" size="medium" />
           </button>

@@ -18,7 +18,7 @@ import { Droppable, Draggable } from '@hello-pangea/dnd';
 import Image from 'next/image';
 import { Section, Product } from '@/app/types/menu';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
-import ProductList from './ProductList';
+import ProductList from '@/app/dashboard-v2/components/domain/products/ProductList';
 
 /**
  * Props para el componente SectionList

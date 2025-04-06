@@ -9,7 +9,7 @@
 
 import React, { useState } from 'react';
 import { PlusIcon } from "@heroicons/react/24/outline";
-import CategoryTable from "../CategoryTable";
+import CategoryTable from "../domain/categories/CategoryTable";
 import { Category, Section, Product } from "@/app/types/menu";
 
 // Modificar las importaciones para usar los componentes que realmente existen

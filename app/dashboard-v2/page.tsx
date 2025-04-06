@@ -1,15 +1,20 @@
+/**
+ * @file app/dashboard-v2/page.tsx
+ * @description Página principal del dashboard
+ */
+
 import { Metadata } from "next";
 import { getServerSession } from "next-auth/next";
 import { redirect } from "next/navigation";
 import { authOptions } from "../../lib/auth";
-import DashboardView from "./components/DashboardView";
+import DashboardView from "./components/core/DashboardView";
 
 /**
  * Configuración de metadatos para la página de dashboard
  */
 export const metadata: Metadata = {
-  title: "Dashboard de Menú | RokaMenu",
-  description: "Panel de administración para gestionar tu menú digital",
+  title: "Dashboard - RokaMenu",
+  description: "Panel de control para la gestión de menús digitales",
 };
 
 /**

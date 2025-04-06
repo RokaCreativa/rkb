@@ -10,9 +10,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { PlusIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
 import { Category, Section, Product } from "@/app/types/menu";
-import SectionList from '../sections/SectionList';
-import ProductList from '../sections/ProductList';
-import { ProductTable } from '../ProductTable';
+import SectionList from '@/app/dashboard-v2/components/domain/sections/SectionList';
+import ProductList from '@/app/dashboard-v2/components/domain/products/ProductList';
+import { ProductTable } from '@/app/dashboard-v2/components/domain/products/ProductTable';
 
 /**
  * Props para el componente SectionView

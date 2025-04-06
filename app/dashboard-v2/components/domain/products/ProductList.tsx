@@ -15,7 +15,7 @@ interface ProductListProps {
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (product: Product) => void;
   onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => void;
-  onProductsReorder?: (sectionId: number, startIndex: number, endIndex: number) => void;
+  onProductsReorder?: (sourceIndex: number, destinationIndex: number) => void;
   isUpdatingProductVisibility?: number | null;
   isReorderModeActive?: boolean;
   isProcessingReorder?: boolean;
