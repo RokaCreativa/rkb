@@ -51,17 +51,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           </div>
         )}
         
-        <div className="h-10 w-10 relative flex-shrink-0 rounded overflow-hidden bg-gray-100 mr-3">
-          <Image
-            src={getImagePath(product.image || null, "products")}
-            alt={product.name || ""}
-            width={40}
-            height={40}
-            className="object-cover object-center"
-            onError={handleImageError}
-          />
-        </div>
-        
         <div className="min-w-0 flex-1">
           <div className="flex flex-col">
             <span className="text-sm font-medium text-gray-900 truncate">{product.name}</span>
@@ -70,6 +59,21 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             </div>
           </div>
         </div>
+      </div>
+      
+      <div className="ml-3 product-image-container">
+        {product.image ? (
+          <Image
+            src={getImagePath(product.image || null, "products")}
+            alt={product.name || ""}
+            width={40}
+            height={40}
+            className="product-image"
+            onError={handleImageError}
+          />
+        ) : (
+          <span className="text-xs text-gray-400">Sin img</span>
+        )}
       </div>
       
       <div className="flex items-center space-x-2 flex-shrink-0">

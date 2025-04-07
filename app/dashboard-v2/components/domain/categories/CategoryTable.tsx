@@ -63,6 +63,13 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
   isUpdatingProductVisibility = null,
   onAddCategory
 }) => {
+  // Diagnóstico para drag and drop al inicio de la renderización
+  console.log('🚨 [CRITICAL] CategoryTable renderización:', {
+    categoriesCount: categories?.length || 0,
+    isReorderModeActive,
+    onReorderCategoryExists: !!onReorderCategory
+  });
+
   const [showHiddenCategories, setShowHiddenCategories] = useState(true);
   
   const visibleCategories = categories.filter(cat => cat.status === 1);
@@ -73,6 +80,8 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
   
   /**
    * Maneja el fin del arrastre para reordenar categorías
+   * NOTA: Esta función no es usada directamente ya que el DragDropContext global en DashboardView
+   * maneja todos los eventos de drag and drop.
    * @param {DropResult} result - Resultado del arrastre
    */
   const handleDragEnd = (result: DropResult) => {
@@ -80,7 +89,14 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
       return;
     }
     
-    console.log("Drag end in CategoryTable", result);
+    console.log("🔍 [DRAG DEBUG] Drag end en CategoryTable", {
+      result,
+      sourceIndex: result.source.index,
+      destinationIndex: result.destination.index,
+      type: result.type,
+      onReorderCategoryExists: !!onReorderCategory,
+      isReorderModeActive
+    });
     
     // Solo procesar si tenemos una función de reordenamiento y el modo está activo
     if (onReorderCategory && isReorderModeActive) {
@@ -115,7 +131,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
         </div>
       </div>
       
-      <Droppable droppableId="category-list" type="CATEGORY">
+      <Droppable droppableId="category" type="category">
         {(provided) => (
           <table className="min-w-full divide-y category-border" {...provided.droppableProps} ref={provided.innerRef}>
             <thead className="bg-gray-50">
@@ -139,8 +155,8 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
               {visibleCategories.map((category, index) => (
                 <React.Fragment key={`section-group-${category.category_id}`}>
                   <Draggable 
-                    key={category.category_id.toString()} 
-                    draggableId={`category-${category.category_id}`} 
+                    key={`category-${index}`} 
+                    draggableId={`category-${index}`} 
                     index={index}
                     isDragDisabled={!isReorderModeActive}
                   >
@@ -154,7 +170,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                             : expandedCategories[category.category_id] 
                               ? "category-bg" 
                               : "hover:bg-gray-50"
-                        } mt-4 ${isReorderModeActive ? 'cursor-move' : ''}`}
+                        } mt-4`}
                       >
                         <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                           <div className="flex items-center">
@@ -183,14 +199,18 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                           <div className="flex items-center">
                             <div 
                               {...provided.dragHandleProps} 
-                              className={`mr-2 px-1 ${isReorderModeActive ? 'category-drag-handle' : ''}`} 
+                              className={`mr-2 px-2 py-1 rounded-md transition-colors ${
+                                isReorderModeActive 
+                                  ? 'category-drag-handle bg-indigo-50 border-2 border-indigo-300 shadow-sm' 
+                                  : 'text-gray-400'
+                              }`} 
                               title={isReorderModeActive ? "Arrastrar para reordenar" : ""}
                             >
                               <GridIcon 
                                 type="category" 
                                 icon="drag" 
                                 size="large" 
-                                className={isReorderModeActive ? "text-indigo-600" : "text-gray-400"}
+                                className={isReorderModeActive ? "text-indigo-600 animate-pulse" : "text-gray-400"}
                               />
                             </div>
                             <div className="flex items-center">
@@ -208,13 +228,13 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">{category.display_order || index + 1}</td>
                         <td className="px-3 py-2 whitespace-nowrap">
                           <div className="flex justify-center">
-                            <div className="grid-image-container">
+                            <div className="category-image-container">
                               <Image
                                 src={getImagePath(category.image, 'categories')}
                                 alt={category.name || ''}
                                 width={32}
                                 height={32}
-                                className="grid-image"
+                                className="category-image"
                                 onError={handleImageError}
                               />
                             </div>
@@ -352,12 +372,12 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                   <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-center">{category.display_order || visibleCategories.length + index + 1}</td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <div className="flex justify-center">
-                      <div className="grid-image-container">
+                      <div className="category-image-container">
                         {category.image && (
                           <img 
                             src={getImagePath(category.image, 'categories')}
                             alt={category.name || ''}
-                            className="grid-image opacity-50 grayscale"
+                            className="category-image opacity-50 grayscale"
                             onError={handleImageError}
                           />
                         )}

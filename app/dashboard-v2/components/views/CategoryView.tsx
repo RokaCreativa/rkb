@@ -89,6 +89,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
   onDeleteProduct,
   onAddProductSubmit,
   isUpdatingProductVisibility,
+  isReorderModeActive = false,
   onSectionsReorder,
   onProductReorder
 }) => {
@@ -107,8 +108,6 @@ const CategoryView: React.FC<CategoryViewProps> = ({
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [selectedSectionIdForProduct, setSelectedSectionIdForProduct] = useState<number | null>(null);
   
-  const [isReorderModeActive, setIsReorderModeActive] = useState(false);
-
   // Category modal handlers
   const handleAddCategory = () => {
     setIsAddCategoryModalOpen(true);
@@ -159,23 +158,56 @@ const CategoryView: React.FC<CategoryViewProps> = ({
     }
   }, [selectedCategory, sections, expandedSections]);
 
+  // Diagnóstico para isReorderModeActive
+  useEffect(() => {
+    console.log("🚨 [CRITICAL] CategoryView - Estado de isReorderModeActive:", isReorderModeActive);
+  }, [isReorderModeActive]);
+
   const onReorderCategory = (sourceIndex: number, destinationIndex: number) => {
     console.log(
-      'CategoryView -> onReorderCategory:',
-      'sourceIndex:', sourceIndex,
-      'destinationIndex:', destinationIndex,
-      'isReorderModeActive:', isReorderModeActive,
-      'onSectionsReorder exists:', !!onSectionsReorder
+      '🔄 [DRAG DEBUG] CategoryView -> onReorderCategory llamado:',
+      {
+        sourceIndex,
+        destinationIndex,
+        isReorderModeActiveProp: isReorderModeActive,
+        isReorderModeActiveState: isReorderModeActive,
+        onSectionsReorderExists: !!onSectionsReorder
+      }
     );
 
-    if (selectedCategory && isReorderModeActive) {
-      const categoryId = selectedCategory.category_id;
-      console.log('CategoryView -> categoryId:', categoryId);
-      
-      if (onSectionsReorder) {
-        // Llamamos directamente a la función onSectionsReorder con los parámetros esperados
-        onSectionsReorder(categoryId, sourceIndex, destinationIndex);
+    if (isReorderModeActive) {
+      // Reordenación de categorías
+      if (categories && categories.length > 0) {
+        // Si estamos en el contexto de una categoría específica
+        if (selectedCategory) {
+          const categoryId = selectedCategory.category_id;
+          console.log('✅ CategoryView -> Reordenando secciones para categoría:', categoryId);
+          
+          if (onSectionsReorder) {
+            // Llamamos directamente a la función onSectionsReorder con los parámetros esperados
+            onSectionsReorder(categoryId, sourceIndex, destinationIndex);
+          } else {
+            console.error('❌ [DRAG ERROR] onSectionsReorder no está disponible');
+          }
+        } else {
+          // Estamos reordenando categorías globalmente
+          console.log('✅ CategoryView -> Reordenando categorías globalmente');
+          
+          // Usar el primer argumento disponible para la reordenación
+          if (onSectionsReorder) {
+            // En este caso, usamos el ID de la primera categoría como un comodín
+            // La lógica real de reordenamiento de categorías debería manejarse en el componente padre
+            const firstCategoryId = categories[0].category_id;
+            onSectionsReorder(firstCategoryId, sourceIndex, destinationIndex);
+          } else {
+            console.error('❌ [DRAG ERROR] onSectionsReorder no está disponible para categorías');
+          }
+        }
+      } else {
+        console.error('❌ [DRAG ERROR] No hay categorías disponibles para reordenar');
       }
+    } else {
+      console.warn('⚠️ [DRAG WARN] Ignorando reordenamiento porque isReorderModeActive es false');
     }
   };
 
@@ -185,7 +217,15 @@ const CategoryView: React.FC<CategoryViewProps> = ({
         <h1 className="text-xl font-bold text-indigo-800">Gestión de Menú</h1>
         <div className="flex gap-2">
           <button
-            onClick={() => setIsReorderModeActive(!isReorderModeActive)}
+            onClick={() => {
+              // Aquí necesitamos comunicar al padre el cambio de estado
+              console.log("🔄 [DEBUG] Botón de reordenamiento presionado");
+              // Como no recibimos un delegado específico, usamos un hack para detectar esto en el padre
+              if (onSectionsReorder) {
+                // Llamar a onSectionsReorder con valores especiales (-1, -1, -1) como señal para toggle
+                onSectionsReorder(-1, -1, -1);
+              }
+            }}
             className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center ${
               isReorderModeActive 
                 ? 'bg-indigo-600 text-white hover:bg-indigo-700'

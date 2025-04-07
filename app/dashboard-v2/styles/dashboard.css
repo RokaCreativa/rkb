@@ -35,6 +35,29 @@
   --spacing-xl: 2rem;
 }
 
+/* Regla global para prevenir selección de texto */
+table, 
+tbody, 
+thead, 
+tr, 
+th, 
+td,
+.dashboard-container,
+.dashboard-content,
+.dashboard-sidebar,
+.dashboard-main,
+.grid-container,
+.grid-row,
+.grid-cell,
+.card,
+.list-item,
+.interactive-element {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
 /* Estilos para layouts y contenedores principales */
 .dashboard-container {
   width: 100%;

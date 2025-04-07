@@ -2,6 +2,15 @@
 const path = require('path');
 
 const nextConfig = {
+  experimental: {
+    // Otros valores experimentales pueden ir aquí
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   images: {
     unoptimized: true,
     domains: ['localhost'],

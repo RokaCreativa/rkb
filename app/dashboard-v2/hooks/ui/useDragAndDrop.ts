@@ -212,19 +212,50 @@ export default function useDragAndDrop(
     }));
     
     try {
-      // Enviar actualización al servidor
-      // Asegurar que price sea string para compatibilidad con API
-      const productsForApi = updatedProducts.map(product => ({
-        ...product,
-        price: typeof product.price === 'number' ? product.price.toString() : product.price
-      }));
+      // Diagnóstico antes de enviar al servidor
+      console.log('🔍 [CRITICAL] Productos a reordenar:', {
+        sectionId,
+        productCount: updatedProducts.length,
+        sampleProducts: updatedProducts.slice(0, 2).map(p => ({
+          product_id: p.product_id,
+          name: p.name,
+          display_order: p.display_order
+        }))
+      });
       
+      // Preparar productos para API, enviando SOLO product_id y display_order
+      const productsForApi = updatedProducts.map(product => {
+        // Asegurar que tengamos el ID correcto (solamente product_id es válido en este contexto)
+        const productId = product.product_id;
+          
+        if (!productId || typeof productId !== 'number') {
+          console.error('❌ [CRITICAL] Producto sin product_id válido:', product);
+          toast.error('Error: Producto sin ID válido');
+          return null; // Este null será filtrado después
+        }
+        
+        return {
+          product_id: productId,
+          display_order: product.display_order || 0
+        };
+      }).filter((p): p is {product_id: number, display_order: number} => p !== null); // Eliminar productos inválidos con type guard
+      
+      if (productsForApi.length === 0) {
+        console.error('❌ [CRITICAL] No hay productos válidos para reordenar');
+        toast.error('Error: No hay productos válidos para reordenar');
+        return;
+      }
+      
+      console.log('📊 [CRITICAL] Productos enviados a API:', productsForApi);
+      
+      // Enviar actualización al servidor
       const result = await DashboardService.reorderProducts(productsForApi);
       
       if (result.success) {
         toast.success('Productos reordenados correctamente');
       } else {
-        toast.error('Error al reordenar productos');
+        toast.error('Error al reordenar productos: ' + (result.error || 'Error desconocido'));
+        console.error('Error al reordenar productos:', result.error);
         // Revertir cambios
         setProducts(prev => ({
           ...prev,
@@ -248,35 +279,110 @@ export default function useDragAndDrop(
    * a la función específica para reordenar
    */
   const handleGlobalDragEnd = useCallback((result: DropResult) => {
+    // DIAGNÓSTICO CRÍTICO
+    console.log('🚨 [CRITICAL] handleGlobalDragEnd RECIBIÓ:', JSON.stringify(result, null, 2));
+    
     // Limpiar el estado de arrastre
     setIsDragging(false);
     
     // Extraer información relevante
     const { source, destination, type } = result;
     
+    // Log detallado para depuración
+    console.log('🔍 [DRAG DEBUG] handleGlobalDragEnd:', {
+      result,
+      type,
+      source,
+      destination,
+      normalizedType: typeof type === 'string' ? type.toLowerCase() : String(type).toLowerCase(),
+      isReorderModeActive,
+      droppableIdSource: source.droppableId,
+      droppableIdDestination: destination?.droppableId,
+      handleReorderCategoriesExists: typeof handleReorderCategories === 'function',
+      handleReorderSectionsExists: typeof handleReorderSections === 'function',
+      handleReorderProductsExists: typeof handleReorderProducts === 'function',
+    });
+    
     // Cancelar si no hay destino o no hubo cambio real
     if (!destination || 
         (source.droppableId === destination.droppableId && 
          source.index === destination.index)) {
+      console.log('🛑 [DRAG INFO] Operación cancelada: Sin destino o sin cambio real');
+      return;
+    }
+    
+    // Solo procesar si el modo reordenamiento está activo
+    if (!isReorderModeActive) {
+      console.log('⚠️ [DRAG WARN] Ignorando drag and drop porque isReorderModeActive es false');
       return;
     }
     
     // Normalizar el tipo a minúsculas para asegurar compatibilidad
-    const normalizedType = String(type).toLowerCase();
+    const normalizedType = typeof type === 'string' ? type.toLowerCase() : String(type).toLowerCase();
     
     // Determinar qué tipo de elemento se arrastró y llamar a la función adecuada
+    console.log('🔄 [DRAG INFO] Procesando tipo:', normalizedType);
+    
     if (normalizedType === 'category') {
-      handleReorderCategories(source.index, destination.index);
+      console.log('🔄 [DRAG INFO] Reordenando CATEGORÍA:', source.index, '->', destination.index);
+      
+      // Verificar función antes de llamar
+      if (typeof handleReorderCategories === 'function') {
+        console.log('✅ [DRAG INFO] Llamando a handleReorderCategories');
+        handleReorderCategories(source.index, destination.index);
+      } else {
+        console.error('❌ [DRAG ERROR] handleReorderCategories no es una función');
+      }
     } else if (normalizedType === 'section') {
       // Extraer categoryId del droppableId (formato: "category-{id}")
-      const categoryId = parseInt(source.droppableId.replace(/\D/g, ''));
-      handleReorderSections(categoryId, source.index, destination.index);
+      const droppableIdMatch = source.droppableId.match(/category-(\d+)/);
+      const categoryId = droppableIdMatch ? parseInt(droppableIdMatch[1]) : parseInt(source.droppableId.replace(/\D/g, ''));
+      
+      console.log('🔄 [DRAG INFO] Reordenando SECCIÓN:', {
+        categoryId, 
+        sourceIndex: source.index, 
+        destIndex: destination.index,
+        droppableIdMatch
+      });
+      
+      if (typeof handleReorderSections === 'function') {
+        console.log('✅ [DRAG INFO] Llamando a handleReorderSections');
+        handleReorderSections(categoryId, source.index, destination.index);
+      } else {
+        console.error('❌ [DRAG ERROR] handleReorderSections no es una función');
+      }
     } else if (normalizedType === 'product') {
       // Extraer sectionId del droppableId (formato: "section-{id}")
-      const sectionId = parseInt(source.droppableId.replace(/\D/g, ''));
-      handleReorderProducts(sectionId, source.index, destination.index);
+      const droppableIdMatch = source.droppableId.match(/section-(\d+)/);
+      
+      // Si no encontramos el formato section-{id}, intentamos el formato alternativo products-section-{id}
+      let sectionId;
+      if (droppableIdMatch && droppableIdMatch[1]) {
+        sectionId = parseInt(droppableIdMatch[1]);
+      } else {
+        // Intentar formato alternativo products-section-{id}
+        const altMatch = source.droppableId.match(/products-section-(\d+)/);
+        sectionId = altMatch ? parseInt(altMatch[1]) : 
+                   parseInt(source.droppableId.replace(/\D/g, ''));
+      }
+      
+      console.log('🔄 [DRAG INFO] Reordenando PRODUCTO:', {
+        sectionId, 
+        sourceIndex: source.index, 
+        destIndex: destination.index,
+        droppableId: source.droppableId
+      });
+      
+      if (typeof handleReorderProducts === 'function') {
+        console.log('✅ [DRAG INFO] Llamando a handleReorderProducts');
+        handleReorderProducts(sectionId, source.index, destination.index);
+      } else {
+        console.error('❌ [DRAG ERROR] handleReorderProducts no es una función');
+      }
+    } else {
+      console.warn('⚠️ [DRAG WARN] Tipo desconocido en handleGlobalDragEnd:', type);
     }
-  }, [handleReorderCategories, handleReorderSections, handleReorderProducts]);
+  }, [handleReorderCategories, handleReorderSections, handleReorderProducts, isReorderModeActive]);
   
   return {
     // Estados

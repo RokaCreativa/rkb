@@ -33,6 +33,7 @@ dashboard-v2/
 │   ├── type-adapters.ts    # Adaptadores para conversión de tipos
 │   └── index.ts            # Exportaciones centralizadas
 └── utils/                  # Utilidades y helpers
+└── styles/                 # Estilos específicos del dashboard-v2
 ```
 
 ## Principios de Arquitectura
@@ -52,6 +53,55 @@ Este proyecto sigue varios principios clave:
    - Lógica de UI (hooks/ui/\*)
 
 5. **Manejo de Estado Descentralizado**: Cada dominio maneja su propio estado, que luego es coordinado por fachadas.
+
+## Sistema de Arrastrar y Soltar (Drag and Drop)
+
+El dashboard implementa un sistema completo de arrastrar y soltar que permite a los usuarios reordenar categorías, secciones y productos de manera intuitiva. Este sistema sigue los principios arquitectónicos del proyecto y está organizado de la siguiente manera:
+
+### Componentes Principales
+
+1. **DragDropContext**: Implementado en `components/core/DashboardView.tsx`, envuelve toda la aplicación y proporciona el contexto para las operaciones de arrastrar y soltar.
+
+2. **Droppable y Draggable**: Implementados en los componentes específicos de dominio:
+   - `components/domain/categories/CategoryTable.tsx` para categorías
+   - `components/domain/sections/SectionList.tsx` para secciones
+   - `components/domain/products/ProductTable.tsx` para productos
+
+### Hook Centralizado
+
+El hook `useDragAndDrop` en `hooks/ui/useDragAndDrop.ts` centraliza toda la lógica de arrastrar y soltar:
+
+- Proporciona estados para controlar el modo de reordenamiento (`isReorderModeActive`)
+- Gestiona las operaciones de arrastre en curso (`isDragging`)
+- Incluye funciones específicas para reordenar cada tipo de elemento
+- Determina el tipo de elemento arrastrado y aplica la lógica correspondiente
+
+### Endpoints de API
+
+El sistema se integra con la API a través de tres endpoints específicos:
+
+- `/api/categories/reorder` para reordenar categorías
+- `/api/sections/reorder` para reordenar secciones
+- `/api/products/reorder` para reordenar productos
+
+### Flujo de Datos
+
+1. El usuario activa el modo de reordenamiento a través de un botón en TopNavbar
+2. Al arrastrar un elemento, se captura el evento de inicio de arrastre
+3. Al soltar el elemento, se detecta el tipo de elemento y se ejecuta la función específica de reordenamiento
+4. Se actualiza inmediatamente el estado local (UI optimista)
+5. Se envía la nueva ordenación al servidor
+6. La UI muestra un feedback (toast) del resultado de la operación
+
+### Estilos y Visualización
+
+El sistema utiliza clases CSS especializadas definidas en `styles/grids.css`:
+
+- Cada tipo de elemento tiene su propia identidad visual
+- Los manipuladores de arrastre tienen efectos visuales específicos
+- Los elementos durante el arrastre muestran estados visuales que mejoran la experiencia
+
+Para más detalles sobre el sistema de arrastrar y soltar, consulta la documentación completa en `docs/manual-drag-and-drop.md`.
 
 ## Guía para Contribuyentes
 

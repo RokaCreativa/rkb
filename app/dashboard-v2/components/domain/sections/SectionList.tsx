@@ -411,15 +411,17 @@ const SectionList: React.FC<SectionListProps> = ({
                                   </button>
                                   <button
                                     onClick={() => onEditSection(section)}
-                                    className="p-1 section-action section-icon-hover rounded-full"
+                                    className="section-action-edit"
+                                    title="Editar sección"
                                   >
-                                    <PencilIcon className="h-4 w-4" />
+                                    <GridIcon type="section" icon="edit" />
                                   </button>
                                   <button
                                     onClick={() => onDeleteSection(section)}
-                                    className="p-1 text-red-500 hover:bg-red-100 rounded-full"
+                                    className="section-action-delete"
+                                    title="Eliminar sección"
                                   >
-                                    <TrashIcon className="h-4 w-4" />
+                                    <GridIcon type="section" icon="delete" className="!text-teal-600" />
                                   </button>
                                 </div>
                               </td>
@@ -535,15 +537,17 @@ const SectionList: React.FC<SectionListProps> = ({
                           </button>
                           <button
                             onClick={() => onEditSection(section)}
-                            className="p-1 text-gray-400 hover:bg-gray-100 rounded-full"
+                            className="section-action-edit"
+                            title="Editar sección"
                           >
-                            <PencilIcon className="h-4 w-4" />
+                            <GridIcon type="section" icon="edit" />
                           </button>
                           <button
                             onClick={() => onDeleteSection(section)}
-                            className="p-1 text-red-400 hover:bg-red-50 rounded-full"
+                            className="section-action-delete"
+                            title="Eliminar sección"
                           >
-                            <TrashIcon className="h-4 w-4" />
+                            <GridIcon type="section" icon="delete" className="!text-teal-600" />
                           </button>
                         </div>
                       </td>

@@ -707,14 +707,37 @@ export default function DashboardView() {
     setLocalProducts as any    // Usamos 'as any' para resolver problema de compatibilidad temporal
   );
   
+  // Diagnóstico extensivo para verificar la inicialización del hook
+  useEffect(() => {
+    console.log('🔍 [DRAG DEBUG] Inicialización de useDragAndDrop:', {
+      handleGlobalDragEndExists: typeof handleGlobalDragEnd === 'function',
+      handleReorderCategoriesExists: typeof handleReorderCategories === 'function',
+      handleReorderSectionsExists: typeof handleReorderSections === 'function',
+      handleReorderProductsExists: typeof handleReorderProducts === 'function',
+      isReorderModeActive,
+      isDragging,
+      categoriesCount: localCategories?.length || 0
+    });
+  }, [
+    handleGlobalDragEnd,
+    handleReorderCategories, 
+    handleReorderSections, 
+    handleReorderProducts, 
+    isReorderModeActive, 
+    isDragging, 
+    localCategories
+  ]);
+  
   // Activar el modo de reordenamiento por defecto
   useEffect(() => {
     console.log("🔄 Estado inicial de isReorderModeActive:", isReorderModeActive);
     if (!isReorderModeActive) {
       console.log("🔄 Activando modo de reordenamiento automáticamente");
+      // Activar inmediatamente para evitar problemas de sincronización
       setIsReorderModeActive(true);
+      console.log("✅ Modo de reordenamiento activado");
     }
-  }, [isReorderModeActive, setIsReorderModeActive]);
+  }, []);  // Solo ejecutar una vez al montar el componente
   
   // Actualizar toggleProductVisibility para que devuelva una Promise<void>
   const handleToggleProductVisibility = useCallback(async (productId: number, currentStatus: number, sectionId?: number): Promise<void> => {
@@ -785,7 +808,38 @@ export default function DashboardView() {
       )}
       
       {/* *** ENVOLVER CONTENIDO PRINCIPAL CON DragDropContext *** */}
-      <DragDropContext onDragEnd={handleGlobalDragEnd}>
+      <DragDropContext 
+        onDragEnd={(result) => {
+          console.log('🔍 [DRAG DEBUG] DragDropContext.onDragEnd llamado con:', {
+            result,
+            type: result.type,
+            source: result.source,
+            destination: result.destination,
+            handleGlobalDragEndExists: typeof handleGlobalDragEnd === 'function',
+            isReorderModeActive
+          });
+          
+          // Verificación crítica: solo procesar si el modo de reordenamiento está activo
+          if (!isReorderModeActive) {
+            console.error('❌ [CRITICAL] Se ignoró onDragEnd porque isReorderModeActive es FALSE');
+            return;
+          }
+          
+          if (typeof handleGlobalDragEnd === 'function') {
+            handleGlobalDragEnd(result);
+          } else {
+            console.error('❌ [DRAG ERROR] handleGlobalDragEnd no es una función');
+          }
+        }}
+        onDragStart={(initial) => {
+          console.log('🔍 [DRAG DEBUG] DragDropContext.onDragStart:', {
+            initial,
+            type: initial.type,
+            isReorderModeActive
+          });
+          setIsDragging(true);
+        }}
+      >
         <div className="container mx-auto px-4 py-6 flex-1">
           {/* Breadcrumbs y navegación */}
           <Breadcrumbs
@@ -917,6 +971,25 @@ export default function DashboardView() {
                     }}
                     isUpdatingProductVisibility={isUpdatingVisibility}
                     isReorderModeActive={isReorderModeActive}
+                    onSectionsReorder={(categoryId, sourceIndex, destinationIndex) => {
+                      console.log('🔄 [CategoryView] Llamando a handleReorderCategories desde onSectionsReorder:', {
+                        categoryId, sourceIndex, destinationIndex
+                      });
+                      
+                      // Caso especial: si todos los parámetros son -1, es una señal para alternar
+                      // el modo de reordenamiento desde el botón en CategoryView
+                      if (categoryId === -1 && sourceIndex === -1 && destinationIndex === -1) {
+                        console.log('🔄 Alternando modo de reordenamiento desde CategoryView');
+                        setIsReorderModeActive(prev => !prev);
+                        return;
+                      }
+                      
+                      // Para categorías, ignoramos el categoryId y usamos directamente los índices
+                      handleReorderCategories(sourceIndex, destinationIndex);
+                    }}
+                    onProductReorder={(sectionId, sourceIndex, destinationIndex) => 
+                      handleReorderProducts(sectionId, sourceIndex, destinationIndex)
+                    }
                   />
                 )}
 

@@ -13,7 +13,16 @@
  * para los hooks y componentes.
  */
 
-import { Category, Section, Product } from '@/app/dashboard-v2/types';
+import { Category, Section } from '@/app/dashboard-v2/types';
+
+/**
+ * Interfaz simplificada para reordenar productos
+ * Solo necesitamos el ID y el orden para la operación de reordenamiento
+ */
+interface ProductOrder {
+  product_id: number;
+  display_order: number;
+}
 
 /**
  * Interfaz para la respuesta de la API
@@ -173,7 +182,7 @@ export const DashboardService = {
    * }));
    * const result = await DashboardService.reorderProducts(updatedProducts);
    */
-  async reorderProducts(products: Product[]): Promise<ApiResponse> {
+  async reorderProducts(products: ProductOrder[]): Promise<ApiResponse> {
     try {
       // Realizar petición POST al endpoint de reordenamiento de productos
       const response = await fetch('/api/products/reorder', {

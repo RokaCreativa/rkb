@@ -255,12 +255,12 @@ export default function ProductView({
             }
             return true;
           }}
-          onReorderProduct={onProductsReorder ? (sourceIndex: number, destinationIndex: number) => {
+          isReorderModeActive={!!onProductsReorder}
+          onReorderProduct={(sourceIndex: number, destinationIndex: number) => {
             if (onProductsReorder) {
               onProductsReorder(sourceIndex, destinationIndex);
             }
-          } : undefined}
-          isReorderModeActive={!!onProductsReorder}
+          }}
         />
       )}
     </>
