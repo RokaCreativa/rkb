@@ -115,7 +115,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
         </div>
       </div>
       
-      <Droppable droppableId="categories" type="CATEGORY">
+      <Droppable droppableId="category-list" type="CATEGORY">
         {(provided) => (
           <table className="min-w-full divide-y category-border" {...provided.droppableProps} ref={provided.innerRef}>
             <thead className="bg-gray-50">
@@ -140,9 +140,9 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                 <React.Fragment key={`section-group-${category.category_id}`}>
                   <Draggable 
                     key={category.category_id.toString()} 
-                    draggableId={category.category_id.toString()} 
+                    draggableId={`category-${category.category_id}`} 
                     index={index}
-                    isDragDisabled={false}
+                    isDragDisabled={!isReorderModeActive}
                   >
                     {(provided, snapshot) => (
                       <tr 
@@ -154,7 +154,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                             : expandedCategories[category.category_id] 
                               ? "category-bg" 
                               : "hover:bg-gray-50"
-                        } mt-4`}
+                        } mt-4 ${isReorderModeActive ? 'cursor-move' : ''}`}
                       >
                         <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                           <div className="flex items-center">
@@ -178,11 +178,20 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         </td>
                         <td 
                           className="px-3 py-2 cursor-pointer"
-                          onClick={() => onCategoryClick(category)}
+                          onClick={() => !isReorderModeActive && onCategoryClick(category)}
                         >
                           <div className="flex items-center">
-                            <div {...provided.dragHandleProps} className="category-drag-handle mr-2 px-1" title="Arrastrar para reordenar">
-                              <GridIcon type="category" icon="drag" size="large" />
+                            <div 
+                              {...provided.dragHandleProps} 
+                              className={`mr-2 px-1 ${isReorderModeActive ? 'category-drag-handle' : ''}`} 
+                              title={isReorderModeActive ? "Arrastrar para reordenar" : ""}
+                            >
+                              <GridIcon 
+                                type="category" 
+                                icon="drag" 
+                                size="large" 
+                                className={isReorderModeActive ? "text-indigo-600" : "text-gray-400"}
+                              />
                             </div>
                             <div className="flex items-center">
                               <span className={`text-sm font-medium ${
@@ -284,7 +293,13 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                             onSectionsReorder={
                               onReorderCategory
                                 ? (categoryId: number, sourceIndex: number, destinationIndex: number) => {
-                                    console.log("CategoryTable - reordering sections", {categoryId, sourceIndex, destinationIndex});
+                                    console.log("CategoryTable - reordering sections", {
+                                      categoryId, 
+                                      sourceIndex, 
+                                      destinationIndex, 
+                                      onReorderCategoryExists: !!onReorderCategory,
+                                      isReorderModeActive
+                                    });
                                     onReorderCategory(sourceIndex, destinationIndex);
                                   }
                                 : undefined

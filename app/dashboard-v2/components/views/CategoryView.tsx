@@ -51,7 +51,8 @@ interface CategoryViewProps {
   onAddProductSubmit?: (product: Partial<Product>) => void;
   isUpdatingProductVisibility?: number | null;
   isReorderModeActive?: boolean;
-  onSectionsReorder?: (sections: Section[]) => void;
+  onSectionsReorder?: (categoryId: number, sourceIndex: number, destinationIndex: number) => void;
+  onProductReorder?: (sectionId: number, sourceIndex: number, destinationIndex: number) => void;
 }
 
 /**
@@ -88,7 +89,8 @@ const CategoryView: React.FC<CategoryViewProps> = ({
   onDeleteProduct,
   onAddProductSubmit,
   isUpdatingProductVisibility,
-  onSectionsReorder
+  onSectionsReorder,
+  onProductReorder
 }) => {
   // Modal states
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
@@ -157,6 +159,26 @@ const CategoryView: React.FC<CategoryViewProps> = ({
     }
   }, [selectedCategory, sections, expandedSections]);
 
+  const onReorderCategory = (sourceIndex: number, destinationIndex: number) => {
+    console.log(
+      'CategoryView -> onReorderCategory:',
+      'sourceIndex:', sourceIndex,
+      'destinationIndex:', destinationIndex,
+      'isReorderModeActive:', isReorderModeActive,
+      'onSectionsReorder exists:', !!onSectionsReorder
+    );
+
+    if (selectedCategory && isReorderModeActive) {
+      const categoryId = selectedCategory.category_id;
+      console.log('CategoryView -> categoryId:', categoryId);
+      
+      if (onSectionsReorder) {
+        // Llamamos directamente a la función onSectionsReorder con los parámetros esperados
+        onSectionsReorder(categoryId, sourceIndex, destinationIndex);
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col w-full min-h-0 p-4 bg-indigo-50/30">
       <div className="flex justify-between items-center mb-4">
@@ -204,23 +226,14 @@ const CategoryView: React.FC<CategoryViewProps> = ({
           onEditSection={handleEditSection}
           onDeleteSection={handleDeleteSection}
           onAddProduct={handleAddProduct}
-          isReorderModeActive={isReorderModeActive}
           products={products}
           onToggleProductVisibility={onToggleProductVisibility}
           onEditProduct={(product: CompatibleProduct) => onEditProduct && onEditProduct(product as Product)}
           onDeleteProduct={(product: CompatibleProduct) => onDeleteProduct && onDeleteProduct(product as Product)}
           isUpdatingProductVisibility={isUpdatingProductVisibility}
           onAddCategory={handleAddCategory}
-          onReorderCategory={onSectionsReorder ? 
-            (sourceIndex: number, destinationIndex: number) => {
-              // Adaptar el formato para que coincida con la firma esperada por onSectionsReorder
-              const categorysSections = sections[selectedCategory?.category_id || 0] || [];
-              const reorderedSections = [...categorysSections];
-              const [movedSection] = reorderedSections.splice(sourceIndex, 1);
-              reorderedSections.splice(destinationIndex, 0, movedSection);
-              onSectionsReorder(reorderedSections);
-            } : undefined
-          }
+          onReorderCategory={onReorderCategory}
+          isReorderModeActive={isReorderModeActive}
         />
       </div>
 
@@ -360,17 +373,14 @@ const CategoryView: React.FC<CategoryViewProps> = ({
             isUpdatingProductVisibility={isUpdatingProductVisibility}
             categoryName={selectedCategory.name || ''}
             categoryId={selectedCategory.category_id}
-            onSectionsReorder={onSectionsReorder ? (categoryId, sourceIndex, destinationIndex) => {
-              // Implementación básica para adaptarse a la interfaz
-              const categorySections = sections[categoryId] || [];
-              const reorderedSections = [...categorySections];
-              const [movedSection] = reorderedSections.splice(sourceIndex, 1);
-              reorderedSections.splice(destinationIndex, 0, movedSection);
-              onSectionsReorder(reorderedSections);
-            } : undefined}
             onAddSectionToCategory={() => onAddSectionSubmit && onAddSectionSubmit({ category_id: selectedCategory.category_id } as any)}
             isReorderModeActive={isReorderModeActive}
-            key={`section-list-${selectedCategory.category_id}`}
+            onSectionsReorder={isReorderModeActive && onSectionsReorder ? 
+              (categoryId: number, sourceIndex: number, destinationIndex: number) => {
+                onSectionsReorder(categoryId, sourceIndex, destinationIndex);
+              } : undefined
+            }
+            key={`section-list-${selectedCategory?.category_id}`}
           />
         </div>
       )}

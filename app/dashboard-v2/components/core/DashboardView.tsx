@@ -707,6 +707,15 @@ export default function DashboardView() {
     setLocalProducts as any    // Usamos 'as any' para resolver problema de compatibilidad temporal
   );
   
+  // Activar el modo de reordenamiento por defecto
+  useEffect(() => {
+    console.log("🔄 Estado inicial de isReorderModeActive:", isReorderModeActive);
+    if (!isReorderModeActive) {
+      console.log("🔄 Activando modo de reordenamiento automáticamente");
+      setIsReorderModeActive(true);
+    }
+  }, [isReorderModeActive, setIsReorderModeActive]);
+  
   // Actualizar toggleProductVisibility para que devuelva una Promise<void>
   const handleToggleProductVisibility = useCallback(async (productId: number, currentStatus: number, sectionId?: number): Promise<void> => {
     try {

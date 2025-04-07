@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { PlusCircleIcon } from '@heroicons/react/24/outline';
-import { Bars3Icon } from '@heroicons/react/24/solid';
 import { Product as DomainProduct } from '@/app/dashboard-v2/types/domain/product';
 import { Product as MenuProduct } from '@/app/types/menu';
 import { CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
 import ProductListItem from './ProductListItem';
-import { Droppable, Draggable, DropResult, DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
-import { useGridIcons } from '@/app/dashboard-v2/hooks/ui/useGridIcons';
+import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
 
 export interface ProductListProps {
@@ -28,10 +26,6 @@ export interface ProductListProps {
   isUpdatingVisibility?: number | null;
   /** Indica si el modo de reordenamiento está activo */
   isReorderModeActive?: boolean;
-  /** Indica si se está procesando una reordenación */
-  isProcessingReorder?: boolean;
-  /** Función para reordenar productos (arrastrar y soltar) */
-  onProductsReorder?: (sectionId: number, sourceIndex: number, destinationIndex: number) => void;
 }
 
 /**
@@ -50,34 +44,18 @@ const ProductList: React.FC<ProductListProps> = ({
   onEditProduct,
   onDeleteProduct,
   onToggleVisibility,
-  onProductsReorder,
   isUpdatingVisibility,
-  isReorderModeActive = false,
-  isProcessingReorder = false
+  isReorderModeActive = false
 }) => {
   const [showHidden, setShowHidden] = useState(true);
-  const { renderIcon } = useGridIcons();
   
   // Filtrar productos visibles y no visibles
   const visibleProducts = products.filter(product => product.status === 1);
   const hiddenProducts = products.filter(product => product.status === 0);
 
   // ID único para la lista droppable
-  const droppableId = `products-section-${sectionId}`;
+  const droppableId = `section-${sectionId}`;
   
-  // Debug logs para verificar props
-  useEffect(() => {
-    console.log('🔍 [DRAG DEBUG] ProductList - Sección:', sectionName, '- Props:', {
-      productsCount: products.length,
-      visibleCount: visibleProducts.length,
-      hiddenCount: hiddenProducts.length,
-      isReorderModeActive,
-      onProductsReorder: !!onProductsReorder,
-      droppableId,
-      droppableType: "product" // Confirmar el tipo usado
-    });
-  }, [products.length, visibleProducts.length, hiddenProducts.length, isReorderModeActive, onProductsReorder, sectionName, droppableId]);
-
   // Modificar el handler para pasar sectionId
   const handleAddProduct = () => {
     if (onAddProduct) {
@@ -132,7 +110,12 @@ const ProductList: React.FC<ProductListProps> = ({
             className="text-xs product-action hover:product-text flex items-center !text-amber-600"
           >
             {showHidden ? 'Ocultar' : 'Mostrar'} productos no visibles
-            {renderIcon('product', 'expand', { className: "ml-1 !text-amber-600" })}
+            <GridIcon 
+              type="product" 
+              icon="expand" 
+              size="small"
+              className="ml-1 !text-amber-600" 
+            />
           </button>
           <button
             onClick={handleAddProduct}
@@ -147,8 +130,7 @@ const ProductList: React.FC<ProductListProps> = ({
       {/* Zona de arrastre para los productos */}
       <Droppable
         droppableId={droppableId}
-        type="product"
-        isDropDisabled={!isReorderModeActive}
+        type="PRODUCT"
       >
         {(provided, snapshot) => (
           <div
@@ -163,16 +145,16 @@ const ProductList: React.FC<ProductListProps> = ({
             <div className="space-y-1">
               {visibleProducts.map((product, index) => (
                 <Draggable
-                  key={`product-${product.product_id}`}
+                  key={product.product_id.toString()}
                   draggableId={`product-${product.product_id}`}
                   index={index}
                   isDragDisabled={!isReorderModeActive}
                 >
-                  {(dragProvided) => (
+                  {(provided, snapshot) => (
                     <div
-                      ref={dragProvided.innerRef}
-                      {...dragProvided.draggableProps}
-                      className="rounded-md overflow-hidden"
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      className={`rounded-md overflow-hidden ${snapshot.isDragging ? 'shadow-lg !bg-amber-50' : ''} ${isReorderModeActive ? 'cursor-move' : ''}`}
                     >
                       <ProductListItem
                         product={product}
@@ -181,8 +163,9 @@ const ProductList: React.FC<ProductListProps> = ({
                         onEditProduct={onEditProduct}
                         onDeleteProduct={onDeleteProduct}
                         isUpdatingProductVisibility={isUpdatingVisibility}
-                        dragHandleProps={dragProvided.dragHandleProps}
+                        dragHandleProps={provided.dragHandleProps}
                         showDragHandle={isReorderModeActive}
+                        isDragging={snapshot.isDragging}
                       />
                     </div>
                   )}
@@ -190,18 +173,25 @@ const ProductList: React.FC<ProductListProps> = ({
               ))}
             </div>
 
-            {showHidden && hiddenProducts.map((product) => (
-              <div key={`hidden-product-${product.product_id}`}>
-                <ProductListItem
-                  product={product}
-                  sectionId={sectionId}
-                  onToggleProductVisibility={onToggleVisibility}
-                  onEditProduct={onEditProduct}
-                  onDeleteProduct={onDeleteProduct}
-                  isUpdatingProductVisibility={isUpdatingVisibility}
-                />
+            {showHidden && hiddenProducts.length > 0 && (
+              <div className="mt-2 pt-2 border-t product-border !border-amber-100">
+                <div className="px-3 py-1 !bg-amber-50/30 text-xs text-amber-800 font-medium">
+                  Productos ocultos ({hiddenProducts.length})
+                </div>
+                {hiddenProducts.map((product) => (
+                  <div key={`hidden-product-${product.product_id}`} className="opacity-60">
+                    <ProductListItem
+                      product={product}
+                      sectionId={sectionId}
+                      onToggleProductVisibility={onToggleVisibility}
+                      onEditProduct={onEditProduct}
+                      onDeleteProduct={onDeleteProduct}
+                      isUpdatingProductVisibility={isUpdatingVisibility}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
 
             {provided.placeholder}
           </div>

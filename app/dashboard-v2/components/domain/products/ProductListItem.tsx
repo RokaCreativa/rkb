@@ -1,11 +1,10 @@
-import React, { useEffect } from 'react';
-import { Bars3Icon } from '@heroicons/react/24/solid';
+import React from 'react';
 import Image from 'next/image';
 import { Product as MenuProduct } from '@/app/types/menu';
 import { Product as DomainProduct } from '@/app/dashboard-v2/types/domain/product';
 import { CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
-import { Draggable, DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
+import { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
 import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
 
 interface ProductListItemProps {
@@ -17,6 +16,7 @@ interface ProductListItemProps {
   sectionId: number;
   dragHandleProps?: DraggableProvidedDragHandleProps | null;
   showDragHandle?: boolean;
+  isDragging?: boolean;
 }
 
 /**
@@ -30,53 +30,24 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   isUpdatingProductVisibility,
   sectionId,
   dragHandleProps,
-  showDragHandle = false
+  showDragHandle = false,
+  isDragging = false
 }) => {
-  // Efecto para depurar props
-  useEffect(() => {
-    console.log(`ProductListItem for ${product.name}:`, { 
-      hasDragHandleProps: !!dragHandleProps,
-      dragHandleProps: dragHandleProps ? "Present" : "Missing",
-      productId: product.product_id,
-      productStatus: product.status
-    });
-  }, [product.name, product.product_id, product.status, dragHandleProps]);
-
   return (
-    <div className={`flex items-center justify-between p-3 product-hover border-b product-border !bg-white hover:!bg-amber-50 !border-amber-100 ${product.status !== 1 ? 'opacity-70' : ''}`}>
+    <div className={`
+      flex items-center justify-between p-3 product-hover border-b product-border 
+      !bg-white hover:!bg-amber-50 !border-amber-100 
+      ${product.status !== 1 ? 'opacity-70' : ''} 
+      ${isDragging ? '!bg-amber-50' : ''}
+    `}>
       <div className="flex items-center flex-1 min-w-0">
         {showDragHandle && dragHandleProps && (
           <div 
             {...dragHandleProps} 
-            className="mr-3 flex items-center justify-center p-2 rounded-lg !bg-amber-50 hover:!bg-amber-100 cursor-grab !text-amber-600"
+            className="mr-3 flex items-center justify-center p-1 rounded product-drag-handle !text-amber-600"
             title="Arrastrar para reordenar"
-            aria-label="Arrastrar para reordenar"
-            style={{
-              touchAction: 'none',
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
-              MozUserSelect: 'none',
-              msUserSelect: 'none'
-            }}
-            onClick={(e) => {
-              console.log('🔍 [DRAG DEBUG] Intentando iniciar drag del producto:', product.name, 'ID:', product.product_id);
-              console.log('🔍 [DRAG DEBUG] Estado showDragHandle:', showDragHandle);
-              console.log('🔍 [DRAG DEBUG] DragHandleProps disponible:', !!dragHandleProps);
-              e.stopPropagation();
-              // No usamos e.preventDefault() para permitir que el drag funcione
-            }}
-            onMouseDown={(e) => {
-              console.log('🔍 [DRAG DEBUG] MouseDown en handle de producto:', product.name);
-              // No prevenimos para permitir que el DnD funcione correctamente
-              e.stopPropagation();
-            }}
-            onTouchStart={(e) => {
-              console.log('🔍 [DRAG DEBUG] TouchStart en handle de producto:', product.name);
-              // No prevenimos para permitir que el DnD funcione correctamente
-              e.stopPropagation();
-            }}
           >
-            <Bars3Icon className="h-5 w-5" />
+            <GridIcon type="product" icon="drag" size="medium" />
           </div>
         )}
         

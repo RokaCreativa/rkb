@@ -14,7 +14,7 @@
 import React, { useState, useEffect } from 'react';
 import { PencilIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon, EyeIcon, EyeSlashIcon, ViewColumnsIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/solid';
-import { Droppable, Draggable, DroppableProvided } from '@hello-pangea/dnd';
+import { Droppable, Draggable } from '@hello-pangea/dnd';
 import Image from 'next/image';
 import { Section, Product as DomainProduct } from '@/app/dashboard-v2/types';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
@@ -95,7 +95,7 @@ const SectionList: React.FC<SectionListProps> = ({
   categoryId,
   onSectionsReorder,
   onAddSectionToCategory,
-  isReorderModeActive
+  isReorderModeActive = false
 }) => {
   // Log de diagnóstico al renderizar el componente
   console.log("🔍 [RENDER DEBUG] SectionList renderizado con:", {
@@ -115,9 +115,18 @@ const SectionList: React.FC<SectionListProps> = ({
   const visibleSections = sections.filter(s => s.status === 1);
   const hiddenSections = sections.filter(s => s.status !== 1);
   
-  // Verificar si onSectionsReorder existe para determinar si el drag and drop está habilitado
+  // Verificar si el drag and drop debe estar habilitado (necesitamos onSectionsReorder y categoryId)
   const isDragEnabled = !!onSectionsReorder && !!categoryId;
-  console.log("SectionList - isDragEnabled:", isDragEnabled, "onSectionsReorder disponible:", !!onSectionsReorder, "categoryId disponible:", !!categoryId, "total secciones:", sections.length);
+  
+  // Log para debug
+  console.log("isDragEnabled:", {
+    isDragEnabled,
+    hasOnSectionsReorder: !!onSectionsReorder,
+    hasCategoryId: !!categoryId,
+    categoryId,
+    sectionCount: sections.length,
+    onSectionsReorderType: onSectionsReorder ? typeof onSectionsReorder : 'undefined'
+  });
   
   // Logs adicionales para debug de drag and drop
   useEffect(() => {
@@ -212,7 +221,7 @@ const SectionList: React.FC<SectionListProps> = ({
           onDeleteProduct={handleDeleteProduct}
           onToggleVisibility={onToggleProductVisibility}
           isUpdatingVisibility={isUpdatingProductVisibility}
-          isReorderModeActive={isDragEnabled}
+          isReorderModeActive={isReorderModeActive}
         />
       </div>
     );
@@ -280,7 +289,7 @@ const SectionList: React.FC<SectionListProps> = ({
                     <React.Fragment key={`section-${section.section_id}`}>
                       <Draggable
                         key={section.section_id.toString()}
-                        draggableId={section.section_id.toString()}
+                        draggableId={`section-${section.section_id}`}
                         index={index}
                         isDragDisabled={!isDragEnabled}
                       >
@@ -300,7 +309,7 @@ const SectionList: React.FC<SectionListProps> = ({
                                   : expandedSections[section.section_id] 
                                     ? "section-bg" 
                                     : "hover:bg-gray-50"
-                              }`}
+                              } ${isReorderModeActive ? 'cursor-move' : ''}`}
                             >
                               <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
                                 <div className="flex items-center">
@@ -321,46 +330,30 @@ const SectionList: React.FC<SectionListProps> = ({
                                   </button>
                                 </div>
                               </td>
-                              <td className="px-3 py-2 whitespace-nowrap">
+                              <td 
+                                className="px-3 py-2 cursor-pointer"
+                                onClick={() => !isReorderModeActive && onSectionClick(section.section_id)}
+                              >
                                 <div className="flex items-center">
-                                  {/* IMPORTANTE: Handle de arrastre completamente aislado para evitar conflictos */}
                                   <div 
                                     {...provided.dragHandleProps} 
-                                    className="mr-2 section-drag-handle flex items-center justify-center p-2 rounded-lg bg-teal-50 hover:bg-teal-100 cursor-grab" 
-                                    title="Arrastrar para reordenar"
-                                    aria-label="Arrastrar para reordenar"
-                                    style={{
-                                      touchAction: 'none',
-                                      userSelect: 'none',
-                                      WebkitUserSelect: 'none',
-                                      MozUserSelect: 'none',
-                                      msUserSelect: 'none'
-                                    }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      e.preventDefault();
-                                    }}
-                                    onMouseDown={(e) => {
-                                      e.stopPropagation();
-                                    }}
-                                    onTouchStart={(e) => {
-                                      e.stopPropagation();
-                                    }}
+                                    className={`mr-2 px-1 ${isReorderModeActive ? 'section-drag-handle' : ''}`}
+                                    title={isReorderModeActive ? "Arrastrar para reordenar" : ""}
                                   >
-                                    <Bars3Icon className="h-5 w-5 text-teal-600" />
+                                    <GridIcon 
+                                      type="section" 
+                                      icon="drag" 
+                                      size="large"
+                                      className={isReorderModeActive ? "text-teal-600" : "text-gray-400"}
+                                    />
                                   </div>
-                                  
-                                  {/* Área clicable separada del handle */}
-                                  <div 
-                                    className="flex flex-col cursor-pointer" 
-                                    onClick={() => onSectionClick(section.section_id)}
-                                  >
+                                  <div className="flex flex-col">
                                     <span className={`text-sm font-medium ${
                                       expandedSections[section.section_id] 
                                         ? "section-text" 
                                         : "text-gray-700"
                                     }`}>{section.name}</span>
-                                    <span className="text-xs text-gray-500 ml-0">
+                                    <span className="text-xs text-gray-500">
                                       ({section.visible_products_count || 0}/{section.products_count || 0} productos visibles)
                                     </span>
                                   </div>

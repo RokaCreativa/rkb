@@ -1,14 +1,12 @@
 /**
- * @fileoverview Hook para gestionar la funcionalidad de arrastrar y soltar en el dashboard
+ * @fileoverview Hook simplificado para gestionar la funcionalidad de arrastrar y soltar en el dashboard
  * @author RokaMenu Team
- * @version 1.0.0
- * @updated 2024-06-20
+ * @version 2.0.0
+ * @updated 2024-06-25
  * 
- * Este hook proporciona funcionalidades completas para implementar operaciones
+ * Este hook proporciona funcionalidades para implementar operaciones
  * de arrastrar y soltar (drag and drop) para categorías, secciones y productos.
- * 
- * Permite a los usuarios reorganizar elementos visualmente y persiste los cambios
- * en el servidor a través del DashboardService.
+ * Se ha reconstruido para mejorar el rendimiento y simplificar la implementación.
  */
 
 import { useState, useCallback } from 'react';
@@ -22,53 +20,17 @@ import {
 import { DashboardService } from '@/lib/services/dashboardService';
 
 /**
- * Tipo genérico para DashboardCategory o derivados
- */
-type AnyCategory = DashboardCategory;
-
-/**
- * Tipo genérico para DashboardSection o derivados
- */
-type AnySection = DashboardSection;
-
-/**
- * Tipo genérico para DashboardProduct o derivados
- */
-type AnyProduct = DashboardProduct;
-
-/**
  * Mapa de secciones indexado por el ID de categoría (como string)
  */
-type SectionsMap = { [categoryId: string]: AnySection[] };
+type SectionsMap = Record<string, DashboardSection[]>;
 
 /**
  * Mapa de productos indexado por el ID de sección (como string)
  */
-type ProductsMap = { [sectionId: string]: AnyProduct[] };
+type ProductsMap = Record<string, DashboardProduct[]>;
 
 /**
- * Interfaz para el resultado de una operación de reordenamiento
- * Esta interfaz se usa para tipos de retorno en operaciones de reordenamiento
- * 
- * @property success - Indica si la operación tuvo éxito (true) o falló (false)
- * @property data - Datos devueltos por el servidor en caso de éxito (opcional)
- * @property error - Mensaje de error en caso de fallo (opcional)
- */
-interface ReorderResult {
-  success: boolean;
-  data?: any;
-  error?: string;
-}
-
-/**
- * Hook personalizado para gestionar las operaciones de arrastrar y soltar
- * 
- * Este hook encapsula toda la lógica necesaria para:
- * - Manejar eventos de arrastrar y soltar
- * - Actualizar el estado local para reflejar los cambios inmediatamente
- * - Enviar los cambios al servidor para persistencia
- * - Revertir cambios en caso de error
- * - Mostrar notificaciones de éxito/error
+ * Hook simplificado para gestionar las operaciones de arrastrar y soltar
  * 
  * @param categories - Array de categorías del menú
  * @param sections - Objeto que mapea IDs de categoría a arrays de secciones
@@ -76,185 +38,64 @@ interface ReorderResult {
  * @param setCategories - Función para actualizar el estado de categorías
  * @param setSections - Función para actualizar el estado de secciones
  * @param setProducts - Función para actualizar el estado de productos
- * @returns Conjunto de estados y funciones para gestionar el arrastrar y soltar
- * 
- * @example
- * // Uso básico en un componente
- * const dragDropFunctions = useDragAndDrop(
- *   categories,
- *   sections,
- *   products,
- *   setCategories,
- *   setSections,
- *   setProducts
- * );
- * 
- * // Usar con el contexto de DragDropContext de la biblioteca
- * // Ver documentación de @hello-pangea/dnd para más detalles
+ * @returns Objeto con estados y funciones para gestionar drag and drop
  */
 export default function useDragAndDrop(
-  categories: AnyCategory[],
+  categories: DashboardCategory[],
   sections: SectionsMap,
   products: ProductsMap,
-  setCategories: React.Dispatch<React.SetStateAction<AnyCategory[]>>,
+  setCategories: React.Dispatch<React.SetStateAction<DashboardCategory[]>>,
   setSections: React.Dispatch<React.SetStateAction<SectionsMap>>,
   setProducts: React.Dispatch<React.SetStateAction<ProductsMap>>
 ) {
-  /**
-   * Estado que indica si el modo de reordenamiento está activo
-   * Cuando es true, los elementos pueden ser arrastrados y reorganizados.
-   */
+  // Estado que indica si el modo de reordenamiento está activo
   const [isReorderModeActive, setIsReorderModeActive] = useState(false);
   
-  /**
-   * Estado que indica si actualmente hay una operación de arrastre en curso
-   * Es útil para aplicar estilos visuales durante el arrastre.
-   */
+  // Estado que indica si hay una operación de arrastre en curso
   const [isDragging, setIsDragging] = useState(false);
   
-  // Custom setter para isReorderModeActive con logs
-  const toggleReorderMode = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
-    if (typeof value === 'function') {
-      setIsReorderModeActive(prev => {
-        const newValue = value(prev);
-        console.log('🔄 [REORDER HOOK] Cambiando modo reordenación de:', prev, 'a:', newValue);
-        return newValue;
-      });
-    } else {
-      console.log('🔄 [REORDER HOOK] Estableciendo modo reordenación a:', value);
-      setIsReorderModeActive(value);
-    }
-  }, []);
-  
   /**
-   * Maneja el final de una operación de arrastrar y soltar
-   * 
-   * Esta función es el punto de entrada principal para procesar todas las operaciones
-   * de arrastrar y soltar. Detecta el tipo de elemento arrastrado (categoría, sección o producto)
-   * y llama a la función específica de reordenamiento correspondiente.
-   * 
-   * @param result - Resultado de la operación de arrastrar y soltar proporcionado por la biblioteca DnD
-   * 
-   * @example
-   * // Pasar esta función al DragDropContext como el callback onDragEnd
-   * // Ver documentación de @hello-pangea/dnd para detalles de implementación
-   */
-  const handleGlobalDragEnd = useCallback((result: DropResult) => {
-    // Log informativo para depuración con información detallada
-    console.log("🔍 [DRAG DEBUG] Resultado del drag and drop:", { 
-      source: result.source, 
-      destination: result.destination, 
-      type: result.type,
-      draggableId: result.draggableId
-    });
-    
-    // Extraer información relevante del resultado
-    const { source, destination, type } = result;
-    
-    // Indicar que ya no estamos arrastrando
-    setIsDragging(false);
-    
-    // Cancelar si no hay destino (se soltó fuera de un área válida)
-    // o si el origen y destino son el mismo (no hubo cambio real)
-    if (!destination || 
-        (source.droppableId === destination.droppableId && 
-         source.index === destination.index)) {
-      console.log("🚫 [DRAG DEBUG] Operación cancelada: sin destino o sin cambio de posición");
-      return;
-    }
-
-    // Añadir log adicional para diagnóstico del tipo de elemento
-    console.log("⚙️ [DRAG DEBUG] Procesando elemento de tipo:", type, 
-                "Convertido a minúsculas:", String(type).toLowerCase());
-    
-    // Determinar qué tipo de elemento se está arrastrando y llamar a la función adecuada
-    // IMPORTANTE: Convertimos el tipo a minúsculas para asegurar compatibilidad
-    const normalizedType = String(type).toLowerCase();
-    
-    if (normalizedType === 'category') {
-      // Reordenar categorías
-      console.log("🔄 [DRAG DEBUG] Reordenando CATEGORÍA de índice", source.index, "a", destination.index);
-      handleReorderCategories(source.index, destination.index);
-    } else if (normalizedType === 'section') {
-      // Extraer el ID de categoría del ID de la zona donde se puede soltar
-      const droppableIdMatch = source.droppableId.match(/category-(\d+)/i);
-      const categoryId = droppableIdMatch ? parseInt(droppableIdMatch[1]) : 
-                       parseInt(source.droppableId.replace(/[^0-9]/g, ''));
-      
-      console.log("🔄 [DRAG DEBUG] Reordenando SECCIÓN en categoría", categoryId, 
-                 "de índice", source.index, "a", destination.index, 
-                 "droppableId:", source.droppableId);
-      
-      // Reordenar secciones dentro de esa categoría
-      handleReorderSections(categoryId, source.index, destination.index);
-    } else if (normalizedType === 'product') {
-      // Extraer el ID de sección del ID de la zona donde se puede soltar
-      const droppableIdMatch = source.droppableId.match(/section-(\d+)/i);
-      const sectionId = droppableIdMatch ? parseInt(droppableIdMatch[1]) : 
-                       parseInt(source.droppableId.replace(/[^0-9]/g, ''));
-      
-      console.log("🔄 [DRAG DEBUG] Reordenando PRODUCTO en sección", sectionId, 
-                 "de índice", source.index, "a", destination.index,
-                 "droppableId:", source.droppableId);
-      
-      // Reordenar productos dentro de esa sección
-      handleReorderProducts(sectionId, source.index, destination.index);
-    } else {
-      console.warn("⚠️ [DRAG DEBUG] Tipo de elemento no reconocido:", type);
-    }
-  }, []);
-  
-  /**
-   * Reordena categorías después de una operación de arrastrar y soltar
-   * 
-   * Esta función:
-   * 1. Actualiza el estado local de categorías para reflejar el nuevo orden (optimista)
-   * 2. Envía la actualización al servidor
-   * 3. Muestra una notificación de éxito
-   * 4. En caso de error, revierte los cambios y muestra una notificación de error
-   * 
-   * @param sourceIndex - Índice original del elemento antes de arrastrar
-   * @param destinationIndex - Índice final del elemento después de soltar
-   * 
-   * @example
-   * // Reordenar manualmente (no a través de DnD)
-   * handleReorderCategories(2, 5); // Mover la categoría en posición 2 a posición 5
+   * Reordena categorías y actualiza el estado local
    */
   const handleReorderCategories = useCallback(async (sourceIndex: number, destinationIndex: number) => {
-    // Crear una copia de las categorías para no mutar el estado directamente
-    const reorderedCategories = [...categories];
+    // Solo trabajar con las categorías visibles (status 1)
+    const visibleCategories = categories.filter(cat => cat.status === 1);
     
-    // Reordenar localmente usando la técnica de array.splice
-    // 1. Primero eliminamos el elemento de la posición de origen
+    if (visibleCategories.length === 0) {
+      console.error("No hay categorías visibles para reordenar");
+      return;
+    }
+    
+    // Crear una copia del array para manipular
+    const reorderedCategories = [...visibleCategories];
+    
+    // Aplicar el reordenamiento
     const [movedCategory] = reorderedCategories.splice(sourceIndex, 1);
-    // 2. Luego insertamos ese elemento en la posición de destino
     reorderedCategories.splice(destinationIndex, 0, movedCategory);
     
-    // Actualizar los display_order de todas las categorías para reflejar el nuevo orden
-    // Esto es importante para persistencia y ordenamiento correcto en el backend
+    // Actualizar display_order en cada categoría
     const updatedCategories = reorderedCategories.map((category, index) => ({
       ...category,
-      display_order: index + 1 // Los órdenes empiezan en 1, no en 0
+      display_order: index + 1
     }));
     
     // Actualizar el estado local inmediatamente (actualización optimista)
-    // Esto permite que la UI refleje los cambios inmediatamente, sin esperar al servidor
-    setCategories(updatedCategories);
+    const nonVisibleCategories = categories.filter(cat => cat.status !== 1);
+    const allUpdatedCategories = [...updatedCategories, ...nonVisibleCategories];
+    
+    setCategories(allUpdatedCategories);
     
     try {
-      // Enviar la actualización al servidor
+      // Enviar actualización al servidor
       const result = await DashboardService.reorderCategories(updatedCategories);
       
-      // Verificar si la operación fue exitosa
       if (result.success) {
         toast.success('Categorías reordenadas correctamente');
       } else {
-        // Si ocurrió un error en el servidor, revertir a las categorías originales
         toast.error('Error al reordenar categorías');
         setCategories(categories); // Revertir cambios
       }
     } catch (error) {
-      // Capturar y manejar errores de red o excepciones
       console.error('Error reordering categories:', error);
       toast.error('Error al reordenar categorías');
       setCategories(categories); // Revertir cambios en caso de error
@@ -262,57 +103,54 @@ export default function useDragAndDrop(
   }, [categories, setCategories]);
   
   /**
-   * Reordena secciones dentro de una categoría específica
-   * 
-   * Funciona de manera similar al reordenamiento de categorías, pero opera
-   * sobre las secciones de una categoría específica.
-   * 
-   * @param categoryId - ID de la categoría que contiene las secciones a reordenar
-   * @param sourceIndex - Índice original de la sección antes de arrastrar
-   * @param destinationIndex - Índice final de la sección después de soltar
-   * 
-   * @example
-   * // Reordenar manualmente las secciones de la categoría con ID 3
-   * handleReorderSections(3, 0, 2); // Mover la primera sección a la tercera posición
+   * Reordena secciones dentro de una categoría
    */
   const handleReorderSections = useCallback(async (categoryId: number, sourceIndex: number, destinationIndex: number) => {
-    // Convertir el ID de categoría a string para usar como clave en el objeto de secciones
     const categoryIdStr = categoryId.toString();
     
-    // Verificar que existen secciones para esta categoría
-    if (!sections[categoryIdStr]) {
+    // Verificar que existan secciones para esta categoría
+    if (!sections[categoryIdStr] || sections[categoryIdStr].length === 0) {
       console.error(`No sections found for category ${categoryId}`);
       return;
     }
     
-    // Crear una copia de las secciones para esta categoría
-    const reorderedSections = [...sections[categoryIdStr]];
+    // Obtener solo las secciones visibles
+    const visibleSections = sections[categoryIdStr].filter(section => section.status === 1);
     
-    // Reordenar localmente usando la técnica de array.splice
+    if (visibleSections.length === 0) {
+      console.error(`No visible sections found for category ${categoryId}`);
+      return;
+    }
+    
+    // Crear una copia para manipular
+    const reorderedSections = [...visibleSections];
+    
+    // Aplicar el reordenamiento
     const [movedSection] = reorderedSections.splice(sourceIndex, 1);
     reorderedSections.splice(destinationIndex, 0, movedSection);
     
-    // Actualizar los display_order de todas las secciones
+    // Actualizar display_order
     const updatedSections = reorderedSections.map((section, index) => ({
       ...section,
       display_order: index + 1
     }));
     
-    // Actualizar el estado local inmediatamente (actualización optimista)
+    // Actualizar el estado local
+    const nonVisibleSections = sections[categoryIdStr].filter(section => section.status !== 1);
+    const allUpdatedSections = [...updatedSections, ...nonVisibleSections];
+    
     setSections(prev => ({
       ...prev,
-      [categoryIdStr]: updatedSections
+      [categoryIdStr]: allUpdatedSections
     }));
     
     try {
-      // Enviar la actualización al servidor
+      // Enviar actualización al servidor
       const result = await DashboardService.reorderSections(updatedSections);
       
-      // Verificar si la operación fue exitosa
       if (result.success) {
         toast.success('Secciones reordenadas correctamente');
       } else {
-        // Si ocurrió un error en el servidor, revertir a las secciones originales
         toast.error('Error al reordenar secciones');
         // Revertir cambios
         setSections(prev => ({
@@ -321,10 +159,9 @@ export default function useDragAndDrop(
         }));
       }
     } catch (error) {
-      // Capturar y manejar errores de red o excepciones
       console.error('Error reordering sections:', error);
       toast.error('Error al reordenar secciones');
-      // Revertir cambios en caso de error
+      // Revertir cambios
       setSections(prev => ({
         ...prev,
         [categoryIdStr]: sections[categoryIdStr]
@@ -333,64 +170,60 @@ export default function useDragAndDrop(
   }, [sections, setSections]);
   
   /**
-   * Reordena productos dentro de una sección específica
-   * 
-   * Funciona de manera similar al reordenamiento de categorías y secciones,
-   * pero opera sobre los productos de una sección específica.
-   * 
-   * @param sectionId - ID de la sección que contiene los productos a reordenar
-   * @param sourceIndex - Índice original del producto antes de arrastrar
-   * @param destinationIndex - Índice final del producto después de soltar
-   * 
-   * @example
-   * // Reordenar manualmente los productos de la sección con ID 8
-   * handleReorderProducts(8, 4, 1); // Mover el quinto producto a la segunda posición
+   * Reordena productos dentro de una sección
    */
   const handleReorderProducts = useCallback(async (sectionId: number, sourceIndex: number, destinationIndex: number) => {
-    // Convertir el ID de sección a string para usar como clave en el objeto de productos
     const sectionIdStr = sectionId.toString();
     
-    // Verificar que existen productos para esta sección
-    if (!products[sectionIdStr]) {
+    // Verificar que existan productos para esta sección
+    if (!products[sectionIdStr] || products[sectionIdStr].length === 0) {
       console.error(`No products found for section ${sectionId}`);
       return;
     }
     
-    // Crear una copia de los productos para esta sección
-    const reorderedProducts = [...products[sectionIdStr]];
+    // Obtener solo los productos visibles
+    const visibleProducts = products[sectionIdStr].filter(product => product.status === 1);
     
-    // Reordenar localmente usando la técnica de array.splice
+    if (visibleProducts.length === 0) {
+      console.error(`No visible products found for section ${sectionId}`);
+      return;
+    }
+    
+    // Crear una copia para manipular
+    const reorderedProducts = [...visibleProducts];
+    
+    // Aplicar el reordenamiento
     const [movedProduct] = reorderedProducts.splice(sourceIndex, 1);
     reorderedProducts.splice(destinationIndex, 0, movedProduct);
     
-    // Actualizar los display_order de todos los productos
+    // Actualizar display_order
     const updatedProducts = reorderedProducts.map((product, index) => ({
       ...product,
       display_order: index + 1
     }));
     
-    // Actualizar el estado local inmediatamente (actualización optimista)
+    // Actualizar el estado local
+    const nonVisibleProducts = products[sectionIdStr].filter(product => product.status !== 1);
+    const allUpdatedProducts = [...updatedProducts, ...nonVisibleProducts];
+    
     setProducts(prev => ({
       ...prev,
-      [sectionIdStr]: updatedProducts
+      [sectionIdStr]: allUpdatedProducts
     }));
     
     try {
-      // Enviar la actualización al servidor
-      // Convertir los productos al formato esperado por el servicio
-      const productsForService = updatedProducts.map(product => ({
+      // Enviar actualización al servidor
+      // Asegurar que price sea string para compatibilidad con API
+      const productsForApi = updatedProducts.map(product => ({
         ...product,
-        // Convertir el precio a string si es necesario para cumplir con el tipo esperado
         price: typeof product.price === 'number' ? product.price.toString() : product.price
       }));
       
-      const result = await DashboardService.reorderProducts(productsForService);
+      const result = await DashboardService.reorderProducts(productsForApi);
       
-      // Verificar si la operación fue exitosa
       if (result.success) {
         toast.success('Productos reordenados correctamente');
       } else {
-        // Si ocurrió un error en el servidor, revertir a los productos originales
         toast.error('Error al reordenar productos');
         // Revertir cambios
         setProducts(prev => ({
@@ -399,10 +232,9 @@ export default function useDragAndDrop(
         }));
       }
     } catch (error) {
-      // Capturar y manejar errores de red o excepciones
       console.error('Error reordering products:', error);
       toast.error('Error al reordenar productos');
-      // Revertir cambios en caso de error
+      // Revertir cambios
       setProducts(prev => ({
         ...prev,
         [sectionIdStr]: products[sectionIdStr]
@@ -410,19 +242,53 @@ export default function useDragAndDrop(
     }
   }, [products, setProducts]);
   
-  // Devolver todas las funciones y estados necesarios para implementar
-  // la funcionalidad de arrastrar y soltar en componentes
+  /**
+   * Maneja el final de una operación de arrastrar y soltar
+   * Esta función determina qué tipo de elemento se arrastró y llama
+   * a la función específica para reordenar
+   */
+  const handleGlobalDragEnd = useCallback((result: DropResult) => {
+    // Limpiar el estado de arrastre
+    setIsDragging(false);
+    
+    // Extraer información relevante
+    const { source, destination, type } = result;
+    
+    // Cancelar si no hay destino o no hubo cambio real
+    if (!destination || 
+        (source.droppableId === destination.droppableId && 
+         source.index === destination.index)) {
+      return;
+    }
+    
+    // Normalizar el tipo a minúsculas para asegurar compatibilidad
+    const normalizedType = String(type).toLowerCase();
+    
+    // Determinar qué tipo de elemento se arrastró y llamar a la función adecuada
+    if (normalizedType === 'category') {
+      handleReorderCategories(source.index, destination.index);
+    } else if (normalizedType === 'section') {
+      // Extraer categoryId del droppableId (formato: "category-{id}")
+      const categoryId = parseInt(source.droppableId.replace(/\D/g, ''));
+      handleReorderSections(categoryId, source.index, destination.index);
+    } else if (normalizedType === 'product') {
+      // Extraer sectionId del droppableId (formato: "section-{id}")
+      const sectionId = parseInt(source.droppableId.replace(/\D/g, ''));
+      handleReorderProducts(sectionId, source.index, destination.index);
+    }
+  }, [handleReorderCategories, handleReorderSections, handleReorderProducts]);
+  
   return {
     // Estados
-    isReorderModeActive,   // Si el modo de reordenamiento está activo
-    setIsReorderModeActive: toggleReorderMode, // Función mejorada con logs
-    isDragging,            // Si hay una operación de arrastre en curso
-    setIsDragging,         // Función para actualizar el estado de arrastre
+    isReorderModeActive,
+    setIsReorderModeActive,
+    isDragging,
+    setIsDragging,
     
     // Funciones principales
-    handleGlobalDragEnd,   // Función principal para manejar el final de una operación de arrastre
-    handleReorderCategories, // Función para reordenar categorías
-    handleReorderSections,   // Función para reordenar secciones
-    handleReorderProducts    // Función para reordenar productos
+    handleGlobalDragEnd,
+    handleReorderCategories,
+    handleReorderSections,
+    handleReorderProducts
   };
 } 
