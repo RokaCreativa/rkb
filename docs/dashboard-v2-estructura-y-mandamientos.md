@@ -177,6 +177,35 @@ Cada dominio tiene sus propios tipos definidos en carpetas específicas:
 - **types/domain/section.ts**: Tipos específicos para secciones
 - **types/domain/product.ts**: Tipos específicos para productos
 
+#### 📁 Sistema de Adaptadores de Tipos (ACTUALIZADO)
+
+> **ACTUALIZACIÓN (2024-06-20):** Se ha mejorado el sistema de adaptadores de tipos para garantizar una conversión segura entre diferentes sistemas de tipos.
+
+El proyecto utiliza dos sistemas principales de tipos:
+
+- Tipos definidos en **app/types/menu.ts** (usados por la API y componentes antiguos)
+- Tipos definidos en **app/dashboard-v2/types/domain/** (específicos para la nueva arquitectura)
+
+Para facilitar la interoperabilidad entre estos sistemas, el archivo **types/type-adapters.ts** proporciona:
+
+1. **Funciones de conversión bidireccional**:
+
+   - `adaptCategory`, `adaptSection`, `adaptProduct`: Convierten de DashboardX a Menu
+   - `fromMenuCategory`, `fromMenuSection`, `fromMenuProduct`: Convierten de Menu a Dashboard
+
+2. **Manejo seguro de valores null/undefined**:
+
+   - Las funciones adaptadoras ahora manejan explícitamente valores null/undefined
+   - Se realizan conversiones seguras para propiedades como `image`
+
+3. **Conversión de tipos de datos**:
+
+   - Conversión automática entre tipos numéricos y string para propiedades como `price`
+   - Manejo adecuado de campos opcionales
+
+4. **Adaptadores para colecciones**:
+   - Funciones para adaptar arrays completos y mapas de objetos
+
 ### 🧩 Patrón Facade
 
 El hook principal `useDashboardState` actúa como una fachada, integrando los hooks de dominio específicos y proporcionando una interfaz unificada para los componentes.

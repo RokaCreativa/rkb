@@ -19,7 +19,8 @@ import {
   toPreviewCategories, toPreviewSections, toPreviewProducts,
   toPreviewCategory, toPreviewSection, toPreviewProduct,
   MenuCategory, MenuSection, MenuProduct, MenuClient,
-  convertCategoriesToDashboard, convertSectionsToDashboard, convertProductsToDashboard
+  convertCategoriesToDashboard, convertSectionsToDashboard, convertProductsToDashboard,
+  fromMenuClient
 } from "../../types/type-adapters";
 import { DashboardCategory, DashboardSection, DashboardProduct, DashboardClient } from "../../types/type-adapters";
 
@@ -687,22 +688,49 @@ export default function DashboardView() {
     }
   };
   
-  // Usar el hook useDragAndDrop para obtener la funcionalidad de drag & drop centralizada
+  // Obtener funciones de arrastrar y soltar
   const {
     isReorderModeActive,
     setIsReorderModeActive,
+    isDragging,
+    setIsDragging,
     handleGlobalDragEnd,
     handleReorderCategories,
     handleReorderSections,
     handleReorderProducts
   } = useDragAndDrop(
-    localCategories,
-    localSections,
-    localProducts as unknown as Record<string, Product[]>,
-    setLocalCategories,
-    setLocalSections,
-    setLocalProducts
+    localCategories as any,  // Usamos 'as any' para resolver problema de compatibilidad temporal
+    localSections as any,    // Usamos 'as any' para resolver problema de compatibilidad temporal
+    localProducts as any,    // Usamos 'as any' para resolver problema de compatibilidad temporal
+    setLocalCategories as any, // Usamos 'as any' para resolver problema de compatibilidad temporal
+    setLocalSections as any,   // Usamos 'as any' para resolver problema de compatibilidad temporal
+    setLocalProducts as any    // Usamos 'as any' para resolver problema de compatibilidad temporal
   );
+  
+  // Actualizar toggleProductVisibility para que devuelva una Promise<void>
+  const handleToggleProductVisibility = useCallback(async (productId: number, currentStatus: number, sectionId?: number): Promise<void> => {
+    try {
+      // Mostrar notificación de carga
+      toast.loading('Actualizando visibilidad...', { id: `visibility-${productId}` });
+      
+      // Llamar a la función original de toggleProductVisibility
+      await toggleProductVisibility(productId, currentStatus);
+      
+      // Actualizar notificación
+      toast.dismiss(`visibility-${productId}`);
+      toast.success(`Producto ${currentStatus === 1 ? 'oculto' : 'visible'}`);
+      
+      // Retornar void (no valor)
+      return;
+    } catch (error) {
+      console.error('Error al cambiar visibilidad:', error);
+      toast.dismiss(`visibility-${productId}`);
+      toast.error('Error al cambiar visibilidad');
+      
+      // Retornar void (no valor)
+      return;
+    }
+  }, [toggleProductVisibility]);
   
   // Renderizado condicional para estados de carga y error
   if (isLoading || isDataLoading) {
@@ -758,17 +786,21 @@ export default function DashboardView() {
             onHomeClick={goToHome}
             onCategoryClick={(category) => goToCategory(fromMenuCategory(category))}
             onSectionClick={(section) => {
-              // Verificación segura del tipo de 'section'
               if (section) {
-                if (typeof section === 'object' && 'section_id' in section) {
-                  goToSection(section.section_id);
+                // Usar una conversión de tipo más específica y segura
+                if (typeof section === 'object') {
+                  // Extraer section_id con verificación de seguridad para evitar errores
+                  const sectionId = 'section_id' in section ? 
+                    (section as { section_id: number }).section_id : 
+                    ('id' in section ? (section as { id: number }).id : undefined);
+                    
+                  if (sectionId) {
+                    goToSection(sectionId);
+                  }
                 } else if (typeof section === 'number') {
+                  // Si section es directamente un número (ID), usar ese valor
                   goToSection(section);
-                } else {
-                  console.error('Error: Tipo de sección inválido', section);
                 }
-              } else {
-                console.error('Error: Sección indefinida');
               }
             }}
           />
@@ -845,25 +877,27 @@ export default function DashboardView() {
                       }
                     }}
                     onSectionClick={(section) => {
-                      // Verificación segura del tipo de 'section'
                       if (section) {
-                        if (typeof section === 'object' && 'section_id' in section) {
-                          goToSection(section.section_id);
+                        // Usar una conversión de tipo más específica y segura
+                        if (typeof section === 'object') {
+                          // Extraer section_id con verificación de seguridad para evitar errores
+                          const sectionId = 'section_id' in section ? 
+                            (section as { section_id: number }).section_id : 
+                            ('id' in section ? (section as { id: number }).id : undefined);
+                            
+                          if (sectionId) {
+                            goToSection(sectionId);
+                          }
                         } else if (typeof section === 'number') {
+                          // Si section es directamente un número (ID), usar ese valor
                           goToSection(section);
-                        } else {
-                          console.error('Error: Tipo de sección inválido', section);
                         }
-                      } else {
-                        console.error('Error: Sección indefinida');
                       }
                     }}
                     onCategoryClick={(category) => goToCategory(fromMenuCategory(category))}
                     products={adaptProducts(localProducts)}
                     onToggleProductVisibility={(productId: number, currentStatus: number) => {
-                      if (selectedSection) {
-                        void toggleProductVisibility(productId, currentStatus);
-                      }
+                      void handleToggleProductVisibility(productId, currentStatus);
                     }}
                     onEditProduct={(product) => handleEditProduct(fromMenuProduct(product) as DashboardProduct)}
                     onDeleteProduct={(product) => handleDeleteProduct(fromMenuProduct(product) as DashboardProduct)}
@@ -886,23 +920,18 @@ export default function DashboardView() {
                     selectedCategory={asMenuCategory(selectedCategory)}
                     sections={asMenuSections({ [selectedCategory.category_id]: sections[selectedCategory.category_id] || [] })[selectedCategory.category_id] || []}
                     onBackToCategories={goToHome}
-                    onAddSection={() => handleAddSection(selectedCategory.category_id)}
-                    onSectionClick={async (section) => {
+                    onAddSection={(categoryId) => handleAddSection(categoryId || selectedCategory.category_id)}
+                    onSectionClick={(section) => {
                       if (section) {
-                        // Utilizar type assertion para manejar el tipo 'never'
-                        const sectionId = typeof section === 'object' && 'section_id' in section 
-                          ? (section as { section_id: number }).section_id 
-                          : (typeof section === 'number' ? section : 0);
-                          
-                        if (sectionId > 0) {
-                          goToSection(sectionId);
+                        const sectionObj = section as unknown as Section;
+                        if (sectionObj && sectionObj.section_id) {
+                          goToSection(sectionObj.section_id);
                         }
                       }
                     }}
                     onToggleSectionVisibility={async (sectionId, currentStatus) => {
                       try {
-                        const result = await toggleSectionVisibility(sectionId, selectedCategory.category_id, currentStatus);
-                        // No necesitamos devolver el resultado, solo convertimos a Promise<void>
+                        await toggleSectionVisibility(sectionId, selectedCategory.category_id, currentStatus);
                         return;
                       } catch (error) {
                         console.error("Error al cambiar visibilidad de sección:", error);
@@ -912,17 +941,24 @@ export default function DashboardView() {
                     onEditSection={(section) => handleEditSection(fromMenuSection(section as any) as DashboardSection)}
                     onDeleteSection={(sectionId) => handleDeleteSection({ section_id: sectionId } as any)}
                     isUpdatingVisibility={isUpdatingVisibility as number | null}
+                    products={adaptProducts(localProducts)}
+                    categoryName={selectedCategory.name}
+                    categoryId={selectedCategory.category_id}
+                    expandedSections={expandedSections}
                     isReorderModeActive={isReorderModeActive}
-                    onReorderSection={(sourceIndex, destIndex) => {
-                      if (selectedCategory) {
-                        handleReorderSections(selectedCategory.category_id, sourceIndex, destIndex);
-                      }
-                    }}
+                    onAddProduct={(sectionId) => handleAddProduct(sectionId)}
+                    onEditProduct={(product) => handleEditProduct(fromMenuProduct(product) as DashboardProduct)}
+                    onDeleteProduct={(product) => handleDeleteProduct(fromMenuProduct(product) as DashboardProduct)}
+                    onToggleProductVisibility={handleToggleProductVisibility}
+                    isUpdatingProductVisibility={isUpdatingVisibility}
+                    onSectionReorder={(categoryId, sourceIndex, destIndex) => handleReorderSections(categoryId, sourceIndex, destIndex)}
+                    onProductReorder={(sectionId, sourceIndex, destIndex) => handleReorderProducts(sectionId, sourceIndex, destIndex)}
+                    isLoading={isLoading || isDataLoading}
                   />
                 )}
 
                 {/* El ProductView solo se debe mostrar cuando hay una sección seleccionada y estamos en vista PRODUCTS */}
-                {currentView === 'PRODUCTS' && selectedSection && (() => {
+                {currentView === 'PRODUCTS' && selectedSection && selectedCategory && (() => {
                   // Obtener el sectionId como string para acceder al objeto products
                   const sectionIdStr = selectedSection.section_id.toString();
                   
@@ -984,11 +1020,7 @@ export default function DashboardView() {
                         onAddProduct={() => handleAddProduct(selectedSection.section_id)}
                         onEditProduct={(product) => handleEditProduct(fromMenuProduct(product))}
                         onDeleteProduct={(product) => handleDeleteProduct(fromMenuProduct(product))}
-                        onToggleProductVisibility={(productId: number, currentStatus: number) => {
-                          if (selectedSection) {
-                            void toggleProductVisibility(productId, currentStatus);
-                          }
-                        }}
+                        onToggleProductVisibility={handleToggleProductVisibility}
                         isLoading={!sectionProducts || sectionProducts.length === 0}
                         onProductsReorder={isReorderModeActive ? (sourceIndex: number, destinationIndex: number) => {
                           if (selectedSection) {
@@ -1021,28 +1053,28 @@ export default function DashboardView() {
       
       {/* Modales */}
       {showNewCategoryModal && (
-        <NewCategoryModal 
+        <NewCategoryModal
           isOpen={showNewCategoryModal}
           onClose={() => setShowNewCategoryModal(false)}
-          client={client ? adaptClient(client) as any : null}
-          setCategories={((updatedCategories) => {
+          client={client ? fromMenuClient(client) : null}
+          setCategories={((updatedCategories: any) => {
             if (Array.isArray(updatedCategories)) {
               const dashboardCategories = updatedCategories.map(
                 category => fromMenuCategory(category)
               );
               setLocalCategories(dashboardCategories);
             }
-          }) as any}
+          })}
         />
       )}
       
       {showEditCategoryModal && selectedCategory && (
-        <EditCategoryModal 
+        <EditCategoryModal
           isOpen={showEditCategoryModal}
           onClose={() => setShowEditCategoryModal(false)}
           categoryToEdit={adaptCategory(selectedCategory)}
-          client={client ? adaptClient(client) : null}
-          setCategories={(updatedCategories) => {
+          client={client ? fromMenuClient(client) : null}
+          setCategories={(updatedCategories: any) => {
             if (Array.isArray(updatedCategories)) {
               const dashboardCategories = updatedCategories.map(
                 category => fromMenuCategory(category)
@@ -1127,7 +1159,7 @@ export default function DashboardView() {
           isOpen={showEditProductModal}
           onClose={() => setShowEditProductModal(false)}
           product={itemToDelete as DashboardProduct}
-          client={client ? adaptClient(client) as any : null}
+          client={client ? fromMenuClient(client) : null}
           selectedSection={selectedSection ? adaptSection(selectedSection) : null}
           setProducts={(updatedProducts) => {
             // Convertir los productos de Record<string, Product[]> a Record<string, DashboardProduct[]>

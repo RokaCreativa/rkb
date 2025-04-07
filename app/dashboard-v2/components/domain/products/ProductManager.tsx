@@ -15,9 +15,9 @@ import { PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon, Bars3Icon } from '@heroic
 import { Bars3Icon as Bars3IconSolid } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import { toast } from 'react-hot-toast';
-import { Section } from '../types';
-import { LegacySection, LegacyProduct, toLegacyProduct, toOfficialProduct, toOfficialSection } from '../types/legacy';
-import useDataState from '../hooks/useDataState';
+import { Section } from '@/app/dashboard-v2/types/domain/section';
+import { LegacySection, LegacyProduct, toLegacyProduct, toOfficialProduct, toOfficialSection } from '@/app/dashboard-v2/types/legacy';
+import useProductManagement from '@/app/dashboard-v2/hooks/domain/product/useProductManagement';
 
 /**
  * Props para el componente ProductManager
@@ -49,7 +49,7 @@ export default function ProductManager({ section }: ProductManagerProps) {
     fetchProductsBySection, 
     toggleProductVisibility, 
     deleteProduct
-  } = useDataState();
+  } = useProductManagement();
 
   // ID de sección convertido a número
   const sectionId = parseInt(section.section_id.toString(), 10);
@@ -101,8 +101,7 @@ export default function ProductManager({ section }: ProductManagerProps) {
       setUpdatingProductId(productId);
       await toggleProductVisibility(
         productId, 
-        product.status === 1 ? 0 : 1, 
-        sectionId
+        product.status === 1 ? 0 : 1
       );
       setUpdatingProductId(null);
     } catch (error) {
@@ -139,8 +138,7 @@ export default function ProductManager({ section }: ProductManagerProps) {
     
     try {
       await deleteProduct(
-        parseInt(selectedProduct.product_id.toString(), 10), 
-        sectionId
+        parseInt(selectedProduct.product_id.toString(), 10)
       );
       toast.success("Producto eliminado correctamente");
       setIsDeleteModalOpen(false);
@@ -223,7 +221,7 @@ export default function ProductManager({ section }: ProductManagerProps) {
       </div>
 
       {/* IMPORTANTE: No hay DragDropContext aquí, solo Droppable */}
-      <Droppable droppableId={droppableId} type="PRODUCT" isDropDisabled={!isReorderModeActive}>
+      <Droppable droppableId={droppableId} type="product" isDropDisabled={!isReorderModeActive}>
         {(provided) => (
           <div
             {...provided.droppableProps}

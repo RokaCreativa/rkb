@@ -32,6 +32,8 @@ import { Client } from '@/app/types/menu';
  * @property client_id - ID del cliente al que pertenece esta categoría
  * @property created_at - Fecha y hora de creación
  * @property updated_at - Fecha y hora de última actualización
+ * @property sections_count - Número total de secciones en esta categoría
+ * @property visible_sections_count - Número de secciones visibles en esta categoría
  */
 export interface Category {
   category_id: number;
@@ -43,6 +45,8 @@ export interface Category {
   client_id: number;
   created_at?: string;
   updated_at?: string;
+  sections_count?: number;
+  visible_sections_count?: number;
 }
 
 /**

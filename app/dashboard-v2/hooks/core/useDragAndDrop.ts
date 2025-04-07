@@ -8,7 +8,7 @@
 import { useState, useCallback, SetStateAction, Dispatch } from 'react';
 import { toast } from 'react-hot-toast';
 import { DropResult } from '@hello-pangea/dnd';
-import { DashboardCategory, DashboardSection, DashboardProduct } from '../types/type-adapters';
+import { DashboardCategory, DashboardSection, DashboardProduct } from '@/app/dashboard-v2/types/type-adapters';
 
 /**
  * Interface para las operaciones de drag and drop
@@ -261,81 +261,55 @@ export default function useDragAndDrop(
    * Manejador global para el evento de finalización de arrastre
    */
   const handleGlobalDragEnd = useCallback((result: DropResult) => {
-    const { source, destination, type, draggableId } = result;
-
-    // Log detallado en CONSOLA para depuración
-    console.warn("🚨 === DRAG AND DROP DETECTADO === 🚨", { 
-      source, 
-      destination, 
-      type,
-      draggableId,
-      sourceDroppableId: source?.droppableId,
-      destinationDroppableId: destination?.droppableId,
-      completeResult: JSON.stringify(result)
+    // Log informativo para depuración con información detallada
+    console.log("🔍 [DRAG DEBUG] Resultado del drag and drop:", { 
+      source: result.source, 
+      destination: result.destination, 
+      type: result.type,
+      draggableId: result.draggableId
     });
-
-    // Salir si no hay destino o no se movió
-    if (!destination || !source) {
-      console.log("⚠️ Drag cancelado (sin destino o sin origen)");
+    
+    // Extraer información relevante del resultado
+    const { source, destination, type } = result;
+    
+    // Indicar que ya no estamos arrastrando
+    setIsReorderModeActive(false);
+    
+    // Cancelar si no hay destino (se soltó fuera de un área válida)
+    // o si el origen y destino son el mismo (no hubo cambio real)
+    if (!destination || 
+        (source.droppableId === destination.droppableId && 
+         source.index === destination.index)) {
+      console.log("🚫 [DRAG DEBUG] Operación cancelada: sin destino o sin cambio de posición");
       return;
     }
     
-    if (destination.droppableId === source.droppableId && destination.index === source.index) {
-      console.log("⚠️ Posición no cambió");
-      return;
-    }
-
-    try {
-      // Lógica para distintos tipos de elementos
-      switch (type) {
-        case "CATEGORY":
-          console.log("📊 Reordenando categorías:", { source: source.index, destination: destination.index });
-          handleReorderCategories(source.index, destination.index);
-          break;
-        case "SECTION":
-          {
-            const sourceId = source.droppableId.split("-")[2]; // sections-category-ID
-            const destId = destination.droppableId.split("-")[2];
-            
-            console.log("📋 Reordenando secciones:", { 
-              categoryId: sourceId, 
-              source: source.index, 
-              destination: destination.index,
-              mismaCategoria: sourceId === destId
-            });
-
-            if (sourceId === destId) {
-              handleReorderSections(parseInt(sourceId), source.index, destination.index);
-            } else {
-              console.error("❌ Cambio entre categorías no soportado");
-            }
-          }
-          break;
-        case "PRODUCT":
-          {
-            const sourceId = source.droppableId.split("-")[2]; // products-section-ID
-            const destId = destination.droppableId.split("-")[2];
-            
-            console.log("🍔 Reordenando productos:", { 
-              sectionId: sourceId, 
-              source: source.index, 
-              destination: destination.index,
-              mismaSeccion: sourceId === destId
-            });
-
-            if (sourceId === destId) {
-              handleReorderProducts(parseInt(sourceId), source.index, destination.index);
-            } else {
-              console.error("❌ Cambio entre secciones no soportado");
-            }
-          }
-          break;
-        default:
-          console.error("❓ Tipo desconocido:", type);
-      }
-    } catch (error) {
-      console.error("❌ Error al reordenar:", error);
-      toast.error("Error al reordenar. Inténtalo de nuevo.");
+    // Determinar qué tipo de elemento se está arrastrando y llamar a la función adecuada
+    // IMPORTANTE: Los tipos son en minúsculas
+    if (type === 'category') {
+      console.log("📊 [DRAG DEBUG] Reordenando categoría:", { 
+        sourceIndex: source.index, 
+        destinationIndex: destination.index 
+      });
+      handleReorderCategories(source.index, destination.index);
+    } else if (type === 'section') {
+      const categoryId = parseInt(source.droppableId.replace('category-', ''));
+      console.log("📋 [DRAG DEBUG] Reordenando sección:", { 
+        categoryId, 
+        sourceIndex: source.index, 
+        destinationIndex: destination.index 
+      });
+      handleReorderSections(categoryId, source.index, destination.index);
+    } else if (type === 'product') {
+      const sectionId = parseInt(source.droppableId.replace('section-', ''));
+      console.log("🍔 [DRAG DEBUG] Reordenando producto:", { 
+        sectionId, 
+        sourceIndex: source.index, 
+        destinationIndex: destination.index 
+      });
+      handleReorderProducts(sectionId, source.index, destination.index);
+    } else {
+      console.warn("⚠️ [DRAG DEBUG] Tipo de elemento desconocido:", type);
     }
   }, [handleReorderCategories, handleReorderSections, handleReorderProducts]);
 

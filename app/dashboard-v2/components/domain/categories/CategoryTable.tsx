@@ -9,6 +9,8 @@ import { Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import Image from 'next/image';
 import SectionList from '@/app/dashboard-v2/components/domain/sections/SectionList';
 import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
+import { Section as DomainSection } from '@/app/dashboard-v2/types/domain/section';
+import { CompatibleProduct, adaptDomainSectionToMenu } from '@/app/dashboard-v2/types/type-adapters';
 
 interface CategoryTableProps {
   categories: Category[];
@@ -268,24 +270,27 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                             expandedSections={expandedSections}
                             onSectionClick={onSectionClick}
                             onToggleSectionVisibility={onToggleSectionVisibility}
-                            onEditSection={onEditSection}
-                            onDeleteSection={onDeleteSection}
-                            onAddProduct={onAddProduct}
+                            onEditSection={(section) => onEditSection && onEditSection(adaptDomainSectionToMenu(section as DomainSection))}
+                            onDeleteSection={(section) => onDeleteSection && onDeleteSection(adaptDomainSectionToMenu(section as DomainSection))}
+                            onAddProduct={sectionId => onAddProduct && onAddProduct(sectionId)}
                             products={products}
                             onToggleProductVisibility={onToggleProductVisibility}
-                            onEditProduct={onEditProduct}
-                            onDeleteProduct={onDeleteProduct}
-                            categoryName={category.name}
-                            categoryId={category.category_id}
+                            onEditProduct={onEditProduct as (product: CompatibleProduct) => void}
+                            onDeleteProduct={onDeleteProduct as (product: CompatibleProduct) => void}
                             isUpdatingVisibility={isUpdatingVisibility}
                             isUpdatingProductVisibility={isUpdatingProductVisibility}
+                            categoryName={category.name}
+                            categoryId={category.category_id}
                             onSectionsReorder={
                               onReorderCategory
-                                ? (catId: number, sourceIndex: number, destinationIndex: number) => {
-                                  console.log("CategoryTable - reordering sections", {categoryId: catId, sourceIndex, destinationIndex});
-                                }
+                                ? (categoryId: number, sourceIndex: number, destinationIndex: number) => {
+                                    console.log("CategoryTable - reordering sections", {categoryId, sourceIndex, destinationIndex});
+                                    onReorderCategory(sourceIndex, destinationIndex);
+                                  }
                                 : undefined
                             }
+                            onAddSectionToCategory={onAddSection}
+                            isReorderModeActive={isReorderModeActive}
                           />
                         </div>
                       </td>

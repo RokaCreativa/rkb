@@ -1,24 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { PlusCircleIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/solid';
-import { Product } from '@/app/types/menu';
+import { Product as DomainProduct } from '@/app/dashboard-v2/types/domain/product';
+import { Product as MenuProduct } from '@/app/types/menu';
+import { CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
 import ProductListItem from './ProductListItem';
 import { Droppable, Draggable, DropResult, DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
 import { useGridIcons } from '@/app/dashboard-v2/hooks/ui/useGridIcons';
 import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
 
-interface ProductListProps {
-  products: Product[];
+export interface ProductListProps {
+  /** ID de la sección a la que pertenecen los productos */
   sectionId: number;
-  sectionName: string;
-  onAddProduct: () => void;
-  onEditProduct: (product: Product) => void;
-  onDeleteProduct: (product: Product) => void;
-  onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => void;
-  onProductsReorder?: (sourceIndex: number, destinationIndex: number) => void;
-  isUpdatingProductVisibility?: number | null;
+  /** Nombre de la sección a la que pertenecen los productos */
+  sectionName?: string;
+  /** Lista de productos a mostrar */
+  products: DomainProduct[] | MenuProduct[];
+  /** Función para agregar un producto */
+  onAddProduct?: (sectionId: number) => void;
+  /** Función para editar un producto */
+  onEditProduct?: (product: CompatibleProduct) => void;
+  /** Función para eliminar un producto */
+  onDeleteProduct?: (product: CompatibleProduct) => void;
+  /** Función para alternar visibilidad de un producto */
+  onToggleVisibility?: (productId: number, status: number, sectionId: number) => void | Promise<void>;
+  /** ID del producto cuya visibilidad está siendo actualizada */
+  isUpdatingVisibility?: number | null;
+  /** Indica si el modo de reordenamiento está activo */
   isReorderModeActive?: boolean;
+  /** Indica si se está procesando una reordenación */
   isProcessingReorder?: boolean;
+  /** Función para reordenar productos (arrastrar y soltar) */
+  onProductsReorder?: (sectionId: number, sourceIndex: number, destinationIndex: number) => void;
 }
 
 /**
@@ -36,9 +49,9 @@ const ProductList: React.FC<ProductListProps> = ({
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
-  onToggleProductVisibility,
+  onToggleVisibility,
   onProductsReorder,
-  isUpdatingProductVisibility,
+  isUpdatingVisibility,
   isReorderModeActive = false,
   isProcessingReorder = false
 }) => {
@@ -54,15 +67,23 @@ const ProductList: React.FC<ProductListProps> = ({
   
   // Debug logs para verificar props
   useEffect(() => {
-    console.log('ProductList - Sección:', sectionName, '- Props:', {
+    console.log('🔍 [DRAG DEBUG] ProductList - Sección:', sectionName, '- Props:', {
       productsCount: products.length,
       visibleCount: visibleProducts.length,
       hiddenCount: hiddenProducts.length,
       isReorderModeActive,
       onProductsReorder: !!onProductsReorder,
-      droppableId
+      droppableId,
+      droppableType: "product" // Confirmar el tipo usado
     });
   }, [products.length, visibleProducts.length, hiddenProducts.length, isReorderModeActive, onProductsReorder, sectionName, droppableId]);
+
+  // Modificar el handler para pasar sectionId
+  const handleAddProduct = () => {
+    if (onAddProduct) {
+      onAddProduct(sectionId);
+    }
+  };
 
   // Renderizar mensaje especial si no hay productos
   if (products.length === 0) {
@@ -73,7 +94,7 @@ const ProductList: React.FC<ProductListProps> = ({
             {sectionName ? `Productos en ${sectionName}` : 'Productos'} ({products.length})
           </h2>
           <button
-            onClick={onAddProduct}
+            onClick={handleAddProduct}
             className="button-sm product-button hover:product-button-hover"
           >
             <PlusCircleIcon className="h-4 w-4 mr-1" />
@@ -83,7 +104,7 @@ const ProductList: React.FC<ProductListProps> = ({
         <div className="p-6 text-center">
           <p className="product-text mb-4">No hay productos en esta sección</p>
           <button
-            onClick={onAddProduct}
+            onClick={handleAddProduct}
             className="button-sm product-button hover:product-button-hover"
           >
             <PlusCircleIcon className="h-4 w-4 mr-1" />
@@ -99,6 +120,11 @@ const ProductList: React.FC<ProductListProps> = ({
       <div className="grid-header product-bg product-border !bg-amber-50 !border-amber-100">
         <h2 className="grid-title product-title !text-amber-600">
           {sectionName ? `Productos en ${sectionName}` : 'Productos'} ({products.length})
+          {isReorderModeActive && (
+            <span className="ml-2 text-xs font-normal !bg-amber-200 !text-amber-800 px-2 py-0.5 rounded-full">
+              Modo reordenación activo
+            </span>
+          )}
         </h2>
         <div className="flex items-center space-x-2">
           <button
@@ -109,7 +135,7 @@ const ProductList: React.FC<ProductListProps> = ({
             {renderIcon('product', 'expand', { className: "ml-1 !text-amber-600" })}
           </button>
           <button
-            onClick={onAddProduct}
+            onClick={handleAddProduct}
             className="button-sm product-button hover:product-button-hover !bg-amber-600 hover:!bg-amber-700"
           >
             <PlusCircleIcon className="h-4 w-4 mr-1" />
@@ -121,7 +147,7 @@ const ProductList: React.FC<ProductListProps> = ({
       {/* Zona de arrastre para los productos */}
       <Droppable
         droppableId={droppableId}
-        type="PRODUCT"
+        type="product"
         isDropDisabled={!isReorderModeActive}
       >
         {(provided, snapshot) => (
@@ -134,45 +160,45 @@ const ProductList: React.FC<ProductListProps> = ({
             `}
             data-testid={`product-list-${sectionId}`}
           >
-            {visibleProducts.map((product, index) => (
-              <Draggable
-                key={`product-${product.product_id}`}
-                draggableId={`product-${product.product_id}`}
-                index={index}
-                isDragDisabled={!isReorderModeActive}
-              >
-                {(dragProvided, dragSnapshot) => (
-                  <div
-                    ref={dragProvided.innerRef}
-                    {...dragProvided.draggableProps}
-                    className={`
-                      ${dragSnapshot.isDragging ? 'grid-item-dragging-product !bg-amber-50' : ''}
-                    `}
-                  >
-                    <ProductListItem
-                      product={product}
-                      sectionId={sectionId}
-                      onToggleProductVisibility={onToggleProductVisibility}
-                      onEditProduct={onEditProduct}
-                      onDeleteProduct={onDeleteProduct}
-                      isUpdatingProductVisibility={isUpdatingProductVisibility}
-                      dragHandleProps={dragProvided.dragHandleProps}
-                      showDragHandle={isReorderModeActive}
-                    />
-                  </div>
-                )}
-              </Draggable>
-            ))}
+            <div className="space-y-1">
+              {visibleProducts.map((product, index) => (
+                <Draggable
+                  key={`product-${product.product_id}`}
+                  draggableId={`product-${product.product_id}`}
+                  index={index}
+                  isDragDisabled={!isReorderModeActive}
+                >
+                  {(dragProvided) => (
+                    <div
+                      ref={dragProvided.innerRef}
+                      {...dragProvided.draggableProps}
+                      className="rounded-md overflow-hidden"
+                    >
+                      <ProductListItem
+                        product={product}
+                        sectionId={sectionId}
+                        onToggleProductVisibility={onToggleVisibility}
+                        onEditProduct={onEditProduct}
+                        onDeleteProduct={onDeleteProduct}
+                        isUpdatingProductVisibility={isUpdatingVisibility}
+                        dragHandleProps={dragProvided.dragHandleProps}
+                        showDragHandle={isReorderModeActive}
+                      />
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+            </div>
 
             {showHidden && hiddenProducts.map((product) => (
               <div key={`hidden-product-${product.product_id}`}>
                 <ProductListItem
                   product={product}
                   sectionId={sectionId}
-                  onToggleProductVisibility={onToggleProductVisibility}
+                  onToggleProductVisibility={onToggleVisibility}
                   onEditProduct={onEditProduct}
                   onDeleteProduct={onDeleteProduct}
-                  isUpdatingProductVisibility={isUpdatingProductVisibility}
+                  isUpdatingProductVisibility={isUpdatingVisibility}
                 />
               </div>
             ))}

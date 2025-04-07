@@ -2,7 +2,7 @@
  * @fileoverview Hook para gestionar la funcionalidad de arrastrar y soltar en el dashboard
  * @author RokaMenu Team
  * @version 1.0.0
- * @updated 2024-06-15
+ * @updated 2024-06-20
  * 
  * Este hook proporciona funcionalidades completas para implementar operaciones
  * de arrastrar y soltar (drag and drop) para categorías, secciones y productos.
@@ -15,11 +15,36 @@ import { useState, useCallback } from 'react';
 import { DropResult } from '@hello-pangea/dnd';
 import { toast } from 'react-hot-toast';
 import { 
-  Category, 
-  Section, 
-  Product 
-} from '@/app/dashboard-v2/types';
+  DashboardCategory, 
+  DashboardSection, 
+  DashboardProduct 
+} from '@/app/dashboard-v2/types/type-adapters';
 import { DashboardService } from '@/lib/services/dashboardService';
+
+/**
+ * Tipo genérico para DashboardCategory o derivados
+ */
+type AnyCategory = DashboardCategory;
+
+/**
+ * Tipo genérico para DashboardSection o derivados
+ */
+type AnySection = DashboardSection;
+
+/**
+ * Tipo genérico para DashboardProduct o derivados
+ */
+type AnyProduct = DashboardProduct;
+
+/**
+ * Mapa de secciones indexado por el ID de categoría (como string)
+ */
+type SectionsMap = { [categoryId: string]: AnySection[] };
+
+/**
+ * Mapa de productos indexado por el ID de sección (como string)
+ */
+type ProductsMap = { [sectionId: string]: AnyProduct[] };
 
 /**
  * Interfaz para el resultado de una operación de reordenamiento
@@ -68,12 +93,12 @@ interface ReorderResult {
  * // Ver documentación de @hello-pangea/dnd para más detalles
  */
 export default function useDragAndDrop(
-  categories: Category[],
-  sections: { [key: string]: Section[] },
-  products: { [key: string]: Product[] },
-  setCategories: React.Dispatch<React.SetStateAction<Category[]>>,
-  setSections: React.Dispatch<React.SetStateAction<{ [key: string]: Section[] }>>,
-  setProducts: React.Dispatch<React.SetStateAction<{ [key: string]: Product[] }>>
+  categories: AnyCategory[],
+  sections: SectionsMap,
+  products: ProductsMap,
+  setCategories: React.Dispatch<React.SetStateAction<AnyCategory[]>>,
+  setSections: React.Dispatch<React.SetStateAction<SectionsMap>>,
+  setProducts: React.Dispatch<React.SetStateAction<ProductsMap>>
 ) {
   /**
    * Estado que indica si el modo de reordenamiento está activo
@@ -86,6 +111,20 @@ export default function useDragAndDrop(
    * Es útil para aplicar estilos visuales durante el arrastre.
    */
   const [isDragging, setIsDragging] = useState(false);
+  
+  // Custom setter para isReorderModeActive con logs
+  const toggleReorderMode = useCallback((value: boolean | ((prev: boolean) => boolean)) => {
+    if (typeof value === 'function') {
+      setIsReorderModeActive(prev => {
+        const newValue = value(prev);
+        console.log('🔄 [REORDER HOOK] Cambiando modo reordenación de:', prev, 'a:', newValue);
+        return newValue;
+      });
+    } else {
+      console.log('🔄 [REORDER HOOK] Estableciendo modo reordenación a:', value);
+      setIsReorderModeActive(value);
+    }
+  }, []);
   
   /**
    * Maneja el final de una operación de arrastrar y soltar
@@ -101,6 +140,14 @@ export default function useDragAndDrop(
    * // Ver documentación de @hello-pangea/dnd para detalles de implementación
    */
   const handleGlobalDragEnd = useCallback((result: DropResult) => {
+    // Log informativo para depuración con información detallada
+    console.log("🔍 [DRAG DEBUG] Resultado del drag and drop:", { 
+      source: result.source, 
+      destination: result.destination, 
+      type: result.type,
+      draggableId: result.draggableId
+    });
+    
     // Extraer información relevante del resultado
     const { source, destination, type } = result;
     
@@ -112,25 +159,48 @@ export default function useDragAndDrop(
     if (!destination || 
         (source.droppableId === destination.droppableId && 
          source.index === destination.index)) {
+      console.log("🚫 [DRAG DEBUG] Operación cancelada: sin destino o sin cambio de posición");
       return;
     }
+
+    // Añadir log adicional para diagnóstico del tipo de elemento
+    console.log("⚙️ [DRAG DEBUG] Procesando elemento de tipo:", type, 
+                "Convertido a minúsculas:", String(type).toLowerCase());
     
     // Determinar qué tipo de elemento se está arrastrando y llamar a la función adecuada
-    if (type === 'category') {
+    // IMPORTANTE: Convertimos el tipo a minúsculas para asegurar compatibilidad
+    const normalizedType = String(type).toLowerCase();
+    
+    if (normalizedType === 'category') {
       // Reordenar categorías
+      console.log("🔄 [DRAG DEBUG] Reordenando CATEGORÍA de índice", source.index, "a", destination.index);
       handleReorderCategories(source.index, destination.index);
-    } else if (type === 'section') {
+    } else if (normalizedType === 'section') {
       // Extraer el ID de categoría del ID de la zona donde se puede soltar
-      // Por ejemplo, de "category-5" obtenemos "5"
-      const categoryId = parseInt(source.droppableId.replace('category-', ''));
+      const droppableIdMatch = source.droppableId.match(/category-(\d+)/i);
+      const categoryId = droppableIdMatch ? parseInt(droppableIdMatch[1]) : 
+                       parseInt(source.droppableId.replace(/[^0-9]/g, ''));
+      
+      console.log("🔄 [DRAG DEBUG] Reordenando SECCIÓN en categoría", categoryId, 
+                 "de índice", source.index, "a", destination.index, 
+                 "droppableId:", source.droppableId);
+      
       // Reordenar secciones dentro de esa categoría
       handleReorderSections(categoryId, source.index, destination.index);
-    } else if (type === 'product') {
+    } else if (normalizedType === 'product') {
       // Extraer el ID de sección del ID de la zona donde se puede soltar
-      // Por ejemplo, de "section-10" obtenemos "10"
-      const sectionId = parseInt(source.droppableId.replace('section-', ''));
+      const droppableIdMatch = source.droppableId.match(/section-(\d+)/i);
+      const sectionId = droppableIdMatch ? parseInt(droppableIdMatch[1]) : 
+                       parseInt(source.droppableId.replace(/[^0-9]/g, ''));
+      
+      console.log("🔄 [DRAG DEBUG] Reordenando PRODUCTO en sección", sectionId, 
+                 "de índice", source.index, "a", destination.index,
+                 "droppableId:", source.droppableId);
+      
       // Reordenar productos dentro de esa sección
       handleReorderProducts(sectionId, source.index, destination.index);
+    } else {
+      console.warn("⚠️ [DRAG DEBUG] Tipo de elemento no reconocido:", type);
     }
   }, []);
   
@@ -307,7 +377,14 @@ export default function useDragAndDrop(
     
     try {
       // Enviar la actualización al servidor
-      const result = await DashboardService.reorderProducts(updatedProducts);
+      // Convertir los productos al formato esperado por el servicio
+      const productsForService = updatedProducts.map(product => ({
+        ...product,
+        // Convertir el precio a string si es necesario para cumplir con el tipo esperado
+        price: typeof product.price === 'number' ? product.price.toString() : product.price
+      }));
+      
+      const result = await DashboardService.reorderProducts(productsForService);
       
       // Verificar si la operación fue exitosa
       if (result.success) {
@@ -338,7 +415,7 @@ export default function useDragAndDrop(
   return {
     // Estados
     isReorderModeActive,   // Si el modo de reordenamiento está activo
-    setIsReorderModeActive, // Función para activar/desactivar el modo de reordenamiento
+    setIsReorderModeActive: toggleReorderMode, // Función mejorada con logs
     isDragging,            // Si hay una operación de arrastre en curso
     setIsDragging,         // Función para actualizar el estado de arrastre
     

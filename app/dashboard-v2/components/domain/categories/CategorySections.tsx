@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Category, Section } from '../types';
-import { LegacySection, toLegacySection, toOfficialSection } from '../types/legacy';
-import SectionList from './sections/SectionList';
+import { Category } from '@/app/dashboard-v2/types/domain/category';
+import { Section } from '@/app/dashboard-v2/types/domain/section';
+import { LegacySection, toLegacySection, toOfficialSection } from '@/app/dashboard-v2/types/legacy';
+import SectionList from '@/app/dashboard-v2/components/domain/sections/SectionList';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/solid';
 import { toast } from 'react-hot-toast';
-import SectionDetail from './SectionDetail';
-import useDataState from '../hooks/useDataState';
+import SectionDetail from '@/app/dashboard-v2/components/domain/sections/SectionDetail';
+import useSectionManagement from '@/app/dashboard-v2/hooks/domain/section/useSectionManagement';
 
 /**
  * Props para el componente CategorySections
@@ -39,7 +40,7 @@ export default function CategorySections({ category }: CategorySectionsProps) {
     setSections: setAllSections, 
     fetchSectionsByCategory, 
     deleteSection 
-  } = useDataState();
+  } = useSectionManagement();
 
   useEffect(() => {
     // Solo cargar secciones si tenemos una categoría válida
@@ -170,7 +171,7 @@ export default function CategorySections({ category }: CategorySectionsProps) {
       </div>
       
       {/* IMPORTANTE: No hay DragDropContext aquí, solo Droppable */}
-      <Droppable droppableId={droppableId} type="SECTION" isDropDisabled={!isReorderMode}>
+      <Droppable droppableId={droppableId} type="section" isDropDisabled={!isReorderMode}>
         {(provided) => (
           <div
             {...provided.droppableProps}

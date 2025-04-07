@@ -124,7 +124,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
       </div>
       
       {/* IMPORTANTE: No hay DragDropContext aquí, solo Droppable */}
-      <Droppable droppableId={droppableId} type="PRODUCT" isDropDisabled={!isReorderModeActive}>
+      <Droppable droppableId={droppableId} type="product" isDropDisabled={!isReorderModeActive}>
         {(provided) => (
           <table className="grid-table product-border" {...provided.droppableProps} ref={provided.innerRef}>
             <thead className="bg-gray-50">

@@ -14,11 +14,14 @@
 import React, { useState, useEffect } from 'react';
 import { PencilIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon, EyeIcon, EyeSlashIcon, ViewColumnsIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon } from '@heroicons/react/24/solid';
-import { Droppable, Draggable } from '@hello-pangea/dnd';
+import { Droppable, Draggable, DroppableProvided } from '@hello-pangea/dnd';
 import Image from 'next/image';
-import { Section, Product } from '@/app/types/menu';
+import { Section, Product as DomainProduct } from '@/app/dashboard-v2/types';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 import ProductList from '@/app/dashboard-v2/components/domain/products/ProductList';
+import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
+import { adaptDomainProductToMenu, CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
+import { Product as MenuProduct } from '@/app/types/menu';
 
 /**
  * Props para el componente SectionList
@@ -39,13 +42,13 @@ export interface SectionListProps {
   /** Función para agregar un producto a una sección */
   onAddProduct: (sectionId: number) => void;
   /** Mapa de productos por sección */
-  products: Record<number | string, Product[]>;
+  products: Record<number | string, DomainProduct[]>;
   /** Función para alternar visibilidad de un producto */
   onToggleProductVisibility?: (productId: number, status: number, sectionId: number) => void | Promise<void>;
   /** Función para editar un producto */
-  onEditProduct?: (product: Product) => void;
+  onEditProduct?: (product: CompatibleProduct) => void;
   /** Función para eliminar un producto */
-  onDeleteProduct?: (product: Product) => void;
+  onDeleteProduct?: (product: CompatibleProduct) => void;
   /** ID de la sección cuya visibilidad está siendo actualizada */
   isUpdatingVisibility?: number | null;
   /** ID del producto cuya visibilidad está siendo actualizada */
@@ -123,7 +126,8 @@ const SectionList: React.FC<SectionListProps> = ({
       dragEnabled: isDragEnabled,
       visibleSections: visibleSections.length,
       droppableId: `sections-category-${categoryId || "default"}`,
-      totalSections: sections.length
+      totalSections: sections.length,
+      droppableType: "section", // Confirmar el tipo usado
     });
     
     // Log detallado para depuración
@@ -176,18 +180,38 @@ const SectionList: React.FC<SectionListProps> = ({
       return null;
     }
     
-    // Usar el componente ProductList en lugar de la tabla HTML personalizada
+    // Adaptar los productos al formato esperado por ProductList (MenuProduct)
+    const adaptedProducts: MenuProduct[] = (products[sectionId] || []).map(domainProduct => 
+      adaptDomainProductToMenu(domainProduct)
+    );
+    
+    // Crear wrappers para los callbacks que esperan CompatibleProduct
+    const handleEditProduct = (product: CompatibleProduct) => {
+      if (onEditProduct) {
+        // Como onEditProduct acepta CompatibleProduct, podemos pasar el producto directamente
+        onEditProduct(product);
+      }
+    };
+      
+    const handleDeleteProduct = (product: CompatibleProduct) => {
+      if (onDeleteProduct) {
+        // Como onDeleteProduct acepta CompatibleProduct, podemos pasar el producto directamente
+        onDeleteProduct(product);
+      }
+    };
+    
+    // Usar el componente ProductList con los productos adaptados
     return (
       <div className="mt-1 pl-0 pb-2 border-t section-border">
         <ProductList
           sectionId={sectionId}
-          products={products[sectionId] || []}
+          products={adaptedProducts}
           sectionName={sections.find(s => s.section_id === sectionId)?.name || ""}
           onAddProduct={() => onAddProduct(sectionId)}
-          onEditProduct={(product) => onEditProduct ? onEditProduct(product) : null}
-          onDeleteProduct={(product) => onDeleteProduct ? onDeleteProduct(product) : null}
-          onToggleProductVisibility={onToggleProductVisibility}
-          isUpdatingProductVisibility={isUpdatingProductVisibility}
+          onEditProduct={handleEditProduct}
+          onDeleteProduct={handleDeleteProduct}
+          onToggleVisibility={onToggleProductVisibility}
+          isUpdatingVisibility={isUpdatingProductVisibility}
           isReorderModeActive={isDragEnabled}
         />
       </div>
@@ -225,7 +249,7 @@ const SectionList: React.FC<SectionListProps> = ({
         </div>
         
         {/* TABLA PRINCIPAL - Note que NO hay DragDropContext aquí */}
-        <Droppable droppableId={droppableId} type="SECTION" isDropDisabled={!isDragEnabled}>
+        <Droppable droppableId={droppableId} type="section" isDropDisabled={!isDragEnabled}>
           {(provided, snapshot) => (
             <table 
               className="min-w-full divide-y section-border" 

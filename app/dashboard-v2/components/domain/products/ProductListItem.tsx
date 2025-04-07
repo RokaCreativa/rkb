@@ -1,16 +1,18 @@
 import React, { useEffect } from 'react';
 import { Bars3Icon } from '@heroicons/react/24/solid';
 import Image from 'next/image';
-import { Product } from '@/app/types/menu';
+import { Product as MenuProduct } from '@/app/types/menu';
+import { Product as DomainProduct } from '@/app/dashboard-v2/types/domain/product';
+import { CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 import { Draggable, DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
 import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
 
 interface ProductListItemProps {
-  product: Product;
+  product: CompatibleProduct;
   onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => void;
-  onEditProduct?: (product: Product) => void;
-  onDeleteProduct?: (product: Product) => void;
+  onEditProduct?: (product: CompatibleProduct) => void;
+  onDeleteProduct?: (product: CompatibleProduct) => void;
   isUpdatingProductVisibility?: number | null;
   sectionId: number;
   dragHandleProps?: DraggableProvidedDragHandleProps | null;
@@ -46,15 +48,41 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
         {showDragHandle && dragHandleProps && (
           <div 
             {...dragHandleProps} 
-            className="pr-2 cursor-move product-drag-handle"
+            className="mr-3 flex items-center justify-center p-2 rounded-lg !bg-amber-50 hover:!bg-amber-100 cursor-grab !text-amber-600"
+            title="Arrastrar para reordenar"
+            aria-label="Arrastrar para reordenar"
+            style={{
+              touchAction: 'none',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+              MozUserSelect: 'none',
+              msUserSelect: 'none'
+            }}
+            onClick={(e) => {
+              console.log('🔍 [DRAG DEBUG] Intentando iniciar drag del producto:', product.name, 'ID:', product.product_id);
+              console.log('🔍 [DRAG DEBUG] Estado showDragHandle:', showDragHandle);
+              console.log('🔍 [DRAG DEBUG] DragHandleProps disponible:', !!dragHandleProps);
+              e.stopPropagation();
+              // No usamos e.preventDefault() para permitir que el drag funcione
+            }}
+            onMouseDown={(e) => {
+              console.log('🔍 [DRAG DEBUG] MouseDown en handle de producto:', product.name);
+              // No prevenimos para permitir que el DnD funcione correctamente
+              e.stopPropagation();
+            }}
+            onTouchStart={(e) => {
+              console.log('🔍 [DRAG DEBUG] TouchStart en handle de producto:', product.name);
+              // No prevenimos para permitir que el DnD funcione correctamente
+              e.stopPropagation();
+            }}
           >
-            <GridIcon type="product" icon="drag" size="medium" />
+            <Bars3Icon className="h-5 w-5" />
           </div>
         )}
         
         <div className="h-10 w-10 relative flex-shrink-0 rounded overflow-hidden bg-gray-100 mr-3">
           <Image
-            src={getImagePath(product.image, "products")}
+            src={getImagePath(product.image || null, "products")}
             alt={product.name || ""}
             width={40}
             height={40}

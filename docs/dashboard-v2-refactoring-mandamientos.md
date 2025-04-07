@@ -347,3 +347,102 @@ Este mandamiento es FUNDAMENTAL y no puede ser ignorado bajo ninguna circunstanc
 4. **Optimización de Rendimiento**: La carga y rendimiento en dispositivos móviles debe ser prioritaria
 
 La violación de este mandamiento es considerada CRÍTICA, ya que la mayoría de los usuarios finales accederán a los menús desde dispositivos móviles. Una experiencia deficiente en estos dispositivos impacta directamente en la satisfacción del cliente y el valor del producto.
+
+# Mandamientos para la Refactorización del Dashboard V2
+
+Este documento establece las reglas y principios que deben seguirse durante el proceso de refactorización del Dashboard V2. Estos mandamientos han sido creados para garantizar coherencia, calidad y mantenibilidad en todo el código.
+
+## Mandamiento 1: "No crearás lo que ya existe"
+
+Antes de implementar cualquier nuevo componente, hook, utilidad o función, asegúrate de que no exista ya algo similar en el código. Sigue estos pasos:
+
+1. **Buscar en el código existente**: Utiliza herramientas de búsqueda para encontrar funcionalidades similares.
+2. **Consultar la documentación**: Revisa `dashboard-v2-estructura-y-mandamientos.md` para entender la estructura del proyecto.
+3. **Preguntar al equipo**: Si tienes dudas, consulta con otros miembros del equipo.
+
+## Mandamiento 2: "Respetarás la estructura de dominios"
+
+La estructura del proyecto sigue un diseño orientado a dominios (DDD) para una mejor organización y mantenibilidad:
+
+- **Componentes**: Colócalos en `components/` y en la subcarpeta adecuada según su propósito (core, domain, views, etc.).
+- **Hooks**: Colócalos en `hooks/` y en la subcarpeta correspondiente según su propósito (core, domain, ui, etc.).
+- **Tipos**: Defínelos en `types/` y en la subcarpeta adecuada según su dominio (domain/category, domain/section, etc.).
+
+## Mandamiento 3: "Separarás la lógica de la presentación"
+
+- Los **componentes** deben centrarse en la presentación y recibir datos y callbacks a través de props.
+- Los **hooks** deben contener la lógica de negocio y manipulación de datos.
+
+## Mandamiento 4: "Usarás adaptadores para convertir entre sistemas de tipos"
+
+> **ACTUALIZACIÓN (2024-06-20):** El sistema de adaptadores de tipos ha sido mejorado para garantizar una conversión segura entre los tipos de Menu y Dashboard.
+
+El proyecto utiliza dos sistemas de tipos principales:
+
+- Tipos de **menu.ts**: Utilizados por la API y componentes antiguos
+- Tipos de **dashboard-v2/types/domain/**: Tipos específicos para el dashboard v2
+
+Para convertir entre estos sistemas:
+
+- Usa las funciones adaptadoras en `types/type-adapters.ts`.
+- Nunca modifiques directamente los tipos para hacerlos compatibles.
+- Utiliza las funciones `fromMenuCategory`, `fromMenuSection`, etc. para convertir de tipos Menu a tipos Dashboard.
+- Utiliza las funciones `adaptCategory`, `adaptSection`, etc. para convertir de tipos Dashboard a tipos Menu.
+
+### Mejoras Recientes en el Sistema de Tipos
+
+Se han realizado las siguientes mejoras en el sistema de adaptadores de tipos:
+
+1. **Manejo seguro de valores null/undefined**: Las funciones adaptadoras ahora convierten explícitamente valores null/undefined a formatos compatibles.
+2. **Tipos de categorías extendidos**: Se ha actualizado la interfaz `Category` para incluir propiedades como `sections_count` y `visible_sections_count`.
+3. **Tipado genérico en useDragAndDrop**: El hook ahora utiliza tipos genéricos para una mejor compatibilidad entre sistemas de tipos.
+4. **Conversión segura de tipos numéricos/string**: Se han mejorado las funciones para manejar correctamente la conversión entre diferentes representaciones de tipos numéricos.
+
+## Mandamiento 5: "Documentarás tu código"
+
+Todo código nuevo debe estar adecuadamente documentado:
+
+- **Componentes**: Documenta sus props y comportamiento.
+- **Hooks**: Documenta sus parámetros, valores devueltos y casos de uso.
+- **Funciones de utilidad**: Documenta sus parámetros, comportamiento y ejemplos de uso.
+
+## Mandamiento 6: "No alterarás la estructura sin consenso"
+
+La estructura del proyecto ha sido cuidadosamente diseñada para mantener un código limpio y organizado:
+
+- No crees nuevas carpetas sin discutirlo con el equipo.
+- No muevas archivos existentes a ubicaciones diferentes sin consenso.
+- No cambies la arquitectura general del proyecto.
+
+## Mandamiento 7: "Seguirás las convenciones de nomenclatura"
+
+Mantén la coherencia en los nombres de archivos y componentes:
+
+- **Componentes**: PascalCase (ej. `CategoryList.tsx`)
+- **Hooks**: camelCase con prefijo "use" (ej. `useCategoryManagement.ts`)
+- **Utilidades**: camelCase (ej. `formatUtils.ts`)
+- **Tipos**: PascalCase para interfaces y tipos (ej. `Category`, `ProductResponse`)
+
+## Mandamiento 8: "Favorecerás la reutilización"
+
+- Identifica patrones comunes y crea componentes/hooks reutilizables.
+- Evita duplicar código; extrae funcionalidades comunes a utilidades/hooks compartidos.
+- Utiliza composición para construir componentes complejos a partir de componentes simples.
+
+## Mandamiento 9: "Asegurarás la compatibilidad con tipos"
+
+> **ACTUALIZACIÓN (2024-06-20):** Se han mejorado los adaptadores de tipos para garantizar compatibilidad entre sistemas sin errores de TypeScript.
+
+- Todos los componentes y funciones deben tener definiciones de tipos adecuadas.
+- Utiliza TypeScript de manera efectiva para prevenir errores en tiempo de desarrollo.
+- Evita el uso excesivo de `any` o cast forzados (`as`); solamente úsalos cuando sea absolutamente necesario.
+- Cuando trabajes con los dos sistemas de tipos (menu.ts y dashboard-v2/types), usa los adaptadores adecuados.
+
+## Mandamiento 10: "Crearás código legible y mantenible"
+
+- Escribe código claro y conciso que sea fácil de entender.
+- Divide funciones grandes en funciones más pequeñas con un solo propósito.
+- Utiliza nombres descriptivos para variables, funciones y componentes.
+- Mantén la coherencia en el estilo de codificación.
+
+Estos mandamientos son fundamentales para mantener la calidad y consistencia del código en el proyecto Dashboard V2. Seguirlos ayudará a crear un producto más robusto, mantenible y libre de errores.

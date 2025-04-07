@@ -6,6 +6,10 @@
  */
 
 import { Category as MenuCategory, Section as MenuSection, Product as MenuProduct, Client as MenuClient } from '@/app/types/menu';
+import { Product as DomainProduct } from '@/app/dashboard-v2/types/domain/product';
+
+// Tipo de producto compatible que puede ser de cualquiera de las dos interfaces
+export type CompatibleProduct = MenuProduct | DomainProduct;
 
 // Re-exportar los tipos de menu.ts para uso en el dashboard-v2
 export type { MenuCategory, MenuSection, MenuProduct, MenuClient };
@@ -98,6 +102,18 @@ export function adaptClient(dashboardClient: DashboardClient): MenuClient {
   } as MenuClient;
 }
 
+// Nueva función para convertir de MenuClient a DashboardClient
+export function fromMenuClient(menuClient: MenuClient): DashboardClient {
+  return {
+    id: menuClient.id,
+    client_id: menuClient.client_id || menuClient.id,
+    name: menuClient.name,
+    business_name: menuClient.name, // Usar name como business_name si no existe
+    main_logo: menuClient.main_logo,
+    status: menuClient.status
+  };
+}
+
 // Funciones para adaptar colecciones
 export function adaptCategories(categories: DashboardCategory[]): MenuCategory[] {
   return categories.map(adaptCategory);
@@ -125,15 +141,20 @@ export function adaptProducts(products: Record<string, DashboardProduct[]>): Rec
   return result;
 }
 
-// Funciones para la conversión inversa (de menu.ts a tipos inline)
+// Funciones para la conversión inversa (de menu.ts a tipos inline) - MEJORADAS
 export function fromMenuCategory(menuCategory: MenuCategory | Partial<MenuCategory>): DashboardCategory {
+  // Manejar el caso de propiedad image que es string | null en MenuCategory pero string en DashboardCategory
+  const imageValue = menuCategory.image === null || menuCategory.image === undefined 
+    ? '' // Convertir null/undefined a string vacía para compatibilidad
+    : menuCategory.image;
+    
   return {
     category_id: (menuCategory as any).category_id || (menuCategory as any).id || 0,
     client_id: menuCategory.client_id || 0,
     name: menuCategory.name || '',
     display_order: menuCategory.display_order || 0,
     status: menuCategory.status || 0,
-    image: menuCategory.image || '',
+    image: imageValue,
     sections_count: (menuCategory as any).sections_count || 0,
     visible_sections_count: (menuCategory as any).visible_sections_count || 0,
     description: (menuCategory as any).description || ''
@@ -141,6 +162,11 @@ export function fromMenuCategory(menuCategory: MenuCategory | Partial<MenuCatego
 }
 
 export function fromMenuSection(menuSection: MenuSection | Partial<MenuSection>): DashboardSection {
+  // Manejar el caso de propiedad image que es string | null en MenuSection pero string en DashboardSection
+  const imageValue = menuSection.image === null || menuSection.image === undefined 
+    ? '' // Convertir null/undefined a string vacía para compatibilidad
+    : menuSection.image;
+    
   return {
     section_id: (menuSection as any).section_id || (menuSection as any).id || 0,
     category_id: menuSection.category_id || 0,
@@ -148,7 +174,7 @@ export function fromMenuSection(menuSection: MenuSection | Partial<MenuSection>)
     name: menuSection.name || '',
     display_order: menuSection.display_order || 0,
     status: menuSection.status || 0,
-    image: menuSection.image || '',
+    image: imageValue,
     products_count: (menuSection as any).products_count || 0,
     visible_products_count: (menuSection as any).visible_products_count || 0,
     description: (menuSection as any).description || ''
@@ -156,6 +182,11 @@ export function fromMenuSection(menuSection: MenuSection | Partial<MenuSection>)
 }
 
 export function fromMenuProduct(menuProduct: MenuProduct | Partial<MenuProduct>): DashboardProduct {
+  // Manejar el caso de propiedad image que es string | null en MenuProduct pero string en DashboardProduct
+  const imageValue = menuProduct.image === null || menuProduct.image === undefined 
+    ? '' // Convertir null/undefined a string vacía para compatibilidad
+    : menuProduct.image;
+    
   return {
     product_id: (menuProduct as any).product_id || (menuProduct as any).id || 0,
     section_id: menuProduct.section_id || 0,
@@ -164,7 +195,7 @@ export function fromMenuProduct(menuProduct: MenuProduct | Partial<MenuProduct>)
     display_order: menuProduct.display_order || 0,
     status: menuProduct.status || 0,
     price: typeof menuProduct.price === 'string' ? parseFloat(menuProduct.price || '0') : (menuProduct.price || 0),
-    image: menuProduct.image || '',
+    image: imageValue,
     description: menuProduct.description || ''
   };
 }
@@ -262,8 +293,8 @@ export function adaptDomainCategoryToMenu(domainCategory: import('./domain/categ
     status: domainCategory.status,
     display_order: domainCategory.display_order,
     client_id: domainCategory.client_id,
-    ...(domainCategory.sections_count !== undefined && { sections_count: domainCategory.sections_count }),
-    ...(domainCategory.visible_sections_count !== undefined && { visible_sections_count: domainCategory.visible_sections_count })
+    sections_count: domainCategory.sections_count,
+    visible_sections_count: domainCategory.visible_sections_count
   };
 }
 

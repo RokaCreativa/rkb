@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import CategoryTable from "../domain/categories/CategoryTable";
 import { Category, Section, Product } from "@/app/types/menu";
+import { CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
 
 // Modificar las importaciones para usar los componentes que realmente existen
 import NewCategoryModal from '../modals/NewCategoryModal';
@@ -206,10 +207,20 @@ const CategoryView: React.FC<CategoryViewProps> = ({
           isReorderModeActive={isReorderModeActive}
           products={products}
           onToggleProductVisibility={onToggleProductVisibility}
-          onEditProduct={onEditProduct}
-          onDeleteProduct={onDeleteProduct}
+          onEditProduct={(product: CompatibleProduct) => onEditProduct && onEditProduct(product as Product)}
+          onDeleteProduct={(product: CompatibleProduct) => onDeleteProduct && onDeleteProduct(product as Product)}
           isUpdatingProductVisibility={isUpdatingProductVisibility}
           onAddCategory={handleAddCategory}
+          onReorderCategory={onSectionsReorder ? 
+            (sourceIndex: number, destinationIndex: number) => {
+              // Adaptar el formato para que coincida con la firma esperada por onSectionsReorder
+              const categorysSections = sections[selectedCategory?.category_id || 0] || [];
+              const reorderedSections = [...categorysSections];
+              const [movedSection] = reorderedSections.splice(sourceIndex, 1);
+              reorderedSections.splice(destinationIndex, 0, movedSection);
+              onSectionsReorder(reorderedSections);
+            } : undefined
+          }
         />
       </div>
 
@@ -343,8 +354,8 @@ const CategoryView: React.FC<CategoryViewProps> = ({
             onAddProduct={(sectionId) => onAddProductSubmit && onAddProductSubmit({ section_id: sectionId } as any)}
             products={products}
             onToggleProductVisibility={onToggleProductVisibility}
-            onEditProduct={onEditProduct}
-            onDeleteProduct={onDeleteProduct}
+            onEditProduct={(product: CompatibleProduct) => onEditProduct && onEditProduct(product as Product)}
+            onDeleteProduct={(product: CompatibleProduct) => onDeleteProduct && onDeleteProduct(product as Product)}
             isUpdatingVisibility={isUpdatingVisibility}
             isUpdatingProductVisibility={isUpdatingProductVisibility}
             categoryName={selectedCategory.name || ''}

@@ -25,6 +25,16 @@ export function TopNavbar({
     window.dispatchEvent(new Event('toggle-preview'));
   };
   
+  // Función para manejar el reordenamiento con logs
+  const handleReorderModeToggle = () => {
+    console.log('🔄 [REORDER DEBUG] Botón de reordenamiento clickeado');
+    console.log('🔄 [REORDER DEBUG] Estado actual isReorderModeActive:', isReorderModeActive);
+    console.log('🔄 [REORDER DEBUG] Cambio a:', !isReorderModeActive);
+    
+    // Llamar a la función original para activar/desactivar el modo
+    onToggleReorderMode();
+  };
+  
   return (
     <div className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -67,7 +77,7 @@ export function TopNavbar({
             {onToggleReorderMode !== undefined && (
               <button
                 type="button"
-                onClick={onToggleReorderMode}
+                onClick={handleReorderModeToggle}
                 className={`ml-3 inline-flex items-center px-4 py-2 border ${
                   isReorderModeActive 
                     ? 'bg-red-100 border-red-300 text-red-700' 

@@ -88,8 +88,8 @@ export default function useDashboardState() {
       sessionStorage.removeItem('dashboard_client_data');
       
       console.log('🔄 Cargando datos del cliente...');
-      setIsLoading(true);
-      
+    setIsLoading(true);
+
       // Usar categoryManagement para cargar los datos del cliente
       const clientData = await categoryManagement.fetchClientData();
       
@@ -107,7 +107,7 @@ export default function useDashboardState() {
       console.error('❌ Error al cargar datos del cliente:', err);
       toast.error('Error al cargar los datos del cliente');
       setIsLoading(false);
-      return null;
+    return null;
     }
   }, [categoryManagement]);
 
@@ -139,7 +139,7 @@ export default function useDashboardState() {
         return categoriesData;
       } else {
         console.warn('No se encontraron categorías');
-        setIsLoading(false);
+      setIsLoading(false);
         return [];
       }
     } catch (err) {
