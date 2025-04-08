@@ -63,6 +63,8 @@ export interface SectionListProps {
   onAddSectionToCategory?: (categoryId: number) => void;
   /** Indica si el modo de reordenamiento está activo */
   isReorderModeActive?: boolean;
+  /** Función para reordenar productos (arrastrar y soltar) */
+  onProductsReorder?: (sectionId: number, sourceIndex: number, destinationIndex: number) => void;
 }
 
 /**
@@ -95,7 +97,8 @@ const SectionList: React.FC<SectionListProps> = ({
   categoryId,
   onSectionsReorder,
   onAddSectionToCategory,
-  isReorderModeActive = false
+  isReorderModeActive = false,
+  onProductsReorder
 }) => {
   // Log de diagnóstico al renderizar el componente
   console.log("🔍 [RENDER DEBUG] SectionList renderizado con:", {
@@ -209,6 +212,13 @@ const SectionList: React.FC<SectionListProps> = ({
       }
     };
     
+    // Wrapper para onToggleVisibility que asegura pasar un sectionId válido
+    const handleToggleProductVisibility = (productId: number, status: number, sectionId: number) => {
+      if (onToggleProductVisibility) {
+        onToggleProductVisibility(productId, status, sectionId);
+      }
+    };
+    
     // Usar el componente ProductList con los productos adaptados
     return (
       <div className="mt-1 pl-0 pb-2 border-t section-border">
@@ -219,9 +229,10 @@ const SectionList: React.FC<SectionListProps> = ({
           onAddProduct={() => onAddProduct(sectionId)}
           onEditProduct={handleEditProduct}
           onDeleteProduct={handleDeleteProduct}
-          onToggleVisibility={onToggleProductVisibility}
+          onToggleVisibility={handleToggleProductVisibility}
           isUpdatingVisibility={isUpdatingProductVisibility}
           isReorderModeActive={isReorderModeActive}
+          onProductsReorder={onProductsReorder}
         />
       </div>
     );
@@ -362,14 +373,14 @@ const SectionList: React.FC<SectionListProps> = ({
                               <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">{section.display_order || index + 1}</td>
                               <td className="px-3 py-2 whitespace-nowrap">
                                 <div className="flex justify-center">
-                                  <div className="grid-image-container">
+                                  <div className="section-image-container">
                                     {section.image ? (
                                       <Image
                                         src={getImagePath(section.image, 'sections')}
                                         alt={section.name || ''}
-                                        width={32}
-                                        height={32}
-                                        className="grid-image"
+                                        width={40}
+                                        height={40}
+                                        className="section-image !object-cover !w-full !h-full"
                                         onError={handleImageError}
                                       />
                                     ) : (
@@ -496,14 +507,14 @@ const SectionList: React.FC<SectionListProps> = ({
                       <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-center">{section.display_order || index + visibleSections.length + 1}</td>
                       <td className="px-3 py-2 whitespace-nowrap">
                         <div className="flex justify-center">
-                          <div className="grid-image-container opacity-50">
+                          <div className="section-image-container">
                             {section.image ? (
                               <Image
                                 src={getImagePath(section.image, 'sections')}
                                 alt={section.name || ''}
-                                width={32}
-                                height={32}
-                                className="grid-image grayscale"
+                                width={40}
+                                height={40}
+                                className="section-image !object-cover !w-full !h-full"
                                 onError={handleImageError}
                               />
                             ) : (

@@ -274,6 +274,11 @@ const CategoryView: React.FC<CategoryViewProps> = ({
           onAddCategory={handleAddCategory}
           onReorderCategory={onReorderCategory}
           isReorderModeActive={isReorderModeActive}
+          onProductsReorder={isReorderModeActive && onProductReorder ?
+            (sectionId: number, sourceIndex: number, destinationIndex: number) => {
+              onProductReorder(sectionId, sourceIndex, destinationIndex);
+            } : undefined
+          }
         />
       </div>
 
@@ -418,6 +423,11 @@ const CategoryView: React.FC<CategoryViewProps> = ({
             onSectionsReorder={isReorderModeActive && onSectionsReorder ? 
               (categoryId: number, sourceIndex: number, destinationIndex: number) => {
                 onSectionsReorder(categoryId, sourceIndex, destinationIndex);
+              } : undefined
+            }
+            onProductsReorder={isReorderModeActive && onProductReorder ?
+              (sectionId: number, sourceIndex: number, destinationIndex: number) => {
+                onProductReorder(sectionId, sourceIndex, destinationIndex);
               } : undefined
             }
             key={`section-list-${selectedCategory?.category_id}`}

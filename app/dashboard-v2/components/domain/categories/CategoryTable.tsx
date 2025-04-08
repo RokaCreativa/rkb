@@ -36,6 +36,7 @@ interface CategoryTableProps {
   onDeleteProduct?: (product: Product) => void;
   isUpdatingProductVisibility?: number | null;
   onAddCategory?: () => void;
+  onProductsReorder?: (sectionId: number, sourceIndex: number, destinationIndex: number) => void;
 }
 
 const CategoryTable: React.FC<CategoryTableProps> = ({
@@ -61,7 +62,8 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
   onEditProduct,
   onDeleteProduct,
   isUpdatingProductVisibility = null,
-  onAddCategory
+  onAddCategory,
+  onProductsReorder
 }) => {
   // Diagnóstico para drag and drop al inicio de la renderización
   console.log('🚨 [CRITICAL] CategoryTable renderización:', {
@@ -232,9 +234,9 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                               <Image
                                 src={getImagePath(category.image, 'categories')}
                                 alt={category.name || ''}
-                                width={32}
-                                height={32}
-                                className="category-image"
+                                width={40}
+                                height={40}
+                                className="category-image !object-cover !w-full !h-full"
                                 onError={handleImageError}
                               />
                             </div>
@@ -326,6 +328,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                             }
                             onAddSectionToCategory={onAddSection}
                             isReorderModeActive={isReorderModeActive}
+                            onProductsReorder={onProductsReorder}
                           />
                         </div>
                       </td>
@@ -372,15 +375,15 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                   <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-center">{category.display_order || visibleCategories.length + index + 1}</td>
                   <td className="px-3 py-2 whitespace-nowrap">
                     <div className="flex justify-center">
-                      <div className="category-image-container">
-                        {category.image && (
-                          <img 
-                            src={getImagePath(category.image, 'categories')}
-                            alt={category.name || ''}
-                            className="category-image opacity-50 grayscale"
-                            onError={handleImageError}
-                          />
-                        )}
+                      <div className="category-image-container opacity-70">
+                        <Image
+                          src={getImagePath(category.image, 'categories')}
+                          alt={category.name || ''}
+                          width={40}
+                          height={40}
+                          className="category-image !object-cover !w-full !h-full opacity-50 grayscale"
+                          onError={handleImageError}
+                        />
                       </div>
                     </div>
                   </td>

@@ -78,7 +78,7 @@ export const GridIcon: React.FC<GridIconProps> = ({
   const colorClasses = {
     category: 'text-indigo-600 hover:text-indigo-800',
     section: 'text-teal-600 hover:text-teal-800',
-    product: 'text-yellow-600 hover:text-yellow-800'
+    product: 'text-amber-600 hover:text-amber-800'
   };
   
   return (

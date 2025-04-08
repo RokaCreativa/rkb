@@ -1,26 +1,47 @@
+/**
+ * @fileoverview Componente ProductListItem - Item de producto para la lista de productos
+ * 
+ * @autor RokaMenu Team
+ * @version 1.0
+ * @updated 2024-07-22
+ */
+
 import React from 'react';
 import Image from 'next/image';
-import { Product as MenuProduct } from '@/app/types/menu';
-import { Product as DomainProduct } from '@/app/dashboard-v2/types/domain/product';
 import { CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 import { DraggableProvidedDragHandleProps } from '@hello-pangea/dnd';
 import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
 
+/**
+ * Props para el componente ProductListItem
+ */
 interface ProductListItemProps {
+  /** Producto a mostrar */
   product: CompatibleProduct;
-  onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => void;
+  /** Función para alternar la visibilidad del producto */
+  onToggleProductVisibility?: (productId: number, currentStatus: number, sectionId: number) => void | Promise<void>;
+  /** Función para editar el producto */
   onEditProduct?: (product: CompatibleProduct) => void;
+  /** Función para eliminar el producto */
   onDeleteProduct?: (product: CompatibleProduct) => void;
+  /** ID del producto cuya visibilidad está siendo actualizada */
   isUpdatingProductVisibility?: number | null;
+  /** ID de la sección a la que pertenece el producto */
   sectionId: number;
+  /** Props para el drag handle */
   dragHandleProps?: DraggableProvidedDragHandleProps | null;
+  /** Indica si se debe mostrar el drag handle */
   showDragHandle?: boolean;
+  /** Indica si el producto está siendo arrastrado */
   isDragging?: boolean;
 }
 
 /**
- * Componente reutilizable para mostrar una fila de producto
+ * Componente ProductListItem - Muestra un producto en una fila de la tabla
+ * 
+ * Este componente es utilizado por ProductList para mostrar cada producto
+ * con sus acciones correspondientes (editar, eliminar, cambiar visibilidad).
  */
 const ProductListItem: React.FC<ProductListItemProps> = ({
   product,
@@ -33,95 +54,138 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   showDragHandle = false,
   isDragging = false
 }) => {
+  // Formatear el precio para mostrar
+  const formattedPrice = typeof product.price === 'number'
+    ? `$${(product.price as number).toFixed(2)}` 
+    : `$${product.price}`;
+
+  // Determinar si el producto está visible o no
+  const isVisible = product.status === 1;
+
   return (
-    <div className={`
-      flex items-center justify-between p-3 product-hover border-b product-border 
-      !bg-white hover:!bg-amber-50 !border-amber-100 
-      ${product.status !== 1 ? 'opacity-70' : ''} 
-      ${isDragging ? '!bg-amber-50' : ''}
+    <tr className={`
+      ${isDragging ? 'grid-item-dragging-product' : 'hover:bg-amber-50/30'}
+      ${!isVisible ? 'opacity-70' : ''}
+      ${showDragHandle ? 'cursor-move' : ''}
     `}>
-      <div className="flex items-center flex-1 min-w-0">
-        {showDragHandle && dragHandleProps && (
-          <div 
-            {...dragHandleProps} 
-            className="mr-3 flex items-center justify-center p-1 rounded product-drag-handle !text-amber-600"
-            title="Arrastrar para reordenar"
-          >
-            <GridIcon type="product" icon="drag" size="medium" />
-          </div>
-        )}
-        
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-gray-900 truncate">{product.name}</span>
-            <div className="flex items-center text-xs text-gray-500 space-x-1">
-              <span className="whitespace-nowrap">{product.price} €</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="ml-3 product-image-container">
-        {product.image ? (
-          <Image
-            src={getImagePath(product.image || null, "products")}
-            alt={product.name || ""}
-            width={40}
-            height={40}
-            className="product-image"
-            onError={handleImageError}
-          />
-        ) : (
-          <span className="text-xs text-gray-400">Sin img</span>
-        )}
-      </div>
-      
-      <div className="flex items-center space-x-2 flex-shrink-0">
-        {onToggleProductVisibility && (
-          <button
-            onClick={() => onToggleProductVisibility(product.product_id, product.status, sectionId)}
-            className={`rounded-full p-1 ${product.status === 1
-              ? 'product-action hover:product-bg !text-amber-500 hover:!bg-amber-100'
-              : 'text-gray-400 hover:bg-gray-100'
-            }`}
-            aria-label={product.status === 1 ? "Ocultar producto" : "Mostrar producto"}
-            disabled={isUpdatingProductVisibility === product.product_id}
-          >
-            {isUpdatingProductVisibility === product.product_id ? (
-              <div className="w-5 h-5 flex items-center justify-center">
-                <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            ) : (
+      <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-500 w-10">
+        <button 
+          className={`p-1 rounded-full transition-colors hover:bg-amber-100 ${isVisible ? 'text-amber-600' : 'text-gray-400'}`}
+          aria-label="Ver detalles del producto"
+        >
+          <GridIcon type="product" icon="visibility" size="small" />
+        </button>
+      </td>
+      <td className="px-3 py-3">
+        <div className="flex items-center">
+          {showDragHandle && dragHandleProps && (
+            <div 
+              {...dragHandleProps} 
+              className="mr-2 px-1 product-drag-handle"
+              title="Arrastrar para reordenar"
+            >
               <GridIcon 
                 type="product" 
-                icon={product.status === 1 ? "visibility" : "hidden"} 
-                size="medium" 
+                icon="drag" 
+                size="medium"
+                className="text-amber-600"
               />
+            </div>
+          )}
+          <div className="flex flex-col">
+            <span className={`text-sm font-normal product-text ${!isVisible && 'text-gray-400'}`}>
+              {product.name}
+            </span>
+            {product.description && (
+              <span className={`text-xs ${isVisible ? 'text-gray-500' : 'text-gray-400'} truncate max-w-xs`}>
+                {product.description}
+              </span>
             )}
-          </button>
-        )}
-        
-        {onEditProduct && (
+          </div>
+        </div>
+      </td>
+      <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
+        {product.display_order || "-"}
+      </td>
+      <td className="px-3 py-3 whitespace-nowrap text-sm product-price-cell">
+        <div>
+          <span className={`product-text text-right block ${!isVisible && 'text-gray-400'}`}>
+            {formattedPrice}
+          </span>
+          {'discount_price' in product && product.discount_price && (
+            <span className="text-xs text-gray-500 line-through text-right block">
+              ${product.discount_price}
+            </span>
+          )}
+        </div>
+      </td>
+      <td className="px-2 py-3 whitespace-nowrap text-center">
+        <button
+          onClick={() => onToggleProductVisibility && onToggleProductVisibility(product.product_id, product.status, sectionId)}
+          className={`inline-flex items-center justify-center h-6 w-6 rounded ${
+            isVisible
+              ? 'product-action product-icon-hover'
+              : 'text-gray-400 hover:bg-gray-100'
+          }`}
+          disabled={isUpdatingProductVisibility === product.product_id}
+          aria-label={isVisible ? "Ocultar producto" : "Mostrar producto"}
+        >
+          {isUpdatingProductVisibility === product.product_id ? (
+            <div className="w-4 h-4 border-2 border-t-transparent border-amber-500 rounded-full animate-spin"></div>
+          ) : (
+            <GridIcon 
+              type="product" 
+              icon={isVisible ? "visibility" : "hidden"} 
+              size="medium" 
+            />
+          )}
+        </button>
+      </td>
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="flex justify-center space-x-1">
           <button
-            onClick={() => onEditProduct(product)}
-            className="rounded-full p-1 product-action hover:product-bg !text-amber-500 hover:!bg-amber-100"
+            onClick={() => onEditProduct && onEditProduct(product)}
+            className={`rounded-full p-1 ${
+              isVisible 
+                ? 'product-action product-icon-hover' 
+                : 'text-gray-400 hover:bg-gray-100'
+            }`}
             aria-label="Editar producto"
           >
             <GridIcon type="product" icon="edit" size="medium" />
           </button>
-        )}
-        
-        {onDeleteProduct && (
           <button
-            onClick={() => onDeleteProduct(product)}
-            className="rounded-full p-1 product-action hover:product-bg !text-amber-500 hover:!bg-amber-100"
+            onClick={() => onDeleteProduct && onDeleteProduct(product)}
+            className={`rounded-full p-1 ${
+              isVisible 
+                ? 'product-action product-icon-hover' 
+                : 'text-gray-400 hover:bg-gray-100'
+            }`}
             aria-label="Eliminar producto"
           >
             <GridIcon type="product" icon="delete" size="medium" />
           </button>
-        )}
-      </div>
-    </div>
+        </div>
+      </td>
+      <td className="px-3 py-3 whitespace-nowrap text-center">
+        <div className="flex justify-center">
+          <div className={`product-image-container ${!isVisible && 'opacity-50'}`}>
+            {product.image ? (
+              <Image
+                src={getImagePath(product.image, 'products')}
+                alt={product.name || ''}
+                width={40}
+                height={40}
+                className={`product-image object-cover w-full h-full ${!isVisible && 'grayscale'}`}
+                onError={handleImageError}
+              />
+            ) : (
+              <span className="text-xs text-gray-400">Sin img</span>
+            )}
+          </div>
+        </div>
+      </td>
+    </tr>
   );
 };
 

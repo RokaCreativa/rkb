@@ -173,11 +173,15 @@ export default function useDragAndDrop(
    * Reordena productos dentro de una sección
    */
   const handleReorderProducts = useCallback(async (sectionId: number, sourceIndex: number, destinationIndex: number) => {
+    console.log("🔍 [CRITICAL] Ejecutando handleReorderProducts con:", {
+      sectionId, sourceIndex, destinationIndex
+    });
+    
     const sectionIdStr = sectionId.toString();
     
     // Verificar que existan productos para esta sección
     if (!products[sectionIdStr] || products[sectionIdStr].length === 0) {
-      console.error(`No products found for section ${sectionId}`);
+      console.error(`❌ [CRITICAL] No products found for section ${sectionId}`);
       return;
     }
     
@@ -185,16 +189,28 @@ export default function useDragAndDrop(
     const visibleProducts = products[sectionIdStr].filter(product => product.status === 1);
     
     if (visibleProducts.length === 0) {
-      console.error(`No visible products found for section ${sectionId}`);
+      console.error(`❌ [CRITICAL] No visible products found for section ${sectionId}`);
       return;
     }
     
     // Crear una copia para manipular
     const reorderedProducts = [...visibleProducts];
     
+    console.log("🔍 [CRITICAL] Antes de reordenar:", reorderedProducts.map(p => ({
+      id: p.product_id,
+      name: p.name,
+      order: p.display_order
+    })));
+    
     // Aplicar el reordenamiento
     const [movedProduct] = reorderedProducts.splice(sourceIndex, 1);
     reorderedProducts.splice(destinationIndex, 0, movedProduct);
+    
+    console.log("🔍 [CRITICAL] Después de reordenar:", reorderedProducts.map(p => ({
+      id: p.product_id,
+      name: p.name,
+      order: p.display_order
+    })));
     
     // Actualizar display_order
     const updatedProducts = reorderedProducts.map((product, index) => ({
@@ -202,27 +218,25 @@ export default function useDragAndDrop(
       display_order: index + 1
     }));
     
+    console.log("🔍 [CRITICAL] Productos con nuevo orden:", updatedProducts.map(p => ({
+      id: p.product_id,
+      name: p.name,
+      order: p.display_order
+    })));
+    
     // Actualizar el estado local
     const nonVisibleProducts = products[sectionIdStr].filter(product => product.status !== 1);
     const allUpdatedProducts = [...updatedProducts, ...nonVisibleProducts];
     
+    // ¡IMPORTANTE! Actualizamos el estado ANTES de la llamada al API para que la interfaz responda inmediatamente
     setProducts(prev => ({
       ...prev,
       [sectionIdStr]: allUpdatedProducts
     }));
     
+    console.log("🔍 [CRITICAL] Estado local actualizado con nuevos productos ordenados");
+    
     try {
-      // Diagnóstico antes de enviar al servidor
-      console.log('🔍 [CRITICAL] Productos a reordenar:', {
-        sectionId,
-        productCount: updatedProducts.length,
-        sampleProducts: updatedProducts.slice(0, 2).map(p => ({
-          product_id: p.product_id,
-          name: p.name,
-          display_order: p.display_order
-        }))
-      });
-      
       // Preparar productos para API, enviando SOLO product_id y display_order
       const productsForApi = updatedProducts.map(product => {
         // Asegurar que tengamos el ID correcto (solamente product_id es válido en este contexto)
@@ -230,7 +244,6 @@ export default function useDragAndDrop(
           
         if (!productId || typeof productId !== 'number') {
           console.error('❌ [CRITICAL] Producto sin product_id válido:', product);
-          toast.error('Error: Producto sin ID válido');
           return null; // Este null será filtrado después
         }
         
@@ -238,11 +251,10 @@ export default function useDragAndDrop(
           product_id: productId,
           display_order: product.display_order || 0
         };
-      }).filter((p): p is {product_id: number, display_order: number} => p !== null); // Eliminar productos inválidos con type guard
+      }).filter((p): p is {product_id: number, display_order: number} => p !== null); // Eliminar productos inválidos
       
       if (productsForApi.length === 0) {
         console.error('❌ [CRITICAL] No hay productos válidos para reordenar');
-        toast.error('Error: No hay productos válidos para reordenar');
         return;
       }
       
@@ -279,9 +291,30 @@ export default function useDragAndDrop(
    * a la función específica para reordenar
    */
   const handleGlobalDragEnd = useCallback((result: DropResult) => {
-    // DIAGNÓSTICO CRÍTICO
-    console.log('🚨 [CRITICAL] handleGlobalDragEnd RECIBIÓ:', JSON.stringify(result, null, 2));
+    // DIAGNÓSTICO ULTRA DETALLADO
+    console.log('🔥🔥🔥 [DIAGNÓSTICO CRÍTICO] RAW DATA EN handleGlobalDragEnd:', JSON.stringify({
+      type: result.type,
+      draggableId: result.draggableId,
+      source: {
+        droppableId: result.source.droppableId,
+        index: result.source.index
+      },
+      destination: result.destination ? {
+        droppableId: result.destination.droppableId,
+        index: result.destination.index
+      } : null,
+      mode: result.mode,
+      reason: result.reason,
+      combine: result.combine
+    }, null, 2));
     
+    // DIAGNÓSTICO CRÍTICO
+    console.log('🚨 [DIAGNOSTIC] handleGlobalDragEndExists:', typeof handleGlobalDragEnd === 'function');
+    console.log('🚨 [DIAGNOSTIC] handleReorderCategoriesExists:', typeof handleReorderCategories === 'function');
+    console.log('🚨 [DIAGNOSTIC] handleReorderSectionsExists:', typeof handleReorderSections === 'function');
+    console.log('🚨 [DIAGNOSTIC] handleReorderProductsExists:', typeof handleReorderProducts === 'function');
+    console.log('🚨 [DIAGNOSTIC] isReorderModeActive:', isReorderModeActive);
+
     // Limpiar el estado de arrastre
     setIsDragging(false);
     
@@ -334,15 +367,15 @@ export default function useDragAndDrop(
         console.error('❌ [DRAG ERROR] handleReorderCategories no es una función');
       }
     } else if (normalizedType === 'section') {
-      // Extraer categoryId del droppableId (formato: "category-{id}")
-      const droppableIdMatch = source.droppableId.match(/category-(\d+)/);
-      const categoryId = droppableIdMatch ? parseInt(droppableIdMatch[1]) : parseInt(source.droppableId.replace(/\D/g, ''));
+      // Extraer categoryId del droppableId (formato: "section-category-{id}" o "sections-category-{id}")
+      const sectionCategoryMatch = source.droppableId.match(/sections?-category-(\d+)/);
+      const categoryId = sectionCategoryMatch ? parseInt(sectionCategoryMatch[1]) : parseInt(source.droppableId.replace(/\D/g, ''));
       
       console.log('🔄 [DRAG INFO] Reordenando SECCIÓN:', {
         categoryId, 
         sourceIndex: source.index, 
         destIndex: destination.index,
-        droppableIdMatch
+        droppableIdMatch: sectionCategoryMatch
       });
       
       if (typeof handleReorderSections === 'function') {
@@ -352,33 +385,28 @@ export default function useDragAndDrop(
         console.error('❌ [DRAG ERROR] handleReorderSections no es una función');
       }
     } else if (normalizedType === 'product') {
-      // Extraer sectionId del droppableId (formato: "section-{id}")
-      const droppableIdMatch = source.droppableId.match(/section-(\d+)/);
+      // Extraer el sectionId del formato "products-section-{number}"
+      console.log('📊 [useDragAndDrop] Procesando producto con droppableId:', source.droppableId);
       
-      // Si no encontramos el formato section-{id}, intentamos el formato alternativo products-section-{id}
-      let sectionId;
-      if (droppableIdMatch && droppableIdMatch[1]) {
-        sectionId = parseInt(droppableIdMatch[1]);
-      } else {
-        // Intentar formato alternativo products-section-{id}
-        const altMatch = source.droppableId.match(/products-section-(\d+)/);
-        sectionId = altMatch ? parseInt(altMatch[1]) : 
-                   parseInt(source.droppableId.replace(/\D/g, ''));
+      // Verificar si el droppableId está vacío (caso cuando sectionId es undefined)
+      if (!source.droppableId) {
+        console.error('❌ [useDragAndDrop] droppableId está vacío, no se puede extraer sectionId');
+        return;
       }
       
-      console.log('🔄 [DRAG INFO] Reordenando PRODUCTO:', {
-        sectionId, 
-        sourceIndex: source.index, 
-        destIndex: destination.index,
-        droppableId: source.droppableId
-      });
+      // Extraer el sectionId usando regex
+      const productSectionMatch = source.droppableId.match(/products-section-(\d+)/);
       
-      if (typeof handleReorderProducts === 'function') {
-        console.log('✅ [DRAG INFO] Llamando a handleReorderProducts');
-        handleReorderProducts(sectionId, source.index, destination.index);
-      } else {
-        console.error('❌ [DRAG ERROR] handleReorderProducts no es una función');
-      }
+      // Usar el sectionId extraído o 0 como fallback (última opción)
+      const sectionId = productSectionMatch && productSectionMatch[1] 
+        ? parseInt(productSectionMatch[1]) 
+        : 0;
+      
+      console.log('📊 [useDragAndDrop] Extracción de sectionId:', sectionId, 
+        productSectionMatch ? '(regex match exitoso)' : '(regex match falló)');
+      
+      // Reordenar los productos usando el sectionId extraído
+      handleReorderProducts(sectionId, source.index, destination.index);
     } else {
       console.warn('⚠️ [DRAG WARN] Tipo desconocido en handleGlobalDragEnd:', type);
     }

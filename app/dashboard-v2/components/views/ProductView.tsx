@@ -235,32 +235,39 @@ export default function ProductView({
         </div>
       ) : (
         <ProductTable 
-          products={adaptedProducts}
+          products={localProducts.map(p => ({
+            ...p,
+            id: p.product_id,  // Añadir el campo id para compatibilidad
+            product_id: p.product_id,
+            section_id: sectionId,
+            client_id: p.client_id || 0,
+            display_order: p.display_order || 0
+          } as any))}
           sectionId={sectionId}
           sectionName={sectionName}
           isUpdatingVisibility={isUpdatingVisibility}
           onToggleVisibility={(productId: number, status: number, sectionIdParam?: number) => 
             onToggleProductVisibility(productId, status, sectionIdParam || sectionId)
           }
-          onEditProduct={(productFromTable: { id: number }) => {
-            const originalProduct = localProducts.find(p => p.product_id === productFromTable.id);
+          onEditProduct={(productFromTable: Product) => {
+            // Buscar el producto original por product_id o id
+            const productId = 'product_id' in productFromTable ? productFromTable.product_id : (productFromTable as any).id;
+            const originalProduct = localProducts.find(p => p.product_id === productId);
             if (originalProduct) {
               onEditProduct(originalProduct);
             }
           }}
-          onDeleteProduct={async (productId: number) => {
+          onDeleteProduct={(productFromTable: Product) => {
+            // Buscar el producto original por product_id o id
+            const productId = 'product_id' in productFromTable ? productFromTable.product_id : (productFromTable as any).id;
             const originalProduct = localProducts.find(p => p.product_id === productId);
             if (originalProduct) {
-              await Promise.resolve(onDeleteProduct(originalProduct));
+              return onDeleteProduct(originalProduct);
             }
-            return true;
+            return Promise.resolve(false);
           }}
+          onReorderProduct={onProductsReorder}
           isReorderModeActive={!!onProductsReorder}
-          onReorderProduct={(sourceIndex: number, destinationIndex: number) => {
-            if (onProductsReorder) {
-              onProductsReorder(sourceIndex, destinationIndex);
-            }
-          }}
         />
       )}
     </>

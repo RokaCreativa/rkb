@@ -468,6 +468,43 @@ El sistema incluye logs detallados para facilitar el diagnóstico de problemas:
 2. **z-index insuficiente**: Aumentar el z-index de los elementos arrastrados
 3. **Conflicto de propagación de eventos**: Verificar `stopPropagation` en los handlers
 
+### Problema: El arrastre de productos no funciona pero el de categorías y secciones sí
+
+**Posibles causas y soluciones**:
+
+1. **Formatos de ID inconsistentes**: Asegurar que los formatos de ID de productos sigan exactamente el mismo patrón:
+
+   - En `draggableId` usar exactamente `product-${product.product_id}` (no toString())
+   - En `droppableId` usar exactamente `products-section-${sectionId || 'default'}`
+   - Verificar que se está usando la propiedad `product_id` y no simplemente `id`
+
+2. **Problemas con user-select**: Asegurar que solo los drag handles tengan `user-select: none` y el resto de elementos permitan selección de texto.
+
+3. **Conflicto entre selectores en CSS**: Si hay inconsistencias en las implementaciones de `ProductList.tsx` y `SectionList.tsx`, revisar que ambos usen patrones similares.
+
+```typescript
+// Formato correcto para Draggable en productos
+<Draggable
+  key={`product-${product.product_id}`} // 👈 Formato correcto
+  draggableId={`product-${product.product_id}`} // 👈 Formato correcto
+  index={index}
+  isDragDisabled={!isDragEnabled}
+>
+  {/* ... */}
+</Draggable>
+
+// Formato correcto para Droppable en productos
+<Droppable
+  droppableId={`products-section-${sectionId || 'default'}`} // 👈 Formato correcto
+  type="product"
+  isDropDisabled={!isDragEnabled}
+>
+  {/* ... */}
+</Droppable>
+```
+
+4. **Procesamiento de droppableId en useDragAndDrop.ts**: Verificar que el análisis de `droppableId` en la función `handleGlobalDragEnd` esté correctamente procesando el formato `products-section-${sectionId}`.
+
 ## 📚 Referencias y Recursos
 
 - [@hello-pangea/dnd Documentación](https://github.com/hello-pangea/dnd)

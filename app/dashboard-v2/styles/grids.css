@@ -1,100 +1,402 @@
 /**
  * @fileoverview Estilos unificados para los grids de categorías, secciones y productos
  * @author RokaMenu Team
- * @version 1.0.0
- * @updated 2024-06-19
+ * @version 1.1.0
+ * @updated 2024-07-21
  * 
  * Este archivo centraliza todos los estilos relacionados con los grids 
  * de datos en el dashboard-v2. Está diseñado para mantener una consistencia
  * visual entre los tres tipos de grids (categorías, secciones y productos)
  * mientras preserva la identidad visual de cada tipo.
+ * 
+ * IMPORTANTE: Siguiendo los mandamientos de refactorización (docs/dashboard-v2-refactoring-mandamientos.md),
+ * todos los estilos relacionados con grids deben definirse únicamente en este archivo.
  */
+
+/* ===== ESTILOS PARA TABLAS (COMPARTIDO) ===== */
+
+/* Base común para todas las tablas */
+.grid-table {
+  @apply min-w-full divide-y !important;
+  /* Eliminamos la restricción de selección */
+}
+
+/* Encabezados de tabla - asegurar visibilidad */
+.grid-table th,
+table.product-table th,
+table.section-table th,
+table.category-table th {
+  @apply font-medium !important;
+  display: table-cell !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Hacer que los encabezados de las tablas sean más visibles */
+table th span.visible,
+table th span,
+.column-header span {
+  display: inline !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* Asegurar que los headers de columna sean siempre visibles */
+th.column-header span {
+  display: inline !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+.grid-table th .sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border-width: 0 !important;
+}
+
+.grid-container {
+  @apply border rounded-lg shadow-sm mb-4 overflow-hidden !important;
+}
+
+.grid-header {
+  @apply flex justify-between items-center p-4 border-b !important;
+}
+
+.grid-title {
+  @apply text-sm font-medium !important;
+}
+
+.grid-subtitle {
+  @apply text-xs !important;
+}
+
+/* Celdas de la tabla */
+.grid-cell {
+  @apply px-3 py-2 whitespace-nowrap !important;
+}
+
+.grid-cell-center {
+  @apply px-3 py-2 whitespace-nowrap text-center !important;
+}
+
+.grid-cell-right {
+  @apply px-3 py-2 whitespace-nowrap text-right !important;
+}
+
+/* Estilos para precios en productos - Alineación a la derecha */
+.product-price-cell {
+  text-align: right !important;
+  width: 70px;
+}
+
+.product-price-cell > div,
+.product-price-cell > span,
+.product-price-cell span,
+td.product-price-cell {
+  text-align: right !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  justify-content: flex-end !important;
+}
+
+/* Estados de visibilidad */
+.grid-item-hidden {
+  @apply opacity-60 !important;
+}
+
+/* Estilos para drag and drop base */
+.drag-handle {
+  @apply cursor-grab !important;
+  touch-action: none !important; 
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+/* Mantener no seleccionable sólo el icono de arrastre */
+.category-drag-handle, .section-drag-handle, .product-drag-handle {
+  @apply cursor-grab !important;
+  touch-action: none !important; 
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+/* Permitir la selección de texto en las celdas de datos */
+td, th, span, div.flex-col, .product-text, .section-text, .category-text {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+}
+
+/* Acciones genéricas para elementos */
+.action-button {
+  @apply p-1.5 rounded-full !important;
+}
+
+.action-button-edit {
+  @apply action-button !important;
+}
+
+.action-button-delete {
+  @apply p-1.5 rounded-full text-red-500 hover:bg-red-50 !important;
+}
+
+.action-button-toggle {
+  @apply action-button !important;
+}
+
+/* Transiciones */
+.grid-transition {
+  @apply transition-all duration-200 !important;
+}
+
+/* Estilos de texto específicos para alineación */
+.text-right-force {
+  text-align: right !important;
+}
+
+.text-center-force {
+  text-align: center !important;
+}
+
+.text-left-force {
+  text-align: left !important;
+}
 
 /* ===== ESTILOS PARA GRID DE CATEGORÍAS (INDIGO) ===== */
 
 /* Bordes y contenedores */
 .category-border {
-  @apply border-indigo-100;
+  @apply border-indigo-100 !important;
 }
 
 .category-bg {
-  @apply bg-indigo-50;
+  @apply bg-indigo-50 !important;
 }
 
 /* Tipografía */
 .category-title {
-  @apply text-indigo-600;
+  @apply text-indigo-600 !important;
 }
 
 .category-text {
-  @apply text-indigo-700;
+  @apply text-indigo-700 !important;
 }
 
 /* Botones y acciones */
 .category-action {
-  @apply text-indigo-600;
+  @apply text-indigo-600 !important;
 }
 
 .category-button {
-  @apply bg-indigo-600 text-white hover:bg-indigo-700;
+  @apply bg-indigo-600 text-white hover:bg-indigo-700 !important;
 }
 
 /* Estados de elementos */
 .category-hover:hover {
-  @apply bg-indigo-100;
+  @apply bg-indigo-100 !important;
 }
 
 .category-active {
-  @apply bg-indigo-100;
+  @apply bg-indigo-100 !important;
 }
 
 .category-icon-hover:hover {
-  @apply bg-indigo-100;
+  @apply bg-indigo-100 !important;
+}
+
+.category-bg-light {
+  @apply bg-indigo-50/50 !important;
+}
+
+/* Drag handle para categorías */
+.category-drag-handle {
+  @apply drag-handle text-indigo-500 hover:text-indigo-700 hover:bg-indigo-100 !important;
+  cursor: grab !important;
+  z-index: 10 !important;
+  position: relative !important;
+  border: 1px solid transparent !important;
+  transition: all 0.2s !important;
+}
+
+.category-drag-handle:active {
+  @apply cursor-grabbing bg-indigo-200 !important;
+  border: 1px solid #818cf8 !important;
+}
+
+/* Estilo cuando se está arrastrando */
+.grid-item-dragging-category {
+  @apply bg-indigo-50 shadow-md border border-indigo-300 !important;
+  z-index: 9999 !important;
+}
+
+/* Acciones específicas para categorías */
+.category-action-edit {
+  @apply action-button-edit text-indigo-600 hover:bg-indigo-50 !important;
+}
+
+.category-action-delete {
+  @apply action-button text-indigo-600 hover:bg-indigo-50 !important;
+}
+
+/* Estilos para tablas de categorías */
+table.category-table, 
+table.grid-table.category-border {
+  @apply w-full divide-y divide-indigo-100 !important;
+}
+
+table.category-table thead,
+table.grid-table.category-border thead {
+  @apply bg-indigo-50 !important;
+}
+
+table.category-table tbody,
+table.grid-table.category-border tbody {
+  @apply bg-white divide-y divide-indigo-100 !important;
+}
+
+/* Imágenes de categorías */
+.category-image-container {
+  @apply h-10 w-10 rounded-full overflow-hidden bg-indigo-50 flex items-center justify-center shadow-sm !important;
+  margin: 0 auto !important;
+  position: relative !important;
+  border: 1px solid #a5b4fc !important; /* Borde fino indigo claro */
+}
+
+.category-image {
+  @apply object-cover rounded-full !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  display: block !important;
 }
 
 /* ===== ESTILOS PARA GRID DE SECCIONES (TEAL) ===== */
 
 /* Bordes y contenedores */
 .section-border {
-  @apply border-teal-100;
+  @apply border-teal-100 !important;
 }
 
 .section-bg {
-  @apply bg-teal-50;
+  @apply bg-teal-50 !important;
 }
 
 /* Tipografía */
 .section-title {
-  @apply text-teal-600;
+  @apply text-teal-600 !important;
 }
 
 .section-text {
-  @apply text-teal-700;
+  @apply text-teal-700 !important;
 }
 
 /* Botones y acciones */
 .section-action {
-  @apply text-teal-600;
+  @apply text-teal-600 !important;
 }
 
 .section-button {
-  @apply bg-teal-600 text-white hover:bg-teal-700;
+  @apply bg-teal-600 text-white hover:bg-teal-700 !important;
 }
 
 /* Estados de elementos */
 .section-hover:hover {
-  @apply bg-teal-100;
+  @apply bg-teal-100 !important;
 }
 
 .section-active {
-  @apply bg-teal-100;
+  @apply bg-teal-100 !important;
 }
 
 .section-icon-hover:hover {
-  @apply bg-teal-100;
+  @apply bg-teal-100 !important;
 }
 
-/* ===== ESTILOS PARA GRID DE PRODUCTOS (YELLOW) ===== */
+.section-bg-light {
+  @apply bg-teal-50/50 !important;
+}
+
+/* Drag handle para secciones */
+.section-drag-handle {
+  @apply drag-handle text-teal-500 hover:text-teal-700 hover:bg-teal-100 !important;
+  cursor: grab !important;
+  z-index: 10 !important;
+  position: relative !important;
+  border: 1px solid transparent !important;
+  transition: all 0.2s !important;
+}
+
+.section-drag-handle:active {
+  @apply cursor-grabbing bg-teal-200 !important;
+  border: 1px solid #5eead4 !important;
+}
+
+/* Estilo cuando se está arrastrando */
+.grid-item-dragging-section {
+  @apply bg-teal-50 shadow-md border border-teal-300 !important;
+  z-index: 9999 !important;
+}
+
+/* Acciones específicas para secciones */
+.section-action-edit {
+  @apply action-button-edit text-teal-600 hover:bg-teal-50 !important;
+}
+
+.section-action-delete {
+  @apply action-button text-teal-600 hover:bg-teal-50 !important;
+}
+
+/* Estilos para tablas de secciones */
+table.section-table, 
+table.grid-table.section-border {
+  @apply w-full divide-y divide-teal-100 !important;
+}
+
+table.section-table thead,
+table.grid-table.section-border thead {
+  @apply bg-teal-50 !important;
+}
+
+table.section-table tbody,
+table.grid-table.section-border tbody {
+  @apply bg-white divide-y divide-teal-100 !important;
+}
+
+/* Imágenes de secciones */
+.section-image-container {
+  @apply h-10 w-10 rounded-full overflow-hidden bg-teal-50 flex items-center justify-center shadow-sm !important;
+  margin: 0 auto !important;
+  position: relative !important;
+  border: 1px solid #5eead4 !important; /* Borde fino teal claro */
+}
+
+.section-image {
+  @apply object-cover rounded-full !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  display: block !important;
+}
+
+/* ===== ESTILOS PARA GRID DE PRODUCTOS (AMBER) ===== */
 
 /* Bordes y contenedores */
 .product-border {
@@ -108,15 +410,17 @@
 /* Tipografía */
 .product-title {
   @apply text-amber-600 !important;
+  font-weight: 600;
 }
 
 .product-text {
-  @apply text-gray-700 !important;
+  @apply text-amber-700 font-normal !important;
 }
 
 /* Botones y acciones */
 .product-action {
   @apply text-amber-600 !important;
+  color: #d97706; /* amber-600 */
 }
 
 .product-button {
@@ -134,166 +438,17 @@
 
 .product-icon-hover:hover {
   @apply bg-amber-100 !important;
+  color: #d97706; /* amber-600 */
+  background-color: #fef3c7; /* amber-100 */
 }
 
-/* IMPORTANTE: Definición específica para contraste visual */
 .product-bg-light {
   @apply bg-amber-50/50 !important;
 }
 
-/* Manejo específico del drag handle para productos */
+/* Drag handle para productos */
 .product-drag-handle {
-  @apply drag-handle text-amber-500 hover:text-amber-700 hover:bg-amber-100 cursor-grab !important;
-}
-
-.product-drag-handle:active {
-  @apply cursor-grabbing bg-amber-200 !important;
-}
-
-/* Asegurarnos que el item en arrastre tiene estilo correcto */
-.grid-item-dragging-product {
-  @apply shadow-lg bg-amber-50 border border-amber-200 z-[9999] !important;
-}
-
-/* Clases específicas para tablas de productos */
-table.product-table {
-  @apply w-full divide-y divide-amber-100 !important;
-}
-
-table.product-table thead {
-  @apply bg-amber-50 !important;
-}
-
-table.product-table tbody {
-  @apply bg-white divide-y divide-amber-100 !important;
-}
-
-/* Corrección para imágenes de productos (redondas como las demás) */
-.product-image-container {
-  @apply h-12 w-12 rounded-full overflow-hidden bg-gray-100 ring-2 ring-amber-300 flex items-center justify-center shadow-sm !important;
-  margin: 0 auto;
-  position: relative;
-  border: 2px solid #fdba74 !important; /* Borde adicional naranja claro */
-}
-
-.product-image {
-  @apply object-cover !important;
-  width: auto !important;
-  height: auto !important;
-  max-width: 100%;
-  max-height: 100%;
-  position: relative;
-  display: block;
-}
-
-/* Corregir estilos de acciones para productos */
-.product-action-delete {
-  @apply action-button text-amber-600 hover:bg-amber-50 !important;
-}
-
-/* ===== ESTILOS COMPARTIDOS ===== */
-
-/* Prevenir selección de texto en todos los grids y tablas */
-.grid-container,
-.grid-table, 
-.grid-table th,
-.grid-table td,
-.grid-row,
-.grid-cell,
-.table-container,
-table.min-w-full,
-table.min-w-full th,
-table.min-w-full td,
-.category-border,
-.section-border,
-.product-border {
-  user-select: none !important;
-  -webkit-user-select: none !important;
-  -moz-user-select: none !important;
-  -ms-user-select: none !important;
-}
-
-/* Estilos para grids */
-.grid-container {
-  @apply border rounded-lg shadow-sm mb-4 overflow-hidden;
-}
-
-.grid-header {
-  @apply flex justify-between items-center p-4 border-b;
-}
-
-.grid-title {
-  @apply text-sm font-medium;
-}
-
-.grid-subtitle {
-  @apply text-xs;
-}
-
-.grid-table {
-  @apply min-w-full divide-y;
-}
-
-.grid-cell {
-  @apply px-3 py-2 whitespace-nowrap;
-}
-
-.grid-cell-center {
-  @apply px-3 py-2 whitespace-nowrap text-center;
-}
-
-.grid-image-container {
-  @apply h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.grid-image {
-  @apply object-cover w-full h-full;
-  width: auto;
-  height: auto;
-}
-
-/* Estados de visibilidad */
-.grid-item-hidden {
-  @apply opacity-60;
-}
-
-/* Estilos para drag and drop */
-.drag-handle {
-  @apply cursor-grab flex items-center justify-center rounded transition-colors;
-  touch-action: none !important; 
-  user-select: none !important;
-  -webkit-user-select: none !important;
-  -moz-user-select: none !important;
-  -ms-user-select: none !important;
-}
-
-.category-drag-handle {
-  @apply drag-handle text-indigo-500 hover:text-indigo-700 hover:bg-indigo-100 !important;
-  cursor: grab !important;
-  z-index: 10 !important;
-  position: relative !important;
-  border: 1px solid transparent !important;
-  transition: all 0.2s !important;
-}
-
-.category-drag-handle:active {
-  @apply cursor-grabbing bg-indigo-200 !important;
-  cursor: grabbing !important;
-  border: 1px solid #818cf8 !important;
-}
-
-.section-drag-handle {
-  @apply drag-handle text-teal-500 hover:text-teal-700 hover:bg-teal-100;
-  /* Aislamiento específico para secciones debido a problemas encontrados */
-  position: relative !important;
-  z-index: 10 !important;
-}
-
-.product-drag-handle {
-  @apply drag-handle text-yellow-500 hover:text-yellow-700 hover:bg-yellow-100;
+  @apply drag-handle text-amber-500 hover:text-amber-700 hover:bg-amber-100 !important;
   cursor: grab !important;
   z-index: 10 !important;
   position: relative !important;
@@ -303,187 +458,500 @@ table.min-w-full td,
 
 .product-drag-handle:active {
   @apply cursor-grabbing bg-amber-200 !important;
-  cursor: grabbing !important;
-  border: 1px solid #f59e0b !important;
+  cursor: grabbing;
 }
 
-.grid-item-dragging-category {
-  @apply bg-indigo-50 shadow-md border border-indigo-300 !important;
-  z-index: 9999 !important;
-}
-
-.grid-item-dragging-section {
-  @apply bg-teal-50 shadow-md;
-}
-
+/* Estilo cuando se está arrastrando */
 .grid-item-dragging-product {
   @apply bg-amber-50 shadow-md border border-amber-300 !important;
   z-index: 9999 !important;
 }
 
-/* Acciones genéricas para elementos */
-.action-button {
-  @apply p-1.5 rounded-full;
+/* Asegurar que las celdas mantengan su formato durante el arrastre */
+.grid-item-dragging-product td {
+  display: table-cell !important;
+  width: auto !important;
+  vertical-align: middle !important;
 }
 
-.action-button-edit {
-  @apply action-button;
-}
-
-/* Añado clases específicas para cada tipo de botón editar */
-.category-action-edit {
-  @apply action-button-edit text-indigo-600 hover:bg-indigo-50;
-}
-
-.section-action-edit {
-  @apply action-button-edit text-teal-600 hover:bg-teal-50;
-}
-
+/* Acciones específicas para productos */
 .product-action-edit {
-  @apply action-button-edit text-yellow-600 hover:bg-yellow-50;
-}
-
-.action-button-delete {
-  @apply p-1.5 rounded-full text-red-500 hover:bg-red-50;
-}
-
-/* Añado clases específicas para cada tipo de botón eliminar */
-.category-action-delete {
-  @apply action-button text-indigo-600 hover:bg-indigo-50;
-}
-
-.section-action-delete {
-  @apply action-button text-teal-600 hover:bg-teal-50 !important;
+  @apply action-button-edit text-amber-600 hover:bg-amber-50 !important;
 }
 
 .product-action-delete {
   @apply action-button text-amber-600 hover:bg-amber-50 !important;
+  color: #ef4444; /* red-500 */
+  cursor: pointer;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.action-button-toggle {
-  @apply action-button;
+.product-action-delete:hover {
+  background-color: #fee2e2; /* red-100 */
 }
 
-/* Transiciones */
-.grid-transition {
-  @apply transition-all duration-200;
+/* Estilos para tablas de productos */
+table.product-table, 
+table.grid-table.product-border {
+  @apply w-full divide-y divide-amber-100 !important;
 }
 
-/* Estados comunes */
-.btn-active {
-  @apply bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200;
+/* Corregir la visibilidad de los encabezados de productos */
+.product-table thead,
+.product-table thead tr,
+.product-table thead th {
+  display: table-header-group !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background-color: var(--product-bg-color) !important;
+  color: var(--product-title-color) !important;
+  font-weight: bold !important;
+  height: auto !important;
+  position: relative !important;
+  z-index: 20 !important;
+  border-bottom: 2px solid var(--product-border-color) !important;
 }
 
-.btn-inactive {
-  @apply bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200;
+/* Hacer los encabezados de producto más grandes y visibles */
+.product-table thead th {
+  padding: 12px 8px !important;
+  font-size: 0.85rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--product-title-color) !important;
 }
 
-/* Contenedores de elementos */
-.grid-row {
-  @apply py-2 px-4 grid-transition;
+/* Asegurar que los textos e íconos en encabezados sean visibles */
+.product-table th .product-title,
+.product-table th span,
+.product-table th svg {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: var(--product-title-color) !important;
 }
 
-.grid-cell {
-  @apply px-3 py-2;
+table.product-table tbody,
+table.grid-table.product-border tbody {
+  @apply bg-white divide-y divide-amber-100 !important;
 }
 
-.grid-cell-center {
-  @apply grid-cell text-center;
+/* Asegurar que todos los encabezados de la tabla de productos sean visibles */
+table.product-table th,
+table.product-table th.column-header,
+table.product-table .column-header span {
+  visibility: visible !important;
+  display: table-cell !important;
+  opacity: 1 !important;
 }
 
-/* Elementos visuales */
-.grid-badge {
-  @apply text-xs px-2 py-0.5 rounded-full font-medium;
-}
-
-.category-badge {
-  @apply grid-badge bg-indigo-100 text-indigo-800;
-}
-
-.section-badge {
-  @apply grid-badge bg-teal-100 text-teal-800;
-}
-
-.product-badge {
-  @apply grid-badge bg-yellow-100 text-yellow-800;
-}
-
-/* Estilos para imágenes */
-.grid-image-container {
-  @apply h-8 w-8 rounded-full overflow-hidden bg-gray-100 ring-1 ring-gray-200;
+/* Imágenes de productos */
+.product-image-container {
+  @apply h-10 w-10 rounded-full overflow-hidden bg-amber-50 flex items-center justify-center shadow-sm !important;
+  margin: 0 auto !important;
+  position: relative !important;
+  border: 1px solid #fdba74 !important; /* Borde fino */
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.grid-image {
-  @apply object-cover w-full h-full;
-  width: auto;
-  height: auto;
+.product-image {
+  @apply object-cover rounded-full !important;
+  width: 100% !important;
+  height: 100% !important;
+  position: relative !important;
+  display: block !important;
 }
 
-/* Estilos para las tablas */
-.table-container {
-  @apply bg-white rounded-lg border overflow-hidden shadow-sm mb-4;
+/* Añadir margen para separar la imagen del ícono de visibilidad */
+td:last-child .product-image-container,
+td:last-child .section-image-container,
+td:last-child .category-image-container {
+  margin-left: 12px !important;
+  margin-right: 8px !important;
 }
 
-.table-header {
-  @apply flex justify-between items-center p-4 border-b;
+/* Asegurar que el precio esté alineado a la derecha en la lista de productos */
+.product-list-item .product-price,
+.product-list-item span[class*="product-price"],
+span.product-price-cell {
+  text-align: right !important;
+  display: flex !important;
+  justify-content: flex-end !important;
 }
 
-.table-title {
-  @apply text-base font-medium;
+/* Selectores adicionales para precios */
+span.whitespace-nowrap.product-price-cell,
+.product-price-cell,
+span:where([class*="price"]) {
+  text-align: right !important;
+  display: flex !important;
+  justify-content: flex-end !important;
 }
 
-.table-subtitle {
-  @apply text-sm text-gray-500;
+/* Asegurar que los precios de productos siempre estén alineados a la derecha */
+[class*="product"] [class*="price"],
+[class*="product-price"] {
+  text-align: right !important;
 }
 
-.table-action-btn {
-  @apply inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm;
+/* Aplicar alineación a la derecha para cualquier elemento con texto de euro */
+.text-right-euro {
+  text-align: right !important;
+  justify-content: flex-end !important;
 }
 
-.section-drag-handle:active {
-  @apply cursor-grabbing bg-teal-200;
+/* ===== SELECTORES DE ALTA PRIORIDAD PARA IMÁGENES ===== */
+
+/* Selectores de alta prioridad para imágenes con uso de etiquetas específicas*/
+img.product-image,
+img.section-image,
+img.category-image {
+  @apply object-cover rounded-full !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
-.product-drag-handle:active {
-  @apply cursor-grabbing bg-yellow-200 !important;
+/* Selectores adicionales por contexto para garantizar aplicación */
+td .product-image-container,
+tr .product-image-container,
+tbody .product-image-container,
+.section-products-container .product-image-container,
+* .product-image-container {
+  @apply h-10 w-10 rounded-full overflow-hidden bg-amber-50 flex items-center justify-center shadow-sm !important;
+  margin: 0 auto !important;
+  position: relative !important;
+  border: 1px solid #fdba74 !important; /* Borde fino */
 }
 
-/* Estilos para imágenes */
-.product-image-container,
-.section-image-container,
-.category-image-container {
-  @apply rounded-full overflow-hidden bg-gray-100 flex items-center justify-center;
-  height: 2.5rem;
-  width: 2.5rem;
-  position: relative;
-  margin: 0 auto;
+td .section-image-container,
+tr .section-image-container,
+tbody .section-image-container,
+* .section-image-container {
+  @apply h-10 w-10 rounded-full overflow-hidden bg-teal-50 flex items-center justify-center shadow-sm !important;
+  margin: 0 auto !important;
+  position: relative !important;
+  border: 1px solid #5eead4 !important; /* Borde fino */
 }
 
-.section-image-container {
-  @apply ring-2 ring-teal-200 shadow-sm;
+td .category-image-container,
+tr .category-image-container,
+tbody .category-image-container,
+* .category-image-container {
+  @apply h-10 w-10 rounded-full overflow-hidden bg-indigo-50 flex items-center justify-center shadow-sm !important;
+  margin: 0 auto !important;
+  position: relative !important;
+  border: 1px solid #a5b4fc !important; /* Borde fino */
 }
 
-.category-image-container {
-  @apply ring-2 ring-indigo-200 shadow-sm;
+/* Eliminar clases problemáticas */
+.grid-image-container {
+  display: none !important;
 }
 
-.product-image-container {
-  @apply ring-2 ring-amber-200 shadow-sm;
+/* ENCABEZADOS DE TABLA: Asegurar visibilidad absoluta */
+table.product-table thead,
+table.section-table thead,
+table.category-table thead {
+  display: table-header-group !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 10 !important;
+  position: relative !important;
 }
 
-.grid-image,
-.product-image,
-.section-image,
-.category-image {
-  @apply object-cover;
+/* Establecer alto contraste para encabezados de productos */
+table.product-table thead {
+  background-color: #FFF8E1 !important; /* Fondo ámbar más sólido */
+  border-bottom: 2px solid var(--product-border-color) !important;
+}
+
+/* Encabezados específicos para productos */
+table.product-table th {
+  color: var(--product-title-color) !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+  font-size: 0.75rem !important;
+}
+
+/* Asegurar visibilidad de íconos en encabezados */
+table.product-table th svg,
+table.product-table th .product-title {
+  color: var(--product-title-color) !important;
+  opacity: 1 !important;
+  display: inline !important;
+}
+
+/* Alto contraste para textos de encabezado */
+table.product-table th span {
+  color: var(--product-title-color) !important;
+  opacity: 1 !important;
+  font-weight: 600 !important;
+  display: inline !important;
+}
+
+/* Estilos específicos para los encabezados de productos - MUY IMPORTANTES */
+.product-header-row {
+  background-color: #FFF8E1 !important;
+  height: 50px !important;
+  display: table-row !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 99 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+}
+
+.product-header-cell {
+  vertical-align: middle !important;
+  height: 50px !important;
+  background-color: #FFF8E1 !important;
+  display: table-cell !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-weight: bold !important;
+  color: var(--product-title-color) !important;
+  padding: 12px 8px !important;
+  border-bottom: 2px solid var(--product-border-color) !important;
+}
+
+.product-header-text {
+  font-size: 0.85rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--product-title-color) !important;
+  font-weight: bold !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* ===== ESTILOS COMUNES PARA ELEMENTOS ARRASTRADOS ===== */
+
+/* Base común para todos los elementos arrastrados - solo propiedades esenciales y seguras */
+.grid-item-dragging-category,
+.grid-item-dragging-section,
+.grid-item-dragging-product {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Eliminar los estilos problemáticos */
+.grid-item-dragging-category td,
+.grid-item-dragging-section td,
+.grid-item-dragging-product td {
+  /* Sin cambios especiales */
+}
+
+/* Eliminar comportamientos extra para móviles que causan problemas */
+@media (max-width: 768px) {
+  .grid-item-dragging-category,
+  .grid-item-dragging-section,
+  .grid-item-dragging-product {
+    /* Sin restricciones adicionales */
+  }
+}
+
+/* ===== CORRECCIÓN ESPECÍFICA PARA DRAG AND DROP ===== */
+
+/* Garantizar que las tablas mantengan su estructura durante el arrastre */
+table.product-table tbody tr.grid-item-dragging-product,
+table.section-table tbody tr.grid-item-dragging-section,
+table.category-table tbody tr.grid-item-dragging-category {
+  /* Mantener valores mínimos para evitar problemas */
+  position: relative !important;
+}
+
+/* Garantizar que las celdas mantengan su formato correcto durante el arrastre */
+table.product-table tbody tr.grid-item-dragging-product td,
+table.section-table tbody tr.grid-item-dragging-section td, 
+table.category-table tbody tr.grid-item-dragging-category td {
+  /* Sin modificaciones adicionales */
+}
+
+/* Tratar específicamente las filas arrastradas para dispositivos móviles */
+@media (max-width: 768px) {
+  table.product-table tbody tr.grid-item-dragging-product,
+  table.section-table tbody tr.grid-item-dragging-section,
+  table.category-table tbody tr.grid-item-dragging-category {
+    /* Sin restricciones adicionales */
+  }
+}
+
+/* Garantizar que al arrastrar, los íconos y textos sean siempre visibles */
+table.product-table tbody tr.grid-item-dragging-product td > *,
+table.section-table tbody tr.grid-item-dragging-section td > *,
+table.category-table tbody tr.grid-item-dragging-category td > * {
+  /* Mantener solo lo esencial */
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Ajustes específicos para la tabla de productos para igualar espaciado a secciones */
+table.product-table th,
+table.product-table td {
+  padding: 0.5rem 0.5rem !important; /* Padding más compacto y consistente */
+}
+
+/* Ajustar anchos específicos para columnas de productos */
+table.product-table th:nth-child(1), 
+table.product-table td:nth-child(1) {
+  /* Columna de nombre/producto - más ancha */
   width: auto !important;
-  height: auto !important;
-  max-width: 100%;
-  max-height: 100%;
-  position: relative;
-  display: block;
-  margin: 0 auto;
+  max-width: 40% !important;
+  text-align: left !important;
+}
+
+table.product-table th:nth-child(2),
+table.product-table td:nth-child(2) {
+  /* Columna de orden - muy compacta */
+  width: 60px !important;
+  text-align: center !important;
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
+}
+
+table.product-table th:nth-child(3),
+table.product-table td:nth-child(3) {
+  /* Columna de precio - alineada a la derecha */
+  width: 80px !important;
+  text-align: right !important;
+}
+
+table.product-table th:nth-child(4),
+table.product-table td:nth-child(4) {
+  /* Columna de foto - centrada y compacta */
+  width: 60px !important;
+  text-align: center !important;
+}
+
+table.product-table th:nth-child(5),
+table.product-table td:nth-child(5) {
+  /* Columna de visibilidad - muy compacta */
+  width: 40px !important;
+  padding-left: 0.25rem !important;
+  padding-right: 0.25rem !important;
+  text-align: center !important;
+}
+
+table.product-table th:nth-child(6),
+table.product-table td:nth-child(6) {
+  /* Columna de acciones - compacta */
+  width: 80px !important;
+  text-align: center !important;
+}
+
+/* Ajustar espaciado en celdas con iconos para que sea más compacto */
+.product-table td .flex.justify-center.space-x-1 {
+  gap: 0.25rem !important;
+}
+
+/* Ajustar espacio entre botones de acción */
+.product-table td .flex.justify-center button {
+  margin: 0 0.25rem !important;
+}
+
+/* Hacer que las celdas sean más compactas verticalmente */
+.product-table td, .product-table th {
+  height: 3rem !important;
+}
+
+/* Ajustes para la tabla de productos */
+.products-table th, .products-table td {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.products-table th:nth-child(1), 
+.products-table td:nth-child(1) {
+  /* Nombre/producto */
+  padding-left: 0.5rem;
+  width: auto;
+}
+
+.products-table th:nth-child(2), 
+.products-table td:nth-child(2) {
+  /* Orden */
+  width: 60px;
+  text-align: center;
+}
+
+.products-table th:nth-child(3), 
+.products-table td:nth-child(3) {
+  /* Precio */
+  width: 80px;
+  text-align: right;
+}
+
+.products-table th:nth-child(4), 
+.products-table td:nth-child(4) {
+  /* Foto */
+  width: 60px;
+  text-align: center;
+}
+
+.products-table th:nth-child(5), 
+.products-table td:nth-child(5) {
+  /* Visibilidad */
+  width: 50px;
+  text-align: center;
+}
+
+.products-table th:nth-child(6), 
+.products-table td:nth-child(6) {
+  /* Acciones */
+  width: 80px;
+  text-align: center;
+}
+
+/* Ajusta los espacios entre los botones de acción */
+.products-table .flex.justify-center.space-x-1 {
+  gap: 0.25rem;
+}
+
+/* Ajustes para textos en tabla de productos */
+.products-table td {
+  @apply text-amber-700 !important;
+}
+
+.products-table th {
+  @apply text-amber-600 font-semibold uppercase tracking-wider !important;
+}
+
+/* Para textos de productos en tablas */
+table.products-table .product-title,
+table.product-table .product-title {
+  @apply text-amber-600 font-semibold !important;
+}
+
+/* Texto normal en celdas */
+table.products-table td,
+table.product-table td {
+  @apply text-amber-700 !important;
+}
+
+/* Para asegurar que todos los textos en la tabla de productos tengan el color correcto */
+.products-table td span,
+.product-table td span,
+.products-table td div span {
+  @apply text-amber-700 !important;
+}
+
+/* Asegurar que el texto del orden sea más visible */
+.products-table td:nth-child(2) {
+  @apply text-amber-600 font-medium !important;
 } 

@@ -1104,10 +1104,15 @@ export default function DashboardView() {
                         onDeleteProduct={(product) => handleDeleteProduct(fromMenuProduct(product))}
                         onToggleProductVisibility={handleToggleProductVisibility}
                         isLoading={!sectionProducts || sectionProducts.length === 0}
-                        onProductsReorder={isReorderModeActive ? (sourceIndex: number, destinationIndex: number) => {
-                          if (selectedSection) {
-                            handleReorderProducts(selectedSection.section_id, sourceIndex, destinationIndex);
-                          }
+                        onProductsReorder={isReorderModeActive ? (sectionId: number, sourceIndex: number, destinationIndex: number) => {
+                          console.log("🔍 [CRITICAL] DashboardView - Llamando a handleReorderProducts:", {
+                            sectionId,
+                            sourceIndex,
+                            destinationIndex
+                          });
+                          
+                          // Pasamos los tres parámetros a handleReorderProducts
+                          handleReorderProducts(sectionId, sourceIndex, destinationIndex);
                         } : undefined}
                       />
                     </>
