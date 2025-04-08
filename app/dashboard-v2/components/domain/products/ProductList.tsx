@@ -81,9 +81,17 @@ const ProductList: React.FC<ProductListProps> = ({
   // Verificar si el drag and drop debe estar habilitado
   const isDragEnabled = !!onProductsReorder && isReorderModeActive;
   
-  // Formato el ID para el droppable context
-  // Asegurarse que sectionId siempre sea un número
-  const droppableId = sectionId ? `products-section-${sectionId}` : '';
+  // ID para el droppable context - Usando formato que sabemos funciona con secciones
+  // Secciones usa: sections-category-${categoryId}
+  // Para productos, siguiendo mismo patrón: products-section-${sectionId}
+  const droppableId = `products-section-${sectionId ?? 0}`;
+  
+  // Añadir más logs para diagnóstico
+  useEffect(() => {
+    console.log("🔥🔥🔥 [DIAGNOSTIC CRÍTICO] ProductList DROPPABLE ID:", droppableId);
+    console.log("🔥🔥🔥 [DIAGNOSTIC CRÍTICO] ProductList SECTION ID:", sectionId);
+    console.log("🔥🔥🔥 [DIAGNOSTIC CRÍTICO] ProductList DRAG ENABLED:", isDragEnabled);
+  }, [droppableId, sectionId, isDragEnabled]);
   
   // Log para diagnóstico
   useEffect(() => {
