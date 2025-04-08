@@ -348,7 +348,7 @@ const SectionList: React.FC<SectionListProps> = ({
                                 <div className="flex items-center">
                                   <div 
                                     {...provided.dragHandleProps} 
-                                    className={`mr-2 px-1 ${isReorderModeActive ? 'section-drag-handle' : ''}`}
+                                    className={`mr-2 px-1 ${isReorderModeActive ? 'section-drag-handle touch-optimized' : ''}`}
                                     title={isReorderModeActive ? "Arrastrar para reordenar" : ""}
                                   >
                                     <GridIcon 

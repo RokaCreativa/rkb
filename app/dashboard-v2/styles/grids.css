@@ -954,4 +954,148 @@ table.product-table td {
 /* Asegurar que el texto del orden sea más visible */
 .products-table td:nth-child(2) {
   @apply text-amber-600 font-medium !important;
+}
+
+/* Optimización táctil para drag handles */
+.touch-optimized {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+
+/* Mejora visual cuando se arrastra en móvil */
+.dragging-mobile {
+  background-color: rgba(251, 191, 36, 0.1); /* Color amber con transparencia */
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-radius: 0.375rem;
+}
+
+/* Mejora de feedback visual al arrastrar */
+.draggable-content:active {
+  background-color: rgba(251, 191, 36, 0.15);
+  transform: scale(1.01);
+  transition: background-color 0.1s, transform 0.1s;
+}
+
+/* Media queries para diferentes tamaños de pantalla */
+@media (max-width: 640px) {
+  /* Estilos generales para tablas en móvil */
+  .grid-table {
+    display: block;
+    width: 100%;
+  }
+  
+  .grid-table thead {
+    display: none; /* Ocultar encabezados en móvil */
+  }
+  
+  .grid-table tbody {
+    display: block;
+    width: 100%;
+  }
+  
+  .grid-table tr {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    border: 1px solid rgba(229, 231, 235, 1);
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    position: relative;
+  }
+  
+  .grid-table td {
+    display: flex;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: none;
+    align-items: center;
+  }
+  
+  .grid-table td:before {
+    content: attr(data-label);
+    font-weight: 600;
+    width: 40%;
+    margin-right: 1rem;
+    font-size: 0.75rem;
+  }
+  
+  /* Ajustes específicos por tipo de tabla */
+  .product-table tr, 
+  table.product-table tr {
+    background-color: rgba(251, 191, 36, 0.05);
+  }
+  
+  .section-table tr,
+  table.section-table tr {
+    background-color: rgba(20, 184, 166, 0.05);
+  }
+  
+  .category-table tr,
+  table.category-table tr {
+    background-color: rgba(99, 102, 241, 0.05);
+  }
+  
+  /* Ajustes para botones de acción en móvil */
+  .grid-table td:last-child {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+    border-top: 1px dashed rgba(229, 231, 235, 0.7);
+    padding-top: 0.75rem;
+  }
+  
+  /* Mejoras en áreas de toque */
+  .grid-table button, 
+  .grid-table .touch-optimized {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Ajustes para drag handles en móvil */
+  .grid-table .product-drag-handle,
+  .grid-table .section-drag-handle,
+  .grid-table .category-drag-handle {
+    position: absolute;
+    right: 0.5rem;
+    top: 0.5rem;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Estilos específicos para tablets y móviles grandes */
+  .grid-row td {
+    padding: 12px 10px;
+  }
+}
+
+/* Aplicar touch-optimized a botones de acción */
+.section-action, 
+.section-action-edit, 
+.section-action-delete,
+.product-action,
+.product-action-edit,
+.product-action-delete,
+.category-action,
+.category-action-edit,
+.category-action-delete,
+.action-button {
+  min-height: 44px;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ocultar scrollbar pero mantener funcionalidad */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* Internet Explorer y Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;             /* Chrome, Safari y Opera */
 } 

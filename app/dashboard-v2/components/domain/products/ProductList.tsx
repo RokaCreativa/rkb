@@ -150,7 +150,7 @@ const ProductList: React.FC<ProductListProps> = ({
         <Droppable droppableId={droppableId} type="product" isDropDisabled={!isDragEnabled}>
           {(provided, snapshot) => (
             <div className="relative overflow-x-auto overscroll-x-none">
-              <table className="products-table w-full text-sm text-left rtl:text-right" {...provided.droppableProps} ref={provided.innerRef}>
+              <table className="products-table grid-table w-full text-sm text-left rtl:text-right" {...provided.droppableProps} ref={provided.innerRef}>
                 <thead className="text-xs uppercase bg-white border-b">
                   <tr>
                     <th className="px-2 py-2">
@@ -202,7 +202,7 @@ const ProductList: React.FC<ProductListProps> = ({
                                 : "hover:bg-amber-50/30"
                             } ${isReorderModeActive ? 'cursor-move' : ''}`}
                           >
-                            <td className="px-2 py-2">
+                            <td className="px-2 py-2" data-label="Producto">
                               <div className="flex items-center">
                                 <div className={`${isDragEnabled ? 'mr-1 product-drag-handle' : 'hidden'}`}>
                                   <Bars3Icon className="h-4 w-4 text-amber-600" />
@@ -215,10 +215,10 @@ const ProductList: React.FC<ProductListProps> = ({
                                 </div>
                               </div>
                             </td>
-                            <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">
+                            <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center" data-label="Orden">
                               {product.display_order || index + 1}
                             </td>
-                            <td className="px-2 py-2 whitespace-nowrap text-sm product-price-cell">
+                            <td className="px-2 py-2 whitespace-nowrap text-sm product-price-cell" data-label="Precio">
                               <div>
                                 <span className="product-text text-right block">
                                   {typeof product.price === 'number' 
@@ -232,7 +232,7 @@ const ProductList: React.FC<ProductListProps> = ({
                                 )}
                               </div>
                             </td>
-                            <td className="px-2 py-2 whitespace-nowrap text-center">
+                            <td className="px-2 py-2 whitespace-nowrap text-center" data-label="Imagen">
                               <div className="flex justify-center">
                                 <div className="product-image-container">
                                   {product.image ? (
@@ -250,7 +250,7 @@ const ProductList: React.FC<ProductListProps> = ({
                                 </div>
                               </div>
                             </td>
-                            <td className="px-1 py-2 whitespace-nowrap text-center">
+                            <td className="px-1 py-2 whitespace-nowrap text-center" data-label="Visibilidad">
                               <button
                                 onClick={() => onToggleVisibility && sectionId && onToggleVisibility(
                                   product.product_id, 
@@ -276,7 +276,7 @@ const ProductList: React.FC<ProductListProps> = ({
                                 )}
                               </button>
                             </td>
-                            <td className="px-2 py-2 whitespace-nowrap text-center">
+                            <td className="px-2 py-2 whitespace-nowrap text-center" data-label="Acciones">
                               <div className="flex justify-center space-x-1">
                                 <button
                                   onClick={() => onEditProduct && onEditProduct(product as CompatibleProduct)}
@@ -320,7 +320,7 @@ const ProductList: React.FC<ProductListProps> = ({
                       key={`hidden-product-${product.product_id}`}
                       className="grid-item-hidden hover:bg-gray-50"
                     >
-                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10" data-label="Producto">
                         <div className="flex items-center">
                           <div className="mr-2 px-1 text-gray-400">
                             <GridIcon type="product" icon="drag" size="large" className="text-gray-400" />
@@ -333,10 +333,10 @@ const ProductList: React.FC<ProductListProps> = ({
                           </div>
                         </div>
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-center">
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-center" data-label="Orden">
                         {product.display_order || "-"}
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-right">
+                      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-400 text-right" data-label="Precio">
                         <div>
                           <span className="text-gray-400 text-right block">
                             {typeof product.price === 'number' 

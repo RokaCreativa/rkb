@@ -68,7 +68,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
       ${!isVisible ? 'opacity-70' : ''}
       ${showDragHandle ? 'cursor-move' : ''}
     `}>
-      <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-500 w-10">
+      <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-500 w-10" data-label="">
         <button 
           className={`p-1 rounded-full transition-colors hover:bg-amber-100 ${isVisible ? 'text-amber-600' : 'text-gray-400'}`}
           aria-label="Ver detalles del producto"
@@ -76,12 +76,12 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           <GridIcon type="product" icon="visibility" size="small" />
         </button>
       </td>
-      <td className="px-3 py-3">
+      <td className="px-3 py-3" data-label="Producto">
         <div className="flex items-center">
           {showDragHandle && dragHandleProps && (
             <div 
               {...dragHandleProps} 
-              className="mr-2 px-1 product-drag-handle"
+              className="mr-2 px-1 product-drag-handle touch-optimized"
               title="Arrastrar para reordenar"
             >
               <GridIcon 
@@ -104,10 +104,10 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           </div>
         </div>
       </td>
-      <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-500 text-center">
+      <td className="px-2 py-3 whitespace-nowrap text-sm text-gray-500 text-center" data-label="Orden">
         {product.display_order || "-"}
       </td>
-      <td className="px-3 py-3 whitespace-nowrap text-sm product-price-cell">
+      <td className="px-3 py-3 whitespace-nowrap text-sm product-price-cell" data-label="Precio">
         <div>
           <span className={`product-text text-right block ${!isVisible && 'text-gray-400'}`}>
             {formattedPrice}
@@ -119,7 +119,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           )}
         </div>
       </td>
-      <td className="px-2 py-3 whitespace-nowrap text-center">
+      <td className="px-2 py-3 whitespace-nowrap text-center" data-label="Visibilidad">
         <button
           onClick={() => onToggleProductVisibility && onToggleProductVisibility(product.product_id, product.status, sectionId)}
           className={`inline-flex items-center justify-center h-6 w-6 rounded ${
@@ -141,7 +141,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           )}
         </button>
       </td>
-      <td className="px-3 py-3 whitespace-nowrap text-center">
+      <td className="px-3 py-3 whitespace-nowrap text-center" data-label="Acciones">
         <div className="flex justify-center space-x-1">
           <button
             onClick={() => onEditProduct && onEditProduct(product)}
@@ -167,7 +167,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
           </button>
         </div>
       </td>
-      <td className="px-3 py-3 whitespace-nowrap text-center">
+      <td className="px-3 py-3 whitespace-nowrap text-center" data-label="Imagen">
         <div className="flex justify-center">
           <div className={`product-image-container ${!isVisible && 'opacity-50'}`}>
             {product.image ? (

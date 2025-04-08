@@ -344,18 +344,19 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+            <div className="inline-block w-full max-w-md p-4 sm:p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
               <div className="flex justify-between items-start">
                 <Dialog.Title
                   as="h3"
-                  className="text-lg font-medium leading-6 text-gray-900"
+                  className="text-base sm:text-lg font-medium leading-6 text-gray-900"
                 >
                   Editar Producto
                 </Dialog.Title>
                 <button
                   type="button"
-                  className="text-gray-400 hover:text-gray-500"
+                  className="text-gray-400 hover:text-gray-500 touch-optimized rounded-full p-1 hover:bg-gray-100"
                   onClick={handleCloseModal}
+                  aria-label="Cerrar"
                 >
                   <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                 </button>
@@ -368,11 +369,11 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                     <span className="ml-2 text-gray-600">Cargando datos del producto...</span>
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmit}>
-                    <div className="mb-4">
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
                       <label
                         htmlFor="editProductName"
-                        className="block text-sm font-medium text-gray-700"
+                        className="block text-sm font-medium text-gray-700 mb-1"
                       >
                         Nombre
                       </label>
@@ -380,17 +381,17 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                         type="text"
                         name="editProductName"
                         id="editProductName"
-                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        className="mt-1 focus:ring-amber-500 focus:border-amber-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2 px-3"
                         value={editProductName}
                         onChange={(e) => setEditProductName(e.target.value)}
                         required
                       />
                     </div>
 
-                    <div className="mb-4">
+                    <div>
                       <label
                         htmlFor="editProductPrice"
-                        className="block text-sm font-medium text-gray-700"
+                        className="block text-sm font-medium text-gray-700 mb-1"
                       >
                         Precio (€)
                       </label>
@@ -402,7 +403,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                           type="text"
                           name="editProductPrice"
                           id="editProductPrice"
-                          className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
+                          className="focus:ring-amber-500 focus:border-amber-500 block w-full pl-7 pr-12 py-2 sm:text-sm border-gray-300 rounded-md"
                           value={editProductPrice}
                           onChange={(e) => {
                             // Permitir solo números y un punto decimal
@@ -423,10 +424,10 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="mb-4">
+                    <div>
                       <label
                         htmlFor="editProductDescription"
-                        className="block text-sm font-medium text-gray-700"
+                        className="block text-sm font-medium text-gray-700 mb-1"
                       >
                         Descripción (opcional)
                       </label>
@@ -434,21 +435,21 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                         name="editProductDescription"
                         id="editProductDescription"
                         rows={3}
-                        className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        className="mt-1 focus:ring-amber-500 focus:border-amber-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md py-2 px-3"
                         value={editProductDescription}
                         onChange={(e) => setEditProductDescription(e.target.value)}
                       />
                     </div>
 
-                    <div className="mb-4">
+                    <div>
                       <label
                         htmlFor="editProductImage"
-                        className="block text-sm font-medium text-gray-700"
+                        className="block text-sm font-medium text-gray-700 mb-1"
                       >
                         Imagen
                       </label>
-                      <div className="mt-1 flex items-center">
-                        <div className="h-32 w-32 rounded-md overflow-hidden bg-gray-100 mr-4">
+                      <div className="mt-1 flex flex-col sm:flex-row items-center">
+                        <div className="h-32 w-32 rounded-md overflow-hidden bg-gray-100 mb-3 sm:mb-0 sm:mr-4">
                           {editImagePreview ? (
                             <Image
                               src={editImagePreview}
@@ -466,7 +467,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                         <button
                           type="button"
                           onClick={triggerFileInput}
-                          className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          className="touch-optimized w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
                         >
                           Cambiar imagen
                         </button>
@@ -480,10 +481,10 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                       </div>
                     </div>
 
-                    <div className="mt-6 flex justify-end space-x-3">
+                    <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 space-y-3 space-y-reverse sm:space-y-0">
                       <button
                         type="button"
-                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="touch-optimized w-full sm:w-auto inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
                         onClick={handleCloseModal}
                         disabled={isUpdatingProduct}
                       >
@@ -491,7 +492,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
                       </button>
                       <button
                         type="submit"
-                        className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        className="touch-optimized w-full sm:w-auto inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-amber-600 border border-transparent rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
                         disabled={isUpdatingProduct}
                       >
                         {isUpdatingProduct ? (
