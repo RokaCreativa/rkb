@@ -18,6 +18,7 @@ import {
   DashboardProduct 
 } from '@/app/dashboard-v2/types/type-adapters';
 import { DashboardService } from '@/lib/services/dashboardService';
+import { formatDroppableId } from "@/app/dashboard-v2/utils/dragUtils";
 
 /**
  * Mapa de secciones indexado por el ID de categoría (como string)
@@ -389,36 +390,10 @@ export default function useDragAndDrop(
       // Analizar el droppableId para productos (formato esperado: products-section-XXX)
       console.log('🔍 [CRITICAL] Analizando droppableId de producto:', source.droppableId);
       
-      // DIAGNÓSTICO ESPECÍFICO PARA PRODUCTOS
-      const productSectionMatchFormato1 = source.droppableId.match(/products-section-(\d+)/);
-      const productSectionMatchFormato2 = source.droppableId.match(/product-section-(\d+)/);
-      const productSectionMatchFormato3 = source.droppableId.match(/section-(\d+)/);
-      const anyNumberMatch = source.droppableId.match(/\d+/);
+      // Usar la utilidad formatDroppableId para extraer el sectionId
+      const sectionId = formatDroppableId.extractSectionId(source.droppableId);
       
-      console.log('🧨 [CRITICAL] REGEXP MATCHES:', {
-        'products-section-': productSectionMatchFormato1,
-        'product-section-': productSectionMatchFormato2,
-        'section-': productSectionMatchFormato3,
-        'any-number': anyNumberMatch
-      });
-      
-      // Intentar obtener sectionId del mejor match posible
-      let sectionId: number | null = null;
-      
-      if (productSectionMatchFormato1 && productSectionMatchFormato1[1]) {
-        sectionId = parseInt(productSectionMatchFormato1[1], 10);
-        console.log('🎯 [CRITICAL] Encontrado sectionId con formato "products-section-":', sectionId);
-      } else if (productSectionMatchFormato2 && productSectionMatchFormato2[1]) {
-        sectionId = parseInt(productSectionMatchFormato2[1], 10);
-        console.log('🎯 [CRITICAL] Encontrado sectionId con formato "product-section-":', sectionId);
-      } else if (productSectionMatchFormato3 && productSectionMatchFormato3[1]) {
-        sectionId = parseInt(productSectionMatchFormato3[1], 10);
-        console.log('🎯 [CRITICAL] Encontrado sectionId con formato "section-":', sectionId);
-      } else if (anyNumberMatch && anyNumberMatch[0]) {
-        // ÚLTIMO RECURSO: Extraer cualquier número del string
-        sectionId = parseInt(anyNumberMatch[0], 10);
-        console.log('⚠️ [CRITICAL] FALLBACK: Usando primer número encontrado como sectionId:', sectionId);
-      }
+      console.log('🎯 [CRITICAL] Extrayendo sectionId usando formatDroppableId:', sectionId);
       
       if (sectionId === null) {
         console.error('❌ [CRITICAL] No se pudo extraer sectionId de:', source.droppableId);

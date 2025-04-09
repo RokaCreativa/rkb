@@ -75,7 +75,7 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 - [x] Implementar visualización compacta para móviles
 - [x] Asegurar que todas las acciones sean accesibles en pantallas pequeñas
 - [ ] Optimizar tamaños de imagen para carga rápida en conexiones móviles
-- [ ] Añadir carga progresiva para mejorar rendimiento en móviles
+- [ ] Añadir carga progresiva para mejorar rendimiento en móviles -[ ] Agregar iconos mas pegaños en el grid como el de drang and drop y otros
 - [ ] Reducir el ancho de las tablas y contenedores para evitar desbordamiento
 - [ ] Ocultar o combinar columnas menos importantes en móvil
 - [ ] Convertir filas de tabla en tarjetas verticales para dispositivos móviles
@@ -446,6 +446,314 @@ export default i18n;
   // ...
 }
 ```
+
+## 📱 Propuestas Específicas para Tablas Móviles
+
+Las siguientes propuestas están diseñadas específicamente para mejorar la experiencia de las tablas en dispositivos móviles, siguiendo los mandamientos de responsividad y separación de funcionalidad.
+
+### 1. Diseño en Tarjetas (Cards) por Fila
+
+- Convertir cada fila de tabla en una tarjeta con bordes y espaciado
+- Mostrar "Nombre", "Secciones", "Orden" y "Foto" en columnas verticales dentro de la tarjeta
+- Colocar botones de acción (ver 👁, +, editar, borrar) alineados en la parte inferior o en un menú desplegable
+
+```css
+@media (max-width: 640px) {
+  .grid-table tr {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(229, 231, 235, 1);
+    position: relative;
+  }
+
+  .grid-table td {
+    padding: 0.5rem 0;
+    border-bottom: none;
+    display: flex;
+    align-items: center;
+  }
+
+  .grid-table td[data-label]:before {
+    content: attr(data-label);
+    font-weight: 600;
+    margin-right: 0.75rem;
+    width: 40%;
+  }
+
+  .grid-table .action-buttons {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(229, 231, 235, 0.5);
+  }
+}
+```
+
+### 2. Botones de Acción como Iconos Compactos
+
+- Reducir el tamaño de los iconos manteniendo áreas táctiles de al menos 44x44px
+- Usar tooltips para mostrar la descripción al mantener presionado
+- Implementar una fila inferior dentro de cada tarjeta para los botones
+
+```css
+@media (max-width: 640px) {
+  .action-button {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .action-button svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .action-button-tooltip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .action-button:active .action-button-tooltip,
+  .action-button:focus .action-button-tooltip {
+    display: block;
+  }
+}
+```
+
+### 3. Optimización de Texto Largo
+
+- Cortar automáticamente textos largos como "Tus menús (Comidas, Bebidas...)" en dos líneas
+- Añadir "Ver más" si la lista es demasiado larga
+- Implementar truncado inteligente para nombres largos
+
+```css
+@media (max-width: 640px) {
+  .header-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 100%;
+  }
+
+  .content-list {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .content-list-expandable {
+    position: relative;
+  }
+
+  .content-list-expandable:after {
+    content: "Ver más";
+    color: #4f46e5;
+    font-size: 0.75rem;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    background-color: white;
+    padding-left: 0.5rem;
+  }
+}
+```
+
+### 4. Agrupación de Información Secundaria
+
+- Mostrar información secundaria debajo del nombre principal
+- Usar colores más claros para datos complementarios
+- Ejemplo: debajo de "Comidas", mostrar "10/10 secciones visibles" en gris claro
+
+```css
+@media (max-width: 640px) {
+  .item-name {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .item-secondary-info {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+}
+```
+
+### 5. Reordenación de Prioridad Visual
+
+- Reestructurar el orden de los elementos para priorizar la información más importante
+- Secuencia: Nombre > Secciones > Foto > Orden
+- Alinear botones de acción al final en una fila scrollable horizontal si es necesario
+
+```css
+@media (max-width: 640px) {
+  .grid-table td {
+    order: 5; /* Orden por defecto */
+  }
+
+  .grid-table td.cell-name {
+    order: 1;
+  }
+
+  .grid-table td.cell-sections {
+    order: 2;
+  }
+
+  .grid-table td.cell-image {
+    order: 3;
+  }
+
+  .grid-table td.cell-order {
+    order: 4;
+  }
+
+  .grid-table td.cell-actions {
+    order: 6;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    white-space: nowrap;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .grid-table td.cell-actions::-webkit-scrollbar {
+    display: none;
+  }
+}
+```
+
+### 6. Minimización de Columna de Orden
+
+- Mostrar el número de orden como un badge redondo pequeño
+- Ubicarlo en la esquina superior derecha de la tarjeta
+- Usar colores para diferenciar los dominios (categorías, secciones, productos)
+
+```css
+@media (max-width: 640px) {
+  .order-badge {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .category-order {
+    background-color: #e0e7ff; /* indigo-100 */
+    color: #4f46e5; /* indigo-600 */
+  }
+
+  .section-order {
+    background-color: #ccfbf1; /* teal-100 */
+    color: #0d9488; /* teal-600 */
+  }
+
+  .product-order {
+    background-color: #fef3c7; /* amber-100 */
+    color: #d97706; /* amber-600 */
+  }
+}
+```
+
+### 7. Mejora de Soporte Táctil
+
+- Asegurar que todas las áreas interactivas tengan al menos 44×44px
+- Aumentar la separación entre elementos táctiles
+- Añadir feedback visual al tocar (estados activos)
+
+```css
+@media (max-width: 640px) {
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .touch-target-padding {
+    padding: 0.75rem;
+  }
+
+  .button-spacing {
+    margin: 0 0.375rem;
+  }
+
+  .touch-feedback:active {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+}
+```
+
+### 8. Iconos más Pequeños para Drag and Drop
+
+- Reducir el tamaño del icono de arrastrar y soltar en dispositivos móviles
+- Mantener el área táctil grande para facilitar la interacción
+- Usar un ícono más minimalista pero igualmente reconocible
+
+```css
+@media (max-width: 640px) {
+  .drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .drag-handle svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.8;
+  }
+
+  .drag-hint {
+    position: absolute;
+    left: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.75rem;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+  }
+
+  .drag-hint svg {
+    margin-right: 0.25rem;
+  }
+}
+```
+
+Esta serie de optimizaciones asegurará que las tablas sean completamente funcionales y fáciles de usar en dispositivos móviles, manteniendo la coherencia visual y respetando la identidad de cada tipo de dominio (categorías, secciones, productos).
 
 ## 📅 Plan de Trabajo Actualizado
 

@@ -21,6 +21,7 @@ import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUt
 import ProductListItem from './ProductListItem';
 import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
 import { CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
+import { formatDroppableId } from "@/app/dashboard-v2/utils/dragUtils";
 
 /**
  * Props para el componente ProductList
@@ -84,7 +85,7 @@ const ProductList: React.FC<ProductListProps> = ({
   // ID para el droppable context - Usando formato que sabemos funciona con secciones
   // Secciones usa: sections-category-${categoryId}
   // Para productos, siguiendo mismo patrón: products-section-${sectionId}
-  const droppableId = `products-section-${sectionId ?? 0}`;
+  const droppableId = formatDroppableId.product(sectionId ?? 0);
   
   // Añadir más logs para diagnóstico
   useEffect(() => {

@@ -7,6 +7,9 @@
 
 import { Category as MenuCategory, Section as MenuSection, Product as MenuProduct, Client as MenuClient } from '@/app/types/menu';
 import { Product as DomainProduct } from '@/app/dashboard-v2/types/domain/product';
+import { Category as DashboardCategory } from '@/app/dashboard-v2/types/domain/category';
+import { Section as DashboardSection } from '@/app/dashboard-v2/types/domain/section';
+import { Product as DashboardProduct } from '@/app/dashboard-v2/types/domain/product';
 
 // Tipo de producto compatible que puede ser de cualquiera de las dos interfaces
 export type CompatibleProduct = MenuProduct | DomainProduct;

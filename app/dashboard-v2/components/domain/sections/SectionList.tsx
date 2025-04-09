@@ -22,6 +22,7 @@ import ProductList from '@/app/dashboard-v2/components/domain/products/ProductLi
 import { GridIcon } from '@/app/dashboard-v2/components/ui/grid/GridIcon';
 import { adaptDomainProductToMenu, CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
 import { Product as MenuProduct } from '@/app/types/menu';
+import { formatDroppableId } from "@/app/dashboard-v2/utils/dragUtils";
 
 /**
  * Props para el componente SectionList
@@ -239,7 +240,13 @@ const SectionList: React.FC<SectionListProps> = ({
   };
   
   // ID único para el Droppable de esta lista de secciones, basado en categoría
-  const droppableId = `sections-category-${categoryId || "default"}`;
+  const droppableId = formatDroppableId.section(categoryId || 0);
+  
+  // Log adicional para mostrar el ID formateado
+  console.log("🔍 [DRAG DEBUG] Usando droppableId formateado:", { 
+    droppableId, 
+    categoryId: categoryId || 0 
+  });
   
   return (
     <div className="space-y-4">
