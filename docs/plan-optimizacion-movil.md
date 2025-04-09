@@ -60,20 +60,20 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 
 ### 1. Operaciones Arrastrar y Soltar (Drag and Drop)
 
-- [x] Diagnosticar problemas con drag and drop de productos
-- [x] Corregir extracción de IDs en `useDragAndDrop.ts`
-- [x] Estandarizar formato de droppableId entre ProductList y SectionList
-- [x] Implementar mejoras para feedback táctil (indicador visual más grande)
-- [x] Optimizar áreas de toque para drag handles (mínimo 44px × 44px)
+- [ ] Diagnosticar problemas con drag and drop de productos
+- [ ] Corregir extracción de IDs en `useDragAndDrop.ts`
+- [ ] Estandarizar formato de droppableId entre ProductList y SectionList
+- [ ] Implementar mejoras para feedback táctil (indicador visual más grande)
+- [ ] Optimizar áreas de toque para drag handles (mínimo 44px × 44px)
 - [ ] Verificar funcionamiento en navegadores móviles populares
 - [ ] Estandarizar formato de droppableId en todos los componentes de lista
 - [ ] Refactorizar useDragAndDrop.ts para simplificar lógica de extracción de IDs
 
 ### 2. Tablas y Visualización de Datos
 
-- [x] Adaptar tablas para vista móvil (modo responsive)
-- [x] Implementar visualización compacta para móviles
-- [x] Asegurar que todas las acciones sean accesibles en pantallas pequeñas
+- [ ] Adaptar tablas para vista móvil (modo responsive)
+- [ ] Implementar visualización compacta para móviles
+- [ ] Asegurar que todas las acciones sean accesibles en pantallas pequeñas
 - [ ] Optimizar tamaños de imagen para carga rápida en conexiones móviles
 - [ ] Añadir carga progresiva para mejorar rendimiento en móviles -[ ] Agregar iconos mas pegaños en el grid como el de drang and drop y otros
 - [ ] Reducir el ancho de las tablas y contenedores para evitar desbordamiento
@@ -86,8 +86,8 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 ### 3. Navegación y Estructura
 
 - [ ] Implementar menú colapsable adaptado a móviles
-- [x] Mejorar sistema de migas de pan (breadcrumbs) para móviles
-- [x] Asegurar que los modales se ajusten correctamente a pantallas pequeñas
+- [ ] Mejorar sistema de migas de pan (breadcrumbs) para móviles
+- [ ] Asegurar que los modales se ajusten correctamente a pantallas pequeñas
 - [ ] Añadir gestos táctiles para navegación (deslizar entre vistas)
 - [ ] Optimizar espaciado y márgenes para interfaces táctiles
 - [ ] Añadir botones flotantes para acciones principales
@@ -98,7 +98,7 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 
 - [ ] Verificar que todos los formularios sean utilizables en móviles
 - [ ] Optimizar subida de imágenes para conexiones móviles
-- [x] Asegurar que los botones de acción tengan tamaño adecuado (mínimo 44px)
+- [ ] Asegurar que los botones de acción tengan tamaño adecuado (mínimo 44px)
 - [ ] Implementar autoguardado para prevenir pérdida de datos en móviles
 - [ ] Añadir validación instantánea en formularios para móviles
 - [ ] Corregir el ciclo de actualización del estado tras operaciones CRUD
@@ -757,23 +757,23 @@ Esta serie de optimizaciones asegurará que las tablas sean completamente funcio
 
 ## 📅 Plan de Trabajo Actualizado
 
-1. **Fase 1: Corrección de Arrastrar y Soltar (COMPLETADO)**
+1. **Fase 1: Corrección de Arrastrar y Soltar (Por implementar)**
 
-   - ✅ Solucionar bugs existentes
-   - ✅ Implementar mejoras táctiles para drag handles
-   - ✅ Verificar funcionamiento en todos los dispositivos
+   - ⏳ Solucionar bugs existentes
+   - ⏳ Implementar mejoras táctiles para drag handles
+   - ⏳ Verificar funcionamiento en todos los dispositivos
 
-2. **Fase 2: Adaptación Responsive de Tablas (COMPLETADO)**
+2. **Fase 2: Adaptación Responsive de Tablas (Por implementar)**
 
-   - ✅ Implementar diseño responsive para tablas
-   - ✅ Optimizar visualización de datos en pantallas pequeñas
-   - ✅ Mejorar la accesibilidad de acciones en tablas
+   - ⏳ Implementar diseño responsive para tablas
+   - ⏳ Optimizar visualización de datos en pantallas pequeñas
+   - ⏳ Mejorar la accesibilidad de acciones en tablas
 
-3. **Fase 3: Optimización de Navegación y UI (COMPLETADO)**
+3. **Fase 3: Optimización de Navegación y UI (Por implementar)**
 
-   - ✅ Adaptar modales para pantallas pequeñas
-   - ✅ Optimizar sistema de migas de pan para móviles
-   - ✅ Mejorar áreas táctiles en elementos interactivos
+   - ⏳ Adaptar modales para pantallas pequeñas
+   - ⏳ Optimizar sistema de migas de pan para móviles
+   - ⏳ Mejorar áreas táctiles en elementos interactivos
 
 4. **Fase 4: Mejora de Visualización para Móviles (En progreso)**
 
@@ -782,13 +782,13 @@ Esta serie de optimizaciones asegurará que las tablas sean completamente funcio
    - ⏳ Mejorar jerarquía visual y contraste entre elementos
    - ⏳ Implementar diseño colapsable para secciones
 
-5. **Fase 5: Correcciones de CRUD y Estado (Pendiente)**
+5. **Fase 5: Correcciones de CRUD y Estado (Por implementar)**
 
    - ⏳ Corregir ciclo de actualización del estado tras operaciones CRUD
    - ⏳ Implementar sistema consistente de manejo de errores
    - ⏳ Crear hook genérico para modales CRUD
 
-6. **Fase 6: Refactorización y Reducción de Duplicación (Pendiente)**
+6. **Fase 6: Refactorización y Reducción de Duplicación (Por implementar)**
 
    - ⏳ Unificar modales duplicados (DeleteCategoryModal, DeleteSectionModal, etc.)
    - ⏳ Centralizar estilos repetidos en archivos CSS apropiados
@@ -796,20 +796,20 @@ Esta serie de optimizaciones asegurará que las tablas sean completamente funcio
    - ⏳ Estandarizar formato de droppableId en todos los componentes de lista
    - ⏳ Refactorizar useDragAndDrop.ts para simplificar extracción de IDs
 
-7. **Fase 7: Preparación para Internacionalización (Pendiente)**
+7. **Fase 7: Preparación para Internacionalización (Por implementar)**
 
    - ⏳ Implementar sistema básico de i18n
    - ⏳ Extraer textos hardcodeados a archivos de traducción
    - ⏳ Preparar archivos para español e inglés
 
-8. **Fase 8: Optimización de Rendimiento (Pendiente)**
+8. **Fase 8: Optimización de Rendimiento (Por implementar)**
 
    - ⏳ Implementar React.memo en componentes de listas
    - ⏳ Optimizar hooks con useCallback y useMemo
    - ⏳ Implementar estrategias de caching para datos
    - ⏳ Optimizar llamadas API con SWR o React Query
 
-9. **Fase 9: Pruebas y Documentación (Pendiente)**
+9. **Fase 9: Pruebas y Documentación (Por implementar)**
 
    - ⏳ Implementar pruebas unitarias para hooks críticos
    - ⏳ Añadir pruebas de integración para operaciones CRUD
