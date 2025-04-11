@@ -39,9 +39,7 @@ import NewProductModal from "../modals/NewProductModal";
 import EditCategoryModal from "../modals/EditCategoryModal";
 import EditSectionModal from "../modals/EditSectionModal";
 import EditProductModal from "../modals/EditProductModal";
-import DeleteCategoryModal from "../modals/DeleteCategoryModal";
-import DeleteSectionModal from "../modals/DeleteSectionModal";
-import DeleteProductModal from "../modals/DeleteProductModal";
+import DeleteModal from "../modals/DeleteModal";
 
 // Importar tipos
 import { ViewType } from "../../types/dashboard";
@@ -229,9 +227,8 @@ export default function DashboardView() {
   const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
   const [showEditSectionModal, setShowEditSectionModal] = useState(false);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
-  const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
-  const [showDeleteSectionModal, setShowDeleteSectionModal] = useState(false);
-  const [showDeleteProductModal, setShowDeleteProductModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteEntityType, setDeleteEntityType] = useState<'category' | 'section' | 'product'>('category');
   const [itemToDelete, setItemToDelete] = useState<DashboardCategory | DashboardSection | DashboardProduct | null>(null);
   
   // Cargar datos al montar el componente
@@ -602,7 +599,8 @@ export default function DashboardView() {
   
   const handleDeleteCategory = (category: DashboardCategory) => {
     setItemToDelete(category);
-    setShowDeleteCategoryModal(true);
+    setDeleteEntityType('category');
+    setShowDeleteModal(true);
   };
   
   const handleConfirmDeleteCategory = async () => {
@@ -611,7 +609,7 @@ export default function DashboardView() {
     try {
       await deleteCategory(itemToDelete.category_id);
       toast.success('Categoría eliminada correctamente');
-      setShowDeleteCategoryModal(false);
+      setShowDeleteModal(false);
       setItemToDelete(null);
     } catch (error) {
       toast.error('Error al eliminar la categoría');
@@ -630,7 +628,8 @@ export default function DashboardView() {
   
   const handleDeleteSection = (section: DashboardSection) => {
     setItemToDelete(section);
-    setShowDeleteSectionModal(true);
+    setDeleteEntityType('section');
+    setShowDeleteModal(true);
   };
   
   const handleConfirmDeleteSection = async () => {
@@ -641,7 +640,7 @@ export default function DashboardView() {
     try {
       await deleteSection(itemToDelete.section_id, categoryId);
       toast.success('Sección eliminada correctamente');
-      setShowDeleteSectionModal(false);
+      setShowDeleteModal(false);
       setItemToDelete(null);
     } catch (error) {
       toast.error('Error al eliminar la sección');
@@ -670,7 +669,8 @@ export default function DashboardView() {
   
   const handleDeleteProduct = (product: DashboardProduct) => {
     setItemToDelete(product);
-    setShowDeleteProductModal(true);
+    setDeleteEntityType('product');
+    setShowDeleteModal(true);
   };
   
   const handleConfirmDeleteProduct = async () => {
@@ -679,7 +679,7 @@ export default function DashboardView() {
     try {
       await deleteProduct(itemToDelete.product_id);
       toast.success('Producto eliminado correctamente');
-      setShowDeleteProductModal(false);
+      setShowDeleteModal(false);
       setItemToDelete(null);
       
       // Actualizar la lista de productos
@@ -1140,13 +1140,43 @@ export default function DashboardView() {
         />
       )}
       
-      {showDeleteCategoryModal && itemToDelete && 'category_id' in itemToDelete && (
-        <DeleteCategoryModal 
-          isOpen={showDeleteCategoryModal}
-          onClose={() => setShowDeleteCategoryModal(false)}
-          categoryId={itemToDelete.category_id}
-          categoryName={itemToDelete.name || 'esta categoría'}
-          onConfirm={handleConfirmDeleteCategory}
+      {showDeleteModal && itemToDelete && (
+        <DeleteModal
+          isOpen={showDeleteModal}
+          onClose={() => setShowDeleteModal(false)}
+          entityType={deleteEntityType}
+          entityId={
+            deleteEntityType === 'category' && 'category_id' in itemToDelete
+              ? itemToDelete.category_id
+              : deleteEntityType === 'section' && 'section_id' in itemToDelete
+              ? itemToDelete.section_id
+              : deleteEntityType === 'product' && 'product_id' in itemToDelete
+              ? itemToDelete.product_id
+              : 0
+          }
+          entityName={itemToDelete.name || `este ${deleteEntityType === 'category' ? 'categoría' : deleteEntityType === 'section' ? 'sección' : 'producto'}`}
+          deleteFunction={
+            deleteEntityType === 'category'
+              ? deleteCategory
+              : deleteEntityType === 'section'
+              ? deleteSection
+              : deleteProduct
+          }
+          deleteArgs={
+            deleteEntityType === 'section' && 'category_id' in itemToDelete
+              ? [itemToDelete.category_id]
+              : []
+          }
+          onDeleteSuccess={() => {
+            // Actualizar la lista correspondiente después de eliminar
+            if (deleteEntityType === 'category') {
+              fetchCategories();
+            } else if (deleteEntityType === 'section' && selectedCategory) {
+              fetchSectionsByCategory(selectedCategory.category_id);
+            } else if (deleteEntityType === 'product' && selectedSection) {
+              fetchProductsBySection(selectedSection.section_id);
+            }
+          }}
         />
       )}
       
@@ -1178,16 +1208,6 @@ export default function DashboardView() {
             // Esta es una implementación temporal que siempre devuelve true
             return true;
           }}
-        />
-      )}
-      
-      {showDeleteSectionModal && itemToDelete && 'section_id' in itemToDelete && (
-        <DeleteSectionModal 
-          isOpen={showDeleteSectionModal}
-          onClose={() => setShowDeleteSectionModal(false)}
-          sectionId={itemToDelete.section_id}
-          sectionName={itemToDelete.name || 'esta sección'}
-          onConfirm={handleConfirmDeleteSection}
         />
       )}
       
@@ -1226,16 +1246,6 @@ export default function DashboardView() {
               setLocalProducts(convertedProducts);
             }
           }}
-        />
-      )}
-      
-      {showDeleteProductModal && itemToDelete && 'product_id' in itemToDelete && (
-        <DeleteProductModal 
-          isOpen={showDeleteProductModal}
-          onClose={() => setShowDeleteProductModal(false)}
-          productId={itemToDelete.product_id}
-          productName={itemToDelete.name || 'este producto'}
-          onConfirm={handleConfirmDeleteProduct}
         />
       )}
       

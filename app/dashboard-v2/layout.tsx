@@ -9,15 +9,28 @@ import { Inter } from 'next/font/google';
 import AuthDebugLayout from './AuthDebugLayout';
 import { useSession } from 'next-auth/react';
 
+// Importar sistema de internacionalización
+import { I18nextProvider } from 'react-i18next';
+import i18n from './i18n/i18n';
+
 /**
  * @fileoverview Layout para la sección de dashboard de RokaMenu
  * @author RokaMenu Team
- * @version 1.0.1
- * @updated 2024-04-14
+ * @version 1.0.2
+ * @updated 2024-08-25
  */
 
 const inter = Inter({ subsets: ['latin'] });
 
+/**
+ * Layout del Dashboard
+ * 
+ * Este componente envuelve todas las páginas del dashboard y proporciona:
+ * - Estilos globales
+ * - Fuente Inter de Google
+ * - Autenticación
+ * - Soporte para internacionalización (i18n)
+ */
 export default function DashboardLayout({
   children,
 }: {
@@ -25,9 +38,12 @@ export default function DashboardLayout({
 }) {
   return (
     <div className={`min-h-screen bg-gray-100 ${inter.className}`}>
-      <AuthDebugLayout>
-        {children}
-      </AuthDebugLayout>
+      {/* Proveedor de i18n para habilitar traducciones en toda la aplicación */}
+      <I18nextProvider i18n={i18n}>
+        <AuthDebugLayout>
+          {children}
+        </AuthDebugLayout>
+      </I18nextProvider>
     </div>
   );
 } 

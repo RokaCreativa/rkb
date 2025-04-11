@@ -1,0 +1,143 @@
+{
+  "common": {
+    "add": "Añadir",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "search": "Buscar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "yes": "Sí",
+    "no": "No",
+    "back": "Volver",
+    "next": "Siguiente",
+    "close": "Cerrar",
+    "required": "Requerido",
+    "optional": "Opcional",
+    "show": "Mostrar",
+    "hide": "Ocultar",
+    "visible": "Visible",
+    "hidden": "Oculto",
+    "noData": "No hay datos disponibles"
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "welcome": "Bienvenido a RokaMenu",
+    "reorderMode": "Modo de reordenamiento",
+    "offlineMode": "Modo sin conexión",
+    "offlineWarning": "Usando datos de demostración. Algunas funciones podrían estar limitadas.",
+    "preview": "Vista previa",
+    "customize": "Personalizar Dashboard"
+  },
+  "navigation": {
+    "home": "Inicio",
+    "categories": "Categorías",
+    "sections": "Secciones",
+    "products": "Productos",
+    "settings": "Configuración",
+    "logout": "Cerrar sesión"
+  },
+  "categories": {
+    "title": "Categorías",
+    "addNew": "Añadir categoría",
+    "edit": "Editar categoría",
+    "delete": "Eliminar categoría",
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar la categoría \"{{name}}\"?",
+    "deleteWarning": "Esta acción eliminará también todas las secciones y productos asociados a esta categoría.",
+    "noCategories": "No hay categorías disponibles",
+    "name": "Nombre",
+    "image": "Imagen",
+    "status": "Estado",
+    "order": "Orden",
+    "actions": "Acciones",
+    "sectionsCount": "Secciones",
+    "visibleSectionsCount": "Secciones visibles"
+  },
+  "sections": {
+    "title": "Secciones",
+    "addNew": "Añadir sección",
+    "edit": "Editar sección",
+    "delete": "Eliminar sección",
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar la sección \"{{name}}\"?",
+    "deleteWarning": "Esta acción eliminará también todos los productos asociados a esta sección.",
+    "noSections": "No hay secciones disponibles",
+    "name": "Nombre",
+    "image": "Imagen",
+    "status": "Estado",
+    "order": "Orden",
+    "actions": "Acciones",
+    "productsCount": "Productos",
+    "visibleProductsCount": "Productos visibles"
+  },
+  "products": {
+    "title": "Productos",
+    "addNew": "Añadir producto",
+    "edit": "Editar producto",
+    "delete": "Eliminar producto",
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar el producto \"{{name}}\"?",
+    "noProducts": "No hay productos disponibles",
+    "name": "Nombre",
+    "description": "Descripción",
+    "price": "Precio",
+    "image": "Imagen",
+    "status": "Estado",
+    "order": "Orden",
+    "actions": "Acciones"
+  },
+  "modals": {
+    "delete": {
+      "title": "Confirmar eliminación",
+      "confirmButton": "Eliminar",
+      "cancelButton": "Cancelar",
+      "processing": "Eliminando...",
+      "undoWarning": "Esta acción no se puede deshacer."
+    }
+  },
+  "dragAndDrop": {
+    "startDragging": "Arrastrando {{entity}}",
+    "endDragging": "Soltar para reorganizar",
+    "dragHandle": "Arrastrar para reordenar",
+    "reorderMode": "Modo reordenamiento",
+    "disableReorderMode": "Desactivar reordenamiento",
+    "category": "categoría",
+    "section": "sección",
+    "product": "producto"
+  },
+  "notifications": {
+    "categoryCreated": "Categoría creada correctamente",
+    "categoryUpdated": "Categoría actualizada correctamente",
+    "categoryDeleted": "Categoría eliminada correctamente",
+    "sectionCreated": "Sección creada correctamente",
+    "sectionUpdated": "Sección actualizada correctamente",
+    "sectionDeleted": "Sección eliminada correctamente",
+    "productCreated": "Producto creado correctamente",
+    "productUpdated": "Producto actualizado correctamente",
+    "productDeleted": "Producto eliminado correctamente",
+    "visibilityChanged": "Visibilidad actualizada",
+    "orderUpdated": "Orden actualizado",
+    "generalError": "Ha ocurrido un error",
+    "networkError": "Error de conexión",
+    "loadingData": "Cargando datos...",
+    "loadingProducts": "Cargando productos...",
+    "loadingSections": "Cargando secciones..."
+  },
+  "validation": {
+    "required": "Este campo es obligatorio",
+    "minLength": "Este campo debe tener al menos {{count}} caracteres",
+    "maxLength": "Este campo no puede tener más de {{count}} caracteres",
+    "invalidPrice": "El precio no es válido",
+    "invalidUrl": "La URL no es válida",
+    "invalidImage": "La imagen no es válida"
+  },
+  "forms": {
+    "imageUpload": "Subir imagen",
+    "dragDrop": "Arrastra una imagen o haz clic para seleccionar",
+    "chooseFile": "Seleccionar archivo",
+    "noFileChosen": "Ningún archivo seleccionado",
+    "uploadProgress": "Subiendo... {{progress}}%",
+    "maxSize": "Tamaño máximo: {{size}}MB"
+  }
+} 

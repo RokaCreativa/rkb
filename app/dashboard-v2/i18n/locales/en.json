@@ -1,0 +1,143 @@
+{
+  "common": {
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "search": "Search",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "yes": "Yes",
+    "no": "No",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "required": "Required",
+    "optional": "Optional",
+    "show": "Show",
+    "hide": "Hide",
+    "visible": "Visible",
+    "hidden": "Hidden",
+    "noData": "No data available"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome to RokaMenu",
+    "reorderMode": "Reorder Mode",
+    "offlineMode": "Offline Mode",
+    "offlineWarning": "Using demo data. Some features might be limited.",
+    "preview": "Live Preview",
+    "customize": "Customize Dashboard"
+  },
+  "navigation": {
+    "home": "Home",
+    "categories": "Categories",
+    "sections": "Sections",
+    "products": "Products",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "categories": {
+    "title": "Categories",
+    "addNew": "Add Category",
+    "edit": "Edit Category",
+    "delete": "Delete Category",
+    "deleteConfirm": "Are you sure you want to delete the category \"{{name}}\"?",
+    "deleteWarning": "This action will also delete all sections and products associated with this category.",
+    "noCategories": "No categories available",
+    "name": "Name",
+    "image": "Image",
+    "status": "Status",
+    "order": "Order",
+    "actions": "Actions",
+    "sectionsCount": "Sections",
+    "visibleSectionsCount": "Visible Sections"
+  },
+  "sections": {
+    "title": "Sections",
+    "addNew": "Add Section",
+    "edit": "Edit Section",
+    "delete": "Delete Section",
+    "deleteConfirm": "Are you sure you want to delete the section \"{{name}}\"?",
+    "deleteWarning": "This action will also delete all products associated with this section.",
+    "noSections": "No sections available",
+    "name": "Name",
+    "image": "Image",
+    "status": "Status",
+    "order": "Order",
+    "actions": "Actions",
+    "productsCount": "Products",
+    "visibleProductsCount": "Visible Products"
+  },
+  "products": {
+    "title": "Products",
+    "addNew": "Add Product",
+    "edit": "Edit Product",
+    "delete": "Delete Product",
+    "deleteConfirm": "Are you sure you want to delete the product \"{{name}}\"?",
+    "noProducts": "No products available",
+    "name": "Name",
+    "description": "Description",
+    "price": "Price",
+    "image": "Image",
+    "status": "Status",
+    "order": "Order",
+    "actions": "Actions"
+  },
+  "modals": {
+    "delete": {
+      "title": "Confirm Deletion",
+      "confirmButton": "Delete",
+      "cancelButton": "Cancel",
+      "processing": "Deleting...",
+      "undoWarning": "This action cannot be undone."
+    }
+  },
+  "dragAndDrop": {
+    "startDragging": "Dragging {{entity}}",
+    "endDragging": "Drop to reorganize",
+    "dragHandle": "Drag to reorder",
+    "reorderMode": "Reorder Mode",
+    "disableReorderMode": "Disable Reordering",
+    "category": "category",
+    "section": "section",
+    "product": "product"
+  },
+  "notifications": {
+    "categoryCreated": "Category created successfully",
+    "categoryUpdated": "Category updated successfully",
+    "categoryDeleted": "Category deleted successfully",
+    "sectionCreated": "Section created successfully",
+    "sectionUpdated": "Section updated successfully",
+    "sectionDeleted": "Section deleted successfully",
+    "productCreated": "Product created successfully",
+    "productUpdated": "Product updated successfully",
+    "productDeleted": "Product deleted successfully",
+    "visibilityChanged": "Visibility updated",
+    "orderUpdated": "Order updated",
+    "generalError": "An error has occurred",
+    "networkError": "Network error",
+    "loadingData": "Loading data...",
+    "loadingProducts": "Loading products...",
+    "loadingSections": "Loading sections..."
+  },
+  "validation": {
+    "required": "This field is required",
+    "minLength": "This field must be at least {{count}} characters long",
+    "maxLength": "This field cannot be more than {{count}} characters long",
+    "invalidPrice": "Invalid price",
+    "invalidUrl": "Invalid URL",
+    "invalidImage": "Invalid image"
+  },
+  "forms": {
+    "imageUpload": "Upload Image",
+    "dragDrop": "Drag an image here or click to select",
+    "chooseFile": "Choose File",
+    "noFileChosen": "No file chosen",
+    "uploadProgress": "Uploading... {{progress}}%",
+    "maxSize": "Maximum size: {{size}}MB"
+  }
+} 

@@ -51,7 +51,7 @@ export const ProductTable: React.FC<ProductTableProps> = ({
   };
 
   if (!products || products.length === 0) {
-    return (
+  return (
       <div className="text-center py-4 text-gray-500 bg-white rounded-md border border-amber-200">
         No hay productos disponibles
       </div>

@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState } from 'react';
-import { PaintBrushIcon, PhoneIcon } from '@heroicons/react/24/outline';
+import { PaintBrushIcon, PhoneIcon, LanguageIcon } from '@heroicons/react/24/outline';
 import CustomizationModal from '@/app/dashboard-v2/components/modals/CustomizationModal';
+import LanguageSwitcher from '../ui/LanguageSwitcher';
+import { useI18n } from '../../hooks/ui/useI18n';
 
 interface TopNavbarProps {
   isReorderModeActive?: boolean;
@@ -11,6 +13,12 @@ interface TopNavbarProps {
   clientName?: string;
 }
 
+/**
+ * Barra de navegación superior del dashboard
+ * 
+ * @param props Propiedades del componente
+ * @returns Componente React
+ */
 export function TopNavbar({ 
   isReorderModeActive = false, 
   onToggleReorderMode = () => {},
@@ -18,6 +26,7 @@ export function TopNavbar({
   clientName = 'RokaMenu'
 }: TopNavbarProps) {
   const [isCustomizationModalOpen, setIsCustomizationModalOpen] = useState(false);
+  const { t } = useI18n(); // Hook para traducciones
   
   // Función para mostrar/ocultar la vista previa
   const handleTogglePreview = () => {
@@ -53,6 +62,16 @@ export function TopNavbar({
           
           {/* Menú derecho */}
           <div className="flex items-center">
+            {/* Selector de idioma */}
+            <div className="mr-4 flex items-center">
+              <LanguageSwitcher 
+                variant="dropdown" 
+                showText={false}
+                size="sm"
+                className="mr-2"
+              />
+            </div>
+            
             {/* Botón de vista previa */}
             <button
               type="button"
@@ -60,7 +79,7 @@ export function TopNavbar({
               className="inline-flex items-center px-3 py-2 border border-indigo-100 shadow-sm text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <PhoneIcon className="h-5 w-5 mr-2 text-indigo-500" />
-              Live Preview
+              {t('dashboard.preview')}
             </button>
             
             {/* Botón de personalización */}
@@ -70,7 +89,7 @@ export function TopNavbar({
               className="ml-3 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <PaintBrushIcon className="h-5 w-5 mr-2 text-gray-500" />
-              Personalizar Dashboard
+              {t('dashboard.customize')}
             </button>
             
             {/* Botón de modo reordenamiento - solo mostrar si se proporciona la función */}
@@ -93,7 +112,7 @@ export function TopNavbar({
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
                 </svg>
-                {isReorderModeActive ? 'Desactivar reordenamiento' : 'Modo reordenamiento'}
+                {isReorderModeActive ? t('dragAndDrop.disableReorderMode') : t('dragAndDrop.reorderMode')}
               </button>
             )}
           </div>
