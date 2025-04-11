@@ -1,153 +1,136 @@
+"use client";
+
 /**
- * @fileoverview DeleteModal - Modal unificado para eliminación de entidades
+ * @fileoverview Modal de confirmación genérico para eliminar entidades
  * @author RokaMenu Team
- * @version 2.0.0
- * @updated 2024-08-25
+ * @version 1.0.0
+ * @created 2024-08-26
  * 
- * Este componente proporciona una interfaz unificada para la eliminación de cualquier
- * tipo de entidad (categorías, secciones, productos). Reemplaza los múltiples modales
- * específicos por tipo, eliminando la duplicación de código y mejorando la mantenibilidad.
+ * Este componente es un modal genérico para confirmar la eliminación de cualquier
+ * tipo de entidad (categoría, sección, producto, etc). Reemplaza los modales específicos
+ * para cada entidad, siguiendo el mandamiento "No duplicarás lo que ya está creado".
  */
 
-import React, { useState, useEffect } from 'react';
-import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, useRef } from 'react';
-import { useEntityOperations, DeleteFunction } from '../../hooks/core/useEntityOperations';
-import { useTranslation } from 'react-i18next';
+import { Dialog, Transition } from '@headlessui/react';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { useI18n } from '../../hooks/ui/useI18n';
 
 /**
- * Tipos de entidades que se pueden eliminar
+ * Tipo de entidad que se puede eliminar
  */
 export type EntityType = 'category' | 'section' | 'product';
 
 /**
- * Configuración de mensajes según el tipo de entidad
- */
-const ENTITY_CONFIG = {
-  category: {
-    titleKey: 'categories.delete',
-    warningKey: 'categories.deleteWarning',
-    entityNameSpanish: 'categoría',
-    entityNameEnglish: 'category',
-    i18nKey: 'categories'
-  },
-  section: {
-    titleKey: 'sections.delete',
-    warningKey: 'sections.deleteWarning',
-    entityNameSpanish: 'sección',
-    entityNameEnglish: 'section',
-    i18nKey: 'sections'
-  },
-  product: {
-    titleKey: 'products.delete',
-    warningKey: '',
-    entityNameSpanish: 'producto',
-    entityNameEnglish: 'product',
-    i18nKey: 'products'
-  }
-};
-
-/**
  * Props para el modal de eliminación genérico
  */
-export interface DeleteModalProps<T = number, A = unknown> {
+interface DeleteModalProps {
   /**
-   * Tipo de entidad a eliminar
-   */
-  entityType: EntityType;
-  
-  /**
-   * ID de la entidad a eliminar
-   */
-  entityId: T;
-  
-  /**
-   * Nombre de la entidad a eliminar (para mostrar)
-   */
-  entityName: string;
-  
-  /**
-   * Función para eliminar la entidad
-   */
-  deleteFunction: DeleteFunction<T, A>;
-  
-  /**
-   * Argumentos adicionales para la función de eliminación
-   */
-  deleteArgs?: A[];
-  
-  /**
-   * Indica si el modal está abierto
+   * Controla si el modal está visible
    */
   isOpen: boolean;
   
   /**
-   * Función para cerrar el modal
+   * Función que se llama al cerrar el modal
    */
   onClose: () => void;
   
   /**
-   * Función a llamar después de eliminar exitosamente
+   * Tipo de entidad que se está eliminando
    */
-  onDeleteSuccess?: () => void;
+  entityType: EntityType;
   
   /**
-   * Mensajes personalizados (opcionales)
+   * ID de la entidad
    */
-  customMessages?: {
-    deleteSuccess?: string;
-    deleteError?: string;
-  };
+  entityId: number;
+  
+  /**
+   * Nombre de la entidad que se muestra en el mensaje
+   */
+  entityName: string;
+  
+  /**
+   * Función que se ejecuta al confirmar la eliminación
+   */
+  onConfirm: () => Promise<void>;
+  
+  /**
+   * Si es true, muestra que hay una operación en curso
+   */
+  isLoading?: boolean;
 }
 
 /**
- * Modal unificado para eliminación de entidades
+ * Modal de confirmación genérico para eliminar entidades
  * 
- * @template T - Tipo del ID de la entidad (normalmente number)
- * @template A - Tipo de argumentos adicionales para la función de eliminación
+ * @param props - Props del modal
+ * @returns Componente React
  */
-function DeleteModal<T = number, A = unknown>({
+export default function DeleteModal({
+  isOpen,
+  onClose,
   entityType,
   entityId,
   entityName,
-  deleteFunction,
-  deleteArgs = [] as unknown as A[],
-  isOpen,
-  onClose,
-  onDeleteSuccess,
-  customMessages
-}: DeleteModalProps<T, A>) {
-  // Configuración según el tipo de entidad
-  const { titleKey, warningKey, entityNameSpanish, entityNameEnglish, i18nKey } = ENTITY_CONFIG[entityType];
-  
-  // Obtener función de traducción
-  const { t } = useTranslation();
-  
-  // Referencia para el botón de cancelar
-  const cancelButtonRef = useRef<HTMLButtonElement>(null);
-  
-  // Usar nuestro hook genérico para operaciones de entidades
-  const { isDeleting, deleteEntity } = useEntityOperations({
-    entityName: entityNameSpanish,
-    deleteFunction,
-    onDeleteSuccess,
-    messages: customMessages
-  });
-  
+  onConfirm,
+  isLoading = false
+}: DeleteModalProps) {
+  const cancelButtonRef = useRef(null);
+  const { t } = useI18n();
+
   /**
-   * Manejador para confirmar la eliminación
+   * Maneja la confirmación de eliminación y captura errores
    */
   const handleConfirm = async () => {
-    // Intentar eliminar la entidad
-    const success = await deleteEntity(entityId, ...deleteArgs);
-    
-    // Cerrar el modal si la eliminación fue exitosa
-    if (success) {
-      onClose();
+    try {
+      await onConfirm();
+    } catch (error) {
+      console.error(`Error al eliminar ${entityType}:`, error);
     }
   };
-  
+
+  /**
+   * Obtiene el título del modal según el tipo de entidad
+   */
+  const getTitle = () => {
+    return t(`${entityType}s.delete`);
+  };
+
+  /**
+   * Obtiene el mensaje de confirmación según el tipo de entidad
+   */
+  const getMessage = () => {
+    // Mensaje básico de confirmación con el nombre de la entidad
+    const baseMessage = t(`${entityType}s.deleteConfirm`, { name: entityName });
+    
+    // Mensaje adicional de advertencia específico para categorías y secciones
+    let warningMessage = '';
+    if (entityType === 'category') {
+      warningMessage = t('categories.deleteWarning');
+    } else if (entityType === 'section') {
+      warningMessage = t('sections.deleteWarning');
+    }
+    
+    // Mensaje de que la acción no se puede deshacer
+    const undoWarning = t('modals.delete.undoWarning');
+    
+    // Combinar los mensajes
+    return (
+      <>
+        {baseMessage} 
+        {warningMessage && (
+          <>
+            <br /><br />
+            {warningMessage}
+          </>
+        )}
+        <br /><br />
+        {undoWarning}
+      </>
+    );
+  };
+
   return (
     <Transition.Root show={isOpen} as={Fragment}>
       <Dialog
@@ -189,15 +172,11 @@ function DeleteModal<T = number, A = unknown>({
                 </div>
                 <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                   <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                    {t(titleKey)}
+                    {getTitle()}
                   </Dialog.Title>
                   <div className="mt-2">
                     <p className="text-sm text-gray-500">
-                      {t(`${i18nKey}.deleteConfirm`, { name: entityName })}
-                      {warningKey && (
-                        <span className="block mt-1">{t(warningKey)}</span>
-                      )}
-                      <span className="block mt-1">{t('modals.delete.undoWarning')}</span>
+                      {getMessage()}
                     </p>
                   </div>
                 </div>
@@ -205,18 +184,18 @@ function DeleteModal<T = number, A = unknown>({
               <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                 <button
                   type="button"
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
                   onClick={handleConfirm}
-                  disabled={isDeleting}
+                  disabled={isLoading}
                 >
-                  {isDeleting ? t('modals.delete.processing') : t('modals.delete.confirmButton')}
+                  {isLoading ? t('modals.delete.processing') : t('modals.delete.confirmButton')}
                 </button>
                 <button
                   type="button"
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
                   onClick={onClose}
                   ref={cancelButtonRef}
-                  disabled={isDeleting}
+                  disabled={isLoading}
                 >
                   {t('modals.delete.cancelButton')}
                 </button>
@@ -227,6 +206,4 @@ function DeleteModal<T = number, A = unknown>({
       </Dialog>
     </Transition.Root>
   );
-}
-
-export default DeleteModal; 
+} 

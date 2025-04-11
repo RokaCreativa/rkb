@@ -18,10 +18,9 @@ import { CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
 // Modificar las importaciones para usar los componentes que realmente existen
 import NewCategoryModal from '../modals/NewCategoryModal';
 import EditCategoryModal from '../modals/EditCategoryModal';
-import DeleteCategoryModal from '../modals/DeleteCategoryModal';
+import DeleteModal from '../modals/DeleteModal';
 import NewSectionModal from '../modals/NewSectionModal';
 import EditSectionModal from '../modals/EditSectionModal';
-import DeleteSectionModal from '../modals/DeleteSectionModal';
 import NewProductModal from '../modals/NewProductModal';
 import SectionList from '@/app/dashboard-v2/components/domain/sections/SectionList';
 
@@ -313,15 +312,15 @@ const CategoryView: React.FC<CategoryViewProps> = ({
       )}
       
       {isDeleteCategoryModalOpen && selectedCategory && (
-        <DeleteCategoryModal
+        <DeleteModal
           isOpen={isDeleteCategoryModalOpen}
           onClose={() => setIsDeleteCategoryModalOpen(false)}
-          categoryId={selectedCategory.category_id}
-          categoryName={selectedCategory.name}
-          onConfirm={() => {
+          entityType="category"
+          entityId={selectedCategory.category_id}
+          entityName={selectedCategory.name}
+          onConfirm={async () => {
             setIsDeleteCategoryModalOpen(false);
             onDeleteCategorySubmit(selectedCategory.category_id);
-            return Promise.resolve();
           }}
         />
       )}
@@ -364,15 +363,15 @@ const CategoryView: React.FC<CategoryViewProps> = ({
       )}
       
       {isDeleteSectionModalOpen && selectedSection && (
-        <DeleteSectionModal
+        <DeleteModal
           isOpen={isDeleteSectionModalOpen}
           onClose={() => setIsDeleteSectionModalOpen(false)}
-          sectionId={selectedSection.section_id}
-          sectionName={selectedSection.name}
-          onConfirm={() => {
+          entityType="section"
+          entityId={selectedSection.section_id}
+          entityName={selectedSection.name}
+          onConfirm={async () => {
             setIsDeleteSectionModalOpen(false);
             onDeleteSectionSubmit(selectedSection.section_id);
-            return Promise.resolve();
           }}
         />
       )}

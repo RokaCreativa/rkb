@@ -446,3 +446,45 @@ Mantén la coherencia en los nombres de archivos y componentes:
 - Mantén la coherencia en el estilo de codificación.
 
 Estos mandamientos son fundamentales para mantener la calidad y consistencia del código en el proyecto Dashboard V2. Seguirlos ayudará a crear un producto más robusto, mantenible y libre de errores.
+
+## 🔄 MANDAMIENTO DE REGISTRO DE CAMBIOS (NUEVO)
+
+> "Documentarás cada cambio significativo con número de versión y referencia"
+
+Este mandamiento establece la obligación de registrar todos los cambios significativos realizados en el proyecto:
+
+1. **SIEMPRE DOCUMENTARÁS** cada mejora, implementación o refactorización completada
+2. **USARÁS NUMERACIÓN SECUENCIAL** en lugar de fechas para el registro (ej: #1, #2, #3)
+3. **INCLUIRÁS VERSIÓN** para cada cambio (ej: v1.0, v1.1) cuando se actualice el mismo cambio
+4. **SERÁS CONCISO** en la descripción, proporcionando un resumen breve pero claro
+5. **INCLUIRÁS REFERENCIA** a documentación detallada cuando sea necesario
+
+### Formato de Registro
+
+```
+#N [vX.Y]: Título del Cambio
+- Breve descripción de lo que se implementó
+- Componentes/archivos principales que fueron modificados
+- [Referencia: nombre_del_archivo_detallado.md]
+```
+
+### Ejemplos
+
+```
+#1 [v1.0]: Implementación del Sistema Drag and Drop
+- Implementación completa del sistema de arrastrar y soltar para categorías, secciones y productos
+- Creación de hook centralizado useDragAndDrop en hooks/ui/
+- [Referencia: manual-drag-and-drop.md]
+
+#2 [v1.0]: Sistema de Modales Unificados
+- Unificación de modales de eliminación (DeleteCategoryModal, DeleteSectionModal, DeleteProductModal)
+- Creación de componente genérico DeleteModal y hook useEntityOperations
+- [Referencia: modales-unificados.md]
+
+#5 [v1.1]: Actualización del Sistema Drag and Drop
+- Mejora en la extracción de IDs para operaciones de arrastrar y soltar
+- Optimización de áreas táctiles para mejor experiencia móvil
+- [Referencia: manual-drag-and-drop.md, plan-optimizacion-movil.md]
+```
+
+**IMPORTANTE**: Este registro debe mantener coherencia con el archivo de historial más detallado (`historial-rokamenu.md`), pero siendo más conciso. El historial completo puede incluir más detalles, mientras que este registro debe ser un resumen ejecutivo de los cambios principales.
