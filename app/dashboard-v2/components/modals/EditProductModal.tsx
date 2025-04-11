@@ -75,7 +75,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   const [editProductImage, setEditProductImage] = useState<File | null>(null);
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false);
-  
+
   // Obtener producto completo desde el estado
   const [currentProduct, setCurrentProduct] = useState<Product | null>(null);
 
@@ -84,7 +84,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
 
   // Usar el hook de productos
   const { updateProduct } = useProductManagement();
-  
+
   // Después definimos onUpdateSuccess para manejar el éxito de la actualización
   const onUpdateSuccess = useCallback(() => {
     if (onSuccess) {
@@ -98,19 +98,19 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
    */
   useEffect(() => {
     if (!product || !selectedSection) return;
-    
+
     // Obtener el producto completo del estado de productos
     const fetchProductDetails = async () => {
       try {
         setIsUpdatingProduct(true); // Mostrar estado de carga
         const productId = product.id;
-        console.log('Intentando obtener detalles del producto:', { 
-          productId, 
+        console.log('Intentando obtener detalles del producto:', {
+          productId,
           productToEdit: product,
           selectedSection: selectedSection
         });
         console.time('fetchProductDetails');
-        
+
         // Usar explícitamente la ruta /api/products/[id]
         const response: Response = await fetch(`/api/products/${productId}?_t=${Date.now()}`);
         console.log('Respuesta API:', { status: response.status, ok: response.ok });
@@ -120,15 +120,15 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
           throw new Error('Error al obtener detalles del producto');
         }
         const productData: Product = await response.json();
-        
+
         console.log('Producto obtenido:', productData);
         setCurrentProduct(productData);
-        
+
         // Establecer valores iniciales
         setEditProductName(productData.name || '');
         setEditProductPrice(productData.price ? productData.price.toString() : '');
         setEditProductDescription(productData.description || '');
-        
+
         if (productData.image) {
           console.log('Imagen del producto:', productData.image);
           // La imagen ya incluye la ruta completa desde la API
@@ -144,7 +144,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         setIsUpdatingProduct(false);
       }
     };
-    
+
     fetchProductDetails();
   }, [product, selectedSection, isOpen]);
 
@@ -156,7 +156,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setEditProductImage(file);
-      
+
       // Crear una vista previa de la imagen
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -180,31 +180,31 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
    */
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedSection) {
       toast.error('No se ha seleccionado ninguna sección');
       return;
     }
-    
+
     if (!product) {
       toast.error('No se ha seleccionado ningún producto para editar');
       return;
     }
-    
+
     if (!editProductName.trim()) {
       toast.error('El nombre del producto es obligatorio');
       return;
     }
-    
+
     setIsUpdatingProduct(true);
-    
+
     try {
       // Identificador único para el toast de carga
       const toastId = "update-product-" + product.id;
-      
+
       // Mostrar indicador de carga
       toast.loading("Actualizando producto...", { id: toastId });
-      
+
       // Crear un objeto FormData para enviar datos e imagen
       const formData = new FormData();
       formData.append('product_id', product.id.toString());
@@ -213,7 +213,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       formData.append('description', editProductDescription || '');
       formData.append('section_id', selectedSection.section_id.toString());
       formData.append('client_id', client?.id.toString() || '');
-      
+
       // Solo agregar la imagen si se ha seleccionado una nueva
       if (editProductImage) {
         formData.append('image', editProductImage);
@@ -224,7 +224,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       }
 
       console.log("🔧 Enviando actualización de producto con ID:", product.id);
-      
+
       // Enviar datos al servidor directamente para tener control total sobre el proceso
       const response = await fetch('/api/products', {
         method: 'PUT',
@@ -235,7 +235,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       if (!response.ok) {
         const errorResponse = await response.text();
         console.error("❌ Error del servidor:", errorResponse);
-        
+
         try {
           const errorData = JSON.parse(errorResponse);
           throw new Error(errorData.message || 'Error al actualizar el producto');
@@ -251,7 +251,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       // Normalizar estado para UI
       const normalizedProduct = {
         ...updatedProduct,
-        status: typeof updatedProduct.status === 'boolean' ? 
+        status: typeof updatedProduct.status === 'boolean' ?
           (updatedProduct.status ? 1 : 0) : Number(updatedProduct.status)
       };
 
@@ -259,29 +259,29 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       setProducts(prevProducts => {
         // Crear una copia del objeto actual
         const updated: Record<string, Product[]> = { ...prevProducts };
-        
+
         // Si tenemos una sección seleccionada, actualizar sus productos
         if (selectedSection && selectedSection.section_id) {
           const sectionId = selectedSection.section_id.toString();
-          
+
           if (!updated[sectionId]) {
             updated[sectionId] = [];
           }
-          
-          updated[sectionId] = updated[sectionId].map((p: Product) => 
+
+          updated[sectionId] = updated[sectionId].map((p: Product) =>
             p.product_id === product.id ? normalizedProduct : p
           );
         }
-        
+
         return updated;
       });
 
       // Toast de éxito
       toast.success("Producto actualizado correctamente", { id: toastId });
-      
+
       // Limpiar formulario y cerrar modal
       handleCloseModal();
-      
+
       // Si hay una función de éxito, ejecutarla
       if (onSuccess) {
         console.log("🔄 Ejecutando onSuccess callback");

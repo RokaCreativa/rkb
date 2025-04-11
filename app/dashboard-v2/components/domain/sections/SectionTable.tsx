@@ -2,7 +2,11 @@
 
 import React from 'react';
 import { Section, Product } from '@/app/types/menu';
-import SectionList from './sections/SectionList';
+import SectionList from './SectionList';
+import { fromMenuSection, fromMenuProduct, adaptDomainSectionToMenu, adaptDomainProductToMenu } from '@/app/dashboard-v2/types/type-adapters';
+import { Section as DomainSection } from '@/app/dashboard-v2/types/domain/section';
+import { Product as DomainProduct } from '@/app/dashboard-v2/types/domain/product';
+import { CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
 
 interface SectionTableProps {
   sections: Section[];
@@ -18,6 +22,9 @@ interface SectionTableProps {
   isUpdatingVisibility: number | null;
   onSectionClick: (sectionId: number) => void;
   handleAddProduct?: (section: Section) => void;
+  onAddProduct: (sectionId: number) => void;
+  onEditSection: (section: Section) => void;
+  onDeleteSection: (section: Section) => void;
   products: Record<string, Product[]>;
   setProducts?: React.Dispatch<React.SetStateAction<Record<string, Product[]>>>;
   onEditProduct?: (product: Product) => void;
@@ -26,9 +33,6 @@ interface SectionTableProps {
   isUpdatingProductVisibility?: number | null;
   categoryId: number;
   categoryName?: string;
-  onAddProduct: (sectionId: number) => void;
-  onEditSection: (section: Section) => void;
-  onDeleteSection: (section: Section) => void;
   isReorderModeActive?: boolean;
   onReorderSection?: (sourceIndex: number, destinationIndex: number) => void;
 }
@@ -62,7 +66,7 @@ export const SectionTable: React.FC<SectionTableProps> = ({
   };
 
   // Adaptador para el reordenamiento de secciones
-  const handleSectionsReorder = async (reorderedSections: Section[]) => {
+  const handleSectionsReorder = async (reorderedSections: DomainSection[]) => {
     if (!onReorderSection) return;
     
     console.log("SectionTable - Recibida solicitud de reordenamiento:", reorderedSections);
@@ -114,24 +118,65 @@ export const SectionTable: React.FC<SectionTableProps> = ({
     normalizedExpandedSections[parseInt(key)] = value;
   });
 
+  // Adaptar los tipos para que sean compatibles
+  const handleEditSection = (section: DomainSection) => {
+    // Convertir de DomainSection a MenuSection para mantener compatibilidad
+    const menuSection = adaptDomainSectionToMenu(section);
+    onEditSection(menuSection);
+  };
+
+  const handleDeleteSection = (section: DomainSection) => {
+    // Convertir de DomainSection a MenuSection para mantener compatibilidad
+    const menuSection = adaptDomainSectionToMenu(section);
+    onDeleteSection(menuSection);
+  };
+
+  const handleEditProduct = (product: CompatibleProduct) => {
+    if (onEditProduct) {
+      // Si es un DomainProduct, convertirlo a MenuProduct
+      if ('image' in product && product.image === undefined) {
+        // Es un DomainProduct, convertirlo a MenuProduct
+        onEditProduct(adaptDomainProductToMenu(product as DomainProduct));
+      } else {
+        // Es ya un MenuProduct
+        onEditProduct(product as Product);
+      }
+    }
+  };
+
+  const handleDeleteProduct = (product: CompatibleProduct) => {
+    if (onDeleteProduct) {
+      // Si es un DomainProduct, convertirlo a MenuProduct
+      if ('image' in product && product.image === undefined) {
+        // Es un DomainProduct, convertirlo a MenuProduct
+        onDeleteProduct(adaptDomainProductToMenu(product as DomainProduct));
+      } else {
+        // Es ya un MenuProduct
+        onDeleteProduct(product as Product);
+      }
+    }
+  };
+
   return (
     <SectionList
-      sections={sections}
+      sections={sections.map(s => fromMenuSection(s) as DomainSection)}
       expandedSections={normalizedExpandedSections}
       onSectionClick={handleSectionClick}
       onToggleSectionVisibility={onToggleVisibility}
-      onEditSection={onEditSection}
-      onDeleteSection={onDeleteSection}
+      onEditSection={handleEditSection}
+      onDeleteSection={handleDeleteSection}
       onAddProduct={onAddProduct}
       products={products}
       onToggleProductVisibility={onToggleProductVisibility}
-      onEditProduct={onEditProduct}
-      onDeleteProduct={onDeleteProduct}
+      onEditProduct={handleEditProduct}
+      onDeleteProduct={handleDeleteProduct}
       isUpdatingVisibility={isUpdatingVisibility}
       isUpdatingProductVisibility={isUpdatingProductVisibility}
       categoryName={categoryName}
       categoryId={categoryId}
-      onSectionsReorder={onReorderSection ? handleSectionsReorder : undefined}
+      onSectionsReorder={onReorderSection ? 
+        (categoryId, sourceIndex, destinationIndex) => onReorderSection(sourceIndex, destinationIndex) 
+        : undefined}
     />
   );
 }; 

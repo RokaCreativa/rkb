@@ -7,9 +7,8 @@
 
 import { Category as MenuCategory, Section as MenuSection, Product as MenuProduct, Client as MenuClient } from '@/app/types/menu';
 import { Product as DomainProduct } from '@/app/dashboard-v2/types/domain/product';
-import { Category as DashboardCategory } from '@/app/dashboard-v2/types/domain/category';
-import { Section as DashboardSection } from '@/app/dashboard-v2/types/domain/section';
-import { Product as DashboardProduct } from '@/app/dashboard-v2/types/domain/product';
+import { Category as DomainCategory } from '@/app/dashboard-v2/types/domain/category';
+import { Section as DomainSection } from '@/app/dashboard-v2/types/domain/section';
 
 // Tipo de producto compatible que puede ser de cualquiera de las dos interfaces
 export type CompatibleProduct = MenuProduct | DomainProduct;
@@ -124,33 +123,33 @@ export function adaptCategories(categories: DashboardCategory[]): MenuCategory[]
 
 export function adaptSections(sections: Record<string, DashboardSection[]>): Record<number, MenuSection[]> {
   const result: Record<number, MenuSection[]> = {};
-  
+
   Object.entries(sections).forEach(([key, sectionArray]) => {
     const numericKey = parseInt(key);
     result[numericKey] = sectionArray.map(adaptSection);
   });
-  
+
   return result;
 }
 
 export function adaptProducts(products: Record<string, DashboardProduct[]>): Record<number, MenuProduct[]> {
   const result: Record<number, MenuProduct[]> = {};
-  
+
   Object.entries(products).forEach(([key, productArray]) => {
     const numericKey = parseInt(key);
     result[numericKey] = productArray.map(adaptProduct);
   });
-  
+
   return result;
 }
 
 // Funciones para la conversión inversa (de menu.ts a tipos inline) - MEJORADAS
 export function fromMenuCategory(menuCategory: MenuCategory | Partial<MenuCategory>): DashboardCategory {
   // Manejar el caso de propiedad image que es string | null en MenuCategory pero string en DashboardCategory
-  const imageValue = menuCategory.image === null || menuCategory.image === undefined 
+  const imageValue = menuCategory.image === null || menuCategory.image === undefined
     ? '' // Convertir null/undefined a string vacía para compatibilidad
     : menuCategory.image;
-    
+
   return {
     category_id: (menuCategory as any).category_id || (menuCategory as any).id || 0,
     client_id: menuCategory.client_id || 0,
@@ -166,10 +165,10 @@ export function fromMenuCategory(menuCategory: MenuCategory | Partial<MenuCatego
 
 export function fromMenuSection(menuSection: MenuSection | Partial<MenuSection>): DashboardSection {
   // Manejar el caso de propiedad image que es string | null en MenuSection pero string en DashboardSection
-  const imageValue = menuSection.image === null || menuSection.image === undefined 
+  const imageValue = menuSection.image === null || menuSection.image === undefined
     ? '' // Convertir null/undefined a string vacía para compatibilidad
     : menuSection.image;
-    
+
   return {
     section_id: (menuSection as any).section_id || (menuSection as any).id || 0,
     category_id: menuSection.category_id || 0,
@@ -180,16 +179,21 @@ export function fromMenuSection(menuSection: MenuSection | Partial<MenuSection>)
     image: imageValue,
     products_count: (menuSection as any).products_count || 0,
     visible_products_count: (menuSection as any).visible_products_count || 0,
-    description: (menuSection as any).description || ''
+    description: ''  // Se agrega como campo vacío para evitar undefined
   };
 }
 
 export function fromMenuProduct(menuProduct: MenuProduct | Partial<MenuProduct>): DashboardProduct {
   // Manejar el caso de propiedad image que es string | null en MenuProduct pero string en DashboardProduct
-  const imageValue = menuProduct.image === null || menuProduct.image === undefined 
+  const imageValue = menuProduct.image === null || menuProduct.image === undefined
     ? '' // Convertir null/undefined a string vacía para compatibilidad
     : menuProduct.image;
-    
+
+  // Convertir price de string a number
+  const priceValue = typeof menuProduct.price === 'string' 
+    ? parseFloat(menuProduct.price || '0') 
+    : (menuProduct.price || 0);
+
   return {
     product_id: (menuProduct as any).product_id || (menuProduct as any).id || 0,
     section_id: menuProduct.section_id || 0,
@@ -197,9 +201,9 @@ export function fromMenuProduct(menuProduct: MenuProduct | Partial<MenuProduct>)
     name: menuProduct.name || '',
     display_order: menuProduct.display_order || 0,
     status: menuProduct.status || 0,
-    price: typeof menuProduct.price === 'string' ? parseFloat(menuProduct.price || '0') : (menuProduct.price || 0),
+    price: priceValue,
     image: imageValue,
-    description: menuProduct.description || ''
+    description: menuProduct.description || ''  // Garantizar que nunca sea undefined
   };
 }
 
@@ -236,23 +240,23 @@ export function toPreviewCategories(categories: DashboardCategory[]): any[] {
 
 export function toPreviewSections(sections: Record<string, DashboardSection[]>): Record<number, any[]> {
   const result: Record<number, any[]> = {};
-  
+
   Object.entries(sections).forEach(([key, sectionArray]) => {
     const numericKey = parseInt(key);
     result[numericKey] = sectionArray.map(toPreviewSection);
   });
-  
+
   return result;
 }
 
 export function toPreviewProducts(products: Record<string, DashboardProduct[]>): Record<number, any[]> {
   const result: Record<number, any[]> = {};
-  
+
   Object.entries(products).forEach(([key, productArray]) => {
     const numericKey = parseInt(key);
     result[numericKey] = productArray.map(toPreviewProduct);
   });
-  
+
   return result;
 }
 
@@ -263,21 +267,21 @@ export function convertCategoriesToDashboard(categories: MenuCategory[]): Dashbo
 
 export function convertSectionsToDashboard(sections: Record<string, MenuSection[]>): Record<string, DashboardSection[]> {
   const result: Record<string, DashboardSection[]> = {};
-  
+
   Object.entries(sections).forEach(([key, sectionArray]) => {
     result[key] = sectionArray.map(section => fromMenuSection(section));
   });
-  
+
   return result;
 }
 
 export function convertProductsToDashboard(products: Record<string, MenuProduct[]>): Record<string, DashboardProduct[]> {
   const result: Record<string, DashboardProduct[]> = {};
-  
+
   Object.entries(products).forEach(([key, productArray]) => {
     result[key] = productArray.map(product => fromMenuProduct(product));
   });
-  
+
   return result;
 }
 
@@ -288,7 +292,7 @@ export function convertProductsToDashboard(products: Record<string, MenuProduct[
  * @param domainCategory Categoría del dominio
  * @returns Categoría en formato menu.ts
  */
-export function adaptDomainCategoryToMenu(domainCategory: import('./domain/category').Category): import('@/app/types/menu').Category {
+export function adaptDomainCategoryToMenu(domainCategory: DomainCategory): MenuCategory {
   return {
     category_id: domainCategory.category_id,
     name: domainCategory.name,
@@ -306,7 +310,7 @@ export function adaptDomainCategoryToMenu(domainCategory: import('./domain/categ
  * @param domainCategories Categorías del dominio
  * @returns Categorías en formato menu.ts
  */
-export function adaptDomainCategoriesToMenu(domainCategories: import('./domain/category').Category[]): import('@/app/types/menu').Category[] {
+export function adaptDomainCategoriesToMenu(domainCategories: DomainCategory[]): MenuCategory[] {
   return domainCategories.map(adaptDomainCategoryToMenu);
 }
 
@@ -315,7 +319,7 @@ export function adaptDomainCategoriesToMenu(domainCategories: import('./domain/c
  * @param domainSection Sección del dominio
  * @returns Sección en formato menu.ts
  */
-export function adaptDomainSectionToMenu(domainSection: import('./domain/section').Section): import('@/app/types/menu').Section {
+export function adaptDomainSectionToMenu(domainSection: DomainSection): MenuSection {
   return {
     section_id: domainSection.section_id,
     name: domainSection.name,
@@ -336,13 +340,13 @@ export function adaptDomainSectionToMenu(domainSection: import('./domain/section
  * @param domainSections Mapa de secciones del dominio
  * @returns Mapa de secciones en formato menu.ts
  */
-export function adaptDomainSectionsToMenu(domainSections: Record<string, import('./domain/section').Section[]>): Record<string, import('@/app/types/menu').Section[]> {
-  const result: Record<string, import('@/app/types/menu').Section[]> = {};
-  
+export function adaptDomainSectionsToMenu(domainSections: Record<string, DomainSection[]>): Record<string, MenuSection[]> {
+  const result: Record<string, MenuSection[]> = {};
+
   Object.entries(domainSections).forEach(([key, sectionArray]) => {
     result[key] = sectionArray.map(adaptDomainSectionToMenu);
   });
-  
+
   return result;
 }
 
@@ -351,7 +355,7 @@ export function adaptDomainSectionsToMenu(domainSections: Record<string, import(
  * @param domainProduct Producto del dominio
  * @returns Producto en formato menu.ts
  */
-export function adaptDomainProductToMenu(domainProduct: import('./domain/product').Product): import('@/app/types/menu').Product {
+export function adaptDomainProductToMenu(domainProduct: DomainProduct): MenuProduct {
   return {
     product_id: domainProduct.product_id,
     name: domainProduct.name,
@@ -370,12 +374,12 @@ export function adaptDomainProductToMenu(domainProduct: import('./domain/product
  * @param domainProducts Mapa de productos del dominio
  * @returns Mapa de productos en formato menu.ts
  */
-export function adaptDomainProductsToMenu(domainProducts: Record<string, import('./domain/product').Product[]>): Record<string, import('@/app/types/menu').Product[]> {
-  const result: Record<string, import('@/app/types/menu').Product[]> = {};
-  
+export function adaptDomainProductsToMenu(domainProducts: Record<string, DomainProduct[]>): Record<string, MenuProduct[]> {
+  const result: Record<string, MenuProduct[]> = {};
+
   Object.entries(domainProducts).forEach(([key, productArray]) => {
     result[key] = productArray.map(adaptDomainProductToMenu);
   });
-  
+
   return result;
 } 

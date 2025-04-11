@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, ReactNode } from 'react';
-import { useDashboardState } from '../hooks/useDashboardState';
+import useDashboardState from '../../hooks/core/useDashboardState';
 
 // Crear el contexto del dashboard
 export const DashboardContext = createContext<ReturnType<typeof useDashboardState> | undefined>(undefined);
