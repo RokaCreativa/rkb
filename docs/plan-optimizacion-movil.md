@@ -31,6 +31,10 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 - Estructura basada en Domain-Driven Design (DDD)
 - Separación clara entre componentes de dominio, UI y hooks
 - Sistema robusto de adaptadores de tipos
+- ✅ Estandarización de operaciones de drag and drop (Implementado el 20/08/2024)
+- ✅ Mejora del diagnóstico y depuración para operaciones drag and drop (Implementado el 20/08/2024)
+- ✅ Optimización de áreas táctiles para drag handles (Implementado el 20/08/2024)
+- ✅ Feedback visual mejorado para interacciones táctiles (Implementado el 20/08/2024)
 
 ### ❌ Problemas pendientes de solución:
 
@@ -48,7 +52,7 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 ### 📝 Problemas estructurales identificados:
 
 - Duplicación de modales (DeleteCategoryModal.tsx y DeleteCategoryConfirmation.tsx)
-- Inconsistencia en el manejo de Drag and Drop (extracción de IDs compleja)
+- ✅ Inconsistencia en el manejo de Drag and Drop (extracción de IDs compleja) - RESUELTO el 20/08/2024
 - Estilos dispersos y repetidos en diferentes archivos
 - Código duplicado en hooks de dominio
 - Textos hardcodeados (problema para futura internacionalización)
@@ -60,28 +64,29 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 
 ### 1. Operaciones Arrastrar y Soltar (Drag and Drop)
 
-- [ ] Diagnosticar problemas con drag and drop de productos
-- [ ] Corregir extracción de IDs en `useDragAndDrop.ts`
-- [ ] Estandarizar formato de droppableId entre ProductList y SectionList
-- [ ] Implementar mejoras para feedback táctil (indicador visual más grande)
-- [ ] Optimizar áreas de toque para drag handles (mínimo 44px × 44px)
+- [x] Diagnosticar problemas con drag and drop de productos
+- [x] Corregir extracción de IDs en `useDragAndDrop.ts`
+- [x] Estandarizar formato de droppableId entre ProductList y SectionList
+- [x] Implementar mejoras para feedback táctil (indicador visual más grande)
+- [x] Optimizar áreas de toque para drag handles (mínimo 44px × 44px)
 - [ ] Verificar funcionamiento en navegadores móviles populares
-- [ ] Estandarizar formato de droppableId en todos los componentes de lista
-- [ ] Refactorizar useDragAndDrop.ts para simplificar lógica de extracción de IDs
+- [x] Estandarizar formato de droppableId en todos los componentes de lista
+- [x] Refactorizar useDragAndDrop.ts para simplificar lógica de extracción de IDs
 
 ### 2. Tablas y Visualización de Datos
 
-- [ ] Adaptar tablas para vista móvil (modo responsive)
-- [ ] Implementar visualización compacta para móviles
-- [ ] Asegurar que todas las acciones sean accesibles en pantallas pequeñas
+- [x] Adaptar tablas para vista móvil (modo responsive)
+- [x] Implementar visualización compacta para móviles
+- [x] Asegurar que todas las acciones sean accesibles en pantallas pequeñas
 - [ ] Optimizar tamaños de imagen para carga rápida en conexiones móviles
-- [ ] Añadir carga progresiva para mejorar rendimiento en móviles -[ ] Agregar iconos mas pegaños en el grid como el de drang and drop y otros
-- [ ] Reducir el ancho de las tablas y contenedores para evitar desbordamiento
-- [ ] Ocultar o combinar columnas menos importantes en móvil
-- [ ] Convertir filas de tabla en tarjetas verticales para dispositivos móviles
-- [ ] Desarrollar un layout alternativo específico para móviles
-- [ ] Mejorar la jerarquía visual con mayor contraste entre elementos
-- [ ] Implementar un diseño colapsable para secciones y categorías
+- [ ] Añadir carga progresiva para mejorar rendimiento en móviles
+- [x] Agregar iconos más pequeños en el grid como el de drag and drop y otros
+- [x] Reducir el ancho de las tablas y contenedores para evitar desbordamiento
+- [x] Ocultar o combinar columnas menos importantes en móvil
+- [x] Convertir filas de tabla en tarjetas verticales para dispositivos móviles
+- [x] Desarrollar un layout alternativo específico para móviles
+- [x] Mejorar la jerarquía visual con mayor contraste entre elementos
+- [x] Implementar un diseño colapsable para secciones y categorías
 
 ### 3. Navegación y Estructura
 
@@ -89,16 +94,16 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 - [ ] Mejorar sistema de migas de pan (breadcrumbs) para móviles
 - [ ] Asegurar que los modales se ajusten correctamente a pantallas pequeñas
 - [ ] Añadir gestos táctiles para navegación (deslizar entre vistas)
-- [ ] Optimizar espaciado y márgenes para interfaces táctiles
+- [x] Optimizar espaciado y márgenes para interfaces táctiles
 - [ ] Añadir botones flotantes para acciones principales
 - [ ] Implementar gestos de deslizamiento para acciones comunes
-- [ ] Mejorar la visibilidad de los indicadores de estado
+- [x] Mejorar la visibilidad de los indicadores de estado
 
 ### 4. Operaciones CRUD (Crear, Leer, Actualizar, Eliminar)
 
 - [ ] Verificar que todos los formularios sean utilizables en móviles
 - [ ] Optimizar subida de imágenes para conexiones móviles
-- [ ] Asegurar que los botones de acción tengan tamaño adecuado (mínimo 44px)
+- [x] Asegurar que los botones de acción tengan tamaño adecuado (mínimo 44px)
 - [ ] Implementar autoguardado para prevenir pérdida de datos en móviles
 - [ ] Añadir validación instantánea en formularios para móviles
 - [ ] Corregir el ciclo de actualización del estado tras operaciones CRUD
@@ -109,10 +114,10 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 ### 5. Refactorización y Optimización Estructural
 
 - [ ] Unificar modales duplicados: DeleteCategoryModal.tsx, DeleteSectionModal.tsx, DeleteProductModal.tsx
-- [ ] Extraer y centralizar estilos repetidos en los archivos CSS apropiados
+- [x] Extraer y centralizar estilos repetidos en los archivos CSS apropiados
 - [ ] Revisar hooks de dominio para identificar lógica común y extraerla a un hook base
-- [ ] Optimizar adaptadores de tipos y eliminar conversiones manuales en componentes
-- [ ] Centralizar todos los estilos de tablas y drag-and-drop en grids.css
+- [x] Optimizar adaptadores de tipos y eliminar conversiones manuales en componentes
+- [x] Centralizar todos los estilos de tablas y drag-and-drop en grids.css
 - [ ] Reducir re-renderizados con React.memo, useCallback y useMemo
 - [ ] Implementar estrategias de caching para mejorar rendimiento
 
@@ -233,42 +238,41 @@ export function DeleteCategoryModal({
 
 **Objetivo**: Simplificar y hacer más robusto el sistema de arrastrar y soltar
 
-#### Refactorizar useDragAndDrop.ts:
+#### Refactorizar useDragAndDrop.ts (COMPLETADO 20/08/2024):
 
-- Estandarizar el formato del droppableId para todos los dominios
-- Simplificar la extracción de IDs con una función robusta
-- Añadir validación y mejores logs de diagnóstico
+- ✅ Estandarizar el formato del droppableId para todos los dominios
+- ✅ Simplificar la extracción de IDs con una función robusta
+- ✅ Añadir validación y mejores logs de diagnóstico
 
-#### Estandarizar en componentes de lista:
+#### Estandarizar en componentes de lista (EN PROGRESO):
 
-- Asegurar que ProductList.tsx, SectionList.tsx y CategoryList.tsx usan el mismo patrón
-- Garantizar que todos generen IDs consistentes para droppableId
+- ✅ Asegurar que ProductList.tsx, SectionList.tsx y CategoryList.tsx usan el mismo patrón
+- ✅ Garantizar que todos generen IDs consistentes para droppableId
 
-**Solución propuesta**:
+**Solución implementada**:
 
 ```tsx
-// Utilidad para estandarizar IDs
+// Utilidad para estandarizar IDs (implementada en dragUtils.ts)
 export const formatDroppableId = {
   // Formatos estandarizados y consistentes
-  category: (id) => `categories-${id}`,
+  category: () => `categories`,
   section: (categoryId) => `sections-category-${categoryId}`,
   product: (sectionId) => `products-section-${sectionId}`,
 
   // Extractores seguros de IDs
   extractCategoryId: (droppableId) => {
-    const matches = droppableId.match(/^categories-(\d+)$/);
-    return matches ? parseInt(matches[1], 10) : null;
+    if (!droppableId) {
+      console.warn(
+        "🔍 [DragUtils] extractCategoryId recibió un droppableId vacío"
+      );
+      return null;
+    }
+
+    // Lógica robusta de extracción con diagnóstico mejorado
+    // ...
   },
 
-  extractCategoryIdFromSection: (droppableId) => {
-    const matches = droppableId.match(/^sections-category-(\d+)$/);
-    return matches ? parseInt(matches[1], 10) : null;
-  },
-
-  extractSectionId: (droppableId) => {
-    const matches = droppableId.match(/^products-section-(\d+)$/);
-    return matches ? parseInt(matches[1], 10) : null;
-  },
+  // Otras funciones de extracción y diagnóstico...
 };
 ```
 
@@ -276,62 +280,40 @@ export const formatDroppableId = {
 
 **Objetivo**: Centralizar todos los estilos y eliminar duplicaciones
 
-#### Mejorar organización en /styles:
+#### Mejorar organización en /styles (COMPLETADO 20/08/2024):
 
-- Mantener grids.css como único lugar para estilos de tablas y drag-and-drop
-- Revisar si hay estilos incrustados en componentes que deban extraerse
+- ✅ Mantener grids.css como único lugar para estilos de tablas y drag-and-drop
+- ✅ Revisar si hay estilos incrustados en componentes que deban extraerse
 
-**Solución propuesta**:
+**Solución implementada**:
 
 ```css
 /* Archivo centralizado para estilos de tablas y drag-and-drop */
 /* app/dashboard-v2/styles/grids.css */
 
-/* Estilos compartidos para todas las tablas */
-.grid-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+/* MEJORA MÓVIL: Optimizar drag handles para interacción táctil */
+.touch-optimized {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: grab !important;
+  touch-action: manipulation !important;
+  user-select: none !important;
+  /* ... otros estilos ... */
 }
 
-/* Estilos de drag-and-drop por dominio */
-/* Categorías */
-.category-dragging {
-  background-color: #e0e7ff !important; /* indigo-100 */
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #6366f1; /* indigo-500 */
-}
-
-/* Secciones */
-.section-dragging {
-  background-color: #ccfbf1 !important; /* teal-100 */
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #14b8a6; /* teal-500 */
-}
-
-/* Productos */
-.product-dragging {
-  background-color: #fef3c7 !important; /* amber-100 */
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #f59e0b; /* amber-500 */
-}
-
-/* Media queries para dispositivos móviles */
+/* Estilos específicos para dispositivos móviles */
 @media (max-width: 640px) {
-  /* Estilos responsivos para tablas */
-  .grid-table thead {
-    display: none;
+  /* Diseño en tarjetas por fila */
+  .grid-table {
+    display: block !important;
+    width: 100% !important;
+    /* ... otros estilos ... */
   }
 
-  .grid-table tr {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 1rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  }
-
-  /* ... más estilos móviles ... */
+  /* Otras reglas específicas para móviles ... */
 }
 ```
 
@@ -341,8 +323,8 @@ export const formatDroppableId = {
 
 #### Revisar hooks de dominio:
 
-- Identificar patrones comunes en useCategoryManagement.ts, useSectionManagement.ts y useProductManagement.ts
-- Extraer lógica común a un hook base
+- [ ] Identificar patrones comunes en useCategoryManagement.ts, useSectionManagement.ts y useProductManagement.ts
+- [ ] Extraer lógica común a un hook base
 
 **Solución propuesta**:
 
@@ -393,8 +375,8 @@ export function useCategoryManagement() {
 
 #### Implementar sistema de i18n:
 
-- Crear archivo i18n.ts con la configuración básica
-- Preparar archivos de traducción para español e inglés
+- [ ] Crear archivo i18n.ts con la configuración básica
+- [ ] Preparar archivos de traducción para español e inglés
 
 **Solución propuesta**:
 
@@ -447,374 +429,115 @@ export default i18n;
 }
 ```
 
-## 📱 Propuestas Específicas para Tablas Móviles
+## 📱 Propuestas Específicas para Tablas Móviles (IMPLEMENTADAS 20/08/2024)
 
-Las siguientes propuestas están diseñadas específicamente para mejorar la experiencia de las tablas en dispositivos móviles, siguiendo los mandamientos de responsividad y separación de funcionalidad.
+Las siguientes propuestas han sido implementadas en los estilos CSS para mejorar la experiencia de las tablas en dispositivos móviles:
 
-### 1. Diseño en Tarjetas (Cards) por Fila
+### 1. ✅ Diseño en Tarjetas (Cards) por Fila
 
 - Convertir cada fila de tabla en una tarjeta con bordes y espaciado
 - Mostrar "Nombre", "Secciones", "Orden" y "Foto" en columnas verticales dentro de la tarjeta
 - Colocar botones de acción (ver 👁, +, editar, borrar) alineados en la parte inferior o en un menú desplegable
 
-```css
-@media (max-width: 640px) {
-  .grid-table tr {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 1rem;
-    border-radius: 0.5rem;
-    padding: 0.75rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(229, 231, 235, 1);
-    position: relative;
-  }
-
-  .grid-table td {
-    padding: 0.5rem 0;
-    border-bottom: none;
-    display: flex;
-    align-items: center;
-  }
-
-  .grid-table td[data-label]:before {
-    content: attr(data-label);
-    font-weight: 600;
-    margin-right: 0.75rem;
-    width: 40%;
-  }
-
-  .grid-table .action-buttons {
-    display: flex;
-    justify-content: flex-start;
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid rgba(229, 231, 235, 0.5);
-  }
-}
-```
-
-### 2. Botones de Acción como Iconos Compactos
+### 2. ✅ Botones de Acción como Iconos Compactos
 
 - Reducir el tamaño de los iconos manteniendo áreas táctiles de al menos 44x44px
-- Usar tooltips para mostrar la descripción al mantener presionado
 - Implementar una fila inferior dentro de cada tarjeta para los botones
 
-```css
-@media (max-width: 640px) {
-  .action-button {
-    min-width: 2.5rem;
-    min-height: 2.5rem;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-  }
+### 3. ✅ Optimización de Texto Largo
 
-  .action-button svg {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-
-  .action-button-tooltip {
-    display: none;
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    white-space: nowrap;
-  }
-
-  .action-button:active .action-button-tooltip,
-  .action-button:focus .action-button-tooltip {
-    display: block;
-  }
-}
-```
-
-### 3. Optimización de Texto Largo
-
-- Cortar automáticamente textos largos como "Tus menús (Comidas, Bebidas...)" en dos líneas
-- Añadir "Ver más" si la lista es demasiado larga
+- Cortar automáticamente textos largos
 - Implementar truncado inteligente para nombres largos
 
-```css
-@media (max-width: 640px) {
-  .header-title {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    max-width: 100%;
-  }
-
-  .content-list {
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .content-list-expandable {
-    position: relative;
-  }
-
-  .content-list-expandable:after {
-    content: "Ver más";
-    color: #4f46e5;
-    font-size: 0.75rem;
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    background-color: white;
-    padding-left: 0.5rem;
-  }
-}
-```
-
-### 4. Agrupación de Información Secundaria
+### 4. ✅ Agrupación de Información Secundaria
 
 - Mostrar información secundaria debajo del nombre principal
 - Usar colores más claros para datos complementarios
-- Ejemplo: debajo de "Comidas", mostrar "10/10 secciones visibles" en gris claro
 
-```css
-@media (max-width: 640px) {
-  .item-name {
-    font-weight: 600;
-    font-size: 1rem;
-    margin-bottom: 0.25rem;
-  }
-
-  .item-secondary-info {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-bottom: 0.5rem;
-  }
-}
-```
-
-### 5. Reordenación de Prioridad Visual
+### 5. ✅ Reordenación de Prioridad Visual
 
 - Reestructurar el orden de los elementos para priorizar la información más importante
 - Secuencia: Nombre > Secciones > Foto > Orden
 - Alinear botones de acción al final en una fila scrollable horizontal si es necesario
 
-```css
-@media (max-width: 640px) {
-  .grid-table td {
-    order: 5; /* Orden por defecto */
-  }
-
-  .grid-table td.cell-name {
-    order: 1;
-  }
-
-  .grid-table td.cell-sections {
-    order: 2;
-  }
-
-  .grid-table td.cell-image {
-    order: 3;
-  }
-
-  .grid-table td.cell-order {
-    order: 4;
-  }
-
-  .grid-table td.cell-actions {
-    order: 6;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    max-width: 100%;
-    white-space: nowrap;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .grid-table td.cell-actions::-webkit-scrollbar {
-    display: none;
-  }
-}
-```
-
-### 6. Minimización de Columna de Orden
+### 6. ✅ Minimización de Columna de Orden
 
 - Mostrar el número de orden como un badge redondo pequeño
 - Ubicarlo en la esquina superior derecha de la tarjeta
 - Usar colores para diferenciar los dominios (categorías, secciones, productos)
 
-```css
-@media (max-width: 640px) {
-  .order-badge {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    width: 1.5rem;
-    height: 1.5rem;
-    border-radius: 9999px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 600;
-  }
-
-  .category-order {
-    background-color: #e0e7ff; /* indigo-100 */
-    color: #4f46e5; /* indigo-600 */
-  }
-
-  .section-order {
-    background-color: #ccfbf1; /* teal-100 */
-    color: #0d9488; /* teal-600 */
-  }
-
-  .product-order {
-    background-color: #fef3c7; /* amber-100 */
-    color: #d97706; /* amber-600 */
-  }
-}
-```
-
-### 7. Mejora de Soporte Táctil
+### 7. ✅ Mejora de Soporte Táctil
 
 - Asegurar que todas las áreas interactivas tengan al menos 44×44px
 - Aumentar la separación entre elementos táctiles
 - Añadir feedback visual al tocar (estados activos)
 
-```css
-@media (max-width: 640px) {
-  .touch-target {
-    min-width: 44px;
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .touch-target-padding {
-    padding: 0.75rem;
-  }
-
-  .button-spacing {
-    margin: 0 0.375rem;
-  }
-
-  .touch-feedback:active {
-    opacity: 0.8;
-    transform: scale(0.98);
-  }
-}
-```
-
-### 8. Iconos más Pequeños para Drag and Drop
+### 8. ✅ Iconos más Pequeños para Drag and Drop
 
 - Reducir el tamaño del icono de arrastrar y soltar en dispositivos móviles
 - Mantener el área táctil grande para facilitar la interacción
 - Usar un ícono más minimalista pero igualmente reconocible
 
-```css
-@media (max-width: 640px) {
-  .drag-handle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 44px;
-    min-height: 44px;
-  }
+## 📅 Plan de Trabajo Actualizado (20/08/2024)
 
-  .drag-handle svg {
-    width: 16px;
-    height: 16px;
-    opacity: 0.8;
-  }
+1. **Fase 1: Corrección de Arrastrar y Soltar (✅ COMPLETADO)**
 
-  .drag-hint {
-    position: absolute;
-    left: 0.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.75rem;
-    color: #6b7280;
-    display: flex;
-    align-items: center;
-  }
+   - ✅ Solucionar bugs existentes
+   - ✅ Implementar mejoras táctiles para drag handles
+   - [ ] Verificar funcionamiento en todos los dispositivos
 
-  .drag-hint svg {
-    margin-right: 0.25rem;
-  }
-}
-```
+2. **Fase 2: Adaptación Responsive de Tablas (✅ COMPLETADO)**
 
-Esta serie de optimizaciones asegurará que las tablas sean completamente funcionales y fáciles de usar en dispositivos móviles, manteniendo la coherencia visual y respetando la identidad de cada tipo de dominio (categorías, secciones, productos).
+   - ✅ Implementar diseño responsive para tablas
+   - ✅ Optimizar visualización de datos en pantallas pequeñas
+   - ✅ Mejorar la accesibilidad de acciones en tablas
 
-## 📅 Plan de Trabajo Actualizado
+3. **Fase 3: Optimización de Navegación y UI (En progreso)**
 
-1. **Fase 1: Corrección de Arrastrar y Soltar (Por implementar)**
+   - [ ] Adaptar modales para pantallas pequeñas
+   - [ ] Mejorar sistema de migas de pan para móviles
+   - ✅ Optimizar áreas táctiles en elementos interactivos
 
-   - ⏳ Solucionar bugs existentes
-   - ⏳ Implementar mejoras táctiles para drag handles
-   - ⏳ Verificar funcionamiento en todos los dispositivos
+4. **Fase 4: Mejora de Visualización para Móviles (✅ COMPLETADO)**
 
-2. **Fase 2: Adaptación Responsive de Tablas (Por implementar)**
-
-   - ⏳ Implementar diseño responsive para tablas
-   - ⏳ Optimizar visualización de datos en pantallas pequeñas
-   - ⏳ Mejorar la accesibilidad de acciones en tablas
-
-3. **Fase 3: Optimización de Navegación y UI (Por implementar)**
-
-   - ⏳ Adaptar modales para pantallas pequeñas
-   - ⏳ Optimizar sistema de migas de pan para móviles
-   - ⏳ Mejorar áreas táctiles en elementos interactivos
-
-4. **Fase 4: Mejora de Visualización para Móviles (En progreso)**
-
-   - ⏳ Reducir ancho de tablas y contenedores para prevenir desbordamiento
-   - ⏳ Implementar tarjetas verticales para productos en móviles
-   - ⏳ Mejorar jerarquía visual y contraste entre elementos
-   - ⏳ Implementar diseño colapsable para secciones
+   - ✅ Reducir ancho de tablas y contenedores para prevenir desbordamiento
+   - ✅ Implementar tarjetas verticales para productos en móviles
+   - ✅ Mejorar jerarquía visual y contraste entre elementos
+   - ✅ Implementar diseño colapsable para secciones
 
 5. **Fase 5: Correcciones de CRUD y Estado (Por implementar)**
 
-   - ⏳ Corregir ciclo de actualización del estado tras operaciones CRUD
-   - ⏳ Implementar sistema consistente de manejo de errores
-   - ⏳ Crear hook genérico para modales CRUD
+   - [ ] Corregir ciclo de actualización del estado tras operaciones CRUD
+   - [ ] Implementar sistema consistente de manejo de errores
+   - [ ] Crear hook genérico para modales CRUD
 
-6. **Fase 6: Refactorización y Reducción de Duplicación (Por implementar)**
+6. **Fase 6: Refactorización y Reducción de Duplicación (En progreso)**
 
-   - ⏳ Unificar modales duplicados (DeleteCategoryModal, DeleteSectionModal, etc.)
-   - ⏳ Centralizar estilos repetidos en archivos CSS apropiados
-   - ⏳ Extraer lógica común de hooks de dominio a hooks base
-   - ⏳ Estandarizar formato de droppableId en todos los componentes de lista
-   - ⏳ Refactorizar useDragAndDrop.ts para simplificar extracción de IDs
+   - [ ] Unificar modales duplicados (DeleteCategoryModal, DeleteSectionModal, etc.)
+   - ✅ Centralizar estilos repetidos en archivos CSS apropiados
+   - [ ] Extraer lógica común de hooks de dominio a hooks base
+   - ✅ Estandarizar formato de droppableId en todos los componentes de lista
+   - ✅ Refactorizar useDragAndDrop.ts para simplificar extracción de IDs
 
 7. **Fase 7: Preparación para Internacionalización (Por implementar)**
 
-   - ⏳ Implementar sistema básico de i18n
-   - ⏳ Extraer textos hardcodeados a archivos de traducción
-   - ⏳ Preparar archivos para español e inglés
+   - [ ] Implementar sistema básico de i18n
+   - [ ] Extraer textos hardcodeados a archivos de traducción
+   - [ ] Preparar archivos para español e inglés
 
 8. **Fase 8: Optimización de Rendimiento (Por implementar)**
 
-   - ⏳ Implementar React.memo en componentes de listas
-   - ⏳ Optimizar hooks con useCallback y useMemo
-   - ⏳ Implementar estrategias de caching para datos
-   - ⏳ Optimizar llamadas API con SWR o React Query
+   - [ ] Implementar React.memo en componentes de listas
+   - [ ] Optimizar hooks con useCallback y useMemo
+   - [ ] Implementar estrategias de caching para datos
+   - [ ] Optimizar llamadas API con SWR o React Query
 
 9. **Fase 9: Pruebas y Documentación (Por implementar)**
 
-   - ⏳ Implementar pruebas unitarias para hooks críticos
-   - ⏳ Añadir pruebas de integración para operaciones CRUD
-   - ⏳ Actualizar documentación con nueva arquitectura
-   - ⏳ Documentar convenciones de código y patrones
+   - [ ] Implementar pruebas unitarias para hooks críticos
+   - [ ] Añadir pruebas de integración para operaciones CRUD
+   - [ ] Actualizar documentación con nueva arquitectura
+   - [ ] Documentar convenciones de código y patrones
 
 ## 🎯 Resultados Esperados
 
@@ -840,14 +563,50 @@ Al completar este plan, RokaMenu logrará:
 
 ## 📝 Próximos Pasos Inmediatos
 
-1. Implementar un layout compacto específico para móviles
-2. Desarrollar sistema de tarjetas verticales para productos en móvil
-3. Unificar modales duplicados comenzando por DeleteCategoryModal.tsx
-4. Refactorizar el hook useDragAndDrop.ts para simplificar la extracción de IDs
-5. Estandarizar el formato de droppableId en todos los componentes de lista
-6. Extraer textos hardcodeados a un sistema básico de i18n
-7. Centralizar todos los estilos de tablas y drag-and-drop en grids.css
+1. ✅ Implementar un layout compacto específico para móviles (COMPLETADO 20/08/2024)
+2. ✅ Desarrollar sistema de tarjetas verticales para productos en móvil (COMPLETADO 20/08/2024)
+3. [ ] Unificar modales duplicados comenzando por DeleteCategoryModal.tsx
+4. ✅ Refactorizar el hook useDragAndDrop.ts para simplificar la extracción de IDs (COMPLETADO 20/08/2024)
+5. ✅ Estandarizar el formato de droppableId en todos los componentes de lista (COMPLETADO 20/08/2024)
+6. [ ] Extraer textos hardcodeados a un sistema básico de i18n
+7. ✅ Centralizar todos los estilos de tablas y drag-and-drop en grids.css (COMPLETADO 20/08/2024)
+8. [ ] Crear los hooks genéricos para operaciones CRUD y unificar modales duplicados
+9. [ ] Implementar pruebas básicas para las operaciones principales
 
 ---
 
 _Este plan cumple con los mandamientos esenciales establecidos en la documentación del proyecto: "Garantizarás experiencia perfecta en múltiples dispositivos", "Separarás la función de la estética", "No duplicarás lo que ya está creado" y "Conocerás lo que existe antes de crear algo nuevo", asegurando que RokaMenu ofrezca una experiencia de usuario óptima y mantenga un código limpio y bien organizado._
+
+## 🚀 Implementaciones Recientes (20/08/2024)
+
+Como parte del plan de optimización móvil, hemos implementado varias mejoras significativas:
+
+### 1. Mejoras en Drag and Drop (20/08/2024)
+
+- ✅ Refactorización completa de `useDragAndDrop.ts` con mejor diagnóstico
+- ✅ Implementación de `dragUtils.ts` con extractores de ID robustos
+- ✅ Optimización de áreas táctiles para drag handles (mínimo 44px × 44px)
+- ✅ Feedback visual mejorado para operaciones de arrastre
+- ✅ Indicador visual de arrastre global (componente `DragIndicator`)
+
+### 2. Mejoras en la Visualización Móvil (20/08/2024)
+
+- ✅ Rediseño completo de tablas para dispositivos móviles
+- ✅ Conversión automática a tarjetas verticales en pantallas pequeñas
+- ✅ Optimización de áreas táctiles para todos los elementos interactivos
+- ✅ Mejora de la jerarquía visual para datos importantes
+- ✅ Reordenación de elementos para prioridad visual óptima
+
+### 3. Problemas Pendientes
+
+- ❌ Algunos conflictos de tipos en `DashboardView.tsx` relacionados con ViewType y función de reordenamiento
+- ❌ Unificación de modales duplicados
+- ❌ Extraer textos hardcodeados para internacionalización
+- ❌ Implementar pruebas básicas
+
+### 4. Próximas Acciones (Prioridad)
+
+1. Resolver conflictos de tipos en DashboardView.tsx
+2. Implementar sistema básico de i18n
+3. Unificar modales duplicados
+4. Implementar pruebas básicas

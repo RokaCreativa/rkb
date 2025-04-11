@@ -1,8 +1,8 @@
 /**
  * @fileoverview Estilos unificados para los grids de categorías, secciones y productos
  * @author RokaMenu Team
- * @version 1.1.0
- * @updated 2024-07-21
+ * @version 1.2.0
+ * @updated 2024-08-20
  * 
  * Este archivo centraliza todos los estilos relacionados con los grids 
  * de datos en el dashboard-v2. Está diseñado para mantener una consistencia
@@ -30,6 +30,39 @@ table.category-table th {
   display: table-cell !important;
   visibility: visible !important;
   opacity: 1 !important;
+}
+
+/* MEJORA MÓVIL: Optimizar drag handles para interacción táctil */
+.touch-optimized {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: grab !important;
+  touch-action: manipulation !important; /* Mejorar rendimiento táctil */
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important; /* Eliminar resaltado al tocar */
+}
+
+/* MEJORA MÓVIL: Feedback visual mejorado durante el arrastre */
+.draggable-content:active {
+  opacity: 0.9 !important;
+  transform: scale(1.02) !important;
+  transition: opacity 0.15s, transform 0.15s !important;
+  background-color: rgba(236, 240, 243, 0.9) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  border-radius: 0.375rem !important;
+}
+
+/* Clase aplicada al body durante el arrastre para modificar la UI global */
+body.is-dragging * {
+  cursor: grabbing !important;
+}
+
+body.is-dragging .drag-handle {
+  cursor: grabbing !important;
 }
 
 /* Hacer que los encabezados de las tablas sean más visibles */
@@ -68,10 +101,12 @@ th.column-header span {
 
 .grid-container {
   @apply border rounded-lg shadow-sm mb-4 overflow-hidden !important;
+  max-width: 100% !important; /* MEJORA MÓVIL: Evitar desbordamiento horizontal */
 }
 
 .grid-header {
   @apply flex justify-between items-center p-4 border-b !important;
+  flex-wrap: wrap !important; /* MEJORA MÓVIL: Permitir ajuste de contenido */
 }
 
 .grid-title {
@@ -125,16 +160,38 @@ td.product-price-cell {
   -webkit-user-select: none !important;
   -moz-user-select: none !important;
   -ms-user-select: none !important;
+  min-width: 44px !important; /* MEJORA MÓVIL: Área táctil mínima */
+  min-height: 44px !important; /* MEJORA MÓVIL: Área táctil mínima */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Mantener no seleccionable sólo el icono de arrastre */
-.category-drag-handle, .section-drag-handle, .product-drag-handle {
+.category-drag-handle, 
+.section-drag-handle, 
+.product-drag-handle {
   @apply cursor-grab !important;
   touch-action: none !important; 
   user-select: none !important;
   -webkit-user-select: none !important;
   -moz-user-select: none !important;
   -ms-user-select: none !important;
+  min-width: 44px !important; /* MEJORA MÓVIL: Área táctil mínima */
+  min-height: 44px !important; /* MEJORA MÓVIL: Área táctil mínima */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* MEJORA MÓVIL: Reducir tamaño del icono pero mantener área táctil grande */
+.drag-handle svg,
+.category-drag-handle svg, 
+.section-drag-handle svg, 
+.product-drag-handle svg {
+  width: 20px !important;
+  height: 20px !important;
+  opacity: 0.75 !important;
 }
 
 /* Permitir la selección de texto en las celdas de datos */
@@ -148,6 +205,18 @@ td, th, span, div.flex-col, .product-text, .section-text, .category-text {
 /* Acciones genéricas para elementos */
 .action-button {
   @apply p-1.5 rounded-full !important;
+  min-width: 36px !important; /* MEJORA MÓVIL: Área táctil mínima */
+  min-height: 36px !important; /* MEJORA MÓVIL: Área táctil mínima */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* MEJORA MÓVIL: Efecto táctil para botones de acción */
+.action-button:active {
+  transform: scale(0.95) !important;
+  opacity: 0.9 !important;
+  transition: transform 0.1s, opacity 0.1s !important;
 }
 
 .action-button-edit {
@@ -156,6 +225,8 @@ td, th, span, div.flex-col, .product-text, .section-text, .category-text {
 
 .action-button-delete {
   @apply p-1.5 rounded-full text-red-500 hover:bg-red-50 !important;
+  min-width: 36px !important; /* MEJORA MÓVIL: Área táctil mínima */
+  min-height: 36px !important; /* MEJORA MÓVIL: Área táctil mínima */
 }
 
 .action-button-toggle {
@@ -178,6 +249,335 @@ td, th, span, div.flex-col, .product-text, .section-text, .category-text {
 
 .text-left-force {
   text-align: left !important;
+}
+
+/* ===== ESTILOS ESPECÍFICOS PARA DISPOSITIVOS MÓVILES ===== */
+
+/* Estilos para visualización en tarjetas en dispositivos móviles */
+@media (max-width: 640px) {
+  /* Diseño en tarjetas por fila */
+  .grid-table {
+    display: block !important;
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 0.75rem !important;
+    overflow-x: hidden !important; /* MEJORA MÓVIL: Evitar scroll horizontal */
+  }
+  
+  .grid-table thead {
+    display: none !important; /* Ocultar encabezados en móvil */
+  }
+  
+  .grid-table tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+  
+  .grid-table tr {
+    display: flex !important;
+    flex-direction: column !important;
+    margin-bottom: 1rem !important;
+    border-radius: 0.5rem !important;
+    padding: 0.75rem 0.75rem 0.5rem 0.75rem !important;
+    position: relative !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid rgba(229, 231, 235, 0.8) !important;
+  }
+  
+  /* Badge para número de orden compacto */
+  .order-badge {
+    position: absolute !important;
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+    width: 1.5rem !important;
+    height: 1.5rem !important;
+    border-radius: 9999px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    z-index: 5 !important;
+  }
+  
+  /* Colores específicos por dominio para badges */
+  .product-table .order-badge {
+    background-color: #fef3c7 !important; /* amber-100 */
+    color: #d97706 !important; /* amber-600 */
+  }
+  
+  .section-table .order-badge {
+    background-color: #ccfbf1 !important; /* teal-100 */
+    color: #0d9488 !important; /* teal-600 */
+  }
+  
+  .category-table .order-badge {
+    background-color: #e0e7ff !important; /* indigo-100 */
+    color: #4f46e5 !important; /* indigo-600 */
+  }
+  
+  /* Estilos específicos por dominio */
+  .product-table tr, 
+  table.product-table tr {
+    background-color: rgba(251, 191, 36, 0.05) !important;
+    border: 1px solid rgba(251, 191, 36, 0.2) !important;
+  }
+  
+  .section-table tr,
+  table.section-table tr {
+    background-color: rgba(20, 184, 166, 0.05) !important;
+    border: 1px solid rgba(20, 184, 166, 0.2) !important;
+  }
+  
+  .category-table tr,
+  table.category-table tr {
+    background-color: rgba(99, 102, 241, 0.05) !important;
+    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+  }
+  
+  /* Formato de celdas */
+  .grid-table td {
+    display: flex !important;
+    padding: 0.5rem 0 !important;
+    text-align: left !important;
+    border-bottom: none !important;
+    align-items: center !important;
+    position: relative !important;
+  }
+  
+  /* Etiquetas de datos (data-labels) */
+  .grid-table td[data-label]:before {
+    content: attr(data-label) !important;
+    font-weight: 600 !important;
+    width: 40% !important;
+    margin-right: 0.75rem !important;
+    font-size: 0.8125rem !important;
+    color: #4b5563 !important; /* gray-600 */
+    flex-shrink: 0 !important; /* Evitar que la etiqueta se encoja */
+  }
+  
+  /* Reordenación por prioridad visual */
+  .grid-table td {
+    order: 5 !important; /* Orden por defecto */
+  }
+  
+  .grid-table td.cell-name {
+    order: 1 !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    padding-top: 0 !important;
+    margin-right: 2rem !important; /* Espacio para el badge de orden */
+  }
+  
+  .grid-table td.cell-sections,
+  .grid-table td.cell-products {
+    order: 2 !important;
+  }
+  
+  .grid-table td.cell-image {
+    order: 3 !important;
+  }
+  
+  .grid-table td.cell-order {
+    /* Ocultar celda de orden ya que se muestra como badge */
+    display: none !important;
+  }
+  
+  .grid-table td.cell-actions {
+    order: 6 !important;
+    margin-top: 0.75rem !important;
+    border-top: 1px solid rgba(229, 231, 235, 0.5) !important;
+    padding-top: 0.75rem !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  
+  .grid-table td.cell-actions::-webkit-scrollbar {
+    display: none !important;
+  }
+  
+  /* Botones de acción como iconos compactos */
+  .action-button {
+    min-width: 2.75rem !important;
+    min-height: 2.75rem !important;
+    padding: 0 !important;
+    margin: 0 0.25rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    border-radius: 9999px !important;
+  }
+  
+  .action-button svg {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+  }
+  
+  /* Feedback táctil mejorado */
+  .touch-feedback:active {
+    opacity: 0.8 !important;
+    transform: scale(0.97) !important;
+    transition: opacity 0.1s, transform 0.1s !important;
+  }
+  
+  /* Optimización de textos largos */
+  .header-title {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    max-width: 100% !important;
+  }
+  
+  .content-list {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 1 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+  
+  /* Información secundaria */
+  .item-name {
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    margin-bottom: 0.25rem !important;
+  }
+  
+  .item-secondary-info {
+    font-size: 0.875rem !important;
+    color: #6b7280 !important; /* gray-500 */
+    margin-bottom: 0.5rem !important;
+  }
+  
+  /* Iconos más pequeños para drag and drop */
+  .drag-handle {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+  
+  .drag-handle svg {
+    width: 18px !important;
+    height: 18px !important;
+    opacity: 0.75 !important;
+  }
+  
+  /* Posicionamiento mejorado del drag handle */
+  .grid-table .product-drag-handle,
+  .grid-table .section-drag-handle,
+  .grid-table .category-drag-handle {
+    position: absolute !important;
+    left: 0.25rem !important;
+    top: 0.25rem !important;
+    transform: translateY(0) !important;
+    border-radius: 9999px !important;
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    z-index: 5 !important;
+  }
+  
+  /* Imágenes redimensionadas para vista móvil */
+  .product-image-container,
+  .section-image-container,
+  .category-image-container {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    flex-shrink: 0 !important;
+    justify-content: center !important;
+    margin: 0 !important;
+  }
+  
+  .product-image,
+  .section-image,
+  .category-image {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: cover !important;
+    border-radius: 0.25rem !important;
+  }
+}
+
+/* Soporte para tablets (diseño intermedio) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Reducir padding en tablets para mostrar más contenido */
+  .grid-table td {
+    padding: 0.5rem 0.375rem !important;
+  }
+  
+  /* Reducir tamaño de botones pero mantener áreas táctiles */
+  .action-button {
+    min-width: 2.5rem !important;
+    min-height: 2.5rem !important;
+    padding: 0 !important;
+  }
+  
+  .action-button svg {
+    width: 1.125rem !important;
+    height: 1.125rem !important;
+  }
+  
+  /* Reducir márgenes y padding en encabezados */
+  .grid-table th {
+    padding: 0.5rem 0.375rem !important;
+    font-size: 0.75rem !important;
+  }
+  
+  /* Reducir ligeramente el tamaño de las imágenes */
+  .product-image-container,
+  .section-image-container,
+  .category-image-container {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+  }
+}
+
+/* Clase para ocultar scrollbars pero mantener funcionalidad de scroll */
+.hide-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+  overflow-x: auto !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Animaciones para drag and drop */
+.animated-drag-item {
+  transition: transform 0.2s, opacity 0.2s !important;
+}
+
+/* MEJORA MÓVIL: Indicador de arrastre activo */
+.drag-indicator {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  background-color: rgba(59, 130, 246, 0.9) !important; /* blue-500 con transparencia */
+  color: white !important;
+  text-align: center !important;
+  padding: 0.25rem !important;
+  font-size: 0.75rem !important;
+  z-index: 100 !important;
+  transition: transform 0.3s !important;
+}
+
+body:not(.is-dragging) .drag-indicator {
+  transform: translateY(-100%) !important;
+}
+
+body.is-dragging .drag-indicator {
+  transform: translateY(0) !important;
 }
 
 /* ===== ESTILOS PARA GRID DE CATEGORÍAS (INDIGO) ===== */

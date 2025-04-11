@@ -71,6 +71,9 @@ import {
   asDomainProduct
 } from '@/app/dashboard-v2/types/common';
 
+// Importar el componente DragIndicator
+import DragIndicator from '../ui/DragIndicator';
+
 // Constante para habilitar logs de depuración
 const DEBUG = process.env.NODE_ENV === 'development';
 
@@ -89,7 +92,7 @@ export default function DashboardView() {
   const isAuthenticated = status === "authenticated";
   
   // IMPORTANTE: Estado para vistas - siempre al inicio de todos los useState
-  const [currentView, setCurrentView] = useState<ViewType>('CATEGORIES');
+  const [currentView, setCurrentView] = useState<ViewType>("CATEGORIES");
   
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -691,13 +694,15 @@ export default function DashboardView() {
   // Obtener funciones de arrastrar y soltar
   const {
     isReorderModeActive,
-    setIsReorderModeActive,
     isDragging,
-    setIsDragging,
-    handleGlobalDragEnd,
+    handleDragEnd,
+    handleDragStart,
+    handleDragUpdate,
     handleReorderCategories,
     handleReorderSections,
-    handleReorderProducts
+    handleReorderProducts,
+    toggleReorderMode,
+    registerDragHandle
   } = useDragAndDrop(
     localCategories as any,  // Usamos 'as any' para resolver problema de compatibilidad temporal
     localSections as any,    // Usamos 'as any' para resolver problema de compatibilidad temporal
@@ -710,7 +715,7 @@ export default function DashboardView() {
   // Diagnóstico extensivo para verificar la inicialización del hook
   useEffect(() => {
     console.log('🔍 [DRAG DEBUG] Inicialización de useDragAndDrop:', {
-      handleGlobalDragEndExists: typeof handleGlobalDragEnd === 'function',
+      handleGlobalDragEndExists: typeof handleReorderCategories === 'function',
       handleReorderCategoriesExists: typeof handleReorderCategories === 'function',
       handleReorderSectionsExists: typeof handleReorderSections === 'function',
       handleReorderProductsExists: typeof handleReorderProducts === 'function',
@@ -719,7 +724,6 @@ export default function DashboardView() {
       categoriesCount: localCategories?.length || 0
     });
   }, [
-    handleGlobalDragEnd,
     handleReorderCategories, 
     handleReorderSections, 
     handleReorderProducts, 
@@ -734,7 +738,7 @@ export default function DashboardView() {
     if (!isReorderModeActive) {
       console.log("🔄 Activando modo de reordenamiento automáticamente");
       // Activar inmediatamente para evitar problemas de sincronización
-      setIsReorderModeActive(true);
+      toggleReorderMode();
       console.log("✅ Modo de reordenamiento activado");
     }
   }, []);  // Solo ejecutar una vez al montar el componente
@@ -792,7 +796,7 @@ export default function DashboardView() {
         clientLogo={client?.main_logo || null}
         clientName={client?.name || 'Dashboard'}
         isReorderModeActive={isReorderModeActive}
-        onToggleReorderMode={() => setIsReorderModeActive(prev => !prev)}
+        onToggleReorderMode={toggleReorderMode}
       />
       
       {offlineMode && (
@@ -808,37 +812,10 @@ export default function DashboardView() {
       )}
       
       {/* *** ENVOLVER CONTENIDO PRINCIPAL CON DragDropContext *** */}
-      <DragDropContext 
-        onDragEnd={(result) => {
-          console.log('🔍 [DRAG DEBUG] DragDropContext.onDragEnd llamado con:', {
-            result,
-            type: result.type,
-            source: result.source,
-            destination: result.destination,
-            handleGlobalDragEndExists: typeof handleGlobalDragEnd === 'function',
-            isReorderModeActive
-          });
-          
-          // Verificación crítica: solo procesar si el modo de reordenamiento está activo
-          if (!isReorderModeActive) {
-            console.error('❌ [CRITICAL] Se ignoró onDragEnd porque isReorderModeActive es FALSE');
-            return;
-          }
-          
-          if (typeof handleGlobalDragEnd === 'function') {
-            handleGlobalDragEnd(result);
-          } else {
-            console.error('❌ [DRAG ERROR] handleGlobalDragEnd no es una función');
-          }
-        }}
-        onDragStart={(initial) => {
-          console.log('🔍 [DRAG DEBUG] DragDropContext.onDragStart:', {
-            initial,
-            type: initial.type,
-            isReorderModeActive
-          });
-          setIsDragging(true);
-        }}
+      <DragDropContext
+        onDragEnd={handleDragEnd}
+        onDragStart={handleDragStart}
+        onDragUpdate={handleDragUpdate}
       >
         <div className="container mx-auto px-4 py-6 flex-1">
           {/* Breadcrumbs y navegación */}
@@ -980,7 +957,7 @@ export default function DashboardView() {
                       // el modo de reordenamiento desde el botón en CategoryView
                       if (categoryId === -1 && sourceIndex === -1 && destinationIndex === -1) {
                         console.log('🔄 Alternando modo de reordenamiento desde CategoryView');
-                        setIsReorderModeActive(prev => !prev);
+                        toggleReorderMode();
                         return;
                       }
                       
@@ -1104,16 +1081,7 @@ export default function DashboardView() {
                         onDeleteProduct={(product) => handleDeleteProduct(fromMenuProduct(product))}
                         onToggleProductVisibility={handleToggleProductVisibility}
                         isLoading={!sectionProducts || sectionProducts.length === 0}
-                        onProductsReorder={isReorderModeActive ? (sectionId: number, sourceIndex: number, destinationIndex: number) => {
-                          console.log("🔍 [CRITICAL] DashboardView - Llamando a handleReorderProducts:", {
-                            sectionId,
-                            sourceIndex,
-                            destinationIndex
-                          });
-                          
-                          // Pasamos los tres parámetros a handleReorderProducts
-                          handleReorderProducts(sectionId, sourceIndex, destinationIndex);
-                        } : undefined}
+                        onProductsReorder={isReorderModeActive ? handleReorderProducts : undefined}
                       />
                     </>
                   );
@@ -1270,6 +1238,18 @@ export default function DashboardView() {
           onConfirm={handleConfirmDeleteProduct}
         />
       )}
+      
+      {/* Indicador de arrastre para mejorar experiencia móvil */}
+      <DragIndicator 
+        entityName={
+          currentView === "CATEGORIES" 
+            ? 'categoría' 
+            : currentView === "SECTIONS" 
+              ? 'sección' 
+              : 'producto'
+        } 
+      />
+      
     </div>
   );
 } 

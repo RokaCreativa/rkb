@@ -25,7 +25,7 @@ export interface ProductViewProps {
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (product: Product) => Promise<boolean> | void;
   isLoading?: boolean;
-  onProductsReorder?: (sourceIndex: number, destinationIndex: number) => void;
+  onProductsReorder?: (sectionId: number, sourceIndex: number, destinationIndex: number) => void;
 }
 
 /**

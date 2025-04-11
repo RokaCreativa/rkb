@@ -6,6 +6,7 @@
  */
 
 import { Category, Section } from '@/app/types/menu';
+import { ViewType } from '../types/dashboard';
 
 /**
  * Función auxiliar que enriquece las categorías con información sobre sus secciones
@@ -57,16 +58,10 @@ export function getPaginatedCategories(allCategories: Category[], pagination: { 
 }
 
 /**
- * Genera los elementos para el componente de breadcrumbs
- * 
- * @param currentView - Vista actual ('categories', 'sections', 'products')
- * @param selectedCategory - Categoría seleccionada (si aplica)
- * @param selectedSection - Sección seleccionada (si aplica)
- * @param handlers - Funciones para manejar la navegación
- * @returns Array de elementos para el componente de breadcrumbs
+ * Genera los elementos para la navegación de migas de pan (breadcrumbs)
  */
 export function getBreadcrumbItems(
-  currentView: 'categories' | 'sections' | 'products',
+  currentView: ViewType,
   selectedCategory: Category | null,
   selectedSection: Section | null,
   handlers: {
@@ -80,7 +75,7 @@ export function getBreadcrumbItems(
       id: 'categories', 
       name: 'Categorías', 
       key: 'categories',
-      current: currentView === 'categories',
+      current: currentView === 'CATEGORIES',
       onClick: handlers.goToCategories
     }
   ];
@@ -90,12 +85,12 @@ export function getBreadcrumbItems(
       id: `category-${selectedCategory.category_id}`, 
       name: selectedCategory.name, 
       key: 'sections',
-      current: currentView === 'sections',
+      current: currentView === 'SECTIONS',
       onClick: () => handlers.goToSections(selectedCategory)
     });
   }
   
-  if (selectedSection && currentView === 'products') {
+  if (selectedSection && currentView === 'PRODUCTS') {
     // Asegurarse de que el item de categoría no esté marcado como actual
     if (items.length > 1) {
       items[1].current = false;

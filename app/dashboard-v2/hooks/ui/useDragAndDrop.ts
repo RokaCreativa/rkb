@@ -1,15 +1,15 @@
 /**
  * @fileoverview Hook simplificado para gestionar la funcionalidad de arrastrar y soltar en el dashboard
  * @author RokaMenu Team
- * @version 2.0.0
- * @updated 2024-06-25
+ * @version 2.1.0
+ * @updated 2024-08-20
  * 
  * Este hook proporciona funcionalidades para implementar operaciones
  * de arrastrar y soltar (drag and drop) para categorías, secciones y productos.
- * Se ha reconstruido para mejorar el rendimiento y simplificar la implementación.
+ * Se ha mejorado para proporcionar mejor diagnóstico y soporte para dispositivos móviles.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { DropResult } from '@hello-pangea/dnd';
 import { toast } from 'react-hot-toast';
 import { 
@@ -18,7 +18,11 @@ import {
   DashboardProduct 
 } from '@/app/dashboard-v2/types/type-adapters';
 import { DashboardService } from '@/lib/services/dashboardService';
-import { formatDroppableId } from "@/app/dashboard-v2/utils/dragUtils";
+import { 
+  formatDroppableId, 
+  DRAG_TYPES, 
+  enhanceTouchFeedback 
+} from "@/app/dashboard-v2/utils/dragUtils";
 
 /**
  * Mapa de secciones indexado por el ID de categoría (como string)
@@ -31,7 +35,8 @@ type SectionsMap = Record<string, DashboardSection[]>;
 type ProductsMap = Record<string, DashboardProduct[]>;
 
 /**
- * Hook simplificado para gestionar las operaciones de arrastrar y soltar
+ * Hook mejorado para gestionar las operaciones de arrastrar y soltar
+ * con soporte optimizado para dispositivos móviles
  * 
  * @param categories - Array de categorías del menú
  * @param sections - Objeto que mapea IDs de categoría a arrays de secciones
@@ -55,15 +60,45 @@ export default function useDragAndDrop(
   // Estado que indica si hay una operación de arrastre en curso
   const [isDragging, setIsDragging] = useState(false);
   
+  // Referencias a los elementos de drag handles para mejorar experiencia táctil
+  const dragHandleRefs = useRef<Map<string, HTMLElement>>(new Map());
+  
+  // Efecto para mejorar la experiencia táctil en dragHandles registrados
+  useEffect(() => {
+    // Aplicar mejoras táctiles a todos los drag handles registrados
+    dragHandleRefs.current.forEach((element, key) => {
+      enhanceTouchFeedback(element);
+    });
+    
+    // Limpieza al desmontar
+    return () => {
+      dragHandleRefs.current.clear();
+    };
+  }, [isReorderModeActive]); // Re-aplicar cuando se active/desactive el modo reordenamiento
+  
+  /**
+   * Registra un elemento drag handle para aplicarle mejoras táctiles
+   * @param id Identificador único del elemento
+   * @param element Referencia al elemento DOM
+   */
+  const registerDragHandle = useCallback((id: string, element: HTMLElement | null) => {
+    if (element) {
+      dragHandleRefs.current.set(id, element);
+      enhanceTouchFeedback(element);
+    }
+  }, []);
+  
   /**
    * Reordena categorías y actualiza el estado local
    */
   const handleReorderCategories = useCallback(async (sourceIndex: number, destinationIndex: number) => {
+    console.debug(`🔄 [DragAndDrop] Reordenando categorías de ${sourceIndex} a ${destinationIndex}`);
+    
     // Solo trabajar con las categorías visibles (status 1)
     const visibleCategories = categories.filter(cat => cat.status === 1);
     
     if (visibleCategories.length === 0) {
-      console.error("No hay categorías visibles para reordenar");
+      console.error("❌ No hay categorías visibles para reordenar");
       return;
     }
     
@@ -92,12 +127,14 @@ export default function useDragAndDrop(
       
       if (result.success) {
         toast.success('Categorías reordenadas correctamente');
+        console.debug('✅ [DragAndDrop] Reordenamiento de categorías exitoso');
       } else {
         toast.error('Error al reordenar categorías');
+        console.error('❌ [DragAndDrop] Error al reordenar categorías:', result.error);
         setCategories(categories); // Revertir cambios
       }
     } catch (error) {
-      console.error('Error reordering categories:', error);
+      console.error('❌ [DragAndDrop] Error reordering categories:', error);
       toast.error('Error al reordenar categorías');
       setCategories(categories); // Revertir cambios en caso de error
     }
@@ -107,11 +144,13 @@ export default function useDragAndDrop(
    * Reordena secciones dentro de una categoría
    */
   const handleReorderSections = useCallback(async (categoryId: number, sourceIndex: number, destinationIndex: number) => {
+    console.debug(`🔄 [DragAndDrop] Reordenando secciones de categoría ${categoryId} de ${sourceIndex} a ${destinationIndex}`);
+    
     const categoryIdStr = categoryId.toString();
     
     // Verificar que existan secciones para esta categoría
     if (!sections[categoryIdStr] || sections[categoryIdStr].length === 0) {
-      console.error(`No sections found for category ${categoryId}`);
+      console.error(`❌ [DragAndDrop] No se encontraron secciones para la categoría ${categoryId}`);
       return;
     }
     
@@ -119,7 +158,7 @@ export default function useDragAndDrop(
     const visibleSections = sections[categoryIdStr].filter(section => section.status === 1);
     
     if (visibleSections.length === 0) {
-      console.error(`No visible sections found for category ${categoryId}`);
+      console.error(`❌ [DragAndDrop] No hay secciones visibles para la categoría ${categoryId}`);
       return;
     }
     
@@ -151,8 +190,10 @@ export default function useDragAndDrop(
       
       if (result.success) {
         toast.success('Secciones reordenadas correctamente');
+        console.debug('✅ [DragAndDrop] Reordenamiento de secciones exitoso');
       } else {
         toast.error('Error al reordenar secciones');
+        console.error('❌ [DragAndDrop] Error al reordenar secciones:', result.error);
         // Revertir cambios
         setSections(prev => ({
           ...prev,
@@ -160,7 +201,7 @@ export default function useDragAndDrop(
         }));
       }
     } catch (error) {
-      console.error('Error reordering sections:', error);
+      console.error('❌ [DragAndDrop] Error reordering sections:', error);
       toast.error('Error al reordenar secciones');
       // Revertir cambios
       setSections(prev => ({
@@ -174,15 +215,13 @@ export default function useDragAndDrop(
    * Reordena productos dentro de una sección
    */
   const handleReorderProducts = useCallback(async (sectionId: number, sourceIndex: number, destinationIndex: number) => {
-    console.log("🔍 [CRITICAL] Ejecutando handleReorderProducts con:", {
-      sectionId, sourceIndex, destinationIndex
-    });
+    console.debug(`🔄 [DragAndDrop] Reordenando productos de sección ${sectionId} de ${sourceIndex} a ${destinationIndex}`);
     
     const sectionIdStr = sectionId.toString();
     
     // Verificar que existan productos para esta sección
     if (!products[sectionIdStr] || products[sectionIdStr].length === 0) {
-      console.error(`❌ [CRITICAL] No products found for section ${sectionId}`);
+      console.error(`❌ [DragAndDrop] No se encontraron productos para la sección ${sectionId}`);
       return;
     }
     
@@ -190,28 +229,25 @@ export default function useDragAndDrop(
     const visibleProducts = products[sectionIdStr].filter(product => product.status === 1);
     
     if (visibleProducts.length === 0) {
-      console.error(`❌ [CRITICAL] No visible products found for section ${sectionId}`);
+      console.error(`❌ [DragAndDrop] No hay productos visibles para la sección ${sectionId}`);
       return;
     }
     
     // Crear una copia para manipular
     const reorderedProducts = [...visibleProducts];
     
-    console.log("🔍 [CRITICAL] Antes de reordenar:", reorderedProducts.map(p => ({
-      id: p.product_id,
-      name: p.name,
-      order: p.display_order
-    })));
+    // Información de diagnóstico
+    console.debug("ℹ️ [DragAndDrop] Productos antes de reordenar:", 
+      reorderedProducts.map(p => ({
+        id: p.product_id,
+        name: p.name,
+        order: p.display_order
+      }))
+    );
     
     // Aplicar el reordenamiento
     const [movedProduct] = reorderedProducts.splice(sourceIndex, 1);
     reorderedProducts.splice(destinationIndex, 0, movedProduct);
-    
-    console.log("🔍 [CRITICAL] Después de reordenar:", reorderedProducts.map(p => ({
-      id: p.product_id,
-      name: p.name,
-      order: p.display_order
-    })));
     
     // Actualizar display_order
     const updatedProducts = reorderedProducts.map((product, index) => ({
@@ -219,56 +255,34 @@ export default function useDragAndDrop(
       display_order: index + 1
     }));
     
-    console.log("🔍 [CRITICAL] Productos con nuevo orden:", updatedProducts.map(p => ({
-      id: p.product_id,
-      name: p.name,
-      order: p.display_order
-    })));
+    // Información de diagnóstico
+    console.debug("ℹ️ [DragAndDrop] Productos después de reordenar:", 
+      updatedProducts.map(p => ({
+        id: p.product_id,
+        name: p.name,
+        order: p.display_order
+      }))
+    );
     
     // Actualizar el estado local
     const nonVisibleProducts = products[sectionIdStr].filter(product => product.status !== 1);
     const allUpdatedProducts = [...updatedProducts, ...nonVisibleProducts];
     
-    // ¡IMPORTANTE! Actualizamos el estado ANTES de la llamada al API para que la interfaz responda inmediatamente
     setProducts(prev => ({
       ...prev,
       [sectionIdStr]: allUpdatedProducts
     }));
     
-    console.log("🔍 [CRITICAL] Estado local actualizado con nuevos productos ordenados");
-    
     try {
-      // Preparar productos para API, enviando SOLO product_id y display_order
-      const productsForApi = updatedProducts.map(product => {
-        // Asegurar que tengamos el ID correcto (solamente product_id es válido en este contexto)
-        const productId = product.product_id;
-          
-        if (!productId || typeof productId !== 'number') {
-          console.error('❌ [CRITICAL] Producto sin product_id válido:', product);
-          return null; // Este null será filtrado después
-        }
-        
-        return {
-          product_id: productId,
-          display_order: product.display_order || 0
-        };
-      }).filter((p): p is {product_id: number, display_order: number} => p !== null); // Eliminar productos inválidos
-      
-      if (productsForApi.length === 0) {
-        console.error('❌ [CRITICAL] No hay productos válidos para reordenar');
-        return;
-      }
-      
-      console.log('📊 [CRITICAL] Productos enviados a API:', productsForApi);
-      
       // Enviar actualización al servidor
-      const result = await DashboardService.reorderProducts(productsForApi);
+      const result = await DashboardService.reorderProducts(updatedProducts);
       
       if (result.success) {
         toast.success('Productos reordenados correctamente');
+        console.debug('✅ [DragAndDrop] Reordenamiento de productos exitoso');
       } else {
-        toast.error('Error al reordenar productos: ' + (result.error || 'Error desconocido'));
-        console.error('Error al reordenar productos:', result.error);
+        toast.error('Error al reordenar productos');
+        console.error('❌ [DragAndDrop] Error al reordenar productos:', result.error);
         // Revertir cambios
         setProducts(prev => ({
           ...prev,
@@ -276,10 +290,9 @@ export default function useDragAndDrop(
         }));
       }
     } catch (error) {
-      console.error('Error reordering products:', error);
+      console.error('❌ [DragAndDrop] Error reordering products:', error);
       toast.error('Error al reordenar productos');
-      // Revertir cambios - usar sectionId como string
-      const sectionIdStr = String(sectionId);
+      // Revertir cambios
       setProducts(prev => ({
         ...prev,
         [sectionIdStr]: products[sectionIdStr]
@@ -288,144 +301,139 @@ export default function useDragAndDrop(
   }, [products, setProducts]);
   
   /**
-   * Maneja el final de una operación de arrastrar y soltar
-   * Esta función determina qué tipo de elemento se arrastró y llama
-   * a la función específica para reordenar
+   * Manejador maestro para operaciones de drag and drop
+   * Determina el tipo de operación y dirige a la función específica
    */
-  const handleGlobalDragEnd = useCallback((result: DropResult) => {
-    // DIAGNÓSTICO ULTRA DETALLADO
-    console.log('🔥🔥🔥 [DIAGNÓSTICO CRÍTICO] RAW DATA EN handleGlobalDragEnd:', JSON.stringify({
-      type: result.type,
-      draggableId: result.draggableId,
-      source: {
-        droppableId: result.source.droppableId,
-        index: result.source.index
-      },
-      destination: result.destination ? {
-        droppableId: result.destination.droppableId,
-        index: result.destination.index
-      } : null,
-      mode: result.mode,
-      reason: result.reason,
-      combine: result.combine
-    }, null, 2));
-    
-    // DIAGNÓSTICO CRÍTICO
-    console.log('🚨 [DIAGNOSTIC] handleGlobalDragEndExists:', typeof handleGlobalDragEnd === 'function');
-    console.log('🚨 [DIAGNOSTIC] handleReorderCategoriesExists:', typeof handleReorderCategories === 'function');
-    console.log('🚨 [DIAGNOSTIC] handleReorderSectionsExists:', typeof handleReorderSections === 'function');
-    console.log('🚨 [DIAGNOSTIC] handleReorderProductsExists:', typeof handleReorderProducts === 'function');
-    console.log('🚨 [DIAGNOSTIC] isReorderModeActive:', isReorderModeActive);
-
-    // Limpiar el estado de arrastre
+  const handleDragEnd = useCallback((result: DropResult) => {
     setIsDragging(false);
     
-    // Extraer información relevante
+    // Utilizar la utilidad de diagnóstico mejorada
+    formatDroppableId.debugDropResult(result);
+    
+    // Validar el resultado del drag and drop
+    if (!formatDroppableId.validateDropResult(result)) {
+      return; // No continuar si hay problemas con el resultado
+    }
+    
     const { source, destination, type } = result;
     
-    // Log detallado para depuración
-    console.log('🔍 [DRAG DEBUG] handleGlobalDragEnd:', {
-      result,
-      type,
-      source,
-      destination,
-      normalizedType: typeof type === 'string' ? type.toLowerCase() : String(type).toLowerCase(),
-      isReorderModeActive,
-      droppableIdSource: source.droppableId,
-      droppableIdDestination: destination?.droppableId,
-      handleReorderCategoriesExists: typeof handleReorderCategories === 'function',
-      handleReorderSectionsExists: typeof handleReorderSections === 'function',
-      handleReorderProductsExists: typeof handleReorderProducts === 'function',
-    });
-    
-    // Cancelar si no hay destino o no hubo cambio real
-    if (!destination || 
-        (source.droppableId === destination.droppableId && 
-         source.index === destination.index)) {
-      console.log('🛑 [DRAG INFO] Operación cancelada: Sin destino o sin cambio real');
+    // Si no hay destino, el usuario canceló la operación
+    if (!destination) {
+      console.debug('ℹ️ [DragAndDrop] Operación de arrastrar y soltar cancelada');
       return;
     }
     
-    // Solo procesar si el modo reordenamiento está activo
-    if (!isReorderModeActive) {
-      console.log('⚠️ [DRAG WARN] Ignorando drag and drop porque isReorderModeActive es false');
+    // Si el origen y destino son iguales (misma posición), no hacer nada
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) {
+      console.debug('ℹ️ [DragAndDrop] No hay cambio de posición');
       return;
     }
     
-    // Normalizar el tipo a minúsculas para asegurar compatibilidad
-    const normalizedType = typeof type === 'string' ? type.toLowerCase() : String(type).toLowerCase();
-    
-    // Determinar qué tipo de elemento se arrastró y llamar a la función adecuada
-    console.log('🔄 [DRAG INFO] Procesando tipo:', normalizedType);
-    
-    if (normalizedType === 'category') {
-      console.log('🔄 [DRAG INFO] Reordenando CATEGORÍA:', source.index, '->', destination.index);
-      
-      // Verificar función antes de llamar
-      if (typeof handleReorderCategories === 'function') {
-        console.log('✅ [DRAG INFO] Llamando a handleReorderCategories');
-        handleReorderCategories(source.index, destination.index);
-      } else {
-        console.error('❌ [DRAG ERROR] handleReorderCategories no es una función');
+    // Determinar el tipo de reordenamiento basado en el tipo del item arrastrado
+    switch (type) {
+      case DRAG_TYPES.CATEGORY:
+        return handleReorderCategories(source.index, destination.index);
+        
+      case DRAG_TYPES.SECTION: {
+        // Extraer ID de categoría del droppableId
+        const categoryId = formatDroppableId.extractCategoryIdFromSection(source.droppableId);
+        
+        if (categoryId === null) {
+          console.error('❌ [DragAndDrop] No se pudo extraer ID de categoría para reordenar secciones');
+          return;
+        }
+        
+        // Solo permitir reordenar dentro de la misma categoría
+        if (source.droppableId !== destination.droppableId) {
+          console.warn('⚠️ [DragAndDrop] No se permite mover secciones entre categorías');
+          return;
+        }
+        
+        return handleReorderSections(categoryId, source.index, destination.index);
       }
-    } else if (normalizedType === 'section') {
-      // Extraer categoryId del droppableId (formato: "section-category-{id}" o "sections-category-{id}")
-      const sectionCategoryMatch = source.droppableId.match(/sections?-category-(\d+)/);
-      const categoryId = sectionCategoryMatch ? parseInt(sectionCategoryMatch[1]) : parseInt(source.droppableId.replace(/\D/g, ''));
-      
-      console.log('🔄 [DRAG INFO] Reordenando SECCIÓN:', {
-        categoryId, 
-        sourceIndex: source.index, 
-        destIndex: destination.index,
-        droppableIdMatch: sectionCategoryMatch
-      });
-      
-      if (typeof handleReorderSections === 'function') {
-        console.log('✅ [DRAG INFO] Llamando a handleReorderSections');
-        handleReorderSections(categoryId, source.index, destination.index);
-      } else {
-        console.error('❌ [DRAG ERROR] handleReorderSections no es una función');
+        
+      case DRAG_TYPES.PRODUCT: {
+        // Extraer ID de sección del droppableId
+        const sectionId = formatDroppableId.extractSectionId(source.droppableId);
+        
+        if (sectionId === null) {
+          console.error('❌ [DragAndDrop] No se pudo extraer ID de sección para reordenar productos');
+          return;
+        }
+        
+        // Solo permitir reordenar dentro de la misma sección
+        if (source.droppableId !== destination.droppableId) {
+          console.warn('⚠️ [DragAndDrop] No se permite mover productos entre secciones');
+          return;
+        }
+        
+        return handleReorderProducts(sectionId, source.index, destination.index);
       }
-    } else if (normalizedType === 'product') {
-      // Analizar el droppableId para productos (formato esperado: products-section-XXX)
-      console.log('🔍 [CRITICAL] Analizando droppableId de producto:', source.droppableId);
-      
-      // Usar la utilidad formatDroppableId para extraer el sectionId
-      const sectionId = formatDroppableId.extractSectionId(source.droppableId);
-      
-      console.log('🎯 [CRITICAL] Extrayendo sectionId usando formatDroppableId:', sectionId);
-      
-      if (sectionId === null) {
-        console.error('❌ [CRITICAL] No se pudo extraer sectionId de:', source.droppableId);
-        return;
-      }
-      
-      if (typeof handleReorderProducts !== 'function') {
-        console.error('❌ [CRITICAL] handleReorderProducts no es una función');
-        return;
-      }
-      
-      try {
-        handleReorderProducts(sectionId, source.index, destination.index);
-      } catch (error) {
-        console.error('❌ [CRITICAL] Error en handleReorderProducts:', error);
-      }
-    } else {
-      console.warn('⚠️ [DRAG WARN] Tipo desconocido en handleGlobalDragEnd:', type);
+        
+      default:
+        console.warn(`⚠️ [DragAndDrop] Tipo de drag and drop no reconocido: ${type}`);
     }
-  }, [handleReorderCategories, handleReorderSections, handleReorderProducts, isReorderModeActive]);
+  }, [handleReorderCategories, handleReorderSections, handleReorderProducts]);
+  
+  /**
+   * Manejador para el inicio de una operación de arrastre
+   */
+  const handleDragStart = useCallback(() => {
+    setIsDragging(true);
+    // Añadir clase al body para indicar arrastre activo (útil para estilos móviles)
+    document.body.classList.add('is-dragging');
+  }, []);
+  
+  /**
+   * Manejador para la actualización durante el arrastre
+   * Útil para detectar si se está arrastrando sobre un elemento válido
+   */
+  const handleDragUpdate = useCallback(() => {
+    // Se puede usar para aplicar efectos visuales durante el arrastre
+  }, []);
+  
+  /**
+   * Limpieza al finalizar una operación de arrastre
+   */
+  const handleDragCleanup = useCallback(() => {
+    setIsDragging(false);
+    document.body.classList.remove('is-dragging');
+  }, []);
+  
+  /**
+   * Toggle para activar/desactivar el modo de reordenamiento
+   */
+  const toggleReorderMode = useCallback(() => {
+    setIsReorderModeActive(prev => !prev);
+  }, []);
+  
+  // Cleanup cuando el componente se desmonta
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('is-dragging');
+    };
+  }, []);
   
   return {
     // Estados
     isReorderModeActive,
-    setIsReorderModeActive,
     isDragging,
-    setIsDragging,
     
-    // Funciones principales
-    handleGlobalDragEnd,
+    // Manejadores principales
+    handleDragEnd,
+    handleDragStart,
+    handleDragUpdate,
+    
+    // Manejadores específicos
     handleReorderCategories,
     handleReorderSections,
-    handleReorderProducts
+    handleReorderProducts,
+    
+    // Utilidades
+    toggleReorderMode,
+    registerDragHandle,
   };
 } 

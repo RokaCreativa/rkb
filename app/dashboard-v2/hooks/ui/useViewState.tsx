@@ -2,14 +2,15 @@
 
 import { useState, useCallback } from 'react';
 import { Category, Section } from '@/app/types/menu';
+import { ViewType } from '../../types/dashboard';
 
 /**
  * Hook personalizado para gestionar el estado de navegación y vistas en el dashboard
  * Este hook centraliza la lógica de navegación entre las diferentes vistas del dashboard
  */
 export default function useViewState() {
-  // Estado de la vista actual ('categories', 'sections', 'products')
-  const [currentView, setCurrentView] = useState<'categories' | 'sections' | 'products'>('categories');
+  // Estado de la vista actual ('CATEGORIES', 'SECTIONS', 'PRODUCTS')
+  const [currentView, setCurrentView] = useState<ViewType>('CATEGORIES');
   
   // Estados para los elementos seleccionados
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
@@ -18,7 +19,7 @@ export default function useViewState() {
   
   // Función para navegar a la vista de categorías
   const navigateToCategories = useCallback(() => {
-    setCurrentView('categories');
+    setCurrentView('CATEGORIES');
     setSelectedCategory(null);
     setSelectedSection(null);
   }, []);
@@ -27,7 +28,7 @@ export default function useViewState() {
   const navigateToSections = useCallback((category: Category) => {
     setSelectedCategory(category);
     setSelectedCategoryId(category.category_id);
-    setCurrentView('sections');
+    setCurrentView('SECTIONS');
     setSelectedSection(null);
     // Log para depuración
     console.log('Navegando a secciones para categoría:', category.name);
@@ -36,16 +37,16 @@ export default function useViewState() {
   // Función para navegar a la vista de productos de una sección
   const navigateToProducts = useCallback((section: Section) => {
     setSelectedSection(section);
-    setCurrentView('products');
+    setCurrentView('PRODUCTS');
   }, []);
   
   // Función para navegar hacia atrás
   const navigateBack = useCallback(() => {
-    if (currentView === 'products') {
-      setCurrentView('sections');
+    if (currentView === 'PRODUCTS') {
+      setCurrentView('SECTIONS');
       setSelectedSection(null);
-    } else if (currentView === 'sections') {
-      setCurrentView('categories');
+    } else if (currentView === 'SECTIONS') {
+      setCurrentView('CATEGORIES');
       setSelectedCategory(null);
       setSelectedCategoryId(null);
     }
