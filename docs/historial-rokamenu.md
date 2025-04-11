@@ -13,6 +13,13 @@
 
 ### Cambios Recientes
 
+#### #9 [v1.0]: Implementación de Menú Colapsable para Móviles (11/04/2025)
+
+- Creación del componente MobileMenu como panel deslizable optimizado para pantallas táctiles
+- Actualización de TopNavbar con botón de hamburguesa para dispositivos móviles
+- Adaptación responsive de la navegación para mejorar usabilidad en pantallas pequeñas
+- [Referencia: plan-optimizacion-movil.md]
+
 #### #8 [v1.0]: Creación del Sistema de Historial (11/04/2025)
 
 - Implementación del archivo de historial para mantener registro de cambios
@@ -120,14 +127,15 @@
 - Feedback visual mejorado para interacciones táctiles
 - Sistema básico de internacionalización (i18n)
 - Sistema de modales unificados
+- Menú colapsable adaptado a móviles
 
 ### Próximos Pasos Prioritarios
 
-1. Implementar menú colapsable adaptado a móviles
-2. Mejorar sistema de migas de pan (breadcrumbs) para móviles
-3. Asegurar que los formularios sean completamente utilizables en móviles
-4. Implementar pruebas unitarias para hooks críticos
-5. Optimizar uso de JavaScript para dispositivos de baja potencia
+1. Mejorar sistema de migas de pan (breadcrumbs) para móviles
+2. Asegurar que los formularios sean completamente utilizables en móviles
+3. Implementar pruebas unitarias para hooks críticos
+4. Optimizar uso de JavaScript para dispositivos de baja potencia
+5. Implementar hook genérico para modales CRUD
 
 ---
 

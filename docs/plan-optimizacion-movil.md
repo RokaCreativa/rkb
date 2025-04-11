@@ -90,14 +90,9 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 
 ### 3. Navegación y Estructura
 
-- [ ] Implementar menú colapsable adaptado a móviles
+- [x] Implementar menú colapsable adaptado a móviles
 - [ ] Mejorar sistema de migas de pan (breadcrumbs) para móviles
-- [ ] Asegurar que los modales se ajusten correctamente a pantallas pequeñas
-- [ ] Añadir gestos táctiles para navegación (deslizar entre vistas)
-- [x] Optimizar espaciado y márgenes para interfaces táctiles
-- [ ] Añadir botones flotantes para acciones principales
-- [ ] Implementar gestos de deslizamiento para acciones comunes
-- [x] Mejorar la visibilidad de los indicadores de estado
+- [x] Optimizar áreas táctiles en elementos interactivos
 
 ### 4. Operaciones CRUD (Crear, Leer, Actualizar, Eliminar)
 
@@ -494,9 +489,9 @@ Las siguientes propuestas han sido implementadas en los estilos CSS para mejorar
 
 3. **Fase 3: Optimización de Navegación y UI (En progreso)**
 
-   - [ ] Adaptar modales para pantallas pequeñas
+   - [x] Implementar menú colapsable adaptado a móviles
    - [ ] Mejorar sistema de migas de pan para móviles
-   - ✅ Optimizar áreas táctiles en elementos interactivos
+   - [x] Optimizar áreas táctiles en elementos interactivos
 
 4. **Fase 4: Mejora de Visualización para Móviles (✅ COMPLETADO)**
 
