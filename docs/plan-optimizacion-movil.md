@@ -23,18 +23,19 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 
 - Arrastrar y soltar funciona en categorías y secciones
 - CRUD básico funciona en todos los dispositivos
-- Arrastrar y soltar para productos optimizado con mejoras táctiles
-- Áreas de toque ampliadas para mejor experiencia táctil
-- Visualización de tablas adaptada para dispositivos móviles
-- Modales adaptados adecuadamente a pantallas pequeñas
-- Sistema de migas de pan (breadcrumbs) optimizado para móviles
 - Estructura basada en Domain-Driven Design (DDD)
 - Separación clara entre componentes de dominio, UI y hooks
 - Sistema robusto de adaptadores de tipos
-- ✅ Estandarización de operaciones de drag and drop (Implementado el 20/08/2024)
-- ✅ Mejora del diagnóstico y depuración para operaciones drag and drop (Implementado el 20/08/2024)
-- ✅ Optimización de áreas táctiles para drag handles (Implementado el 20/08/2024)
-- ✅ Feedback visual mejorado para interacciones táctiles (Implementado el 20/08/2024)
+- Sistema básico de internacionalización (i18n)
+- Sistema de modales unificados
+
+### ⚠️ Componentes parcialmente implementados o con problemas:
+
+- Arrastrar y soltar para productos (implementación parcial)
+- Visualización básica de tablas en móviles (requiere mejoras)
+- Sistema de migas de pan básico (requiere optimización móvil)
+- Áreas táctiles ampliadas (implementación inconsistente)
+- Menú colapsable para móviles (creado pero con problemas)
 
 ### ❌ Problemas pendientes de solución:
 
@@ -48,6 +49,7 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 - Manejo inconsistente de errores en operaciones CRUD
 - Modales duplicados que incumplen el mandamiento anti-duplicidad
 - Flujo de actualización de estado después de operaciones CRUD ineficiente
+- Falta de gestos táctiles para mejorar usabilidad en móviles
 
 ### 📝 Problemas estructurales identificados:
 
@@ -90,9 +92,14 @@ La aplicación RokaMenu actualmente presenta las siguientes características y d
 
 ### 3. Navegación y Estructura
 
-- [x] Implementar menú colapsable adaptado a móviles
-- [ ] Mejorar sistema de migas de pan (breadcrumbs) para móviles
-- [x] Optimizar áreas táctiles en elementos interactivos
+- [ ] Implementar menú colapsable adaptado a móviles (Implementación iniciada, requiere correcciones)
+- [x] Mejorar sistema de migas de pan (breadcrumbs) para móviles
+- [ ] Asegurar que los modales se ajusten correctamente a pantallas pequeñas
+- [ ] Añadir gestos táctiles para navegación (deslizar entre vistas)
+- [ ] Optimizar espaciado y márgenes para interfaces táctiles (Implementación parcial)
+- [ ] Añadir botones flotantes para acciones principales
+- [ ] Implementar gestos de deslizamiento para acciones comunes
+- [ ] Mejorar la visibilidad de los indicadores de estado
 
 ### 4. Operaciones CRUD (Crear, Leer, Actualizar, Eliminar)
 
@@ -489,9 +496,9 @@ Las siguientes propuestas han sido implementadas en los estilos CSS para mejorar
 
 3. **Fase 3: Optimización de Navegación y UI (En progreso)**
 
-   - [x] Implementar menú colapsable adaptado a móviles
-   - [ ] Mejorar sistema de migas de pan para móviles
-   - [x] Optimizar áreas táctiles en elementos interactivos
+   - [ ] Implementar menú colapsable adaptado a móviles (En progreso, requiere correcciones)
+   - [x] Mejorar sistema de migas de pan para móviles
+   - [ ] Optimizar áreas táctiles en elementos interactivos (Implementación parcial)
 
 4. **Fase 4: Mejora de Visualización para Móviles (✅ COMPLETADO)**
 
