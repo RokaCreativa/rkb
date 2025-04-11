@@ -65,6 +65,21 @@ body.is-dragging .drag-handle {
   cursor: grabbing !important;
 }
 
+/* Asegurar que cuando NO está arrastrando, el cursor vuelve a la normalidad */
+body:not(.is-dragging) * {
+  cursor: auto !important; /* Restaurar cursor normal */
+}
+
+body:not(.is-dragging) a,
+body:not(.is-dragging) button,
+body:not(.is-dragging) .cursor-pointer {
+  cursor: pointer !important; /* Mantener cursor pointer para elementos interactivos */
+}
+
+body:not(.is-dragging) .drag-handle {
+  cursor: grab !important; /* Mantener cursor de arrastre solo en drag handles */
+}
+
 /* Hacer que los encabezados de las tablas sean más visibles */
 table th span.visible,
 table th span,
@@ -557,27 +572,25 @@ td, th, span, div.flex-col, .product-text, .section-text, .category-text {
   transition: transform 0.2s, opacity 0.2s !important;
 }
 
-/* MEJORA MÓVIL: Indicador de arrastre activo */
+/* Mejorar el indicador de arrastre */
 .drag-indicator {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  background-color: rgba(59, 130, 246, 0.9) !important; /* blue-500 con transparencia */
-  color: white !important;
-  text-align: center !important;
-  padding: 0.25rem !important;
-  font-size: 0.75rem !important;
-  z-index: 100 !important;
-  transition: transform 0.3s !important;
+  @apply fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-blue-500 text-white rounded-full shadow-lg !important;
+  transition: opacity 0.3s, transform 0.3s !important;
+  opacity: 0 !important;
+  transform: translate(-50%, -20px) !important;
+  pointer-events: none !important; /* Evitar que interfiera con los clics */
 }
 
 body:not(.is-dragging) .drag-indicator {
-  transform: translateY(-100%) !important;
+  opacity: 0 !important;
+  transform: translate(-50%, -20px) !important;
+  transition: opacity 0.3s, transform 0.3s !important;
 }
 
 body.is-dragging .drag-indicator {
-  transform: translateY(0) !important;
+  opacity: 1 !important;
+  transform: translate(-50%, 0) !important;
+  transition: opacity 0.3s, transform 0.3s !important;
 }
 
 /* ===== ESTILOS PARA GRID DE CATEGORÍAS (INDIGO) ===== */

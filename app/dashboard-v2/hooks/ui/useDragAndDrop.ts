@@ -305,7 +305,10 @@ export default function useDragAndDrop(
    * Determina el tipo de operación y dirige a la función específica
    */
   const handleDragEnd = useCallback((result: DropResult) => {
+    // Limpiar estados de arrastre
     setIsDragging(false);
+    // Eliminar clase del body para desactivar indicador y restaurar cursor
+    document.body.classList.remove('is-dragging');
     
     // Utilizar la utilidad de diagnóstico mejorada
     formatDroppableId.debugDropResult(result);
@@ -393,7 +396,12 @@ export default function useDragAndDrop(
    */
   const handleDragUpdate = useCallback(() => {
     // Se puede usar para aplicar efectos visuales durante el arrastre
-  }, []);
+    
+    // Verificación adicional: si isDragging es falso pero la clase sigue ahí, limpiarla
+    if (!isDragging && document.body.classList.contains('is-dragging')) {
+      document.body.classList.remove('is-dragging');
+    }
+  }, [isDragging]);
   
   /**
    * Limpieza al finalizar una operación de arrastre
@@ -426,6 +434,7 @@ export default function useDragAndDrop(
     handleDragEnd,
     handleDragStart,
     handleDragUpdate,
+    handleDragCleanup,
     
     // Manejadores específicos
     handleReorderCategories,
