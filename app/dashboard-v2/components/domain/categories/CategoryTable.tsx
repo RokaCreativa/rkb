@@ -110,6 +110,163 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
     }
   };
 
+  /**
+   * Renderiza una fila de categoría en la tabla de categorías
+   * Incluye atributos data-label y data-entity-type para la visualización en tarjetas móviles
+   */
+  const renderCategoryRow = (
+    category: Category,
+    index: number,
+    provided: any,
+    snapshot: any
+  ) => (
+    <tr 
+      ref={provided.innerRef}
+      {...provided.draggableProps}
+      className={`${
+        snapshot.isDragging 
+          ? "grid-item-dragging-category" 
+          : expandedCategories[category.category_id] 
+            ? "category-bg" 
+            : "hover:bg-gray-50"
+      } mt-4`}
+      data-entity-type="category"
+      data-display-order={category.display_order || index + 1}
+    >
+      {/* Badge de orden - ahora es un td para evitar errores de hidratación */}
+      <td className="hidden sm:hidden"></td>
+      
+      <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
+        <div className="flex items-center">
+          <button 
+            onClick={() => onCategoryClick(category)}
+            className={`p-1 rounded-full transition-colors ${
+              expandedCategories[category.category_id] 
+                ? "bg-indigo-100 category-title" 
+                : "hover:bg-gray-200 text-gray-500"
+            }`}
+            aria-label={expandedCategories[category.category_id] ? "Colapsar" : "Expandir"}
+            aria-expanded={expandedCategories[category.category_id]}
+          >
+            {expandedCategories[category.category_id] ? (
+              <GridIcon type="category" icon="collapse" size="large" />
+            ) : (
+              <GridIcon type="category" icon="expand" size="large" />
+            )}
+          </button>
+        </div>
+      </td>
+      <td 
+        className="px-3 py-2 cursor-pointer cell-name"
+        onClick={() => !isReorderModeActive && onCategoryClick(category)}
+        data-label="Nombre"
+      >
+        <div className="flex items-center">
+          <div 
+            {...provided.dragHandleProps} 
+            className={`mr-2 px-2 py-1 rounded-md transition-colors ${
+              isReorderModeActive 
+                ? 'category-drag-handle bg-indigo-50 border-2 border-indigo-300 shadow-sm' 
+                : 'text-gray-400'
+            }`} 
+            title={isReorderModeActive ? "Arrastrar para reordenar" : ""}
+          >
+            <GridIcon 
+              type="category" 
+              icon="drag" 
+              size="large" 
+              className={isReorderModeActive ? "text-indigo-600 animate-pulse" : "text-gray-400"}
+            />
+          </div>
+          <div className="flex items-center">
+            <span className={`text-sm font-medium ${
+              expandedCategories[category.category_id] 
+                ? "category-text" 
+                : "text-gray-700"
+            }`}>{category.name}</span>
+            <span className="text-xs text-gray-500 ml-2">
+              ({category.visible_sections_count || 0}/{category.sections_count || 0} secciones visibles)
+            </span>
+          </div>
+        </div>
+      </td>
+      <td 
+        className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center cell-order"
+        data-label="Orden"
+      >
+        {category.display_order || index + 1}
+      </td>
+      <td 
+        className="px-3 py-2 whitespace-nowrap cell-image"
+        data-label="Imagen"
+      >
+        <div className="flex justify-center">
+          <div className="category-image-container">
+            <Image
+              src={getImagePath(category.image, 'categories')}
+              alt={category.name || ''}
+              width={40}
+              height={40}
+              className="category-image !object-cover !w-full !h-full"
+              onError={handleImageError}
+            />
+          </div>
+        </div>
+      </td>
+      <td 
+        className="px-2 py-2 whitespace-nowrap text-center cell-visibility"
+        data-label="Visibilidad"
+      >
+        <button
+          onClick={() => onToggleCategoryVisibility(category.category_id, category.status)}
+          className={`inline-flex items-center justify-center h-6 w-6 rounded ${
+            category.status === 1
+              ? 'category-action category-icon-hover'
+              : 'text-gray-400 hover:bg-gray-100'
+          }`}
+          disabled={isUpdatingVisibility === category.category_id}
+          aria-label={category.status === 1 ? "Ocultar categoría" : "Mostrar categoría"}
+        >
+          {isUpdatingVisibility === category.category_id ? (
+            <div className="w-4 h-4 border-2 border-t-transparent border-indigo-500 rounded-full animate-spin"></div>
+          ) : (
+            <GridIcon 
+              type="category" 
+              icon={category.status === 1 ? "visibility" : "hidden"} 
+              size="medium" 
+            />
+          )}
+        </button>
+      </td>
+      <td 
+        className="px-3 py-2 whitespace-nowrap text-center cell-actions"
+        data-label="Acciones"
+      >
+        <div className="flex justify-center space-x-1">
+          <button
+            onClick={() => onAddSection(category.category_id)}
+            className="action-button category-action category-icon-hover"
+            title="Agregar sección"
+          >
+            <GridIcon type="category" icon="add" size="medium" />
+          </button>
+          <button
+            onClick={() => onEditCategory(category)}
+            className="action-button category-action category-icon-hover"
+          >
+            <GridIcon type="category" icon="edit" size="medium" />
+          </button>
+          <button
+            onClick={() => onDeleteCategory(category)}
+            className="category-action-delete"
+          >
+            <GridIcon type="category" icon="delete" size="medium" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+
   return (
     <div className="rounded-lg border category-border overflow-hidden bg-white shadow-sm">
       <div className="flex items-center justify-between px-4 py-2 category-bg border-b category-border">
@@ -163,131 +320,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                     isDragDisabled={!isReorderModeActive}
                   >
                     {(provided, snapshot) => (
-                      <tr 
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        className={`${
-                          snapshot.isDragging 
-                            ? "grid-item-dragging-category" 
-                            : expandedCategories[category.category_id] 
-                              ? "category-bg" 
-                              : "hover:bg-gray-50"
-                        } mt-4`}
-                      >
-                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 w-10">
-                          <div className="flex items-center">
-                            <button 
-                              onClick={() => onCategoryClick(category)}
-                              className={`p-1 rounded-full transition-colors ${
-                                expandedCategories[category.category_id] 
-                                  ? "bg-indigo-100 category-title" 
-                                  : "hover:bg-gray-200 text-gray-500"
-                              }`}
-                              aria-label={expandedCategories[category.category_id] ? "Colapsar" : "Expandir"}
-                              aria-expanded={expandedCategories[category.category_id]}
-                            >
-                              {expandedCategories[category.category_id] ? (
-                                <GridIcon type="category" icon="collapse" size="large" />
-                              ) : (
-                                <GridIcon type="category" icon="expand" size="large" />
-                              )}
-                            </button>
-                          </div>
-                        </td>
-                        <td 
-                          className="px-3 py-2 cursor-pointer"
-                          onClick={() => !isReorderModeActive && onCategoryClick(category)}
-                        >
-                          <div className="flex items-center">
-                            <div 
-                              {...provided.dragHandleProps} 
-                              className={`mr-2 px-2 py-1 rounded-md transition-colors ${
-                                isReorderModeActive 
-                                  ? 'category-drag-handle bg-indigo-50 border-2 border-indigo-300 shadow-sm' 
-                                  : 'text-gray-400'
-                              }`} 
-                              title={isReorderModeActive ? "Arrastrar para reordenar" : ""}
-                            >
-                              <GridIcon 
-                                type="category" 
-                                icon="drag" 
-                                size="large" 
-                                className={isReorderModeActive ? "text-indigo-600 animate-pulse" : "text-gray-400"}
-                              />
-                            </div>
-                            <div className="flex items-center">
-                              <span className={`text-sm font-medium ${
-                                expandedCategories[category.category_id] 
-                                  ? "category-text" 
-                                  : "text-gray-700"
-                              }`}>{category.name}</span>
-                              <span className="text-xs text-gray-500 ml-2">
-                                ({category.visible_sections_count || 0}/{category.sections_count || 0} secciones visibles)
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center">{category.display_order || index + 1}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          <div className="flex justify-center">
-                            <div className="category-image-container">
-                              <Image
-                                src={getImagePath(category.image, 'categories')}
-                                alt={category.name || ''}
-                                width={40}
-                                height={40}
-                                className="category-image !object-cover !w-full !h-full"
-                                onError={handleImageError}
-                              />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-2 py-2 whitespace-nowrap text-center">
-                          <button
-                            onClick={() => onToggleCategoryVisibility(category.category_id, category.status)}
-                            className={`inline-flex items-center justify-center h-6 w-6 rounded ${
-                              category.status === 1
-                                ? 'category-action category-icon-hover'
-                                : 'text-gray-400 hover:bg-gray-100'
-                            }`}
-                            disabled={isUpdatingVisibility === category.category_id}
-                            aria-label={category.status === 1 ? "Ocultar categoría" : "Mostrar categoría"}
-                          >
-                            {isUpdatingVisibility === category.category_id ? (
-                              <div className="w-4 h-4 border-2 border-t-transparent border-indigo-500 rounded-full animate-spin"></div>
-                            ) : (
-                              <GridIcon 
-                                type="category" 
-                                icon={category.status === 1 ? "visibility" : "hidden"} 
-                                size="medium" 
-                              />
-                            )}
-                          </button>
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-center">
-                          <div className="flex justify-center space-x-1">
-                            <button
-                              onClick={() => onAddSection(category.category_id)}
-                              className="action-button category-action category-icon-hover"
-                              title="Agregar sección"
-                            >
-                              <GridIcon type="category" icon="add" size="medium" />
-                            </button>
-                            <button
-                              onClick={() => onEditCategory(category)}
-                              className="action-button category-action category-icon-hover"
-                            >
-                              <GridIcon type="category" icon="edit" size="medium" />
-                            </button>
-                            <button
-                              onClick={() => onDeleteCategory(category)}
-                              className="category-action-delete"
-                            >
-                              <GridIcon type="category" icon="delete" size="medium" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+                      renderCategoryRow(category, index, provided, snapshot)
                     )}
                   </Draggable>
                   

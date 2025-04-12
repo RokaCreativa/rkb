@@ -272,251 +272,180 @@ td, th, span, div.flex-col, .product-text, .section-text, .category-text {
 @media (max-width: 640px) {
   /* Diseño en tarjetas por fila */
   .grid-table {
-    display: block !important;
-    width: 100% !important;
-    border-collapse: separate !important;
-    border-spacing: 0 0.75rem !important;
-    overflow-x: hidden !important; /* MEJORA MÓVIL: Evitar scroll horizontal */
+    display: block;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.75rem;
+  }
+  
+  /* Ocultar bloque vacío en vista móvil */
+  .grid-table td:empty,
+  .empty-block {
+    display: none;
   }
   
   .grid-table thead {
-    display: none !important; /* Ocultar encabezados en móvil */
+    display: none; /* Ocultar encabezados en móvil */
   }
   
   .grid-table tbody {
-    display: block !important;
-    width: 100% !important;
+    display: block;
+    width: 100%;
   }
   
   .grid-table tr {
-    display: flex !important;
-    flex-direction: column !important;
-    margin-bottom: 1rem !important;
-    border-radius: 0.5rem !important;
-    padding: 0.75rem 0.75rem 0.5rem 0.75rem !important;
-    position: relative !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-    border: 1px solid rgba(229, 231, 235, 0.8) !important;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
   
-  /* Badge para número de orden compacto */
+  /* Badge para número de orden compacto - VISIBLE SIEMPRE */
   .order-badge {
-    position: absolute !important;
-    top: 0.5rem !important;
-    right: 0.5rem !important;
-    width: 1.5rem !important;
-    height: 1.5rem !important;
-    border-radius: 9999px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    font-size: 0.75rem !important;
-    font-weight: 600 !important;
-    z-index: 5 !important;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 5;
   }
   
   /* Colores específicos por dominio para badges */
-  .product-table .order-badge {
-    background-color: #fef3c7 !important; /* amber-100 */
-    color: #d97706 !important; /* amber-600 */
+  .product-table .order-badge,
+  tr[data-entity-type="product"] .order-badge {
+    background-color: #fef3c7; /* amber-100 */
+    color: #d97706; /* amber-600 */
   }
   
-  .section-table .order-badge {
-    background-color: #ccfbf1 !important; /* teal-100 */
-    color: #0d9488 !important; /* teal-600 */
+  .section-table .order-badge,
+  tr[data-entity-type="section"] .order-badge {
+    background-color: #ccfbf1; /* teal-100 */
+    color: #0d9488; /* teal-600 */
   }
   
-  .category-table .order-badge {
-    background-color: #e0e7ff !important; /* indigo-100 */
-    color: #4f46e5 !important; /* indigo-600 */
+  .category-table .order-badge,
+  tr[data-entity-type="category"] .order-badge {
+    background-color: #e0e7ff; /* indigo-100 */
+    color: #4f46e5; /* indigo-600 */
   }
   
   /* Estilos específicos por dominio */
   .product-table tr, 
-  table.product-table tr {
-    background-color: rgba(251, 191, 36, 0.05) !important;
-    border: 1px solid rgba(251, 191, 36, 0.2) !important;
+  table.product-table tr,
+  tr[data-entity-type="product"] {
+    background-color: rgba(251, 191, 36, 0.05);
+    border: 1px solid rgba(251, 191, 36, 0.2);
   }
   
   .section-table tr,
-  table.section-table tr {
-    background-color: rgba(20, 184, 166, 0.05) !important;
-    border: 1px solid rgba(20, 184, 166, 0.2) !important;
+  table.section-table tr,
+  tr[data-entity-type="section"] {
+    background-color: rgba(20, 184, 166, 0.05);
+    border: 1px solid rgba(20, 184, 166, 0.2);
   }
   
   .category-table tr,
-  table.category-table tr {
-    background-color: rgba(99, 102, 241, 0.05) !important;
-    border: 1px solid rgba(99, 102, 241, 0.2) !important;
+  table.category-table tr,
+  tr[data-entity-type="category"] {
+    background-color: rgba(99, 102, 241, 0.05);
+    border: 1px solid rgba(99, 102, 241, 0.2);
   }
   
   /* Formato de celdas */
   .grid-table td {
-    display: flex !important;
-    padding: 0.5rem 0 !important;
-    text-align: left !important;
-    border-bottom: none !important;
-    align-items: center !important;
-    position: relative !important;
+    display: flex;
+    padding: 0.625rem 0;
+    text-align: left;
+    border-bottom: none;
+    align-items: center;
+    position: relative;
   }
   
   /* Etiquetas de datos (data-labels) */
   .grid-table td[data-label]:before {
-    content: attr(data-label) !important;
-    font-weight: 600 !important;
-    width: 40% !important;
-    margin-right: 0.75rem !important;
-    font-size: 0.8125rem !important;
-    color: #4b5563 !important; /* gray-600 */
-    flex-shrink: 0 !important; /* Evitar que la etiqueta se encoja */
+    content: attr(data-label);
+    font-weight: 600;
+    width: 40%;
+    margin-right: 0.75rem;
+    font-size: 0.8125rem;
+    color: #4b5563; /* gray-600 */
   }
   
   /* Reordenación por prioridad visual */
   .grid-table td {
-    order: 5 !important; /* Orden por defecto */
+    order: 5; /* Orden por defecto */
   }
   
   .grid-table td.cell-name {
-    order: 1 !important;
-    font-weight: 600 !important;
-    font-size: 1rem !important;
-    padding-top: 0 !important;
-    margin-right: 2rem !important; /* Espacio para el badge de orden */
+    order: 1;
+    font-weight: 600;
+    font-size: 1rem;
+    padding-top: 0;
+    margin-right: 2rem; /* Espacio para el badge de orden */
   }
   
   .grid-table td.cell-sections,
   .grid-table td.cell-products {
-    order: 2 !important;
+    order: 2;
   }
   
   .grid-table td.cell-image {
-    order: 3 !important;
+    order: 3;
   }
   
+  /* Orden específico para orden */
   .grid-table td.cell-order {
-    /* Ocultar celda de orden ya que se muestra como badge */
-    display: none !important;
+    display: none; /* Ocultar celda de orden ya que se muestra como badge */
   }
   
+  /* Mover acciones al final */
   .grid-table td.cell-actions {
-    order: 6 !important;
-    margin-top: 0.75rem !important;
-    border-top: 1px solid rgba(229, 231, 235, 0.5) !important;
-    padding-top: 0.75rem !important;
-    display: flex !important;
-    justify-content: flex-start !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
+    order: 6;
+    margin-top: 0.75rem;
+    border-top: 1px solid rgba(229, 231, 235, 0.5);
+    padding-top: 0.75rem;
+    display: flex;
+    justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
   
   .grid-table td.cell-actions::-webkit-scrollbar {
-    display: none !important;
+    display: none;
+  }
+
+  /* IMPORTANTE: Forzar display a flex en cada celda para el modo móvil */
+  .grid-table td[data-label] {
+    display: flex;
   }
   
   /* Botones de acción como iconos compactos */
   .action-button {
-    min-width: 2.75rem !important;
-    min-height: 2.75rem !important;
-    padding: 0 !important;
-    margin: 0 0.25rem !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: relative !important;
-    border-radius: 9999px !important;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    padding: 0;
+    margin: 0 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    border-radius: 9999px;
   }
   
   .action-button svg {
-    width: 1.25rem !important;
-    height: 1.25rem !important;
-  }
-  
-  /* Feedback táctil mejorado */
-  .touch-feedback:active {
-    opacity: 0.8 !important;
-    transform: scale(0.97) !important;
-    transition: opacity 0.1s, transform 0.1s !important;
-  }
-  
-  /* Optimización de textos largos */
-  .header-title {
-    display: -webkit-box !important;
-    -webkit-line-clamp: 2 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-    max-width: 100% !important;
-  }
-  
-  .content-list {
-    display: -webkit-box !important;
-    -webkit-line-clamp: 1 !important;
-    -webkit-box-orient: vertical !important;
-    overflow: hidden !important;
-  }
-  
-  /* Información secundaria */
-  .item-name {
-    font-weight: 600 !important;
-    font-size: 1rem !important;
-    margin-bottom: 0.25rem !important;
-  }
-  
-  .item-secondary-info {
-    font-size: 0.875rem !important;
-    color: #6b7280 !important; /* gray-500 */
-    margin-bottom: 0.5rem !important;
-  }
-  
-  /* Iconos más pequeños para drag and drop */
-  .drag-handle {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
-  }
-  
-  .drag-handle svg {
-    width: 18px !important;
-    height: 18px !important;
-    opacity: 0.75 !important;
-  }
-  
-  /* Posicionamiento mejorado del drag handle */
-  .grid-table .product-drag-handle,
-  .grid-table .section-drag-handle,
-  .grid-table .category-drag-handle {
-    position: absolute !important;
-    left: 0.25rem !important;
-    top: 0.25rem !important;
-    transform: translateY(0) !important;
-    border-radius: 9999px !important;
-    background-color: rgba(255, 255, 255, 0.8) !important;
-    z-index: 5 !important;
-  }
-  
-  /* Imágenes redimensionadas para vista móvil */
-  .product-image-container,
-  .section-image-container,
-  .category-image-container {
-    width: 48px !important;
-    height: 48px !important;
-    min-width: 48px !important;
-    min-height: 48px !important;
-    flex-shrink: 0 !important;
-    justify-content: center !important;
-    margin: 0 !important;
-  }
-  
-  .product-image,
-  .section-image,
-  .category-image {
-    max-width: 100% !important;
-    max-height: 100% !important;
-    object-fit: cover !important;
-    border-radius: 0.25rem !important;
+    width: 1.25rem;
+    height: 1.25rem;
   }
 }
 
@@ -1401,6 +1330,12 @@ table.product-table td {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0 0.75rem;
+  }
+  
+  /* Ocultar bloque vacío en vista móvil */
+  .grid-table td:empty,
+  .empty-block {
+    display: none;
   }
   
   .grid-table thead {

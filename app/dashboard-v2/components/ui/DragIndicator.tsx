@@ -1,105 +1,125 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
-import { ArrowsUpDownIcon } from '@heroicons/react/24/solid';
+/**
+ * @fileoverview Componente Indicador de Arrastre para funcionalidad de arrastrar y soltar
+ * @author RokaMenu Team
+ * @version 1.0.0
+ * @description Este componente muestra un indicador visual cuando el usuario está arrastrando elementos
+ *              en la interfaz, especialmente útil para dispositivos móviles donde no hay feedback visual natural
+ */
 
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowsUpDownIcon } from '@heroicons/react/24/outline';
+
+/**
+ * Propiedades para el componente DragIndicator
+ * @interface DragIndicatorProps
+ * @property {string} [entityName] - Nombre de la entidad que se está arrastrando (ej: "categoría", "sección")
+ * @property {string} [className] - Clases CSS adicionales para personalizar el componente
+ */
 interface DragIndicatorProps {
-  entityName?: 'categoría' | 'sección' | 'producto';
+  entityName?: string;
   className?: string;
 }
 
 /**
- * Componente que muestra un indicador visual durante operaciones de arrastrar y soltar
- * Especialmente útil en dispositivos móviles para proporcionar feedback al usuario
- * Se muestra automáticamente cuando el body tiene la clase 'is-dragging'
+ * Componente que muestra un indicador visual durante operaciones de arrastrar y soltar.
+ * 
+ * Este componente monitorea si hay una operación de arrastre activa observando clases CSS
+ * en el elemento body. Cuando detecta arrastre, muestra un mensaje informativo con una animación
+ * para dar feedback al usuario, especialmente útil en dispositivos móviles.
+ * 
+ * El indicador se oculta automáticamente después de 3 segundos o cuando termina la acción de arrastre.
+ * 
+ * @example
+ * // Uso básico
+ * <DragIndicator />
+ * 
+ * // Con nombre de entidad personalizado
+ * <DragIndicator entityName="producto" />
+ * 
+ * @param {DragIndicatorProps} props - Propiedades del componente
+ * @returns {JSX.Element|null} El componente indicador de arrastre o null si no hay arrastre activo
  */
-const DragIndicator: React.FC<DragIndicatorProps> = ({
-  entityName = 'elemento',
-  className = '',
+const DragIndicator: React.FC<DragIndicatorProps> = ({ 
+  entityName = "elemento", 
+  className = ""
 }) => {
+  // Estado que controla la visibilidad del indicador
   const [isDragging, setIsDragging] = useState(false);
-  // Referencia para controlar el temporizador de seguridad
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Efecto para forzar la ocultación después de un tiempo máximo
-  // Esto es una garantía adicional para evitar que se quede visible indefinidamente
+  // Referencia al temporizador para limpiar en el desmontaje
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  /**
+   * Este efecto maneja el tiempo que el indicador permanece visible
+   * Después de 3 segundos, oculta automáticamente el indicador
+   */
   useEffect(() => {
+    // Cuando el estado de arrastre cambia a true...
     if (isDragging) {
-      // Si el arrastre está activo, configurar un temporizador de seguridad
+      // Limpiar cualquier temporizador existente para evitar fugas de memoria
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      // Establecer un nuevo temporizador para ocultar el indicador después de 3 segundos
       timeoutRef.current = setTimeout(() => {
-        // Después de 3 segundos, forzar la ocultación independientemente del estado
         setIsDragging(false);
-        // Y limpiar la clase del body por si acaso
-        if (document.body.classList.contains('is-dragging')) {
-          document.body.classList.remove('is-dragging');
-        }
-      }, 3000); // 3 segundos máximo de duración del arrastre
-    } else if (timeoutRef.current) {
-      // Si el arrastre termina normalmente, limpiar el temporizador
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+      }, 3000);
     }
     
-    // Limpiar el temporizador al desmontar
+    // Limpieza al desmontar el componente o cuando cambia isDragging
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
     };
   }, [isDragging]);
-  
-  // Observar la clase 'is-dragging' en el body para mostrar el indicador
+
+  /**
+   * Este efecto observa cambios en las clases del body para detectar cuando
+   * una operación de arrastrar y soltar está activa
+   */
   useEffect(() => {
-    const checkDragging = () => {
-      const isDraggingActive = document.body.classList.contains('is-dragging');
-      setIsDragging(isDraggingActive);
+    // Función que se ejecuta cuando se observan cambios en las clases del body
+    const handleBodyClassChange = () => {
+      // Verificar si el body tiene la clase 'dragging-active'
+      const isDraggingActive = document.body.classList.contains('dragging-active');
+      // Actualizar el estado solo si es diferente al actual
+      if (isDraggingActive !== isDragging) {
+        setIsDragging(isDraggingActive);
+      }
     };
     
-    // Verificar el estado inicial
-    checkDragging();
+    // Configuración del observador de mutaciones para vigilar cambios en el body
+    const observer = new MutationObserver(handleBodyClassChange);
     
-    // Observar mutaciones en la clase del body
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class') {
-          checkDragging();
-        }
-      });
+    // Iniciar la observación del atributo class del body
+    observer.observe(document.body, { 
+      attributes: true, 
+      attributeFilter: ['class'] 
     });
     
-    observer.observe(document.body, { attributes: true });
+    // Comprobar el estado inicial (por si ya hay un arrastre activo)
+    handleBodyClassChange();
     
-    // Verificación adicional: comprobar periódicamente si el arrastre ha terminado
-    const intervalId = setInterval(() => {
-      // Si el indicador muestra que estamos arrastrando pero el body no tiene la clase,
-      // actualizar el estado
-      if (isDragging && !document.body.classList.contains('is-dragging')) {
-        setIsDragging(false);
-      }
-    }, 250); // Comprobar cada 250ms
-    
-    // Limpiar el observer y el intervalo al desmontar
+    // Detener la observación al desmontar el componente
     return () => {
       observer.disconnect();
-      clearInterval(intervalId);
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
     };
   }, [isDragging]);
-  
+
+  // Si no hay arrastre activo, no renderizar nada
   if (!isDragging) {
     return null;
   }
-  
+
+  // Renderizar el indicador de arrastre cuando está activo
   return (
-    <div className={`drag-indicator ${className}`}>
-      <div className="flex items-center justify-center space-x-2 py-2 px-4">
-        <ArrowsUpDownIcon className="h-4 w-4 text-white animate-pulse" />
-        <span className="text-sm font-medium">
-          Arrastrando {entityName}... <span className="text-xs font-normal">(Suelta para colocar)</span>
-        </span>
-      </div>
+    <div className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white px-4 py-2 rounded-full shadow-lg z-50 flex items-center animate-pulse ${className}`}>
+      <ArrowsUpDownIcon className="h-5 w-5 mr-2" />
+      <span className="text-sm font-medium">Arrastrando {entityName}...</span>
     </div>
   );
 };

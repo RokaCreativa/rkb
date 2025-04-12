@@ -4,7 +4,7 @@
  * @fileoverview Componente para cambiar el idioma de la aplicación
  * @author RokaMenu Team
  * @version 1.0.0
- * @updated 2024-08-25
+ * @updated 12/04/2025
  * 
  * Este componente permite al usuario cambiar entre los idiomas disponibles
  * en la aplicación (español e inglés).

@@ -8,6 +8,9 @@
 @import "./theme.css";
 @import "./typography.css";
 @import "./animations.css";
+@import "./dashboard.css";
+@import "./grids.css";
+@import "./mobileView.css";
 
 @tailwind base;
 @tailwind components;

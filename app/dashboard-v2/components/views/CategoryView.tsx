@@ -212,40 +212,31 @@ const CategoryView: React.FC<CategoryViewProps> = ({
 
   return (
     <div className="flex flex-col w-full min-h-0 p-4 bg-indigo-50/30">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold text-indigo-800">Gestión de Menú</h1>
+      <div className="flex justify-between items-center mb-2">
+        <h1 className="text-xl font-bold text-indigo-800">Gestiona tu menú</h1>
         <div className="flex gap-2">
           <button
             onClick={() => {
-              // Aquí necesitamos comunicar al padre el cambio de estado
               console.log("🔄 [DEBUG] Botón de reordenamiento presionado");
-              // Como no recibimos un delegado específico, usamos un hack para detectar esto en el padre
               if (onSectionsReorder) {
-                // Llamar a onSectionsReorder con valores especiales (-1, -1, -1) como señal para toggle
                 onSectionsReorder(-1, -1, -1);
               }
             }}
-            className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center ${
+            className={`px-2 py-1 rounded-md text-sm font-medium flex items-center ${
               isReorderModeActive 
                 ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                 : 'border border-indigo-600 text-indigo-600 hover:bg-indigo-50'
             }`}
           >
-            {isReorderModeActive ? 'Finalizar reordenación' : 'Reordenar categorías'}
+            {isReorderModeActive ? 'Finalizar' : 'Reordenar'}
           </button>
           <button
             onClick={handleAddCategory}
-            className="px-3 py-1.5 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700"
+            className="px-2 py-1 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700"
           >
-            Añadir categoría
+            Añadir
           </button>
         </div>
-      </div>
-      
-      <div className="mb-4">
-        <p className="text-indigo-800 text-sm">
-          Añade, edita y gestiona tus categorías. Puedes reordenarlas haciendo clic en &quot;Reordenar categorías&quot;.
-        </p>
       </div>
       
       <div className="flex-grow rounded-lg overflow-hidden">

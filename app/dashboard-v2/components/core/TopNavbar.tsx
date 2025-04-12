@@ -1,24 +1,46 @@
 "use client";
 
-import React, { useState } from 'react';
-import { PaintBrushIcon, PhoneIcon, LanguageIcon, Bars3Icon } from '@heroicons/react/24/outline';
+/**
+ * @fileoverview Barra de navegación superior del dashboard con soporte móvil mejorado
+ * @author RokaMenu Team
+ * @version 1.2.0
+ * @updated 2025-04-11
+ * @changelog Integración completa con menú móvil optimizado
+ */
+
+import React, { useState, useCallback } from 'react';
+import { 
+  PaintBrushIcon, 
+  PhoneIcon, 
+  LanguageIcon, 
+  Bars3Icon,
+  ArrowPathIcon
+} from '@heroicons/react/24/outline';
 import CustomizationModal from '@/app/dashboard-v2/components/modals/CustomizationModal';
 import LanguageSwitcher from '../ui/LanguageSwitcher';
-import MobileMenu from '../ui/MobileMenu';
+import MobileMenu, { MenuItem } from '../ui/MobileMenu';
 import { useI18n } from '../../hooks/ui/useI18n';
 
+/**
+ * Props para el componente TopNavbar
+ * @interface TopNavbarProps
+ */
 interface TopNavbarProps {
+  /** Indica si el modo de reordenamiento está activo */
   isReorderModeActive?: boolean;
+  /** Función para alternar el modo de reordenamiento */
   onToggleReorderMode?: () => void;
+  /** URL del logo del cliente (opcional) */
   clientLogo?: string | null;
+  /** Nombre del cliente */
   clientName?: string;
 }
 
 /**
  * Barra de navegación superior del dashboard
- * Incluye soporte para menú móvil colapsable en pantallas pequeñas
+ * Incluye soporte completo para menú móvil colapsable optimizado
  * 
- * @param props Propiedades del componente
+ * @param {TopNavbarProps} props - Propiedades del componente
  * @returns Componente React
  */
 export function TopNavbar({ 
@@ -28,25 +50,74 @@ export function TopNavbar({
   clientName = 'RokaMenu'
 }: TopNavbarProps) {
   const [isCustomizationModalOpen, setIsCustomizationModalOpen] = useState(false);
-  // Estado para controlar la visibilidad del menú móvil
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t } = useI18n(); // Hook para traducciones
   
-  // Función para mostrar/ocultar la vista previa
-  const handleTogglePreview = () => {
+  /**
+   * Activa/desactiva la vista previa móvil
+   * Dispara un evento personalizado que es capturado por el componente de vista previa
+   */
+  const handleTogglePreview = useCallback(() => {
     // Disparar evento personalizado para activar la vista previa
     window.dispatchEvent(new Event('toggle-preview'));
-  };
+  }, []);
   
-  // Función para manejar el reordenamiento con logs
-  const handleReorderModeToggle = () => {
+  /**
+   * Maneja la activación/desactivación del modo de reordenamiento
+   * Incluye logs de depuración para diagnóstico
+   */
+  const handleReorderModeToggle = useCallback(() => {
     console.log('🔄 [REORDER DEBUG] Botón de reordenamiento clickeado');
     console.log('🔄 [REORDER DEBUG] Estado actual isReorderModeActive:', isReorderModeActive);
     console.log('🔄 [REORDER DEBUG] Cambio a:', !isReorderModeActive);
     
     // Llamar a la función original para activar/desactivar el modo
     onToggleReorderMode();
-  };
+  }, [isReorderModeActive, onToggleReorderMode]);
+  
+  /**
+   * Cierra el menú móvil
+   */
+  const handleCloseMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen(false);
+  }, []);
+  
+  // Definir los elementos del menú móvil
+  const mobileMenuItems: MenuItem[] = [
+    {
+      id: 'preview',
+      label: t('dashboard.preview'),
+      icon: <PhoneIcon className="h-6 w-6 text-indigo-500" />,
+      onClick: () => {
+        handleTogglePreview();
+        handleCloseMobileMenu();
+      }
+    },
+    {
+      id: 'customize',
+      label: t('dashboard.customize'),
+      icon: <PaintBrushIcon className="h-6 w-6 text-gray-500" />,
+      onClick: () => {
+        setIsCustomizationModalOpen(true);
+        handleCloseMobileMenu();
+      }
+    }
+  ];
+  
+  // Añadir el botón de reordenamiento solo si la función está disponible
+  if (onToggleReorderMode !== undefined) {
+    mobileMenuItems.push({
+      id: 'reorder',
+      label: isReorderModeActive ? t('dragAndDrop.disableReorderMode') : t('dragAndDrop.reorderMode'),
+      icon: (
+        <ArrowPathIcon 
+          className={`h-6 w-6 ${isReorderModeActive ? 'text-red-500' : 'text-gray-500'}`} 
+        />
+      ),
+      isActive: isReorderModeActive,
+      onClick: handleReorderModeToggle
+    });
+  }
   
   return (
     <>
@@ -67,16 +138,17 @@ export function TopNavbar({
             
             {/* Menú derecho */}
             <div className="flex items-center">
-              {/* Botón de menú hamburguesa - visible solo en móviles */}
+              {/* Botón de menú hamburguesa optimizado para móviles */}
               <div className="sm:hidden">
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                  className="inline-flex items-center justify-center p-3 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 touch-action-manipulation"
                   onClick={() => setIsMobileMenuOpen(true)}
-                  aria-expanded="false"
+                  aria-expanded={isMobileMenuOpen}
+                  aria-label={t('navigation.openMenu')}
                 >
                   <span className="sr-only">{t('navigation.openMenu')}</span>
-                  <Bars3Icon className="block h-8 w-8" aria-hidden="true" />
+                  <Bars3Icon className="h-7 w-7" aria-hidden="true" />
                 </button>
               </div>
               
@@ -123,15 +195,9 @@ export function TopNavbar({
                         : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                     } text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
                   >
-                    <svg 
-                      className={`-ml-1 mr-2 h-5 w-5 ${isReorderModeActive ? 'text-red-500' : 'text-gray-500'}`} 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      fill="none" 
-                      viewBox="0 0 24 24" 
-                      stroke="currentColor"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                    </svg>
+                    <ArrowPathIcon 
+                      className={`h-5 w-5 mr-2 ${isReorderModeActive ? 'text-red-500' : 'text-gray-500'}`} 
+                    />
                     {isReorderModeActive ? t('dragAndDrop.disableReorderMode') : t('dragAndDrop.reorderMode')}
                   </button>
                 )}
@@ -147,64 +213,16 @@ export function TopNavbar({
         />
       </div>
       
-      {/* Menú móvil */}
+      {/* Menú móvil optimizado */}
       <MobileMenu
         isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
+        onClose={handleCloseMobileMenu}
         clientName={clientName}
         clientLogo={clientLogo}
-      >
-        {/* Contenido personalizado para el menú móvil */}
-        <nav className="flex flex-col space-y-1">
-          {/* Acción: Vista previa - acción implementada */}
-          <button
-            onClick={() => {
-              handleTogglePreview();
-              setIsMobileMenuOpen(false);
-            }}
-            className="text-base py-4 px-4 rounded-md hover:bg-gray-100 flex items-center justify-start w-full text-left"
-          >
-            <PhoneIcon className="h-6 w-6 mr-3 text-indigo-500" />
-            {t('dashboard.preview')}
-          </button>
-          
-          {/* Acción: Personalizar - acción implementada */}
-          <button
-            onClick={() => {
-              setIsCustomizationModalOpen(true);
-              setIsMobileMenuOpen(false);
-            }}
-            className="text-base py-4 px-4 rounded-md hover:bg-gray-100 flex items-center justify-start w-full text-left"
-          >
-            <PaintBrushIcon className="h-6 w-6 mr-3 text-gray-500" />
-            {t('dashboard.customize')}
-          </button>
-          
-          {/* Acción: Modo reordenamiento - solo mostrar si se proporciona la función */}
-          {onToggleReorderMode !== undefined && (
-            <button
-              onClick={() => {
-                handleReorderModeToggle();
-                setIsMobileMenuOpen(false);
-              }}
-              className={`text-base py-4 px-4 rounded-md hover:bg-gray-100 flex items-center justify-start w-full text-left ${
-                isReorderModeActive ? 'bg-red-50' : ''
-              }`}
-            >
-              <svg 
-                className={`h-6 w-6 mr-3 ${isReorderModeActive ? 'text-red-500' : 'text-gray-500'}`} 
-                xmlns="http://www.w3.org/2000/svg" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-              </svg>
-              {isReorderModeActive ? t('dragAndDrop.disableReorderMode') : t('dragAndDrop.reorderMode')}
-            </button>
-          )}
-        </nav>
-      </MobileMenu>
+        position="right"
+        maxWidth={300}
+        menuItems={mobileMenuItems}
+      />
     </>
   );
 } 

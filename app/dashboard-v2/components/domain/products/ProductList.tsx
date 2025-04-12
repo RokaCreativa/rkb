@@ -123,18 +123,18 @@ const ProductList: React.FC<ProductListProps> = ({
         {/* Encabezado de la tabla */}
         <div className="flex justify-between items-center p-4 product-bg border-b product-border">
           <h2 className="text-sm font-medium product-title">
-            {sectionName ? `Productos en ${sectionName}` : 'Productos'} ({products.length})
+          {sectionName ? `Productos en ${sectionName}` : 'Productos'} ({products.length})
             {isReorderModeActive && (
               <span className="ml-2 text-xs font-normal bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
                 Modo reordenación activo
               </span>
             )}
-          </h2>
-          <div className="flex items-center space-x-2">
+        </h2>
+        <div className="flex items-center space-x-2">
             <span className="text-xs product-title">
               ({visibleProducts.length}/{products.length} visibles)
             </span>
-            <button
+          <button
               className="text-xs product-title hover:product-text flex items-center ml-2"
               onClick={() => setShowHiddenProducts(!showHiddenProducts)}
             >
@@ -143,13 +143,13 @@ const ProductList: React.FC<ProductListProps> = ({
                 <ChevronDownIcon className="h-3 w-3 ml-1" /> : 
                 <ChevronRightIcon className="h-3 w-3 ml-1" />
               }
-            </button>
-          </div>
+          </button>
         </div>
+      </div>
 
         {/* TABLA PRINCIPAL */}
         <Droppable droppableId={droppableId} type="product" isDropDisabled={!isDragEnabled}>
-          {(provided, snapshot) => (
+        {(provided, snapshot) => (
             <div className="relative overflow-x-auto overscroll-x-none">
               <table className="products-table grid-table w-full text-sm text-left rtl:text-right" {...provided.droppableProps} ref={provided.innerRef}>
                 <thead className="text-xs uppercase bg-white border-b">
@@ -186,10 +186,10 @@ const ProductList: React.FC<ProductListProps> = ({
                   {/* Productos visibles (arrastrables) */}
                   {visibleProducts.length > 0 ? (
                     visibleProducts.map((product, index) => (
-                      <Draggable
-                        key={`product-${product.product_id}`}
-                        draggableId={`product-${product.product_id}`}
-                        index={index}
+              <Draggable
+                key={`product-${product.product_id}`}
+                draggableId={`product-${product.product_id}`}
+                index={index}
                         isDragDisabled={!isDragEnabled}
                       >
                         {(provided, snapshot) => (
@@ -293,11 +293,11 @@ const ProductList: React.FC<ProductListProps> = ({
                                 >
                                   <GridIcon type="product" icon="delete" size="medium" />
                                 </button>
-                              </div>
+                  </div>
                             </td>
                           </tr>
-                        )}
-                      </Draggable>
+                )}
+              </Draggable>
                     ))
                   ) : (
                     <tr>
@@ -400,17 +400,17 @@ const ProductList: React.FC<ProductListProps> = ({
                           >
                             <GridIcon type="product" icon="delete" size="medium" />
                           </button>
-                        </div>
+              </div>
                       </td>
                     </tr>
-                  ))}
+            ))}
 
-                  {provided.placeholder}
+            {provided.placeholder}
                 </tbody>
               </table>
-            </div>
-          )}
-        </Droppable>
+          </div>
+        )}
+      </Droppable>
 
         {/* Botón para agregar producto */}
         {onAddProduct && sectionId && (

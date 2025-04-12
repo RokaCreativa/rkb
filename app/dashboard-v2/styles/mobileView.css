@@ -1,0 +1,249 @@
+/* ========================================================================
+ * ARCHIVO DE ESTILOS PARA VISTA MÓVIL DE ROKAMENU
+ * ========================================================================
+ * 
+ * Este archivo contiene los estilos específicos que se aplican SOLO en dispositivos móviles
+ * para mejorar la visualización y experiencia de usuario en pantallas pequeñas.
+ * 
+ * Todos los estilos aquí tienen !important para asegurar que se apliquen sin importar
+ * otros estilos que puedan existir en el sitio.
+ */
+
+/* ========================================================================
+ * REGLAS PARA DISPOSITIVOS MÓVILES (PANTALLAS MENORES A 768px)
+ * ======================================================================== */
+@media (max-width: 768px) {
+  /* ======== TRANSFORMACIÓN DE TABLAS A TARJETAS ========
+   * Estos estilos cambian completamente cómo se ven las tablas en móvil,
+   * convirtiéndolas de una estructura tabular a un diseño de tarjetas individuales.
+   */
+  .dashboard-v2 table,
+  .dashboard-v2 .grid-table {
+    display: block !important;          /* Cambia la tabla de table a block */
+    width: 100% !important;             /* Asegura que ocupe todo el ancho disponible */
+    border-collapse: separate !important; /* Evita que las celdas se colapsen */
+    border-spacing: 0 !important;       /* Elimina espacio entre celdas */
+  }
+  
+  /* El cuerpo de la tabla se convierte en un contenedor vertical de tarjetas */
+  .dashboard-v2 tbody {
+    display: block !important;          /* Cambia de table-row-group a block */
+    width: 100% !important;             /* Asegura que ocupe todo el ancho disponible */
+  }
+  
+  /* ======== OCULTACIÓN DE ELEMENTOS INNECESARIOS EN MÓVIL ========
+   * Ocultar los encabezados de tabla porque no se necesitan en el diseño de tarjetas
+   */
+  .dashboard-v2 thead {
+    display: none !important;           /* Oculta completamente los encabezados de tabla */
+  }
+  
+  /* ======== DISEÑO DE TARJETAS PARA FILAS ========
+   * Convierte cada fila de la tabla (tr) en una tarjeta independiente con diseño grid
+   */
+  .dashboard-v2 .grid-table tr,
+  .dashboard-v2 tbody tr {
+    padding: 0.75rem 0.5rem !important;  /* Espacio interno para contenido */
+    margin-bottom: 0.75rem !important;   /* Espacio entre tarjetas */
+    display: grid !important;            /* Usa grid layout para organizar el contenido */
+    
+    /* Define áreas del grid: nombre (izquierda), imagen (derecha) y acciones (abajo) */
+    grid-template-columns: 1fr auto !important;  /* Columna flexible y columna de tamaño fijo */
+    grid-template-areas: 
+      "nombre imagen"                   /* Arriba: nombre a la izquierda, imagen a la derecha */
+      "acciones acciones" !important;   /* Abajo: acciones ocupan todo el ancho */
+    
+    gap: 0.5rem !important;             /* Espacio entre áreas del grid */
+    position: relative !important;       /* Necesario para posicionar el número de orden */
+    
+    /* Estilos visuales para cada tarjeta */
+    border-radius: 0.5rem !important;    /* Esquinas redondeadas */
+    background-color: white !important;  /* Fondo blanco */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important; /* Sombra sutil */
+  }
+  
+  /* ======== LIMPIEZA DE ELEMENTOS VACÍOS ========
+   * Oculta celdas o divisiones vacías para mantener un diseño limpio
+   */
+  .dashboard-v2 td:empty,
+  .dashboard-v2 th:empty,
+  .dashboard-v2 div:empty:not(.category-image-container), /* Excepto contenedores de imagen */
+  .dashboard-v2 .empty-block {
+    display: none !important;           /* Oculta elementos vacíos */
+  }
+  
+  /* ======== AJUSTES PARA CELDAS DE TABLA ========
+   * Modifica cómo se muestran las celdas dentro de nuestras tarjetas
+   */
+  .dashboard-v2 .grid-table td,
+  .dashboard-v2 tbody td {
+    padding: 0.35rem 0 !important;      /* Espacio interno reducido */
+    border-bottom: none !important;      /* Elimina borde inferior que viene por defecto */
+    display: block !important;           /* Cambia de table-cell a block */
+  }
+  
+  /* ======== OPTIMIZACIÓN DE ESPACIADO ========
+   * Reduce espacios para aprovechar mejor la pantalla pequeña
+   */
+  .dashboard-v2 .mb-4 {
+    margin-bottom: 0.75rem !important;   /* Reduce el margen inferior de 1rem a 0.75rem */
+  }
+  
+  /* ======== OPTIMIZACIÓN DE ICONOS ========
+   * Reduce el tamaño de iconos para que sean más apropiados en móvil
+   */
+  .dashboard-v2 .action-button svg,
+  .dashboard-v2 button svg {
+    width: 1.15rem !important;          /* Ancho reducido */
+    height: 1.15rem !important;         /* Altura reducida */
+  }
+  
+  /* ======== ELIMINACIÓN DE ELEMENTOS DUPLICADOS ========
+   * Oculta texto duplicado que aparece en la vista de Gestiona tu menú
+   */
+  .dashboard-v2 .flex.justify-between.items-center.mb-2 h1 + div {
+    display: none !important;           /* Oculta el div que sigue inmediatamente al h1 */
+  }
+  
+  /* ======== OPTIMIZACIÓN DE NAVEGACIÓN ========
+   * Oculta elementos de navegación redundantes en móvil
+   */
+  .dashboard-v2 nav [aria-label="Breadcrumb"] ol li:first-child {
+    display: none !important;           /* Oculta el primer elemento de las migas de pan */
+  }
+  
+  /* ======== AJUSTE DE TAMAÑO DE TÍTULOS ========
+   * Reduce el tamaño de títulos principales para mejor visualización
+   */
+  .dashboard-v2 h1.text-xl {
+    font-size: 1.125rem !important;     /* Tamaño de fuente más pequeño */
+    line-height: 1.5rem !important;     /* Altura de línea ajustada */
+  }
+  
+  /* ======== ELIMINACIÓN DE ETIQUETAS DE CELDA ========
+   * Oculta las etiquetas de celdas (como "Nombre:", "Imagen:") en vista móvil
+   */
+  .dashboard-v2 .grid-table td[data-label]::before,
+  .dashboard-v2 td[data-label]::before {
+    display: none !important;           /* Oculta el contenido generado por attr(data-label) */
+  }
+  
+  /* ======== POSICIONAMIENTO DEL NOMBRE ========
+   * Coloca el nombre del elemento en la zona izquierda de la tarjeta
+   */
+  .dashboard-v2 .grid-table td.cell-name,
+  .dashboard-v2 td[data-label="Nombre"] {
+    grid-area: nombre !important;       /* Asigna la celda al área "nombre" del grid */
+    align-self: center !important;       /* Centra verticalmente el contenido */
+    padding-right: 0.5rem !important;    /* Espacio a la derecha para separar de la imagen */
+  }
+  
+  /* ======== POSICIONAMIENTO DE LA IMAGEN ========
+   * Coloca la imagen en la zona derecha de la tarjeta
+   */
+  .dashboard-v2 .grid-table td.cell-image,
+  .dashboard-v2 td[data-label="Imagen"] {
+    grid-area: imagen !important;       /* Asigna la celda al área "imagen" del grid */
+    justify-self: end !important;        /* Alinea a la derecha dentro de su área */
+  }
+  
+  /* ======== OPTIMIZACIÓN DE TAMAÑO DE IMÁGENES ========
+   * Aumenta ligeramente el tamaño de las imágenes para mejor visualización
+   */
+  .dashboard-v2 .grid-table .category-image-container,
+  .dashboard-v2 .grid-table .section-image-container,
+  .dashboard-v2 .grid-table .product-image-container {
+    width: 3.5rem !important;           /* Ancho aumentado */
+    height: 3.5rem !important;          /* Altura aumentada */
+  }
+  
+  /* ======== POSICIONAMIENTO DE ACCIONES ========
+   * Coloca los botones de acción en la parte inferior de la tarjeta
+   */
+  .dashboard-v2 .grid-table td.cell-actions,
+  .dashboard-v2 td[data-label="Acciones"] {
+    grid-area: acciones !important;     /* Asigna la celda al área "acciones" del grid */
+    width: 100% !important;             /* Ocupa todo el ancho disponible */
+    margin-top: 0.5rem !important;       /* Espacio superior para separar del contenido */
+    padding-top: 0.5rem !important;      /* Espacio interno superior */
+    border-top: 1px solid rgba(229, 231, 235, 0.5) !important; /* Línea separadora sutil */
+  }
+  
+  /* ======== OCULTACIÓN DE BADGES DE ORDEN ========
+   * Oculta elementos badge que venían en el diseño original
+   */
+  .dashboard-v2 .order-badge {
+    display: none !important;           /* Oculta el badge de orden original */
+  }
+  
+  /* ======== OCULTACIÓN DE ELEMENTOS ESPECÍFICOS ========
+   * Oculta varias celdas y encabezados que no son necesarios en la vista móvil
+   */
+  .dashboard-v2 .grid-table td.cell-order,
+  .dashboard-v2 .grid-table td.cell-visibility,
+  .dashboard-v2 td[data-label="Orden"],
+  .dashboard-v2 td[data-label="Visibilidad"],
+  .dashboard-v2 th[data-label="ORDEN"],
+  .dashboard-v2 th[data-label="NOMBRE"],
+  .dashboard-v2 th[data-label="FOT"],
+  .dashboard-v2 table th {
+    display: none !important;           /* Oculta estos elementos */
+  }
+  
+  /* ======== AJUSTES DE ANCHO MÁXIMO ========
+   * Asegura que el contenedor principal se ajuste correctamente
+   */
+  #__next .dashboard-v2 {
+    max-width: 100% !important;         /* Limita el ancho máximo al 100% de la pantalla */
+    overflow-x: hidden !important;       /* Oculta cualquier desbordamiento horizontal */
+  }
+  
+  /* ======== RESET DE ANCHO DE TABLAS ========
+   * Elimina restricciones de ancho mínimo en tablas
+   */
+  .dashboard-v2 .min-w-full {
+    min-width: unset !important;        /* Elimina el ancho mínimo */
+    width: 100% !important;             /* Establece ancho al 100% */
+  }
+  
+  /* ======== AJUSTES PARA ELEMENTOS ARRASTRABLES ========
+   * Garantiza que los elementos arrastrables (drag & drop) funcionen bien
+   */
+  .dashboard-v2 [data-rfd-droppable-id] {
+    width: 100% !important;             /* Asegura que ocupen todo el ancho */
+  }
+  
+  /* ======== VISUALIZACIÓN DEL NÚMERO DE ORDEN ========
+   * Muestra el número de orden como un círculo en la esquina superior derecha
+   */
+  .dashboard-v2 tr[data-display-order]::after {
+    content: attr(data-display-order) !important; /* Muestra el número del atributo data-display-order */
+    position: absolute !important;       /* Posicionamiento absoluto */
+    top: 0.5rem !important;              /* Distancia desde arriba */
+    right: 0.5rem !important;            /* Distancia desde la derecha */
+    
+    /* Estilo del círculo */
+    background-color: #e0e7ff !important; /* Fondo azul claro */
+    color: #4f46e5 !important;           /* Texto azul */
+    width: 1.5rem !important;            /* Ancho */
+    height: 1.5rem !important;           /* Altura */
+    border-radius: 9999px !important;    /* Forma circular */
+    
+    /* Centrado del número dentro del círculo */
+    display: flex !important;            /* Usa flexbox */
+    align-items: center !important;      /* Centra verticalmente */
+    justify-content: center !important;  /* Centra horizontalmente */
+    
+    /* Estilo del texto */
+    font-size: 0.75rem !important;       /* Tamaño de fuente pequeño */
+    font-weight: 600 !important;         /* Fuente en negrita */
+    z-index: 5 !important;               /* Asegura que esté por encima de otros elementos */
+  }
+  
+  /* ======== OCULTACIÓN DE LA PRIMERA CELDA ========
+   * Oculta la primera celda de cada fila, que suele contener controles no necesarios en móvil
+   */
+  .dashboard-v2 tr > td:first-child {
+    display: none !important;           /* Oculta la primera celda de cada fila */
+  }
+} 

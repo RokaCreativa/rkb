@@ -143,6 +143,14 @@ dashboard-v2/
 │   └── ui/                 # Hooks relacionados con la UI
 │       └── state/          # Estados globales (stores)
 ├── services/               # Servicios de API y externos
+├── styles/                 # Archivos CSS para estilos
+│   ├── theme.css           # Variables y temas de color
+│   ├── typography.css      # Estilos de tipografía
+│   ├── animations.css      # Animaciones y transiciones
+│   ├── index.css           # Archivo principal que importa los demás CSS
+│   ├── dashboard.css       # Estilos específicos para el dashboard
+│   ├── grids.css           # Estilos para tablas y grids
+│   └── mobileView.css      # Estilos específicos para vista móvil, documentados con detalle
 ├── types/                  # Definiciones de tipos
 │   ├── domain/             # Tipos específicos de dominio
 │   │   ├── category.ts     # Tipos para categorías
@@ -168,6 +176,75 @@ Cada dominio de negocio (categorías, secciones, productos) tiene su propia carp
 - **hooks/core/**: Contiene hooks integradores como useDashboardState que actúa como fachada
 - **hooks/ui/**: Contiene hooks específicos para la interfaz de usuario
 - **hooks/ui/state/**: Contiene estados globales de la aplicación
+
+#### 📁 Componentes UI Documentados en Detalle (ACTUALIZADO)
+
+> **ACTUALIZACIÓN (12/04/2025):** Se han implementado comentarios detallados y documentación exhaustiva en los componentes UI fundamentales.
+
+Los siguientes componentes cuentan ahora con documentación completa para facilitar su comprensión y uso:
+
+1. **MobileMenu.tsx**: Menú lateral optimizado para dispositivos móviles con:
+
+   - Soporte para gestos táctiles (deslizar para cerrar)
+   - Animaciones fluidas y efectos de transición
+   - Configuración flexible de posición y contenido
+   - Ejemplos de uso y explicación detallada de cada prop
+
+2. **Button.tsx**: Sistema de botones versátil que incluye:
+
+   - Múltiples variantes visuales (primary, secondary, outline, ghost, danger)
+   - Diferentes tamaños predefinidos (xs, sm, md, lg)
+   - Estados de carga con indicadores visuales
+   - Soporte para iconos en ambos lados
+
+3. **Loader.tsx**: Componente de indicador de carga con:
+
+   - Spinner SVG animado para indicar procesos en curso
+   - Cuatro tamaños configurables para diferentes contextos
+   - Personalización de colores mediante clases de Tailwind
+   - Opción para mostrar mensajes informativos
+
+4. **GridIcon.tsx**: Sistema centralizado de iconos para tablas y grids que:
+
+   - Mantiene consistencia visual en toda la aplicación
+   - Aplica colores específicos según el tipo de entidad
+   - Facilita cambios globales mediante configuración central
+   - Proporciona soporte para accesibilidad
+
+5. **DragIndicator.tsx**: Indicador visual para operaciones de arrastre que:
+   - Muestra feedback durante acciones de arrastrar y soltar
+   - Detecta automáticamente el inicio y fin del arrastre
+   - Se oculta automáticamente después de un tiempo
+   - Mejora la experiencia de usuario en dispositivos móviles
+
+Cada componente incluye:
+
+- Cabecera JSDoc con descripción general, versión y autor
+- Tipos e interfaces claramente documentados
+- Ejemplos de uso en diferentes escenarios
+- Comentarios en línea explicando la función de cada parte del código
+
+#### 📁 Sistema de Estilos Organizado (ACTUALIZADO)
+
+> **ACTUALIZACIÓN (23/04/2025):** Se ha implementado un sistema mejorado de estilos para la vista móvil con documentación detallada.
+
+El proyecto utiliza un sistema de estilos CSS organizado en archivos específicos:
+
+- **styles/theme.css**: Define variables CSS y esquemas de colores
+- **styles/typography.css**: Establece estilos de texto y fuentes
+- **styles/animations.css**: Contiene animaciones y transiciones
+- **styles/index.css**: Archivo central que importa todos los demás CSS
+- **styles/dashboard.css**: Estilos específicos para el dashboard
+- **styles/grids.css**: Estilos para tablas y visualización de datos
+- **styles/mobileView.css**: Estilos específicos para móviles con comentarios detallados
+
+El nuevo archivo **mobileView.css** implementa un sistema completo de transformación de tablas a tarjetas para dispositivos móviles, con las siguientes características:
+
+1. **Documentación exhaustiva**: Cada regla CSS incluye comentarios detallados explicando su propósito
+2. **Organización por secciones**: El código está estructurado en bloques lógicos por funcionalidad
+3. **Implementación de grid layout**: Utiliza CSS Grid para reorganizar el contenido en móviles
+4. **Alta especificidad de selectores**: Garantiza que los estilos se apliquen correctamente
+5. **Optimizaciones táctiles**: Mejora la interacción en dispositivos táctiles
 
 #### 📁 Sistema de Tipos por Dominio
 
@@ -292,19 +369,35 @@ Esta sección explica en lenguaje sencillo qué hace cada archivo del proyecto. 
 
 ### 📁 COMPONENTES UI
 
-- **Button/Button.tsx**: Botón personalizado con diferentes variantes (primario, secundario, peligro).
-- **Form/Input.tsx**: Campo de entrada de texto personalizado.
-- **Form/TextArea.tsx**: Campo de texto multilínea personalizado.
-- **Form/Select.tsx**: Selector desplegable personalizado.
-- **Form/FileUpload.tsx**: Componente para subir archivos e imágenes.
-- **Modal/Modal.tsx**: Base para todos los diálogos modales de la aplicación.
-- **Modal/ModalHeader.tsx**: Encabezado estándar para modales.
-- **Modal/ModalFooter.tsx**: Pie estándar para modales con botones de acción.
-- **Table/Table.tsx**: Componente base para todas las tablas del sistema.
-- **Loader.tsx**: Indicador de carga para operaciones asíncronas.
-- **Badge.tsx**: Etiqueta pequeña para mostrar estados (activo, inactivo, etc.).
-- **Icon.tsx**: Wrapper para íconos del sistema.
-- **grid/GridIcon.tsx**: Sistema centralizado de íconos para las tablas y grids.
+- **Button/Button.tsx**: Botón altamente personalizable con múltiples variantes (primario, secundario, outline, ghost, danger), tamaños (xs, sm, md, lg), soporte para estados de carga e iconos a ambos lados. Incluye sistema completo de estilos condicionales.
+
+- **Form/Input.tsx**: Campo de entrada de texto personalizado con validación, estados de error y éxito, y soporte para iconos.
+
+- **Form/TextArea.tsx**: Campo de texto multilínea personalizado con autoajuste de altura, contador de caracteres y validación.
+
+- **Form/Select.tsx**: Selector desplegable personalizado con opciones de búsqueda, agrupación y selección múltiple.
+
+- **Form/FileUpload.tsx**: Componente para subir archivos e imágenes con previsualización, validación de tipos y tamaños, y barra de progreso.
+
+- **Modal/Modal.tsx**: Base para todos los diálogos modales de la aplicación con transiciones suaves, bloqueo de scroll de fondo y cierre con tecla Escape.
+
+- **Modal/ModalHeader.tsx**: Encabezado estándar para modales con título, subtítulo opcional y botón de cierre.
+
+- **Modal/ModalFooter.tsx**: Pie estándar para modales con botones de acción alineados correctamente según estándares UX.
+
+- **Table/Table.tsx**: Componente base para todas las tablas del sistema con soporte para ordenación, paginación y selección de filas.
+
+- **Loader.tsx**: Indicador de carga para operaciones asíncronas con múltiples tamaños configurables (xs, sm, md, lg), personalización de colores mediante clases de Tailwind y opción para mostrar mensajes. Utiliza un spinner SVG animado con círculo parcial.
+
+- **Badge.tsx**: Etiqueta pequeña para mostrar estados (activo, inactivo, pendiente, etc.) con variantes de color según el contexto.
+
+- **Icon.tsx**: Wrapper unificado para íconos del sistema que garantiza consistencia en tamaños y estilos.
+
+- **grid/GridIcon.tsx**: Sistema centralizado de íconos para tablas y grids que aplica colores específicos por tipo de entidad (categoría: indigo, sección: teal, producto: amber). Facilita cambios globales de iconos mediante la configuración en `iconConfig.ts` y mantiene una identidad visual coherente.
+
+- **DragIndicator.tsx**: Indicador visual que aparece durante operaciones de arrastrar y soltar para mejorar el feedback en dispositivos móviles. Detecta automáticamente el inicio/fin del arrastre observando cambios en las clases del body y se oculta tras 3 segundos por seguridad.
+
+- **MobileMenu.tsx**: Menú lateral deslizable optimizado para dispositivos móviles con soporte para gestos táctiles (deslizar para cerrar), animaciones fluidas y estructura modular. Implementa cabecera con logo, lista de opciones con indicadores visuales de elemento activo y pie personalizable. Puede posicionarse a izquierda o derecha de la pantalla.
 
 ### 📁 COMPONENTES MODALES
 
