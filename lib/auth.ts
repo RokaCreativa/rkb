@@ -53,8 +53,11 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials): Promise<CustomUser | null> {
         if (!credentials?.email || !credentials?.password) {
+          console.log("Email y contraseña son requeridos");
           throw new Error("Email y contraseña son requeridos");
         }
+
+        console.log(`Intentando autenticar: ${credentials.email}`);
 
         // Buscar usuario por email
         const user = await prisma.users.findFirst({
@@ -71,22 +74,34 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user) {
+          console.log(`Usuario no encontrado: ${credentials.email}`);
           throw new Error("Usuario no encontrado");
         }
 
+        console.log(`Usuario encontrado: ${user.email}, ID: ${user.user_id}`);
+        console.log(`Contraseña almacenada: ${user.password}`);
+        console.log(`Contraseña ingresada: ${credentials.password}`);
+
         if (typeof user.status === 'number' && user.status !== 1) {
+          console.log(`Usuario inactivo: ${user.email}, status: ${user.status}`);
           throw new Error("Usuario inactivo");
         }
 
         // Verificar contraseña
         if (!user.password) {
+          console.log(`Error en las credenciales: ${user.email}, no tiene contraseña`);
           throw new Error("Error en las credenciales");
         }
 
-        const passwordMatch = await compare(credentials.password, user.password);
+        // Comparación directa de contraseñas en lugar de usar bcrypt
+        const passwordMatch = user.password === credentials.password;
+        console.log(`Resultado de comparación de contraseña: ${passwordMatch ? "Correcta" : "Incorrecta"}`);
+
         if (!passwordMatch) {
           throw new Error("Contraseña incorrecta");
         }
+
+        console.log(`Autenticación exitosa para: ${user.email}`);
 
         return {
           id: user.user_id,
