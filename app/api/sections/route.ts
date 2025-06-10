@@ -39,22 +39,51 @@ interface ProcessedSection {
   products_count: number;
 }
 
-// GET /api/sections?categoryId=X
+/**
+ * @swagger
+ * /api/sections:
+ *   get:
+ *     summary: Obtiene las secciones de una categoría.
+ *     description: Retorna una lista de secciones para una categoría específica, incluyendo el conteo total de productos y el conteo de productos visibles para cada sección.
+ *     tags: [Sections]
+ *     parameters:
+ *       - in: query
+ *         name: category_id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: El ID de la categoría de la cual se quieren obtener las secciones.
+ *     responses:
+ *       200:
+ *         description: Una lista de secciones con sus respectivos conteos de productos.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/SectionWithProductCounts'
+ *       400:
+ *         description: Error de validación (Falta el category_id).
+ *       401:
+ *         description: No autenticado.
+ *       500:
+ *         description: Error interno del servidor.
+ */
 export async function GET(req: NextRequest) {
   try {
     // Obtener los parámetros de la URL
     const url = new URL(req.url);
     const categoryId = url.searchParams.get('category_id');
-    
+
     // Parámetros de paginación (opcionales)
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '0'); // 0 significa sin límite
-    
+
     // Validar parámetros de paginación
     const validPage = page < 1 ? 1 : page;
     const validLimit = limit < 0 ? 0 : limit;
     const isPaginated = validLimit > 0;
-    
+
     if (!categoryId) {
       return new Response(JSON.stringify({ error: 'Category ID is required' }), {
         status: 400,
@@ -87,7 +116,7 @@ export async function GET(req: NextRequest) {
     }
 
     const clientId = user.client_id;
-    
+
     // Calcular parámetros de paginación para Prisma
     const skip = isPaginated ? (validPage - 1) * validLimit : undefined;
     const take = isPaginated ? validLimit : undefined;
@@ -105,7 +134,7 @@ export async function GET(req: NextRequest) {
       skip,
       take
     });
-    
+
     // Si se solicita paginación, obtener también el total de registros
     let totalSections: number | undefined;
     if (isPaginated) {
@@ -122,14 +151,21 @@ export async function GET(req: NextRequest) {
     const sectionsWithProductCounts = await Promise.all(
       sections.map(async (section) => {
         // Contar todos los productos asociados a esta sección
-        const totalProductsCount = await prisma.products_sections.count({
+        const totalProductsCount = await prisma.products.count({
           where: {
-            section_id: section.section_id
+            section_id: section.section_id,
+            deleted: false
           }
         });
 
-        // Contar solo los productos visibles
-        const visibleProductsCount = 0; // Implementar si es necesario
+        // Contar solo los productos visibles (status = true)
+        const visibleProductsCount = await prisma.products.count({
+          where: {
+            section_id: section.section_id,
+            deleted: false,
+            status: true
+          }
+        });
 
         return {
           ...section,
@@ -144,7 +180,7 @@ export async function GET(req: NextRequest) {
     // Devolver la respuesta según sea paginada o no
     if (isPaginated && totalSections !== undefined) {
       const totalPages = Math.ceil(totalSections / validLimit);
-      
+
       return new Response(JSON.stringify({
         data: sectionsWithProductCounts,
         meta: {
@@ -211,7 +247,7 @@ export async function POST(request: Request) {
       where: {
         category_id: categoryId,
         client_id: user.client_id,
-        deleted: 0 
+        deleted: 0
       },
     });
 
@@ -226,7 +262,7 @@ export async function POST(request: Request) {
       WHERE client_id = ${user.client_id} 
       AND category_id = ${categoryId}
     `;
-    
+
     // @ts-ignore - La respuesta SQL puede variar
     const maxOrder = maxOrderResult[0]?.maxOrder || 0;
 
@@ -240,11 +276,11 @@ export async function POST(request: Request) {
       const timestamp = Date.now();
       const fileName = file.name;
       const uniqueFileName = `${timestamp}_${fileName}`;
-      
+
       // Guardar la imagen en el sistema de archivos
       const path = join(process.cwd(), 'public', 'images', 'sections', uniqueFileName);
       await writeFile(path, buffer);
-      
+
       // URL relativa para la base de datos
       imageUrl = uniqueFileName;
     }
@@ -310,16 +346,16 @@ export async function PUT(request: Request) {
       // Procesar FormData
       const formData = await request.formData();
       sectionId = formData.get('section_id') as string;
-      
+
       // Extraer archivo si existe
       file = formData.get('image') as File | null;
-      
+
       // Extraer otros campos
       data = {
         section_id: parseInt(sectionId),
         name: formData.get('name') as string,
       };
-      
+
       console.log('PUT /api/sections - FormData recibido:', {
         section_id: data.section_id,
         name: data.name,
@@ -338,12 +374,12 @@ export async function PUT(request: Request) {
 
     // 4. Preparar los datos de actualización
     const updateData: any = {};
-    
+
     if (data.name !== undefined) updateData.name = data.name;
     if (data.display_order !== undefined) updateData.display_order = data.display_order;
     if (data.status !== undefined) updateData.status = data.status === 1; // Convertir numérico a booleano
     if (data.category_id !== undefined) updateData.category_id = data.category_id;
-    
+
     // 5. Procesar la imagen si se envió como parte de la solicitud
     if (file) {
       const bytes = await file.arrayBuffer();
@@ -353,15 +389,15 @@ export async function PUT(request: Request) {
       const timestamp = Date.now();
       const fileName = file.name;
       const uniqueFileName = `${timestamp}_${fileName}`;
-      
+
       // Guardar la imagen en el sistema de archivos
       const path = join(process.cwd(), 'public', 'images', 'sections', uniqueFileName);
       await writeFile(path, buffer);
-      
+
       // Añadir el nombre de archivo a los datos de actualización
       updateData.image = uniqueFileName;
     }
-    
+
     console.log('PUT /api/sections - Datos a actualizar:', updateData);
 
     // 6. Actualizar la sección
@@ -468,9 +504,9 @@ export async function DELETE(request: Request) {
     });
 
     // 6. Devolver respuesta de éxito
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Sección eliminada correctamente' 
+    return NextResponse.json({
+      success: true,
+      message: 'Sección eliminada correctamente'
     });
   } catch (error) {
     // 7. Manejo centralizado de errores

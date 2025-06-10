@@ -10,12 +10,15 @@ RokaMenu es una aplicación web (SaaS) diseñada para que dueños de restaurante
 
 - **Usuario Principal:** Administradores de restaurantes (clientes de RokaMenu).
 - **Producto Final:** Un menú digital interactivo accesible a través de un código QR.
+- **Enfoque Principal:** **Mobile-First**. La experiencia de gestión está optimizada para dispositivos móviles, con una interfaz de escritorio completa también disponible.
 - **Funcionalidad Clave:**
-  - **Dashboard de Gestión:** Un panel de control completo para administrar categorías, secciones y productos del menú.
+  - **Dashboard de Gestión Dual:**
+    - `MobileView`: Una interfaz de usuario diseñada específicamente para la gestión rápida y eficiente en móviles.
+    - `DashboardView`: Una vista de escritorio más tradicional y completa.
+    - `ViewSwitcher`: Un componente que renderiza automáticamente la vista correcta según el tamaño de la pantalla.
   - **Jerarquía Intuitiva:** `Categoría` > `Sección` > `Producto`.
-  - **Drag & Drop:** Reordenamiento fácil de todos los elementos del menú.
-  - **Live Preview:** Visualización en tiempo real de los cambios realizados en el menú.
-  - **Personalización:** (En desarrollo) Opciones para cambiar colores, fondos y temas del menú.
+  - **Reordenamiento:** Drag & Drop en escritorio (`dnd-kit`) y un "modo de ordenación" planificado para móvil.
+  - **Live Preview:** (En desarrollo) Visualización en tiempo real de los cambios realizados en el menú.
 
 ---
 
@@ -23,13 +26,13 @@ RokaMenu es una aplicación web (SaaS) diseñada para que dueños de restaurante
 
 - **Framework:** **Next.js 13+** con **App Router**.
 - **Lenguaje:** **TypeScript**.
-- **Base de Datos:** **MySQL** (actual), con plan de migración a **PostgreSQL**.
+- **Base de Datos:** **MySQL**. Se ha tomado la decisión estratégica de **cancelar la migración a PostgreSQL** y consolidar el uso de MySQL, ya que cumple con todos los requisitos actuales y futuros del proyecto.
 - **ORM:** **Prisma**.
 - **Autenticación:** **NextAuth.js**.
-- **Gestión de Estado del Servidor:** **`@tanstack/react-query` (React Query)**.
-- **Gestión de Estado del Cliente:** **Zustand** (para estados globales como modales).
+- **Gestión de Estado del Servidor:** Aunque **`@tanstack/react-query`** está presente, la gestión de datos del dashboard se realiza principalmente a través de un **patrón de hooks de gestión de estado personalizados** (ver sección de Hooks más abajo).
+- **Gestión de Estado del Cliente:** **Zustand** (para estados globales como la visibilidad de modales, ej. `useModalStore`).
 - **Estilos:** **Tailwind CSS**.
-- **Componentes UI:** **shadcn/ui**, asegurando consistencia visual.
+- **Componentes UI:** **shadcn/ui**, asegurando consistencia visual. Componentes personalizados reutilizables.
 - **Drag & Drop:** **`dnd-kit`**.
 - **Internacionalización (i18n):** **`next-intl`**.
 
@@ -53,23 +56,29 @@ El corazón de la aplicación, siguiendo el paradigma de App Router.
   - `auth/[...nextauth]/route.ts`: El endpoint principal de NextAuth para el login, logout, etc.
   - `clients/[id]/...`, `categories/[id]/...`, etc.: Endpoints para las operaciones CRUD de cada entidad.
 
-- **`app/dashboard-v2/`**: La aplicación principal del cliente, el dashboard.
+- **`app/dashboard-v2/`**
 
-  - **`(auth)/`**: Rutas relacionadas con la autenticación (login).
-  - **`layout.tsx`**: Layout principal del dashboard que incluye la navegación (Sidebar, Header).
+  - **`views/`**: Contiene los componentes de vista de alto nivel, que son los puntos de entrada principales para la UI del usuario.
+    - `MobileView.tsx`: La vista optimizada para dispositivos móviles. Contiene la lógica de navegación entre listas (categorías, secciones, productos).
+    - `DashboardView.tsx`: La vista tradicional para escritorio.
   - **`components/`**: La carpeta más importante para la UI.
-    - `core/`: Componentes agnósticos al dominio, bloques de construcción fundamentales (ej: `DashboardView`).
-    - `domain/`: Componentes específicos de un modelo de datos (ej: `CategoryList`, `ProductForm`). Son componentes inteligentes que usan hooks.
+    - `core/`: Componentes agnósticos al dominio. El más importante es `ViewSwitcher.tsx` que elige entre la vista móvil y de escritorio.
+    - `domain/`: Componentes específicos de un modelo de datos (ej: `CategoryList`, `ProductForm`). Son componentes inteligentes que utilizan los hooks de gestión.
     - `layout/`: Componentes estructurales del dashboard (ej: `Sidebar`, `Header`).
     - `modals/`: Contiene todos los modales de la aplicación (ej: `DeleteModal`, `ProductModal`).
-    - `ui/`: Componentes "tontos" y reutilizables basados en shadcn/ui (ej: `Button`, `Input`, `Table`). No contienen lógica de negocio.
-  - **`hooks/`**: La carpeta más importante para la lógica.
-    - `core/`: Hooks de lógica de negocio transversal (ej: `useEntity`, que abstrae las mutaciones de creación/edición).
-    - `domain/`: Hooks específicos para cada entidad, que encapsulan la lógica de `react-query` (ej: `useGetCategories`, `useCreateProduct`).
-    - `ui/`: Hooks para manejar estado de la UI, como `useModalStore` (Zustand).
-  - **`services/`**: Funciones que realizan las llamadas a la API. Son el puente entre el frontend y el backend. Los hooks de dominio usan estos servicios.
-  - **`types/`**: Definiciones de tipos de TypeScript, cruciales para la seguridad del código.
-  - **`utils/`**: Funciones de utilidad genéricas.
+    - `ui/`: Componentes "tontos" y reutilizables basados en shadcn/ui. No contienen lógica de negocio. **Ejemplos recientes:** `Fab.tsx` (Botón de Acción Flotante), `ContextMenu.tsx`.
+  - **`hooks/`**: La carpeta más importante para la lógica. Aquí reside el "cerebro" del frontend.
+    - **`domain/`**: **EL PATRÓN ARQUITECTÓNICO CENTRAL**. En lugar de usar `react-query` directamente en los componentes, se encapsula toda la lógica de una entidad en un único hook de gestión.
+      - **Ejemplo:** `useCategoryManagement.ts`.
+      - **Responsabilidades de cada hook:**
+        - **Gestión de Estado:** Mantiene el estado de la entidad (la lista de ítems, el estado de carga, los errores) usando `useState`.
+        - **Comunicación con la API:** Contiene todas las funciones `fetch` para las operaciones CRUD (`fetchCategories`, `createCategory`, etc.).
+        - **Actualizaciones Optimistas:** Implementa la lógica para actualizar la UI _antes_ de que la API confirme el cambio, proporcionando una experiencia de usuario instantánea (ej. `toggleCategoryVisibility`).
+        - **Manejo de Errores y Notificaciones:** Utiliza `react-hot-toast` para informar al usuario sobre el resultado de las operaciones.
+    - `ui/`: Hooks para manejar estado de la UI, como `useModalStore` (Zustand) o `useIsMobile`.
+  - **`services/`**: Funciones que podrían realizar las llamadas a la API. Actualmente, esta lógica está integrada directamente en los hooks de dominio para mayor cohesión.
+  - **`types/`**: Definiciones de tipos de TypeScript, cruciales para la seguridad del código. Se organizan por `domain`, `api`, `ui`.
+  - **`utils/`**: Funciones de utilidad genéricas, como `imageUtils.ts` para gestionar rutas de imágenes.
 
 - **`app/lib/`**: Librerías de soporte críticas.
   - `auth.ts`: **CONFIGURACIÓN CENTRAL DE NEXTAUTH**. Define los providers (Credentials), callbacks (jwt, session) y la lógica de autorización.
@@ -101,29 +110,44 @@ Recursos estáticos.
 6.  El callback `session` transfiere los datos del token a la sesión del cliente, haciéndolos disponibles en toda la aplicación.
 7.  El `middleware.ts` protege las rutas del dashboard, verificando la existencia de este token.
 
-### Flujo de Datos CRUD (Ej: Crear una Categoría)
+### Flujo de Datos CRUD (Ej: Cambiar Visibilidad de una Sección en Móvil)
 
-1.  **Componente:** El usuario hace clic en "Crear Categoría" en un componente de `domain/`.
-2.  **Hook (UI):** Se llama a `useModalStore.onOpen('createCategory')` para abrir el modal.
-3.  **Componente (Modal):** El modal `CategoryForm` se renderiza.
-4.  **Hook (Dominio):** Al enviar el formulario, se llama a la función `createCategory` del hook `useCreateCategory()`.
-5.  **Hook (Core):** `useCreateCategory` es probablemente una implementación del hook genérico `useEntity`.
-6.  **Servicio:** La mutación dentro del hook llama a `categoryService.create(data)`.
-7.  **API:** El servicio hace un `POST` a `/api/categories`.
-8.  **Backend:** La ruta de la API usa `prisma.category.create({ data })` para guardar en la BD.
-9.  **React Query:** Tras el éxito, `react-query` automáticamente invalida las queries relevantes (ej: `['categories', clientId]`) para que la lista de categorías se actualice sola.
+Este flujo demuestra el patrón de **hook de gestión** y la **actualización optimista**, que es el estándar actual en el dashboard.
+
+1.  **Componente (UI):** El usuario hace clic en el ícono del "ojo" en un elemento de la lista dentro de `MobileView.tsx`.
+2.  **Componente (Handler):** El `onClick` llama a la función `handleToggleVisibility(item)`, que es una función centralizada en `MobileView`.
+3.  **Lógica del Handler:** `handleToggleVisibility` identifica el tipo de `item` (Categoría, Sección o Producto) y llama a la función correspondiente del hook de gestión que ha sido instanciado en el scope de `MobileView`.
+    - `sectionManager.toggleSectionVisibility(item.section_id, item.categoryId, item.status)`
+4.  **Hook (Dominio - `useSectionManagement`):** La función `toggleSectionVisibility` se ejecuta:
+    - **a. Actualización Optimista:** Inmediatamente, usa `setSections()` para actualizar el estado local, cambiando el `status` del ítem. La UI reacciona al instante, cambiando la opacidad del elemento y el icono.
+    - **b. Llamada a la API:** Envía una petición `PUT` a la API (`/api/sections/[id]/visibility`) con el nuevo estado.
+    - **c. Manejo de Éxito:** Si la API devuelve un `200 OK`, no se necesita hacer nada más, ya que la UI ya fue actualizada. Se podría mostrar un toast de éxito si se deseara.
+    - **d. Manejo de Error:** Si la API falla, el bloque `catch` se ejecuta. **Revierte el cambio en el estado local** (vuelve a poner el `status` original) y muestra un `toast.error()` al usuario. La UI vuelve a su estado anterior.
+
+Este patrón hace que la aplicación se sienta extremadamente rápida y robusta, y centraliza toda la lógica de una entidad en un solo lugar, haciendo que sea fácil de mantener y depurar.
 
 ---
 
-## 5. Esquema de la Base de Datos (Resumen Prisma)
+## 5. Principios de UI/UX Móvil
 
-La jerarquía principal es:
+Para asegurar una experiencia de usuario consistente y eficiente en dispositivos móviles, se han establecido los siguientes principios:
 
-- `User`: Puede tener rol `ADMIN` o `CLIENT`. Un `User` de tipo `CLIENT` está asociado a un `Client`.
-- `Client`: Es un cliente de RokaMenu (un restaurante). Tiene un `id` y un `slug` para su URL pública.
-- `Menu`: Un `Client` puede tener varios `Menus`. Cada menú tiene su propio `slug`.
-- `Category`: Un `Menu` tiene varias `Categories` (Bebidas, Entradas, etc.). Tienen un campo `order` para el drag-and-drop.
-- `Section`: Una `Category` tiene varias `Sections` (Refrescos, Vinos). También tienen un campo `order`.
-- `Product`: Una `Section` tiene varios `Products` (Coca-Cola, Fanta). Tienen precio, descripción y un campo `order`.
+- **Acciones Primarias (Creación):** Se realizan a través de un **Botón de Acción Flotante (FAB)** (`Fab.tsx`), siempre visible en la esquina inferior derecha. Esto proporciona un punto de entrada claro para añadir nuevos elementos.
+- **Acciones Secundarias (Edición, Eliminación):** Están agrupadas dentro de un **Menú Contextual** (`ContextMenu.tsx`), accesible a través de un icono de tres puntos en cada elemento de la lista. Esto mantiene la interfaz limpia y evita la sobrecarga de botones.
+- **Navegación Jerárquica:** La navegación es clara y sigue la estructura de datos: `Categorías -> Secciones -> Productos`, con botones de "Volver" prominentes para facilitar el retroceso.
 
-Esta estructura anidada es la base de toda la lógica de la aplicación.
+---
+
+## 6. Esquema de la Base de Datos (Resumen Prisma)
+
+La jerarquía principal es la base de toda la lógica de la aplicación.
+
+- `Client`: Es un cliente de RokaMenu (un restaurante).
+- `Category`: Un `Client` tiene varias `Categories`.
+  - `name`, `image`, `status` (1 para visible, 0 para oculto), `order`.
+  - `sections_count`, `visible_sections_count`: Contadores cacheados para eficiencia.
+- `Section`: Una `Category` tiene varias `Sections`.
+  - `name`, `image`, `status`, `order`.
+  - `products_count`, `visible_products_count`: Contadores cacheados.
+- `Product`: Una `Section` tiene varios `Products`.
+  - `name`, `description`, `price`, `image`, `status`, `order`.

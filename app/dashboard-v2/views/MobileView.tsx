@@ -167,9 +167,13 @@ const MobileView = () => {
         } else if ('products_count' in item) { // Es Sección
             if (currentView.view === 'sections' || currentView.view === 'products') {
                 await sectionManager.toggleSectionVisibility(item.section_id, currentView.categoryId, item.status);
+                categoryManager.fetchCategories();
             }
         } else if ('product_id' in item) { // Es Producto
-            await productManager.toggleProductVisibility(item.product_id, item.status);
+            if (currentView.view === 'products') {
+                await productManager.toggleProductVisibility(item.product_id, item.status);
+                sectionManager.fetchSectionsByCategory(currentView.categoryId);
+            }
         }
     };
 

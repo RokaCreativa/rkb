@@ -204,3 +204,30 @@
 - `docs/sistema/Checklist.md` (Nueva tarea #T9 añadida)
 
 ---
+
+### **#11 | Depuración Crítica: Visibilidad y Contadores en Móvil**
+
+- **Fecha:** 2024-06-16
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** #T17
+- **Mandamientos Involucrados:** #1, #2, #6, #7, #10
+
+**Descripción:**
+
+> Se ha realizado una sesión de depuración crítica para resolver varios errores que impedían el correcto funcionamiento de la vista móvil.
+
+> 1.  **Error de Arranque del Servidor:** Se solucionó un crash de Next.js causado por nombres de parámetros dinámicos inconsistentes en la API (`[id]` vs `[productId]`), unificando todas las rutas bajo `[id]`.
+> 2.  **API de Visibilidad de Productos:** Se implementó correctamente la ruta `PUT /api/products/[id]/visibility`, que no existía. Se corrigió la lógica para que actualizara el campo `status` de tipo `Boolean` en la base de datos, solucionando el error al usar el "ojo" en los productos.
+> 3.  **Contadores de Productos Visibles:** Se corrigió la API `GET /api/sections` para que calculara y devolviera correctamente el número de productos visibles (`status = true`), solucionando el bug donde los contadores siempre mostraban "0/X".
+> 4.  **Refresco de Estado en UI:** Se añadió lógica en `MobileView.tsx` para que, tras cambiar la visibilidad de un ítem, se recarguen los datos de la lista padre, asegurando que los contadores se actualicen en la UI en tiempo real.
+> 5.  **Documentación de Código:** Se añadieron comentarios JSDoc/Swagger a las rutas de API modificadas, cumpliendo con el Mandamiento #7.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/views/MobileView.tsx` (Modificado)
+- `app/api/products/[id]/visibility/route.ts` (Creado y Modificado)
+- `app/api/sections/route.ts` (Modificado)
+- `docs/sistema/Checklist.md` (Actualizado)
+- `docs/sistema/Bitacora.md` (Actualizado)
+
+---
