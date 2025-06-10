@@ -183,3 +183,24 @@
 - `docs/sistema/Checklist.md` (Actualizado)
 
 ---
+
+### **#10 | Brainstorming Estratégico y Futuro de la UI Móvil**
+
+- **Fecha:** 2024-06-14
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** #T9 (creada a raíz de esto)
+- **Mandamientos Involucrados:** #4 (Consenso), #5 (Mobile-First), #8 (Consistencia)
+
+**Descripción:**
+
+> Se realizó una sesión de brainstorming para definir la evolución de la experiencia móvil. Se tomaron las siguientes decisiones clave:
+>
+> 1.  **Reordenación en Móvil:** Se implementará un "Modo de Ordenación" con flechas o agarraderas, en lugar de un drag-and-drop complejo, para mejorar la usabilidad. Se creó la tarea #T9 para ello.
+> 2.  **Mejora de las Listas:** Se acordó enriquecer las listas con imágenes en miniatura, contadores de visibilidad (ej: "5/8 visibles") y un botón de "ojo" para cambiar el estado. Los ítems ocultos se mostrarán con opacidad reducida.
+> 3.  **Visión a Futuro:** Se ratifica que la arquitectura actual es flexible y escalable para adaptarse a otros tipos de negocio (peluquerías, inmobiliarias, etc.) sin necesidad de cambios estructurales, solo ajustes en las etiquetas de la UI.
+
+**Archivos Modificados/Creados:**
+
+- `docs/sistema/Checklist.md` (Nueva tarea #T9 añadida)
+
+---

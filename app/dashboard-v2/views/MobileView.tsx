@@ -13,6 +13,9 @@ import { CategoryList } from '../components/domain/categories/CategoryList';
 import Fab from '../components/ui/Fab';
 import { PlusIcon } from '@heroicons/react/24/solid';
 import ContextMenu from '../components/ui/ContextMenu';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import Image from 'next/image';
+import { getImagePath, handleImageError } from '../utils/imageUtils';
 
 // --- Sub-componente para la lista de Secciones ---
 interface SectionListViewProps {
@@ -42,6 +45,11 @@ const SectionListView: React.FC<SectionListViewProps> = ({ categoryId, categoryN
         console.log("Eliminar sección:", section.name);
     };
 
+    const handleToggleVisibility = (item: Category | Section | Product) => {
+        console.log(`Cambiando visibilidad para: ${item.name}`);
+        // Aquí iría la lógica para llamar al hook correspondiente
+    };
+
     return (
         <div className="p-4">
             <button onClick={onBack} className="mb-4 text-blue-500">
@@ -62,11 +70,29 @@ const SectionListView: React.FC<SectionListViewProps> = ({ categoryId, categoryN
                     return (
                         <li
                             key={section.section_id}
-                            className="p-4 border rounded-lg flex justify-between items-center cursor-pointer hover:bg-gray-100"
-                            onClick={() => onSectionClick(section)}
+                            className={`bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 ${section.status === 0 ? 'opacity-60' : ''}`}
                         >
-                            <span>{section.name}</span>
-                            <ContextMenu actions={actions} />
+                            <div className="p-4 flex items-center gap-4">
+                                <div className="flex-shrink-0 h-14 w-14 relative">
+                                    <Image
+                                        src={getImagePath(section.image || null, 'sections')}
+                                        alt={section.name}
+                                        fill
+                                        className="object-cover rounded-md"
+                                        onError={handleImageError}
+                                    />
+                                </div>
+                                <div className="flex-grow cursor-pointer" onClick={() => onSectionClick(section)}>
+                                    <h3 className="font-bold text-lg text-gray-800">{section.name}</h3>
+                                    <span className="text-sm text-gray-500">X/Y Productos Visibles</span>
+                                </div>
+                                <div className="flex-shrink-0 flex items-center gap-2">
+                                    <button onClick={(e) => { e.stopPropagation(); handleToggleVisibility(section); }} className="p-2 rounded-full hover:bg-gray-200">
+                                        {section.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
+                                    </button>
+                                    <ContextMenu actions={actions} />
+                                </div>
+                            </div>
                         </li>
                     );
                 })}
@@ -105,6 +131,11 @@ const ProductListView: React.FC<ProductListViewProps> = ({ sectionId, sectionNam
         // Lógica para la confirmación de eliminación
     };
 
+    const handleToggleVisibility = (item: Category | Section | Product) => {
+        console.log(`Cambiando visibilidad para: ${item.name}`);
+        // Aquí iría la lógica para llamar al hook correspondiente
+    };
+
     return (
         <div className="p-4">
             <button onClick={onBack} className="mb-4 text-blue-500">
@@ -125,10 +156,29 @@ const ProductListView: React.FC<ProductListViewProps> = ({ sectionId, sectionNam
                     return (
                         <li
                             key={product.product_id}
-                            className="p-4 border rounded-lg flex justify-between items-center"
+                            className={`bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 ${product.status === 0 ? 'opacity-60' : ''}`}
                         >
-                            <span>{product.name} - ${product.price}</span>
-                            <ContextMenu actions={actions} />
+                            <div className="p-4 flex items-center gap-4">
+                                <div className="flex-shrink-0 h-14 w-14 relative">
+                                    <Image
+                                        src={getImagePath(product.image || null, 'products')}
+                                        alt={product.name}
+                                        fill
+                                        className="object-cover rounded-md"
+                                        onError={handleImageError}
+                                    />
+                                </div>
+                                <div className="flex-grow">
+                                    <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
+                                    <span className="text-sm text-gray-500">${product.price}</span>
+                                </div>
+                                <div className="flex-shrink-0 flex items-center gap-2">
+                                    <button onClick={(e) => { e.stopPropagation(); handleToggleVisibility(product); }} className="p-2 rounded-full hover:bg-gray-200">
+                                        {product.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
+                                    </button>
+                                    <ContextMenu actions={actions} />
+                                </div>
+                            </div>
                         </li>
                     );
                 })}
@@ -177,6 +227,11 @@ const MobileView = () => {
 
     const handleDeleteCategory = (category: Category) => {
         console.log("Eliminar categoría:", category.name);
+    };
+
+    const handleToggleVisibility = (item: Category | Section | Product) => {
+        console.log(`Cambiando visibilidad para: ${item.name}`);
+        // Aquí iría la lógica para llamar al hook correspondiente
     };
 
     const handleCategoryClick = (category: Category) => {
@@ -228,6 +283,7 @@ const MobileView = () => {
                             expandedCategories={{}}
                             onEditCategory={handleEditCategory}
                             onDeleteCategory={handleDeleteCategory}
+                            onToggleVisibility={handleToggleVisibility}
                         />
                     </div>
                 );

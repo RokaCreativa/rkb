@@ -3,7 +3,7 @@
 import React from 'react';
 import { Category } from '@/app/types/menu';
 import Image from 'next/image';
-import { ArrowLongRightIcon } from '@heroicons/react/24/outline';
+import { ArrowLongRightIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
 import ContextMenu from '../../ui/ContextMenu';
 
@@ -13,9 +13,10 @@ interface CategoryListProps {
   expandedCategories: { [key: number]: boolean };
   onEditCategory?: (category: Category) => void;
   onDeleteCategory?: (category: Category) => void;
+  onToggleVisibility?: (category: Category) => void;
 }
 
-export function CategoryList({ categories, onCategoryClick, expandedCategories, onEditCategory, onDeleteCategory }: CategoryListProps) {
+export function CategoryList({ categories, onCategoryClick, expandedCategories, onEditCategory, onDeleteCategory, onToggleVisibility }: CategoryListProps) {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold mb-3">Categorías</h2>
@@ -25,7 +26,7 @@ export function CategoryList({ categories, onCategoryClick, expandedCategories, 
           <p className="text-gray-500">No hay categorías disponibles</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {categories.map((category) => {
             const actions = [];
             if (onEditCategory) {
@@ -38,37 +39,32 @@ export function CategoryList({ categories, onCategoryClick, expandedCategories, 
             return (
               <div
                 key={category.category_id}
-                className={`bg-white rounded-lg shadow-md overflow-hidden transition-all hover:shadow-lg ${expandedCategories[category.category_id] ? 'ring-2 ring-indigo-500' : ''
-                  }`}
+                className={`bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 ${category.status === 0 ? 'opacity-60' : ''}`}
               >
-                <div className="relative h-36" onClick={() => onCategoryClick(category)}>
-                  {category.image ? (
+                <div className="p-4 flex items-center gap-4">
+                  <div className="flex-shrink-0 h-14 w-14 relative">
                     <Image
                       src={getImagePath(category.image, 'categories')}
                       alt={category.name}
                       fill
-                      className="object-cover"
+                      className="object-cover rounded-md"
                       onError={handleImageError}
                     />
-                  ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                      <span className="text-gray-400">Sin imagen</span>
-                    </div>
-                  )}
-
-                  {category.status === 0 && (
-                    <div className="absolute top-2 right-2 bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
-                      Oculta
-                    </div>
-                  )}
-                </div>
-
-                <div className="p-4 flex justify-between items-center">
-                  <div>
-                    <h3 className="font-medium text-gray-900">{category.name}</h3>
-                    <span className="text-sm text-gray-500">Orden: {category.display_order}</span>
                   </div>
-                  {actions.length > 0 && <ContextMenu actions={actions} />}
+
+                  <div className="flex-grow cursor-pointer" onClick={() => onCategoryClick(category)}>
+                    <h3 className="font-bold text-lg text-gray-800">{category.name}</h3>
+                    <span className="text-sm text-gray-500">X/Y Secciones Visibles</span>
+                  </div>
+
+                  <div className="flex-shrink-0 flex items-center gap-2">
+                    {onToggleVisibility && (
+                      <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(category); }} className="p-2 rounded-full hover:bg-gray-200">
+                        {category.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
+                      </button>
+                    )}
+                    {actions.length > 0 && <ContextMenu actions={actions} />}
+                  </div>
                 </div>
               </div>
             );
