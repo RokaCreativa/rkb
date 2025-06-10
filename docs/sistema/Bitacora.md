@@ -231,3 +231,24 @@
 - `docs/sistema/Bitacora.md` (Actualizado)
 
 ---
+
+### **#12 | Corrección de API: Visibilidad de Secciones (Error 404)**
+
+- **Fecha:** 2024-06-16
+- **Responsable:** Gemini
+- **Checklist:** #T17 (Corrección sobre la tarea)
+- **Mandamientos Involucrados:** #6 (Separación de Responsabilidades), #7 (Código Legible)
+
+**Descripción:**
+
+> Se solucionó un error crítico que provocaba un `404 Not Found` al intentar cambiar la visibilidad de una sección en la vista móvil. El problema se debía a que el hook `useSectionManagement` estaba apuntando a una ruta de API incorrecta (`/api/sections/[id]`) en lugar de a una específica para la visibilidad.
+
+> Se implementó la ruta `PUT /api/sections/[id]/visibility` y se corrigió la llamada en el hook, siguiendo el patrón ya establecido para los productos y solucionando el error.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/hooks/domain/section/useSectionManagement.ts` (Modificado)
+- `app/api/sections/[id]/visibility/route.ts` (Creado)
+- `docs/sistema/Bitacora.md` (Actualizado)
+
+---

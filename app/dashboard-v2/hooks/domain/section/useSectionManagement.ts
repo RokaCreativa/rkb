@@ -410,10 +410,7 @@ export default function useSectionManagement() {
       // Marcar que estamos actualizando la visibilidad de esta sección
       setIsUpdatingVisibility(sectionId);
 
-      // Calcular el nuevo estado (alternar entre 0 y 1)
-      const newStatus = currentStatus === 1 ? 0 : 1;
-
-      // Actualización optimista en UI (actualizar antes de confirmar con el servidor)
+      // Actualizar el estado de la UI (actualización optimista)
       setSections(prevSections => {
         // Obtener las secciones actuales para esta categoría
         const currentSections = prevSections[categoryId.toString()] || [];
@@ -421,7 +418,7 @@ export default function useSectionManagement() {
         // Crear un nuevo array con la sección actualizada
         const updatedSections = currentSections.map(section => {
           if (section.section_id === sectionId) {
-            return { ...section, status: newStatus };
+            return { ...section, status: currentStatus };
           }
           return section;
         });
@@ -433,11 +430,14 @@ export default function useSectionManagement() {
         };
       });
 
-      // Enviar la actualización al servidor
+      // Determinar el nuevo estado (1 si era 0, 0 si era 1)
+      const newStatus = currentStatus === 1 ? 0 : 1;
+
+      // Hacer la petición a la API para actualizar la visibilidad
       const response = await fetch(`/api/sections/${sectionId}/visibility`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ status: newStatus }),
       });
