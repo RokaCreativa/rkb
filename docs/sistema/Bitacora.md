@@ -348,3 +348,41 @@
 - `docs/sistema/Bitacora.md` (Actualizado)
 
 ---
+
+### **#19 | Blindaje del Dashboard Contra Errores de Hidratación**
+
+- **Fecha:** 2024-06-18
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** N/A (Bug Crítico)
+- **Mandamientos Involucrados:** #1, #2, #9, #10
+
+**Descripción:**
+
+> Tras un intenso proceso de depuración de un error de hidratación que persistía incluso después de múltiples correcciones, se llegó a una conclusión clave gracias a la insistencia del usuario en no aceptar soluciones superficiales. El problema no era una simple extensión, sino una condición de carrera entre el estado de la sesión de NextAuth y la hidratación de React, especialmente en navegadores con caché agresivo como Chrome.
+
+> La solución definitiva fue refactorizar la carga del dashboard para hacerlo inmune a estos problemas. Se movió toda la lógica de sesión a un componente cliente (`DashboardClient.tsx`). La clave de la solución fue usar el estado de la sesión de `useSession` como una `key` para el componente `ViewSwitcher` (`<ViewSwitcher key={status} />`). Esto fuerza a React a destruir y reconstruir completamente el componente de la vista cuando el estado de autenticación cambia (de `loading` a `authenticated`), eliminando cualquier posibilidad de estado inconsistente y resolviendo el bug de raíz.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/page.tsx` (Simplificado)
+- `app/dashboard-v2/components/core/DashboardClient.tsx` (Refactorizado con lógica de sesión y `key`)
+
+---
+
+### **#20 | Restauración de Contexto y Plan de Refactorización Global**
+
+- **Fecha:** 2024-06-19
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** #T21 (creada)
+- **Mandamientos Involucrados:** #1, #2, #4, #6, #7, #10
+
+**Descripción:**
+
+> Tras una sesión de depuración y restauración del contexto a partir de una conversación anterior, se ha establecido una base de conocimiento sólida y compartida. Se localizó con éxito el store de Zustand (`app/dashboard-v2/stores/dashboardStore.ts`), confirmando que la vista móvil ya utiliza una gestión de estado moderna. Esto ha clarificado que la inconsistencia arquitectónica con la vista de escritorio (`DashboardView.tsx`) es el principal punto de deuda técnica. Se ha trazado un plan de acción claro y detallado (Tarea #T21 en el Checklist) para refactorizar la vista de escritorio, unificando así toda la aplicación bajo una única fuente de verdad (Zustand).
+
+**Archivos Modificados/Creados:**
+
+- `docs/sistema/Checklist.md` (Actualizado con plan de refactorización)
+- `docs/sistema/Bitacora.md` (Esta misma entrada)
+
+---

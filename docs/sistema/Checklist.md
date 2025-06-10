@@ -55,19 +55,22 @@
 
 - **Objetivo:** Mantener el código sano y manetenible a largo plazo.
 - **Tareas:**
+  - [ ] **#T21 - Refactorización de Vista de Escritorio a Zustand:**
+    - **Objetivo:** Unificar la gestión de estado de toda la aplicación, eliminando la arquitectura legada de `DashboardView.tsx` y `useDashboardState.ts` para que utilice el store central `useDashboardStore`.
+    - **Tareas Detalladas:**
+      - [ ] **#T21.1 - Limpieza de Dependencias:** Eliminar la librería obsoleta `react-beautiful-dnd` y sus tipos.
+      - [ ] **#T21.2 - Extender `useDashboardStore`:** Añadir al store los estados y acciones necesarios para la vista de escritorio que actualmente faltan (ej: `selectedCategory`, `selectedSection`, `expandedCategories`, modo de reordenación, etc.).
+      - [ ] **#T21.3 - Refactorizar `DashboardView.tsx` (Incremental):**
+        - [ ] Conectar el componente al `useDashboardStore`.
+        - [ ] Reemplazar la obtención de datos y estados locales (ej: `localCategories`, `selectedCategory`) por selectores del store.
+        - [ ] Reemplazar las llamadas a acciones de `useDashboardState` por las acciones equivalentes del store.
+      - [ ] **#T21.4 - Eliminar `useDashboardState.ts`:** Una vez que `DashboardView.tsx` y sus hijos ya no lo utilicen, eliminar el hook obsoleto.
+      - [ ] **#T21.5 - Refactorizar Hijos:** Evaluar si los componentes hijos (`CategoryView`, `SectionView`) pueden consumir directamente del store en lugar de recibir todas las props desde `DashboardView`.
   - [ ] **#T15 - Revisión de `//TODO`:** Buscar en todo el código comentarios `//TODO` o `FIXME` y abordarlos.
-  - [ ] **#T16 - Optimización de Hooks:** Revisar los hooks de `useQuery` y `useMutation` para asegurar que las `queryKeys` sean consistentes y el cache se invalide correctamente.
-  - [x] **#T17 - Consolidación de Tipos y Botón de Visibilidad:** Conectar los botones de "ojo" a los hooks para cambiar el estado de visibilidad.
-    - [x] Conectar botón de visibilidad para Categorías.
-    - [x] Conectar botón de visibilidad para Secciones.
-    - [x] Conectar botón de visibilidad para Productos.
-    - [x] Validar que la funcionalidad también se haya corregido en la vista de escritorio.
-    - [x] Corregir bug de actualización de contadores de visibilidad.
-  - [ ] **#T18 - Visualizador de Imágenes (Lightbox):** Crear o integrar un componente para previsualizar imágenes en pantalla completa.
-  - [ ] **#T19 - Optimización de Subida de Imágenes:** Investigar e implementar una estrategia para optimizar las imágenes antes de subirlas al servidor.
-  - [x] **#T20 - Migración de Estado a Zustand:** Se migró toda la lógica de estado del dashboard a un store central de Zustand para resolver bucles de renderizado y simplificar la arquitectura. (Completado el 18/06).
-  - [ ] **#T21 - Unificación de Estado en Vista de Escritorio (Refactorización de `DashboardView.tsx`)**
-    - [ ] **#T21.1:** Limpiar dependencias duplicadas (`react-beautiful-dnd`).
-    - [ ] **#T21.2:** Extender `useDashboardStore` para incluir estados específicos de la vista de escritorio (ej. `selectedCategory`, `expandedCategories`).
-    - [ ] **#T21.3:** Refactorizar `DashboardView.tsx` para que consuma datos y acciones del `useDashboardStore`.
-    - [ ] **#T21.4:** Eliminar el hook `useDashboardState.ts` una vez que `DashboardView.tsx` haya sido completamente migrado.
+  - [ ] **#T16 - Optimización de Hooks:** Revisar los hooks existentes para asegurar que las `queryKeys` sean consistentes y el cache se invalide correctamente.
+  - [x] **#T17 - Consolidación de Tipos:** Auditar la carpeta `types` para eliminar duplicados y asegurar una única fuente de verdad para los modelos de datos. (Completado durante la auditoría de API del 18/06).
+  - [ ] **#T18 - Visualizador de Imágenes (Lightbox):** Implementar un modal para ampliar las imágenes de categorías, secciones y productos al hacer clic sobre ellas. Debe funcionar en escritorio y móvil.
+  - [ ] **#T19 - Optimización de Subida de Imágenes:**
+    - [ ] **#T19.1 - Compresión en Cliente:** Integrar una librería para comprimir las imágenes en el navegador antes de enviarlas al servidor.
+    - [ ] **#T19.2 - Validación de Tamaño:** Añadir un límite de 2MB en el cliente para los archivos de imagen antes de iniciar la subida.
+  - [x] **#T20 - Migración de Estado a Zustand:** Se migró la lógica de estado de la **vista móvil** a un store central de Zustand para resolver bucles de renderizado y simplificar la arquitectura. (Completado el 18/06).
