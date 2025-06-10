@@ -7,13 +7,14 @@
 
 import React from 'react';
 import { PlusIcon } from '@heroicons/react/24/outline';
+import Button from '../ui/Button/Button';
 
 interface SectionActionsProps {
   /**
    * Categoría seleccionada actualmente
    */
   categoryName: string;
-  
+
   /**
    * Función que se ejecuta al hacer clic en "Nueva Sección"
    */
@@ -29,13 +30,14 @@ interface SectionActionsProps {
 const SectionActions: React.FC<SectionActionsProps> = ({ categoryName, onNewSection }) => {
   return (
     <div className="mb-4">
-      <button
+      <Button
         onClick={onNewSection}
-        className="w-full flex items-center justify-center px-4 py-2 border border-teal-300 text-sm font-medium rounded-md text-teal-700 bg-teal-50 hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 shadow-sm"
+        variant="success"
+        fullWidth
+        leftIcon={<PlusIcon className="h-5 w-5" />}
       >
-        <PlusIcon className="h-5 w-5 mr-2" />
         {categoryName ? `Añadir nueva sección a ${categoryName}` : 'Nueva Sección'}
-      </button>
+      </Button>
     </div>
   );
 };

@@ -15,7 +15,7 @@ import React, { Fragment, useState, useRef, useEffect, FormEvent, useCallback } 
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
-import { Section, Product, Client } from '@/app/types/menu';
+import { Product, Section, Client } from '@/app/dashboard-v2/types';
 import useProductManagement from '@/app/dashboard-v2/hooks/domain/product/useProductManagement';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -33,11 +33,12 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 export interface EditProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  product: any; // Accept a Product object
+  product: Product | null;
   client: Client | null;
   selectedSection: Section | null;
   setProducts: React.Dispatch<React.SetStateAction<Record<string, Product[]>>>;
   onSuccess?: () => void;
+  onProductUpdated?: (updatedProduct: Product) => void;
 }
 
 /**
@@ -66,7 +67,8 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
   client,
   selectedSection,
   setProducts,
-  onSuccess
+  onSuccess,
+  onProductUpdated,
 }) => {
   // Estados para el formulario
   const [editProductName, setEditProductName] = useState('');
@@ -103,7 +105,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
     const fetchProductDetails = async () => {
       try {
         setIsUpdatingProduct(true); // Mostrar estado de carga
-        const productId = product.id;
+        const productId = product.product_id;
         console.log('Intentando obtener detalles del producto:', {
           productId,
           productToEdit: product,
@@ -200,14 +202,14 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
 
     try {
       // Identificador único para el toast de carga
-      const toastId = "update-product-" + product.id;
+      const toastId = "update-product-" + product.product_id;
 
       // Mostrar indicador de carga
       toast.loading("Actualizando producto...", { id: toastId });
 
       // Crear un objeto FormData para enviar datos e imagen
       const formData = new FormData();
-      formData.append('product_id', product.id.toString());
+      formData.append('product_id', product.product_id.toString());
       formData.append('name', editProductName);
       formData.append('price', editProductPrice);
       formData.append('description', editProductDescription || '');
@@ -223,7 +225,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
         formData.append('existing_image', currentProduct.image || '');
       }
 
-      console.log("🔧 Enviando actualización de producto con ID:", product.id);
+      console.log("🔧 Enviando actualización de producto con ID:", product.product_id);
 
       // Enviar datos al servidor directamente para tener control total sobre el proceso
       const response = await fetch('/api/products', {
@@ -269,7 +271,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
           }
 
           updated[sectionId] = updated[sectionId].map((p: Product) =>
-            p.product_id === product.id ? normalizedProduct : p
+            p.product_id === product.product_id ? normalizedProduct : p
           );
         }
 

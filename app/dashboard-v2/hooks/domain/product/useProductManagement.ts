@@ -7,7 +7,7 @@
  * @updated 2024-06-13
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Product, ProductState, ProductActions } from '@/app/dashboard-v2/types';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
@@ -39,7 +39,7 @@ export default function useProductManagement() {
       setIsLoading(true);
       const response = await fetch(`/api/products?section_id=${sectionId}`);
       const data = await response.json();
-      
+
       if (data && Array.isArray(data)) {
         // Actualizamos solo los productos de esta sección
         setProducts(prev => ({
@@ -49,7 +49,7 @@ export default function useProductManagement() {
       } else {
         throw new Error('Formato de datos incorrecto');
       }
-      
+
       setIsLoading(false);
       return data;
     } catch (err) {
@@ -73,14 +73,14 @@ export default function useProductManagement() {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al crear el producto');
       }
-      
+
       const newProduct = await response.json();
       const sectionId = newProduct.section_id;
-      
+
       // Actualizamos el estado local con el nuevo producto
       setProducts(prev => {
         const sectionProducts = [...(prev[sectionId] || []), newProduct];
@@ -89,7 +89,7 @@ export default function useProductManagement() {
           [sectionId]: sectionProducts
         };
       });
-      
+
       toast.success('Producto creado correctamente');
       setIsLoading(false);
       return newProduct;
@@ -113,7 +113,7 @@ export default function useProductManagement() {
     try {
       setIsLoading(true);
       formData.append('id', productId.toString());
-      
+
       // Encontrar el sectionId del producto actual
       let originalSectionId: number | null = null;
       for (const [secId, productsList] of Object.entries(products)) {
@@ -122,23 +122,23 @@ export default function useProductManagement() {
           break;
         }
       }
-      
+
       if (!originalSectionId) {
         throw new Error('No se encontró el producto a actualizar');
       }
-      
+
       const response = await fetch(`/api/products/${productId}`, {
         method: 'PUT',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al actualizar el producto');
       }
-      
+
       const updatedProduct = await response.json();
       const newSectionId = updatedProduct.section_id;
-      
+
       // Actualizamos el estado local con el producto actualizado
       setProducts(prev => {
         // Si el producto cambió de sección
@@ -148,30 +148,30 @@ export default function useProductManagement() {
           const filteredOriginalProducts = originalSectionProducts.filter(
             product => product.product_id !== productId
           );
-          
+
           // Añadir a la nueva sección
           const newSectionProducts = [...(prev[newSectionId] || []), updatedProduct];
-          
+
           return {
             ...prev,
             [originalSectionId!]: filteredOriginalProducts,
             [newSectionId]: newSectionProducts
           };
-        } 
+        }
         // Si no cambió de sección, simplemente actualizamos el producto
         else {
           const sectionProducts = prev[newSectionId] || [];
           const updatedProducts = sectionProducts.map(product =>
             product.product_id === productId ? updatedProduct : product
           );
-          
+
           return {
             ...prev,
             [newSectionId]: updatedProducts
           };
         }
       });
-      
+
       toast.success('Producto actualizado correctamente');
       setIsLoading(false);
       return updatedProduct;
@@ -200,33 +200,33 @@ export default function useProductManagement() {
           break;
         }
       }
-      
+
       if (!sectionId) {
         throw new Error('No se encontró el producto a eliminar');
       }
-      
+
       setIsLoading(true);
       const response = await fetch(`/api/products/${productId}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al eliminar el producto');
       }
-      
+
       // Actualizamos el estado local eliminando el producto
       setProducts(prev => {
         const sectionProducts = prev[sectionId!] || [];
         const updatedProducts = sectionProducts.filter(
           product => product.product_id !== productId
         );
-        
+
         return {
           ...prev,
           [sectionId!]: updatedProducts
         };
       });
-      
+
       setIsLoading(false);
       return true;
     } catch (err) {
@@ -245,97 +245,63 @@ export default function useProductManagement() {
    * @returns Promise con resultado booleano de la operación
    */
   const toggleProductVisibility = useCallback(async (productId: number, currentStatus: number) => {
-    try {
-      // Encontrar el sectionId del producto
-      let sectionId: number | null = null;
-      for (const [secId, productsList] of Object.entries(products)) {
-        if (productsList.some(p => p.product_id === productId)) {
-          sectionId = parseInt(secId);
-          break;
-        }
+    // Encontrar el sectionId del producto para poder recargar la lista
+    let sectionId: number | null = null;
+    for (const [secId, productsList] of Object.entries(products)) {
+      if (productsList.some(p => p.product_id === productId)) {
+        sectionId = parseInt(secId);
+        break;
       }
-      
-      if (!sectionId) {
-        throw new Error('No se encontró el producto para cambiar visibilidad');
-      }
-      
-      setIsUpdatingVisibility(productId);
-      
-      // Actualización optimista en UI
-      const newStatus = currentStatus === 1 ? 0 : 1;
-      
-      // Actualizar el estado local
-      setProducts(prev => {
-        const sectionProducts = prev[sectionId!] || [];
-        const updatedProducts = sectionProducts.map(product => {
-          if (product.product_id === productId) {
-            return { ...product, status: newStatus };
-          }
-          return product;
-        });
-        
-        return {
-          ...prev,
-          [sectionId!]: updatedProducts
-        };
-      });
-      
-      // Enviar actualización al servidor
-      const response = await fetch(`/api/products/${productId}/visibility`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Error al actualizar la visibilidad');
-      }
-      
-      setIsUpdatingVisibility(null);
-      return true;
-    } catch (err) {
-      console.error('Error toggling product visibility:', err);
-      setIsUpdatingVisibility(null);
-      
-      // Si ocurre un error y conocemos la sección, revertimos el cambio
-      if (typeof productId === 'number') {
-        // Buscar la sección a la que pertenece este producto
-        let sectionId: number | null = null;
-        for (const [secId, productsList] of Object.entries(products)) {
-          if (productsList.some(p => p.product_id === productId)) {
-            sectionId = parseInt(secId);
-            break;
-          }
-        }
-        
-        if (sectionId) {
-          setProducts(prev => {
-            const sectionProducts = prev[sectionId!] || [];
-            const updatedProducts = sectionProducts.map(product => {
-              if (product.product_id === productId) {
-                return { ...product, status: currentStatus };
-              }
-              return product;
-            });
-            
-            return {
-              ...prev,
-              [sectionId!]: updatedProducts
-            };
-          });
-        }
-      }
-      
-      toast.error('Error al cambiar la visibilidad del producto');
+    }
+
+    if (sectionId === null) {
+      toast.error('No se pudo encontrar la sección del producto.');
       return false;
     }
-  }, [products]);
 
-  return {
+    setIsUpdatingVisibility(productId);
+
+    try {
+      // CORRECCIÓN: La ruta correcta usa [id], no [productId]
+      const response = await fetch(`/api/products/${productId}/visibility`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: !currentStatus }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Error desconocido en la API' }));
+        console.error('API Error:', errorData);
+        throw new Error(`Error al actualizar la visibilidad: ${errorData.error}`);
+      }
+
+      // Forzar la recarga de los productos de la sección para obtener el nuevo orden
+      await fetchProductsBySection(sectionId);
+
+      toast.success('Visibilidad actualizada');
+      return true;
+    } catch (err) {
+      console.error('Error toggling visibility:', err);
+      toast.error((err as Error).message || 'Error al cambiar la visibilidad');
+      return false;
+    } finally {
+      setIsUpdatingVisibility(null);
+    }
+  }, [products, fetchProductsBySection]);
+
+  return useMemo(() => ({
     products,
+    isLoading,
+    isUpdatingVisibility,
+    error,
+    fetchProductsBySection,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    toggleProductVisibility,
     setProducts,
+  }), [
+    products,
     isLoading,
     isUpdatingVisibility,
     error,
@@ -344,5 +310,5 @@ export default function useProductManagement() {
     updateProduct,
     deleteProduct,
     toggleProductVisibility
-  };
+  ]);
 } 

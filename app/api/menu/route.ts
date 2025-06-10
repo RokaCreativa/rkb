@@ -1,3 +1,9 @@
+/**
+ * @fileoverview API Route for Menus
+ * @description Handles fetching menu data. Currently returns mock data
+ *              pending full database model implementation.
+ * @module app/api/menu/route
+ */
 import { NextResponse } from 'next/server';
 import prisma from "@/prisma/prisma";
 import { Menu, Product } from '../auth/models';

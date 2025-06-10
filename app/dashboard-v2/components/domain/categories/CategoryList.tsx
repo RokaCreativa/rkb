@@ -39,7 +39,7 @@ export function CategoryList({ categories, onCategoryClick, expandedCategories, 
             return (
               <div
                 key={category.category_id}
-                className={`bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 ${category.status === 0 ? 'opacity-60' : ''}`}
+                className={`bg-white rounded-lg shadow-md transition-all duration-300 ${category.status === 0 ? 'opacity-60' : ''}`}
               >
                 <div className="p-4 flex items-center gap-4">
                   <div className="flex-shrink-0 h-14 w-14 relative">

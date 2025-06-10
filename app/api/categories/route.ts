@@ -1,3 +1,10 @@
+/**
+ * @fileoverview API Route for Categories
+ * @description This route handles all API requests related to categories,
+ *              including fetching, creating, updating, and reordering.
+ * @module app/api/categories/route
+ */
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -65,16 +72,16 @@ export async function GET(request: Request) {
 
     // 3. Obtener y procesar parámetros de consulta para paginación
     const url = new URL(request.url);
-    
+
     // Parámetros de paginación (opcionales)
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '0'); // 0 significa "sin límite"
-    
+
     // Validar parámetros
     const validPage = isNaN(page) || page < 1 ? 1 : page;
     const validLimit = isNaN(limit) || limit < 0 ? 0 : limit;
     const isPaginated = validLimit > 0;
-    
+
     // 4. Calcular parámetros de paginación para la consulta
     const skip = isPaginated ? (validPage - 1) * validLimit : undefined;
     const take = isPaginated ? validLimit : undefined;
@@ -92,14 +99,15 @@ export async function GET(request: Request) {
         client_id: user.client_id,
         deleted: { not: 1 } as any
       },
-      orderBy: {
-        display_order: 'asc',
-      },
+      orderBy: [
+        { status: 'desc' },
+        { display_order: 'asc' },
+      ],
       // Solo seleccionar los campos necesarios para optimizar rendimiento
       select: {
         category_id: true,
         name: true,
-        image: true, 
+        image: true,
         status: true,
         display_order: true,
         client_id: true,
@@ -112,7 +120,7 @@ export async function GET(request: Request) {
     const categoriesWithCounts = await Promise.all(
       categories.map(async (category) => {
         console.log(`🔍 Contando secciones para categoría ID=${category.category_id}, nombre="${category.name || 'sin nombre'}"`);
-        
+
         // 7.1 Contar total de secciones para esta categoría
         const totalSections = await prisma.sections.count({
           where: {
@@ -148,7 +156,7 @@ export async function GET(request: Request) {
     );
 
     console.log(`✅ Categorías procesadas: ${categoriesWithCounts.length}`);
-    
+
     // 8. Devolver respuesta según si se solicitó paginación o no
     if (isPaginated) {
       // Respuesta paginada con metadatos
@@ -213,7 +221,7 @@ export async function POST(request: Request) {
       FROM categories 
       WHERE client_id = ${user.client_id}
     `;
-    
+
     // @ts-ignore - La respuesta SQL puede variar
     const maxOrder = maxOrderResult[0]?.maxOrder || 0;
 
@@ -227,11 +235,11 @@ export async function POST(request: Request) {
       const timestamp = Date.now();
       const fileName = file.name;
       const uniqueFileName = `${timestamp}_${fileName}`;
-      
+
       // Guardar la imagen en el sistema de archivos
       const path = join(process.cwd(), 'public', 'images', 'categories', uniqueFileName);
       await writeFile(path, buffer);
-      
+
       // URL relativa para la base de datos
       imageUrl = uniqueFileName;
     }
@@ -324,11 +332,11 @@ export async function PUT(request: Request) {
       const timestamp = Date.now();
       const fileName = file.name;
       const uniqueFileName = `${timestamp}_${fileName}`;
-      
+
       // Guardar la imagen en el sistema de archivos
       const path = join(process.cwd(), 'public', 'images', 'categories', uniqueFileName);
       await writeFile(path, buffer);
-      
+
       // URL relativa para la base de datos
       imageUrl = uniqueFileName;
     }

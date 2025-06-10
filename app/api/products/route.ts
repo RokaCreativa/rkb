@@ -1,3 +1,9 @@
+/**
+ * @fileoverview API Route for Products
+ * @description This route handles all API requests related to products,
+ *              including fetching, creating, updating, and reordering.
+ * @module app/api/products/route
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -75,20 +81,20 @@ export async function GET(req: NextRequest) {
     }
 
     const clientId = user.client_id;
-    
+
     // Obtener los parámetros de la URL
     const url = new URL(req.url);
     const sectionId = url.searchParams.get('sectionId') || url.searchParams.get('section_id');
-    
+
     // Parámetros de paginación (opcionales)
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '0'); // 0 significa sin límite
-    
+
     // Validar parámetros de paginación
     const validPage = page < 1 ? 1 : page;
     const validLimit = limit < 0 ? 0 : limit;
     const isPaginated = validLimit > 0;
-    
+
     // Si no se especifica una sección, devolver todos los productos del cliente
     if (!sectionId) {
       // Obtener el total de productos si hay paginación
@@ -101,19 +107,20 @@ export async function GET(req: NextRequest) {
           }
         });
       }
-      
+
       // Calcular parámetros de paginación para Prisma
       const skip = isPaginated ? (validPage - 1) * validLimit : undefined;
       const take = isPaginated ? validLimit : undefined;
-      
+
       const allProducts = await prisma.products.findMany({
         where: {
           client_id: clientId,
           deleted: false
         },
-        orderBy: {
-          display_order: 'asc'
-        },
+        orderBy: [
+          { status: 'desc' },
+          { display_order: 'asc' }
+        ],
         skip,
         take
       });
@@ -126,11 +133,11 @@ export async function GET(req: NextRequest) {
           status: product.status ? 1 : 0
         };
       });
-      
+
       // Devolver respuesta según sea paginada o no
       if (isPaginated && totalProducts !== undefined) {
         const totalPages = Math.ceil(totalProducts / validLimit);
-        
+
         return new Response(JSON.stringify({
           data: processedProducts,
           meta: {
@@ -150,10 +157,10 @@ export async function GET(req: NextRequest) {
         });
       }
     }
-    
+
     // Si se especifica una sección, buscar los productos de esa sección directamente
     const sectionIdInt = parseInt(sectionId);
-    
+
     // Obtener total de productos si hay paginación
     let totalProducts: number | undefined;
     if (isPaginated) {
@@ -164,12 +171,12 @@ export async function GET(req: NextRequest) {
           deleted: false
         }
       });
-      
+
       // Si no hay productos en general, devolvemos un array vacío
       if (allProductsCount === 0) {
         return returnEmptyProducts(isPaginated, validPage, validLimit);
       }
-      
+
       // Obtenemos todos los productos para contarlos manualmente (sin paginación)
       // Esto es ineficiente pero es temporal hasta actualizar el esquema
       const allProducts = await prisma.products.findMany({
@@ -183,19 +190,19 @@ export async function GET(req: NextRequest) {
           section_id: true
         }
       });
-      
+
       // Filtramos por section_id manualmente para obtener el conteo real
       totalProducts = allProducts.filter(product => {
         // @ts-ignore - El campo section_id existe en la DB pero no en el tipo
         return product.section_id === sectionIdInt;
       }).length;
-      
+
       // Si no hay productos en esta sección, devolver un array vacío
       if (totalProducts === 0) {
         return returnEmptyProducts(isPaginated, validPage, validLimit);
       }
     }
-    
+
     // Utilizamos una estrategia alternativa para obtener los productos
     // Obtenemos todos los productos del cliente y luego filtramos por section_id en el código
     const allClientProducts = await prisma.products.findMany({
@@ -203,29 +210,30 @@ export async function GET(req: NextRequest) {
         client_id: clientId,
         deleted: false
       },
-      orderBy: {
-        display_order: 'asc'
-      },
+      orderBy: [
+        { status: 'desc' },
+        { display_order: 'asc' }
+      ],
       skip: isPaginated ? (validPage - 1) * validLimit : undefined,
       take: isPaginated ? validLimit : undefined
     });
-    
+
     // Filtrar manualmente por section_id
     const products = allClientProducts.filter(product => {
       // @ts-ignore - El campo section_id existe en la DB pero no en el tipo
       return product.section_id === sectionIdInt;
     });
-    
+
     // Si no hay productos, devolver array vacío
     if (products.length === 0) {
       return returnEmptyProducts(isPaginated, validPage, validLimit);
     }
-    
+
     // Ajustar el total de productos para la paginación
     if (!isPaginated) {
       totalProducts = products.length;
     }
-    
+
     // Procesamos y devolvemos la respuesta
     return processProductsResponse(products, isPaginated, validPage, validLimit, totalProducts);
   } catch (error) {
@@ -268,11 +276,11 @@ export async function POST(request: Request) {
     const file = formData.get('image') as File | null;
     // Convertir a booleano (true para activo, false para inactivo)
     const status = formData.get('status') === '1';
-    
+
     // Obtener secciones a las que pertenece este producto
     const sectionsJson = formData.get('sections') as string;
     let sectionIds: number[] = [];
-    
+
     try {
       sectionIds = JSON.parse(sectionsJson);
     } catch (e) {
@@ -310,7 +318,7 @@ export async function POST(request: Request) {
       FROM products 
       WHERE client_id = ${user.client_id}
     `;
-    
+
     // @ts-ignore - La respuesta SQL puede variar
     const maxOrder = maxOrderResult[0]?.maxOrder || 0;
 
@@ -324,11 +332,11 @@ export async function POST(request: Request) {
       const timestamp = Date.now();
       const fileName = file.name;
       const uniqueFileName = `${timestamp}_${fileName}`;
-      
+
       // Guardar la imagen en el sistema de archivos
       const path = join(process.cwd(), 'public', 'images', 'products', uniqueFileName);
       await writeFile(path, buffer);
-      
+
       // URL relativa para la base de datos
       imageUrl = uniqueFileName;
     }
@@ -336,11 +344,11 @@ export async function POST(request: Request) {
     // 7. Usamos el primer section_id como sección principal para el producto
     // En el nuevo modelo de datos, un producto solo puede estar en una sección a la vez
     const primarySectionId = sectionIds.length > 0 ? sectionIds[0] : null;
-    
+
     if (!primarySectionId) {
       return NextResponse.json({ error: 'Se requiere al menos una sección' }, { status: 400 });
     }
-    
+
     // Crear el nuevo producto con el section_id directamente
     const newProduct = await prisma.products.create({
       data: {
@@ -356,7 +364,7 @@ export async function POST(request: Request) {
         section_id: primarySectionId,
       },
     });
-    
+
     // NOTA: Ya no es necesario usar la tabla products_sections
     // Si se seleccionaron múltiples secciones, advertimos que solo se usará la primera
     if (sectionIds.length > 1) {
@@ -426,8 +434,8 @@ export async function PUT(req: Request) {
       return new Response(
         JSON.stringify({
           message: 'Faltan datos requeridos para actualizar el producto',
-          details: { 
-            product_id: product_id ? 'OK' : 'Missing', 
+          details: {
+            product_id: product_id ? 'OK' : 'Missing',
             name: name ? 'OK' : 'Missing',
             section_id: section_id ? 'OK' : 'Missing',
             client_id: client_id ? 'OK' : 'Missing'
@@ -465,18 +473,18 @@ export async function PUT(req: Request) {
       // Se proporcionó una nueva imagen, procesarla
       const imageName = `${Date.now()}_${Math.random().toString(36).substring(2, 15)}.${(image.name || 'image').split('.').pop()}`;
       const imageBuffer = Buffer.from(await image.arrayBuffer());
-      
+
       const publicDir = path.join(process.cwd(), 'public');
       const imageDir = path.join(publicDir, 'images', 'products');
-      
+
       // Asegurarse de que el directorio existe
       if (!fs.existsSync(imageDir)) {
         fs.mkdirSync(imageDir, { recursive: true });
       }
-      
+
       const imageFilePath = path.join(imageDir, imageName);
       fs.writeFileSync(imageFilePath, imageBuffer);
-      
+
       imagePath = `/images/products/${imageName}`;
     } else if (existing_image) {
       // Si no hay nueva imagen pero se proporcionó una referencia a la imagen existente
@@ -505,7 +513,7 @@ export async function PUT(req: Request) {
     });
   } catch (error: any) {
     console.error('Error al actualizar producto:', error);
-    
+
     return new Response(
       JSON.stringify({
         message: 'Error al actualizar producto',
@@ -529,11 +537,11 @@ function processProductsResponse(products: any[], isPaginated?: boolean, page?: 
       status: product.status ? 1 : 0
     };
   });
-  
+
   // Devolver respuesta según sea paginada o no
   if (isPaginated && total !== undefined) {
     const totalPages = Math.ceil(total / limit!);
-    
+
     return new Response(JSON.stringify({
       data: processedProducts,
       meta: {

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import useIsMobile from '../../hooks/ui/useIsMobile';
-import MobileView from '../../views/MobileView';
+import { MobileView } from '../../views/MobileView';
 import DashboardView from './DashboardView';
 
 const ViewSwitcher = () => {

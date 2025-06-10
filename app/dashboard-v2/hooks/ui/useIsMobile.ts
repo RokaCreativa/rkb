@@ -3,19 +3,19 @@
 import { useState, useEffect } from 'react';
 
 const useIsMobile = (breakpoint = 768): boolean => {
-    const [isMobile, setIsMobile] = useState(false);
+    // Inicializa el estado para que coincida con el del servidor (donde no hay 'window').
+    // Usamos una función para que `window.innerWidth` solo se llame en el cliente.
+    const [isMobile, setIsMobile] = useState(
+        () => typeof window !== 'undefined' && window.innerWidth < breakpoint
+    );
 
     useEffect(() => {
-        // La comprobación inicial debe ocurrir solo en el cliente,
-        // donde el objeto `window` está disponible.
+        // Esta función solo se ejecutará en el cliente.
         const checkDevice = () => {
             setIsMobile(window.innerWidth < breakpoint);
         };
 
-        // Comprobar al montar el componente
-        checkDevice();
-
-        // Añadir un listener para cambios de tamaño de la ventana
+        // Añadir el listener para cambios de tamaño de la ventana
         window.addEventListener('resize', checkDevice);
 
         // Limpiar el listener al desmontar el componente

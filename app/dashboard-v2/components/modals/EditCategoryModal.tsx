@@ -15,7 +15,7 @@ import React, { Fragment, useState, useRef, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
-import { Category, Client } from '@/app/types/menu';
+import { Category, Client } from '@/app/dashboard-v2/types';
 import { PrismaClient } from '@prisma/client';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
@@ -70,7 +70,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
   useEffect(() => {
     if (categoryToEdit) {
       setEditCategoryName(categoryToEdit.name || '');
-      
+
       if (categoryToEdit.image) {
         // Usar la URL completa de la imagen
         setEditImagePreview(categoryToEdit.image);
@@ -90,7 +90,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setEditCategoryImage(file);
-      
+
       // Crear una vista previa de la imagen
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -165,10 +165,10 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
 
       // IMPORTANTE: Preservamos el nombre editado para asegurar la actualización
       // independientemente de la respuesta del servidor
-      const categoryWithUpdatedName = {
+      const categoryWithUpdatedName: Category = {
         ...updatedCategory,
         name: editCategoryName, // Forzar el nombre editado
-        status: typeof updatedCategory.status === 'boolean' ? 
+        status: typeof updatedCategory.status === 'boolean' ?
           (updatedCategory.status ? 1 : 0) : Number(updatedCategory.status)
       };
 
@@ -176,7 +176,7 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
 
       // SISTEMA DUAL: Actualizar el estado LOCAL inmediatamente con el nombre forzado
       setCategories((prevCategories) => {
-        const updatedCategories = prevCategories.map((cat) => 
+        const updatedCategories = prevCategories.map((cat) =>
           cat.category_id === categoryToEdit.category_id ? categoryWithUpdatedName : cat
         );
         console.log("📊 Estado local de categorías actualizado con nombre forzado");
@@ -185,19 +185,19 @@ const EditCategoryModal: React.FC<EditCategoryModalProps> = ({
 
       // Actualizar el toast con mensaje de éxito
       toast.success('Categoría actualizada correctamente', { id: toastId });
-      
+
       // IMPORTANTE: Modificamos la categoría actual para que tenga el nombre actualizado
       // Esto asegura que cuando se llame onSuccess, se use el nombre actualizado
       categoryToEdit.name = editCategoryName;
-      
+
       // Limpiar el estado local y cerrar el modal
       setEditCategoryName('');
       setEditCategoryImage(null);
       setEditImagePreview(null);
-      
+
       // Cerrar el modal después de actualizar los estados
       onClose();
-      
+
       // SISTEMA DUAL: Ejecutar callback de éxito después de todo lo demás
       if (onSuccess) {
         console.log("🔄 Ejecutando callback onSuccess con nombre actualizado forzado");

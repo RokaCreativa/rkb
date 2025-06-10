@@ -1,3 +1,8 @@
+/**
+ * @fileoverview API Route for Fetching Categories by Client ID
+ * @description This route retrieves all categories associated with a specific client ID.
+ * @module app/api/clients/[id]/categories/route
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
@@ -15,7 +20,7 @@ export async function GET(
 ) {
   try {
     const clientId = parseInt(params.id);
-    
+
     if (isNaN(clientId)) {
       return NextResponse.json(
         { error: 'ID de cliente inválido' },

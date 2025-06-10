@@ -1,3 +1,9 @@
+/**
+ * @fileoverview API Route for Sections
+ * @description Handles all API requests related to sections,
+ *              including fetching, creating, updating, and reordering.
+ * @module app/api/sections/route
+ */
 import { NextRequest, NextResponse } from "next/server";
 import prisma from '@/prisma/prisma';
 import { getServerSession } from "next-auth";
@@ -126,11 +132,12 @@ export async function GET(req: NextRequest) {
       where: {
         client_id: clientId,
         category_id: parseInt(categoryId),
-        deleted: 0
+        deleted: 0,
       },
-      orderBy: {
-        display_order: 'asc'
-      },
+      orderBy: [
+        { status: 'desc' },
+        { display_order: 'asc' }
+      ],
       skip,
       take
     });
@@ -142,7 +149,7 @@ export async function GET(req: NextRequest) {
         where: {
           client_id: clientId,
           category_id: parseInt(categoryId),
-          deleted: 0
+          deleted: 0,
         }
       });
     }
@@ -154,7 +161,7 @@ export async function GET(req: NextRequest) {
         const totalProductsCount = await prisma.products.count({
           where: {
             section_id: section.section_id,
-            deleted: false
+            deleted: false,
           }
         });
 
@@ -252,82 +259,59 @@ export async function POST(request: Request) {
     });
 
     if (!category) {
-      return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
+      return NextResponse.json({ error: 'Categoría no válida o no pertenece al cliente' }, { status: 403 });
     }
 
-    // 5. Determinar el próximo valor de display_order
-    const maxOrderResult = await prisma.$queryRaw`
-      SELECT MAX(display_order) as maxOrder 
-      FROM sections 
-      WHERE client_id = ${user.client_id} 
-      AND category_id = ${categoryId}
-    `;
-
-    // @ts-ignore - La respuesta SQL puede variar
-    const maxOrder = maxOrderResult[0]?.maxOrder || 0;
-
-    // 6. Procesar la imagen si existe
-    let imageUrl = null;
+    let imageUrl: string | null = null;
     if (file) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
+      try {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
 
-      // Crear un nombre de archivo único con timestamp
-      const timestamp = Date.now();
-      const fileName = file.name;
-      const uniqueFileName = `${timestamp}_${fileName}`;
+        // Generar un nombre de archivo único
+        const filename = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+        const imagePath = join(process.cwd(), 'public', IMAGE_BASE_PATH, filename);
 
-      // Guardar la imagen en el sistema de archivos
-      const path = join(process.cwd(), 'public', 'images', 'sections', uniqueFileName);
-      await writeFile(path, buffer);
-
-      // URL relativa para la base de datos
-      imageUrl = uniqueFileName;
+        // Guardar el archivo
+        await writeFile(imagePath, buffer);
+        imageUrl = `${IMAGE_BASE_PATH}${filename}`;
+      } catch (e) {
+        console.error('Error al subir la imagen:', e);
+        return NextResponse.json({ error: 'Error al procesar la imagen' }, { status: 500 });
+      }
     }
 
-    // 7. Crear la nueva sección
+    // 5. Crear la nueva sección en la base de datos
     const newSection = await prisma.sections.create({
       data: {
         name,
-        image: imageUrl,
-        status: true, // Por defecto activo
-        display_order: maxOrder + 1,
         category_id: categoryId,
+        image: imageUrl,
+        status,
         client_id: user.client_id,
-        deleted: 0,
+        display_order: 0, // O determinar el último + 1
       },
     });
 
-    // 8. Preparar la respuesta
-    const processedSection: ProcessedSection = {
-      section_id: newSection.section_id,
-      name: newSection.name || '',
-      image: imageUrl ? `${IMAGE_BASE_PATH}${imageUrl}` : null,
-      status: newSection.status ? 1 : 0,
-      display_order: newSection.display_order || 0,
-      client_id: newSection.client_id || 0,
-      category_id: newSection.category_id || 0,
-      products_count: 0, // Nueva sección, sin productos
-    };
-
-    return NextResponse.json(processedSection);
+    // 6. Devolver la sección creada
+    return NextResponse.json(newSection, { status: 201 });
   } catch (error) {
-    // 9. Manejo centralizado de errores
     console.error('Error al crear la sección:', error);
-    return NextResponse.json({ error: 'Error al crear la sección' }, { status: 500 });
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      return NextResponse.json({ error: 'Error en la base de datos', details: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
 
 // PUT /api/sections
 export async function PUT(request: Request) {
   try {
-    // 1. Verificación de autenticación
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
     const user = await prisma.users.findFirst({
       where: { email: session.user.email },
     });
@@ -336,128 +320,76 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
-    // 3. Determinar si la solicitud viene como formData o como JSON
-    let data;
-    let sectionId;
-    let file = null;
+    const formData = await request.formData();
+    const sectionId = parseInt(formData.get('id') as string);
+    const name = formData.get('name') as string | null;
+    const file = formData.get('image') as File | null;
+    const status = formData.get('status');
+    const deleteImage = formData.get('deleteImage') === 'true';
 
-    const contentType = request.headers.get('content-type') || '';
-    if (contentType.includes('multipart/form-data')) {
-      // Procesar FormData
-      const formData = await request.formData();
-      sectionId = formData.get('section_id') as string;
-
-      // Extraer archivo si existe
-      file = formData.get('image') as File | null;
-
-      // Extraer otros campos
-      data = {
-        section_id: parseInt(sectionId),
-        name: formData.get('name') as string,
-      };
-
-      console.log('PUT /api/sections - FormData recibido:', {
-        section_id: data.section_id,
-        name: data.name,
-        hasFile: !!file
-      });
-    } else {
-      // Procesar JSON
-      data = await request.json();
-      sectionId = data.section_id;
-      console.log('PUT /api/sections - JSON recibido:', data);
+    if (isNaN(sectionId)) {
+      return NextResponse.json({ error: 'ID de sección no válido' }, { status: 400 });
     }
 
-    if (!sectionId) {
-      return NextResponse.json({ error: 'ID de sección requerido' }, { status: 400 });
-    }
-
-    // 4. Preparar los datos de actualización
-    const updateData: any = {};
-
-    if (data.name !== undefined) updateData.name = data.name;
-    if (data.display_order !== undefined) updateData.display_order = data.display_order;
-    if (data.status !== undefined) updateData.status = data.status === 1; // Convertir numérico a booleano
-    if (data.category_id !== undefined) updateData.category_id = data.category_id;
-
-    // 5. Procesar la imagen si se envió como parte de la solicitud
-    if (file) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      // Crear un nombre de archivo único con timestamp
-      const timestamp = Date.now();
-      const fileName = file.name;
-      const uniqueFileName = `${timestamp}_${fileName}`;
-
-      // Guardar la imagen en el sistema de archivos
-      const path = join(process.cwd(), 'public', 'images', 'sections', uniqueFileName);
-      await writeFile(path, buffer);
-
-      // Añadir el nombre de archivo a los datos de actualización
-      updateData.image = uniqueFileName;
-    }
-
-    console.log('PUT /api/sections - Datos a actualizar:', updateData);
-
-    // 6. Actualizar la sección
-    await prisma.sections.updateMany({
+    const section = await prisma.sections.findFirst({
       where: {
-        section_id: parseInt(sectionId.toString()),
-        client_id: user.client_id,
-      },
-      data: updateData,
-    });
-
-    // 7. Obtener la sección actualizada
-    const updatedSection = await prisma.sections.findFirst({
-      where: {
-        section_id: parseInt(sectionId),
+        section_id: sectionId,
         client_id: user.client_id,
       },
     });
 
-    if (!updatedSection) {
-      return NextResponse.json({ error: 'No se pudo actualizar la sección' }, { status: 404 });
+    if (!section) {
+      return NextResponse.json({ error: 'Sección no encontrada o no pertenece al cliente' }, { status: 404 });
     }
 
-    // 8. Contar productos de la sección
-    const productsCount = await prisma.products_sections.count({
-      where: {
-        section_id: parseInt(sectionId),
-      },
+    const dataToUpdate: Prisma.sectionsUpdateInput = {};
+
+    if (name) {
+      dataToUpdate.name = name;
+    }
+    if (status !== null) {
+      dataToUpdate.status = status === '1';
+    }
+
+    let imageUrl = section.image;
+    if (deleteImage) {
+      // Aquí iría la lógica para borrar el archivo de imagen del servidor si existe
+      imageUrl = null;
+    } else if (file) {
+      try {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const filename = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+        const imagePath = join(process.cwd(), 'public', IMAGE_BASE_PATH, filename);
+        await writeFile(imagePath, buffer);
+        imageUrl = `${IMAGE_BASE_PATH}${filename}`;
+      } catch (e) {
+        console.error('Error al subir la nueva imagen:', e);
+        return NextResponse.json({ error: 'Error al procesar la imagen' }, { status: 500 });
+      }
+    }
+    dataToUpdate.image = imageUrl;
+
+    const updatedSection = await prisma.sections.update({
+      where: { section_id: sectionId },
+      data: dataToUpdate,
     });
 
-    // 9. Preparar la respuesta
-    const processedSection: ProcessedSection = {
-      section_id: updatedSection.section_id,
-      name: updatedSection.name || '',
-      image: updatedSection.image ? `${IMAGE_BASE_PATH}${updatedSection.image}` : null,
-      status: updatedSection.status ? 1 : 0,
-      display_order: updatedSection.display_order || 0,
-      client_id: updatedSection.client_id || 0,
-      category_id: updatedSection.category_id || 0,
-      products_count: productsCount,
-    };
-
-    return NextResponse.json(processedSection);
+    return NextResponse.json(updatedSection, { status: 200 });
   } catch (error) {
-    // 10. Manejo centralizado de errores
     console.error('Error al actualizar la sección:', error);
-    return NextResponse.json({ error: 'Error al actualizar la sección' }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
 
 // DELETE /api/sections
 export async function DELETE(request: Request) {
   try {
-    // 1. Verificación de autenticación
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
     const user = await prisma.users.findFirst({
       where: { email: session.user.email },
     });
@@ -466,51 +398,36 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
-    // 3. Obtener y validar el ID de la sección
-    const url = new URL(request.url);
-    const sectionId = url.searchParams.get('section_id');
+    const { id } = await request.json();
 
-    if (!sectionId) {
-      return NextResponse.json({ error: 'ID de sección no proporcionado' }, { status: 400 });
+    if (!id || isNaN(id)) {
+      return NextResponse.json({ error: 'ID de sección no válido' }, { status: 400 });
     }
 
-    // 4. Verificar que la sección exista y pertenezca al cliente
     const section = await prisma.sections.findFirst({
       where: {
-        section_id: parseInt(sectionId),
+        section_id: id,
         client_id: user.client_id,
-        deleted: 0
       },
     });
 
     if (!section) {
-      return NextResponse.json({ error: 'Sección no encontrada o ya eliminada' }, { status: 404 });
+      return NextResponse.json({ error: 'Sección no encontrada o no pertenece al cliente' }, { status: 404 });
     }
 
-    // 5. En lugar de eliminar físicamente la sección, la marcamos como eliminada
-    // utilizando el campo 'deleted' con valor 1 para indicar que está eliminada
     await prisma.sections.update({
-      where: {
-        section_id: parseInt(sectionId),
-        client_id: user.client_id,
-      },
+      where: { section_id: id },
       data: {
         deleted: 1,
-        deleted_at: new Date().toISOString().substring(0, 19).replace('T', ' '),
-        deleted_by: (session.user.email || '').substring(0, 50),
-        deleted_ip: (request.headers.get('x-forwarded-for') || 'API').substring(0, 20),
-        status: false, // Desactivamos también el estado
+        deleted_at: new Date().toISOString(),
+        deleted_by: user.email,
+        deleted_ip: request.headers.get('x-forwarded-for') ?? 'unknown',
       },
     });
 
-    // 6. Devolver respuesta de éxito
-    return NextResponse.json({
-      success: true,
-      message: 'Sección eliminada correctamente'
-    });
+    return NextResponse.json({ message: 'Sección eliminada (marcada como borrada)' }, { status: 200 });
   } catch (error) {
-    // 7. Manejo centralizado de errores
     console.error('Error al eliminar la sección:', error);
-    return NextResponse.json({ error: 'Error al eliminar la sección' }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 } 

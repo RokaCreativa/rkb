@@ -1,3 +1,8 @@
+/**
+ * @fileoverview API Route for Client Logo Upload
+ * @description Handles the upload and update of a client's main logo.
+ * @module app/api/client/logo/route
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/prisma/prisma';
 import { writeFile } from 'fs/promises';
@@ -7,14 +12,14 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get('logo') as File;
-    
+
     if (!file) {
       return NextResponse.json(
         { error: 'No se ha proporcionado ningún archivo' },
         { status: 400 }
       );
     }
-    
+
     // Validar que sea una imagen
     if (!file.type.startsWith('image/')) {
       return NextResponse.json(
@@ -22,7 +27,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Validar tamaño (máx 2MB)
     if (file.size > 2 * 1024 * 1024) {
       return NextResponse.json(
@@ -30,48 +35,48 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Generar nombre único para el archivo
     const bytes = new Uint8Array(8);
     crypto.getRandomValues(bytes);
     const uniqueId = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-    
+
     // Obtener extensión original
     const originalName = file.name;
     const extension = originalName.split('.').pop();
-    
+
     // Crear nombre de archivo
     const fileName = `logo_${uniqueId}.${extension}`;
-    
+
     // Ruta donde se guardará el archivo
     const imagePath = path.join(process.cwd(), 'public', 'images', 'imagenes_estructura_antigua', 'products', fileName);
-    
+
     // Leer el contenido del archivo
     const buffer = await file.arrayBuffer();
-    
+
     // Guardar el archivo en el sistema de archivos
     await writeFile(imagePath, Buffer.from(buffer));
-    
+
     // Obtener cliente actual (usando cliente ID 3 para pruebas)
     const client = await prisma.clients.findFirst({
       where: {
         client_id: 3
       }
     });
-    
+
     if (!client) {
       return NextResponse.json(
         { error: 'No se encontró información del cliente' },
         { status: 404 }
       );
     }
-    
+
     // Actualizar el logo del cliente en la base de datos
     const updatedClient = await prisma.clients.update({
       where: { client_id: client.client_id },
       data: { main_logo: fileName }
     });
-    
+
     return NextResponse.json({
       message: 'Logo actualizado correctamente',
       logo: fileName

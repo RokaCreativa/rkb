@@ -34,7 +34,7 @@ import prisma from '@/prisma/prisma';
  *       500:
  *         description: Error interno del servidor.
  */
-export async function PUT(
+export async function PATCH(
     request: Request,
     { params }: { params: { id: string } }
 ) {
@@ -42,8 +42,8 @@ export async function PUT(
         const id = params.id;
         const { status } = await request.json();
 
-        if (typeof status !== 'number' || (status !== 0 && status !== 1) || !id) {
-            return NextResponse.json({ message: 'Invalid status or ID provided.' }, { status: 400 });
+        if (typeof status !== 'boolean' || !id) {
+            return NextResponse.json({ message: 'Invalid status or ID provided. Expected a boolean for status.' }, { status: 400 });
         }
 
         const updatedCategory = await prisma.categories.update({
@@ -51,7 +51,7 @@ export async function PUT(
                 category_id: parseInt(id, 10),
             },
             data: {
-                status: status === 1,
+                status: status,
             },
         });
 

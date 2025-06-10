@@ -16,7 +16,7 @@ import Image from 'next/image';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
-import { Section, Category, SectionWithFileUpload } from '@/app/types/menu';
+import { Section, Category } from '@/app/dashboard-v2/types';
 import useSectionManagement from '@/app/dashboard-v2/hooks/domain/section/useSectionManagement';
 import { PlusIcon as PlusIconMini } from '@heroicons/react/20/solid';
 import { getImagePath } from '@/app/dashboard-v2/utils/imageUtils';
@@ -35,7 +35,7 @@ import { getImagePath } from '@/app/dashboard-v2/utils/imageUtils';
 export interface EditSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  section: any; // Accept a Section object
+  section: Section;
   updateSection?: (formData: FormData, sectionId: number, categoryId: number) => Promise<boolean>;
   onSuccess?: () => void;
 }
@@ -73,10 +73,10 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
   const [editSectionName, setEditSectionName] = useState('');
   const [editSectionImage, setEditSectionImage] = useState<File | null>(null);
   const [editSectionImagePreview, setEditSectionImagePreview] = useState<string | null>(null);
-  
+
   // Estado para controlar la operación de actualización
   const [isUpdatingSectionName, setIsUpdatingSectionName] = useState(false);
-  
+
   /**
    * Hook personalizado que proporciona operaciones CRUD para secciones.
    * Proporciona métodos optimizados y manejo de estado/notificaciones
@@ -135,26 +135,26 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
 
     // Identificador único para el toast de carga
     const toastId = "update-section-" + section.section_id;
-    
+
     try {
       // Mostrar toast de carga
       toast.loading("Actualizando sección...", { id: toastId });
-      
+
       // Función para actualizar la sección (usamos la inyectada o la del hook)
       const updateSectionFn = updateSection || useSectionsUpdateSection;
-      
+
       // Solo realizamos una única llamada para actualizar
       const success = await updateSectionFn(formData, section.section_id, section.category_id);
-      
+
       if (success) {
         // Primero actualizamos el toast
         toast.success("Sección actualizada correctamente", { id: toastId });
-        
+
         console.log("✅ Actualización de sección completada con éxito");
-        
+
         // Limpiar estado y cerrar modal
         handleCloseModal();
-        
+
         // Llamar al callback si existe (después de cerrar el modal)
         if (onSuccess) {
           console.log("🔄 Ejecutando onSuccess para forzar refresco de UI");
@@ -198,7 +198,7 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setEditSectionImage(file);
-      
+
       // Crear vista previa de la imagen
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -229,7 +229,7 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
 
           {/* Truco para centrar el modal verticalmente */}
           <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-          
+
           {/* Contenido del modal con animación */}
           <Transition.Child
             as={Fragment}
@@ -247,7 +247,7 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
                   <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
                     Editar sección
                   </Dialog.Title>
-                  
+
                   {/* Formulario */}
                   <div className="mt-2">
                     {/* Campo para el nombre de la sección */}
@@ -265,7 +265,7 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
                         placeholder="Nombre de la sección"
                       />
                     </div>
-                    
+
                     {/* Campo para la imagen de la sección */}
                     <div className="mb-4">
                       <label htmlFor="sectionImage" className="block text-sm font-medium text-gray-700">
@@ -276,14 +276,14 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
                           {/* Mostrar vista previa de la imagen si existe */}
                           {editSectionImagePreview ? (
                             <div className="relative mx-auto w-24 h-24 mb-2">
-                              <Image 
-                                src={editSectionImagePreview} 
-                                alt="Vista previa" 
+                              <Image
+                                src={editSectionImagePreview}
+                                alt="Vista previa"
                                 fill
                                 className="object-cover rounded-full"
                               />
                               {/* Botón para eliminar la imagen */}
-                              <button 
+                              <button
                                 type="button"
                                 className="absolute -top-2 -right-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
                                 onClick={() => {
@@ -311,7 +311,7 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
                               />
                             </svg>
                           )}
-                          
+
                           {/* Control para subir una imagen */}
                           <div className="flex text-sm text-gray-600">
                             <label
@@ -319,11 +319,11 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
                               className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
                             >
                               <span>Subir imagen</span>
-                              <input 
-                                id="edit-section-image-upload" 
-                                name="edit-section-image-upload" 
-                                type="file" 
-                                className="sr-only" 
+                              <input
+                                id="edit-section-image-upload"
+                                name="edit-section-image-upload"
+                                type="file"
+                                className="sr-only"
                                 accept="image/*"
                                 onChange={handleSectionImageChange}
                               />
@@ -334,14 +334,13 @@ const EditSectionModal: React.FC<EditSectionModalProps> = ({
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Botones de acción */}
                     <div className="sm:flex sm:flex-row-reverse">
                       <button
                         type="button"
-                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm ${
-                          isUpdatingSectionName ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm ${isUpdatingSectionName ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                         onClick={handleSubmit}
                         disabled={isUpdatingSectionName || !editSectionName.trim()}
                       >

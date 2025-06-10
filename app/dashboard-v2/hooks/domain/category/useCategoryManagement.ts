@@ -7,7 +7,7 @@
  * @updated 2024-06-13
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Category, CategoryState, CategoryActions } from '@/app/dashboard-v2/types';
 import { Client } from '@/app/types/menu';
 import { toast } from 'react-hot-toast';
@@ -249,29 +249,14 @@ export default function useCategoryManagement() {
    * Actualiza la visibilidad de una categoría
    * 
    * @param categoryId ID de la categoría
-   * @param currentStatus Estado actual de visibilidad
+   * @param newStatus Nuevo estado de visibilidad (0 o 1)
    * @returns Promise con resultado booleano de la operación
    */
-  const toggleCategoryVisibility = useCallback(async (categoryId: number, currentStatus: number) => {
+  const toggleCategoryVisibility = useCallback(async (categoryId: number, newStatus: number) => {
+    setIsUpdatingVisibility(categoryId);
     try {
-      // Marcar que estamos actualizando la visibilidad de esta categoría
-      setIsUpdatingVisibility(categoryId);
-
-      // Actualización optimista en UI
-      const newStatus = currentStatus === 1 ? 0 : 1;
-
-      setCategories(prevCategories =>
-        prevCategories.map(cat => {
-          if (cat.category_id === categoryId) {
-            return { ...cat, status: newStatus };
-          }
-          return cat;
-        })
-      );
-
-      // Realizar la llamada a la API
       const response = await fetch(`/api/categories/${categoryId}/visibility`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -279,35 +264,44 @@ export default function useCategoryManagement() {
       });
 
       if (!response.ok) {
-        throw new Error('Error al actualizar la visibilidad');
+        throw new Error('Error al cambiar la visibilidad');
       }
 
-      // Marcar que hemos completado la actualización
-      setIsUpdatingVisibility(null);
+      const updatedCategory = await response.json();
+
+      setCategories(prev =>
+        prev.map(cat =>
+          cat.category_id === categoryId
+            ? { ...cat, status: updatedCategory.status }
+            : cat
+        )
+      );
+      toast.success('Visibilidad actualizada');
       return true;
     } catch (err) {
-      console.error('Error toggling category visibility:', err);
-
-      // Revertir cambio en caso de error
-      setCategories(prevCategories =>
-        prevCategories.map(cat => {
-          if (cat.category_id === categoryId) {
-            return { ...cat, status: currentStatus };
-          }
-          return cat;
-        })
-      );
-
-      // Marcar que hemos completado la actualización (con error)
-      setIsUpdatingVisibility(null);
-      toast.error('Error al cambiar la visibilidad de la categoría');
+      console.error('Error toggling visibility:', err);
+      toast.error('Error al cambiar la visibilidad');
       return false;
+    } finally {
+      setIsUpdatingVisibility(null);
     }
   }, []);
 
-  return {
+  return useMemo(() => ({
     categories,
+    isLoading,
+    error,
+    client,
+    isUpdatingVisibility,
+    fetchClientData,
+    fetchCategories,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    toggleCategoryVisibility,
     setCategories,
+  }), [
+    categories,
     isLoading,
     error,
     client,
@@ -318,5 +312,5 @@ export default function useCategoryManagement() {
     updateCategory,
     deleteCategory,
     toggleCategoryVisibility
-  };
+  ]);
 } 

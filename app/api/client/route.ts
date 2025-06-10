@@ -1,3 +1,8 @@
+/**
+ * @fileoverview API Route for Client Data
+ * @description Handles fetching and updating data for the currently authenticated user's client.
+ * @module app/api/client/route
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from "@/prisma/prisma";
 // O la ruta relativa que corresponda
@@ -50,9 +55,9 @@ export async function GET() {
       backgroundColor: client.background_color || '#ffffff',
       whatsapp: client.whatsapp_number || '',
       whatsappMessage: client.whatsapp_message || '',
-      enableWhatsapp: client.enable_whatsapp === 'S',
+      enableWhatsapp: !!client.enable_whatsapp,
       menuBackground: client.menu_background ? `/images/${client.menu_background}` : null,
-      allergens: client.allergens === 'S',
+      allergens: !!client.allergens,
       footerText: client.footer_text || '',
       footerTextColor: client.footer_text_color || '#000000',
       expirationDate: client.expiration_date,
@@ -63,9 +68,9 @@ export async function GET() {
     return NextResponse.json(processedClient);
   } catch (error) {
     console.error('Error getting client data:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error', 
-      message: error instanceof Error ? error.message : String(error) 
+    return NextResponse.json({
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : String(error)
     }, { status: 500 });
   }
 }

@@ -14,11 +14,12 @@
 import React, { Fragment, useState, useRef } from 'react';
 import Image from 'next/image';
 import { Dialog, Transition } from '@headlessui/react';
-import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { Category, Section } from '@/app/types/menu';
 import { PrismaClient } from '@prisma/client';
 import eventBus, { Events } from '@/app/lib/eventBus';
+import { Section as DashboardSection } from '@/app/dashboard-v2/types';
 
 /**
  * Props para el componente NewSectionModal
@@ -29,14 +30,16 @@ import eventBus, { Events } from '@/app/lib/eventBus';
  * @property {Category | null} selectedCategory - Categoría seleccionada donde se añadirá la nueva sección
  * @property {Function} setSections - Función para actualizar el estado global de secciones después de la creación
  * @property {number} categoryId - ID de la categoría seleccionada
+ * @property {Function} onSuccess - Callback opcional para cuando la creación es exitosa
  */
 interface NewSectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   client?: PrismaClient;
   selectedCategory?: Category | null;
-  setSections?: React.Dispatch<React.SetStateAction<Record<string, Section[]>>>;
+  setSections: React.Dispatch<React.SetStateAction<{ [key: string]: Section[] }>>;
   categoryId: number;
+  onSuccess?: () => void;
 }
 
 /**
@@ -64,7 +67,8 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
   client,
   selectedCategory,
   setSections,
-  categoryId
+  categoryId,
+  onSuccess
 }) => {
   /**
    * Estados del formulario para la creación de secciones
@@ -103,7 +107,7 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setSectionImage(file);
-      
+
       // Crear una vista previa de la imagen
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -143,7 +147,9 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
    * 
    * @param {React.FormEvent} e - Evento de envío del formulario
    */
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
     if (!sectionName.trim()) {
       toast.error('El nombre de la sección es obligatorio');
       return;
@@ -166,48 +172,49 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al crear la sección');
       }
-      
-      const newSection: Section = await response.json();
-      
-      // Normalizar el status para asegurar consistencia en la UI
-      const normalizedSection = {
-        ...newSection,
-        status: typeof newSection.status === 'boolean' ? 
-          (newSection.status ? 1 : 0) : Number(newSection.status)
-      };
-      
-      // Actualizar el estado local con la nueva sección si setSections está disponible
-      if (setSections && selectedCategory) {
-        setSections(prevSections => ({
-          ...prevSections,
-          [selectedCategory.category_id]: [...(prevSections[selectedCategory.category_id] || []), normalizedSection]
-        }));
+
+      const data = await response.json();
+
+      const newSection: Section = { ...data };
+
+      if (setSections) {
+        setSections(prevSections => {
+          const updatedSections = { ...prevSections };
+          const categorySections = updatedSections[categoryId] || [];
+          updatedSections[categoryId] = [...categorySections, newSection];
+          return updatedSections;
+        });
       }
-      
+
       // Emisión de evento para notificar que se creó una sección
       console.log("Emitiendo evento de sección creada");
       if (selectedCategory) {
         eventBus.emit(Events.SECTION_CREATED, {
-          section: normalizedSection,
+          section: newSection,
           categoryId: selectedCategory.category_id
         });
       } else {
         eventBus.emit(Events.SECTION_CREATED, {
-          section: normalizedSection,
+          section: newSection,
           categoryId: categoryId
         });
       }
-      
+
       // Mostrar notificación de éxito
       toast.success('Sección creada correctamente');
-      
+
       // Cerrar el modal
       onClose();
-      
+
+      // Llamar al callback de éxito
+      if (onSuccess) {
+        onSuccess();
+      }
+
     } catch (error) {
       console.error('Error al crear la sección:', error);
       toast.error('Error al crear la sección');
@@ -254,7 +261,7 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
 
           {/* Truco para centrar el modal verticalmente */}
           <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-          
+
           {/* Contenido del modal con animación */}
           <Transition.Child
             as={Fragment}
@@ -270,7 +277,7 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
                 <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
                   Crear nueva sección en {selectedCategory?.name}
                 </Dialog.Title>
-                
+
                 <form onSubmit={handleSubmit} className="mt-4">
                   {/* Campo de nombre de sección */}
                   <div className="mb-4">
@@ -288,13 +295,13 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
                       required
                     />
                   </div>
-                  
+
                   {/* Campo de imagen de sección */}
                   <div className="mb-4">
                     <label htmlFor="section-image" className="block text-sm font-medium text-gray-700">
                       Imagen de la sección (opcional)
                     </label>
-                    
+
                     <input
                       type="file"
                       id="section-image"
@@ -304,7 +311,7 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
                       className="hidden"
                       accept="image/*"
                     />
-                    
+
                     <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                       <div className="space-y-1 text-center">
                         {imagePreview ? (
@@ -359,14 +366,13 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Botones de acción */}
                   <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
                     <button
                       type="submit"
-                      className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm ${
-                        isCreating ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm ${isCreating ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                       disabled={isCreating}
                     >
                       {isCreating ? (

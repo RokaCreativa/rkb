@@ -1,3 +1,8 @@
+/**
+ * @fileoverview API Route for Product Visibility
+ * @description Handles updating the visibility status of a specific product.
+ * @module app/api/products/[id]/visibility/route
+ */
 import { NextResponse } from 'next/server';
 import prisma from '@/prisma/prisma';
 
@@ -40,7 +45,7 @@ import prisma from '@/prisma/prisma';
  *       500:
  *         description: Error interno del servidor.
  */
-export async function PUT(
+export async function PATCH(
     request: Request,
     { params }: { params: { id: string } }
 ) {
@@ -48,8 +53,8 @@ export async function PUT(
         const id = params.id;
         const { status } = await request.json();
 
-        if (typeof status !== 'number' || status < 0 || status > 1) {
-            return NextResponse.json({ message: 'Invalid status provided.' }, { status: 400 });
+        if (typeof status !== 'boolean') {
+            return NextResponse.json({ message: 'Invalid status provided. Expected a boolean.' }, { status: 400 });
         }
 
         const updatedProduct = await prisma.products.update({
@@ -57,7 +62,7 @@ export async function PUT(
                 product_id: parseInt(id, 10),
             },
             data: {
-                status: status === 1,
+                status: status,
             },
         });
 

@@ -15,8 +15,7 @@ import React, { Fragment, useState, useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
-import { Category } from '@/app/types/menu';
-import { PrismaClient } from '@prisma/client';
+import { Category, Client } from '@/app/dashboard-v2/types';
 import eventBus, { Events } from '@/app/lib/eventBus';
 import { CheckIcon } from '@heroicons/react/24/outline';
 import { XMarkIcon } from '@heroicons/react/24/outline';
@@ -33,8 +32,8 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 interface NewCategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  client: any;
-  setCategories: React.Dispatch<React.SetStateAction<any[]>>;
+  client: Client | null;
+  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   onSuccess?: () => void;
 }
 
@@ -72,7 +71,7 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [status, setStatus] = useState<number>(1);
   const [displayOrder, setDisplayOrder] = useState<number | null>(null);
-  
+
   // Estado para controlar el proceso de creación
   const [isCreating, setIsCreating] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -124,16 +123,16 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
    */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!categoryName.trim()) {
       return;
     }
-    
+
     setIsCreating(true);
-    
+
     // Primero mostrar un toast indicando que se está creando
     toast.loading("Creando categoría...", { id: "create-category" });
-    
+
     try {
       const formData = new FormData();
       formData.append('name', categoryName);
@@ -144,21 +143,21 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
       if (displayOrder !== null) {
         formData.append('display_order', displayOrder.toString());
       }
-      
+
       // Subir la categoría a través de la API
       const response = await fetch('/api/categories', {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       // Asegurarnos de que status sea un número para consistencia en UI
-      const newCategory = {
+      const newCategory: Category = {
         ...data,
         category_id: data.category_id,
         name: data.name,
@@ -168,16 +167,16 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
         sections_count: 0,
         visible_sections_count: 0
       };
-      
+
       // Actualizar el estado de categorías
       setCategories(prev => [...prev, newCategory]);
-      
+
       // Mostrar mensaje de éxito visible
       toast.success(`Categoría "${categoryName}" creada correctamente`, { id: "create-category", duration: 3000 });
-      
+
       // Cerrar el modal
       handleCancel();
-      
+
       // Llamar al callback de éxito si existe
       if (onSuccess) {
         onSuccess();
@@ -228,7 +227,7 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
 
           {/* Truco para centrar el modal verticalmente */}
           <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-          
+
           {/* Contenido del modal con animación */}
           <Transition.Child
             as={Fragment}
@@ -245,7 +244,7 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
                   <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
                     Crear nueva categoría
                   </Dialog.Title>
-                  
+
                   <form onSubmit={handleSubmit} className="mt-4">
                     {/* Campo de nombre de categoría */}
                     <div className="mb-4">
@@ -263,13 +262,13 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
                         required
                       />
                     </div>
-                    
+
                     {/* Campo de imagen de categoría */}
                     <div className="mb-4">
                       <label htmlFor="category-image" className="block text-sm font-medium text-gray-700">
                         Imagen de la categoría (opcional)
                       </label>
-                      
+
                       <input
                         type="file"
                         id="category-image"
@@ -279,13 +278,13 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
                         className="hidden"
                         accept="image/*"
                       />
-                      
+
                       <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                         <div className="space-y-1 text-center">
                           {imagePreview ? (
                             <div className="mb-3">
                               <Image
-                                src={imagePreview} 
+                                src={imagePreview}
                                 alt="Vista previa"
                                 width={200}
                                 height={200}
@@ -334,7 +333,7 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Selector de estado */}
                     <div className="mb-4">
                       <label htmlFor="status" className="block text-sm font-medium text-gray-700">
@@ -351,7 +350,7 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
                         <option value={0}>Oculto</option>
                       </select>
                     </div>
-                    
+
                     {/* Campo de orden */}
                     <div className="mb-4">
                       <label htmlFor="display_order" className="block text-sm font-medium text-gray-700">
@@ -367,14 +366,13 @@ const NewCategoryModal: React.FC<NewCategoryModalProps> = ({
                         onChange={(e) => setDisplayOrder(e.target.value ? parseInt(e.target.value) : null)}
                       />
                     </div>
-                    
+
                     {/* Botones de acción */}
                     <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
                       <button
                         type="submit"
-                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm ${
-                          isCreating ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
+                        className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm ${isCreating ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                         disabled={isCreating}
                       >
                         {isCreating ? (

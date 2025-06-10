@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Authentication Configuration for NextAuth
+ * @description This file defines the authentication options for NextAuth.js,
+ *              including the credentials provider, session strategy, and callbacks
+ *              for handling JWT and session logic.
+ * @module lib/auth
+ */
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import prisma from "./prisma";

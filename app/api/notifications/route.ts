@@ -1,3 +1,11 @@
+/**
+ * @fileoverview API Route for Notifications
+ * @description Handles all API requests for user notifications, including fetching,
+ *              marking as read, and deleting.
+ * @note This route currently uses `@ts-ignore` as the `notification` model
+ *       is not yet defined in the Prisma schema.
+ * @module app/api/notifications/route
+ */
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';

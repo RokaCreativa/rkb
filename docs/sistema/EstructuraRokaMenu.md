@@ -29,8 +29,7 @@ RokaMenu es una aplicación web (SaaS) diseñada para que dueños de restaurante
 - **Base de Datos:** **MySQL**. Se ha tomado la decisión estratégica de **cancelar la migración a PostgreSQL** y consolidar el uso de MySQL, ya que cumple con todos los requisitos actuales y futuros del proyecto.
 - **ORM:** **Prisma**.
 - **Autenticación:** **NextAuth.js**.
-- **Gestión de Estado del Servidor:** Aunque **`@tanstack/react-query`** está presente, la gestión de datos del dashboard se realiza principalmente a través de un **patrón de hooks de gestión de estado personalizados** (ver sección de Hooks más abajo).
-- **Gestión de Estado del Cliente:** **Zustand** (para estados globales como la visibilidad de modales, ej. `useModalStore`).
+- **Gestión de Estado del Cliente:** **Zustand**. Es el **corazón de la lógica del frontend**. Un único store (`dashboardStore.ts`) centraliza todo el estado del dashboard: datos de entidades (categorías, secciones), estado de la navegación (vista activa) y las acciones para modificar dicho estado (llamadas a API, etc.). Esta decisión se tomó para eliminar los bucles de renderizado y la complejidad de la arquitectura anterior de hooks anidados.
 - **Estilos:** **Tailwind CSS**.
 - **Componentes UI:** **shadcn/ui**, asegurando consistencia visual. Componentes personalizados reutilizables.
 - **Drag & Drop:** **`dnd-kit`**.
@@ -52,102 +51,113 @@ RokaMenu es una aplicación web (SaaS) diseñada para que dueños de restaurante
 El corazón de la aplicación, siguiendo el paradigma de App Router.
 
 - **`app/api/`**: Contiene todas las rutas de la API del backend. La estructura es RESTful.
-
-  - `auth/[...nextauth]/route.ts`: El endpoint principal de NextAuth para el login, logout, etc.
-  - `clients/[id]/...`, `categories/[id]/...`, etc.: Endpoints para las operaciones CRUD de cada entidad.
-
 - **`app/dashboard-v2/`**
 
-  - **`views/`**: Contiene los componentes de vista de alto nivel, que son los puntos de entrada principales para la UI del usuario.
-    - `MobileView.tsx`: La vista optimizada para dispositivos móviles. Contiene la lógica de navegación entre listas (categorías, secciones, productos).
-    - `DashboardView.tsx`: La vista tradicional para escritorio.
+  - **`views/`**: Contiene los componentes de vista de alto nivel (`MobileView.tsx`, `DashboardView.tsx`).
   - **`components/`**: La carpeta más importante para la UI.
-    - `core/`: Componentes agnósticos al dominio. El más importante es `ViewSwitcher.tsx` que elige entre la vista móvil y de escritorio.
-    - `domain/`: Componentes específicos de un modelo de datos (ej: `CategoryList`, `ProductForm`). Son componentes inteligentes que utilizan los hooks de gestión.
-    - `layout/`: Componentes estructurales del dashboard (ej: `Sidebar`, `Header`).
-    - `modals/`: Contiene todos los modales de la aplicación (ej: `DeleteModal`, `ProductModal`).
-    - `ui/`: Componentes "tontos" y reutilizables basados en shadcn/ui. No contienen lógica de negocio. **Ejemplos recientes:** `Fab.tsx` (Botón de Acción Flotante), `ContextMenu.tsx`.
-  - **`hooks/`**: La carpeta más importante para la lógica. Aquí reside el "cerebro" del frontend.
-    - **`domain/`**: **EL PATRÓN ARQUITECTÓNICO CENTRAL**. En lugar de usar `react-query` directamente en los componentes, se encapsula toda la lógica de una entidad en un único hook de gestión.
-      - **Ejemplo:** `useCategoryManagement.ts`.
-      - **Responsabilidades de cada hook:**
-        - **Gestión de Estado:** Mantiene el estado de la entidad (la lista de ítems, el estado de carga, los errores) usando `useState`.
-        - **Comunicación con la API:** Contiene todas las funciones `fetch` para las operaciones CRUD (`fetchCategories`, `createCategory`, etc.).
-        - **Actualizaciones Optimistas:** Implementa la lógica para actualizar la UI _antes_ de que la API confirme el cambio, proporcionando una experiencia de usuario instantánea (ej. `toggleCategoryVisibility`).
-        - **Manejo de Errores y Notificaciones:** Utiliza `react-hot-toast` para informar al usuario sobre el resultado de las operaciones.
-    - `ui/`: Hooks para manejar estado de la UI, como `useModalStore` (Zustand) o `useIsMobile`.
-  - **`services/`**: Funciones que podrían realizar las llamadas a la API. Actualmente, esta lógica está integrada directamente en los hooks de dominio para mayor cohesión.
-  - **`types/`**: Definiciones de tipos de TypeScript, cruciales para la seguridad del código. Se organizan por `domain`, `api`, `ui`.
-  - **`utils/`**: Funciones de utilidad genéricas, como `imageUtils.ts` para gestionar rutas de imágenes.
+    - `core/`: Componentes agnósticos al dominio. El más importante es `ViewSwitcher.tsx`.
+    - `domain/`: Componentes específicos de un modelo de datos (ej: `CategoryList`, `SectionListView`). **Son componentes "tontos"** que reciben datos y funciones como props.
+    - `layout/`: Componentes estructurales (ej: `Sidebar`, `Header`).
+    - `modals/`: Contiene todos los modales (ej: `DeleteModal`, `ProductModal`).
+    - `ui/`: Componentes reutilizables y básicos. (ej: `Fab.tsx`, `ContextMenu.tsx`).
+  - **`stores/`**: **EL NUEVO CEREBRO DEL FRONTEND.**
+    - `dashboardStore.ts`: Este store de Zustand centraliza toda la lógica de estado del dashboard. Maneja el estado de la UI (qué vista está activa), los datos de las entidades (arrays de categorías, secciones, etc.) y contiene todas las acciones asíncronas que llaman a las APIs y actualizan el estado de forma segura.
+  - **`hooks/`**: Su rol ha sido simplificado. Ya no contiene la lógica de estado compleja. Ahora se usa para hooks de UI simples (ej: `useIsMobile`) o para stores de Zustand específicos y aislados (ej: `useModalStore`).
+  - **`types/`**: Definiciones de TypeScript.
+  - **`utils/`**: Funciones de utilidad genéricas.
 
 - **`app/lib/`**: Librerías de soporte críticas.
-  - `auth.ts`: **CONFIGURACIÓN CENTRAL DE NEXTAUTH**. Define los providers (Credentials), callbacks (jwt, session) y la lógica de autorización.
-  - `prisma.ts`: Instancia y exporta el cliente de Prisma para ser usado en toda la API.
+  - `auth.ts`: Configuración de NextAuth.
+  - `prisma.ts`: Cliente de Prisma.
 
 ### `docs/`
 
-Nuestra base de conocimiento.
-
-- `sistema/`: Contiene los documentos maestros que guían nuestro desarrollo (`Mandamientos.md`, `Checklist.md`, `Bitacora.md`, y este mismo archivo).
+- `sistema/`: Nuestros documentos maestros (`Mandamientos.md`, `Checklist.md`, `Bitacora.md`, y este mismo archivo).
 
 ### `public/`
 
-Recursos estáticos.
-
-- `images/`: Todas las imágenes de la aplicación (logos, fondos, etc.), organizadas por tipo.
+- `images/`: Imágenes de la aplicación.
 
 ---
 
-## 4. Flujos de Datos y Lógica de Negocio
+## 4. Flujo de Datos CRUD (Ej: Cambiar Visibilidad de un Producto con Zustand)
 
-### Flujo de Autenticación
+Este flujo demuestra el nuevo patrón con Zustand, que es más simple y robusto.
 
-1.  El usuario introduce email/contraseña en la página de login.
-2.  NextAuth (`CredentialsProvider` en `lib/auth.ts`) recibe las credenciales.
-3.  La función `authorize` busca al usuario en la BD (`prisma.user.findUnique`).
-4.  **Importante:** Compara la contraseña. Actualmente, hace una comparación directa, pero debería usar `bcrypt`.
-5.  Si es válido, el callback `jwt` se ejecuta, añadiendo datos como `id`, `role`, `client_id` al token.
-6.  El callback `session` transfiere los datos del token a la sesión del cliente, haciéndolos disponibles en toda la aplicación.
-7.  El `middleware.ts` protege las rutas del dashboard, verificando la existencia de este token.
-
-### Flujo de Datos CRUD (Ej: Cambiar Visibilidad de una Sección en Móvil)
-
-Este flujo demuestra el patrón de **hook de gestión** y la **actualización optimista**, que es el estándar actual en el dashboard.
-
-1.  **Componente (UI):** El usuario hace clic en el ícono del "ojo" en un elemento de la lista dentro de `MobileView.tsx`.
-2.  **Componente (Handler):** El `onClick` llama a la función `handleToggleVisibility(item)`, que es una función centralizada en `MobileView`.
-3.  **Lógica del Handler:** `handleToggleVisibility` identifica el tipo de `item` (Categoría, Sección o Producto) y llama a la función correspondiente del hook de gestión que ha sido instanciado en el scope de `MobileView`.
-    - `sectionManager.toggleSectionVisibility(item.section_id, item.categoryId, item.status)`
-4.  **Hook (Dominio - `useSectionManagement`):** La función `toggleSectionVisibility` se ejecuta:
-    - **a. Actualización Optimista:** Inmediatamente, usa `setSections()` para actualizar el estado local, cambiando el `status` del ítem. La UI reacciona al instante, cambiando la opacidad del elemento y el icono.
-    - **b. Llamada a la API:** Envía una petición `PUT` a la API (`/api/sections/[id]/visibility`) con el nuevo estado.
-    - **c. Manejo de Éxito:** Si la API devuelve un `200 OK`, no se necesita hacer nada más, ya que la UI ya fue actualizada. Se podría mostrar un toast de éxito si se deseara.
-    - **d. Manejo de Error:** Si la API falla, el bloque `catch` se ejecuta. **Revierte el cambio en el estado local** (vuelve a poner el `status` original) y muestra un `toast.error()` al usuario. La UI vuelve a su estado anterior.
-
-Este patrón hace que la aplicación se sienta extremadamente rápida y robusta, y centraliza toda la lógica de una entidad en un solo lugar, haciendo que sea fácil de mantener y depurar.
+1.  **Componente (UI):** El usuario hace clic en el ícono del "ojo" en un producto dentro de `ProductListView.tsx`. El `onClick` llama a la prop `onToggleVisibility(productId)`.
+2.  **Vista (`MobileView.tsx`):** El manejador en `MobileView` recibe la llamada y la delega directamente a la acción del store de Zustand: `toggleProductVisibility(productId, activeSectionId)`.
+3.  **Store (`dashboardStore.ts`):** La acción `toggleProductVisibility` se ejecuta:
+    - **a. Obtiene el Estado Actual:** Usa `get()` para acceder al estado actual y encontrar el producto.
+    - **b. Llamada a la API:** Envía una petición `PATCH` a la API específica: `/api/products/[id]/visibility`.
+    - **c. Manejo de Éxito:** Si la API responde con éxito:
+      - Actualiza el estado del producto dentro del store con `set()`.
+      - **Paso Clave:** Llama a OTRA acción dentro del store, como `fetchSections(clientId)`, para recargar los datos del padre y asegurar que los contadores se actualicen. Toda la lógica de invalidación y recarga vive DENTRO del store.
+    - **d. Manejo de Error:** Si la API falla, muestra una notificación. No es necesario revertir el estado porque nunca se hizo una actualización optimista directa.
+4.  **Actualización de la UI:** Como el estado en el store de Zustand ha cambiado, todos los componentes que usen `useDashboardStore()` (como `MobileView`, que a su vez pasa props a `SectionListView` y `ProductListView`) se re-renderizan automáticamente con los datos frescos.
 
 ---
 
-## 5. Principios de UI/UX Móvil
+## 5. UI/UX Móvil y Esquema de la Base de Datos
 
-Para asegurar una experiencia de usuario consistente y eficiente en dispositivos móviles, se han establecido los siguientes principios:
+### Principios de UI/UX Móvil
 
-- **Acciones Primarias (Creación):** Se realizan a través de un **Botón de Acción Flotante (FAB)** (`Fab.tsx`), siempre visible en la esquina inferior derecha. Esto proporciona un punto de entrada claro para añadir nuevos elementos.
-- **Acciones Secundarias (Edición, Eliminación):** Están agrupadas dentro de un **Menú Contextual** (`ContextMenu.tsx`), accesible a través de un icono de tres puntos en cada elemento de la lista. Esto mantiene la interfaz limpia y evita la sobrecarga de botones.
-- **Navegación Jerárquica:** La navegación es clara y sigue la estructura de datos: `Categorías -> Secciones -> Productos`, con botones de "Volver" prominentes para facilitar el retroceso.
+- **Acciones Primarias (Creación):** Se realizan a través de un **Botón de Acción Flotante (FAB)** (`Fab.tsx`).
+- **Acciones Secundarias (Edición, Eliminación):** Agrupadas dentro de un **Menú Contextual** (`ContextMenu.tsx`).
+
+### Esquema de la Base de Datos (Resumen Prisma)
+
+La jerarquía principal es: `Client` -> `Category` -> `Section` -> `Product`.
+
+#### Advertencia sobre Tipos de Datos Inconsistentes
+
+**Un descubrimiento CRÍTICO durante la depuración** ha sido la inconsistencia en el manejo de campos "borrados", fuente recurrente de errores:
+
+- **En `products`:** El campo `deleted` es de tipo **`Boolean?`**. Las consultas deben usar `deleted: false`.
+- **En `categories` y `sections`:** El campo `deleted` es de tipo **`Int?`** (mapeado desde `TINYINT` en MySQL). Las consultas deben usar `deleted: 0`.
+
+Esta diferencia es fundamental y debe ser respetada en todas las consultas para evitar que los contadores fallen o que se muestren datos incorrectos.
 
 ---
 
-## 6. Esquema de la Base de Datos (Resumen Prisma)
+## 6. Errores Comunes y Lecciones Aprendidas
 
-La jerarquía principal es la base de toda la lógica de la aplicación.
+Esta sección documenta los problemas recurrentes y las lecciones críticas aprendidas. Consultarla es obligatorio para evitar repetir errores.
 
-- `Client`: Es un cliente de RokaMenu (un restaurante).
-- `Category`: Un `Client` tiene varias `Categories`.
-  - `name`, `image`, `status` (1 para visible, 0 para oculto), `order`.
-  - `sections_count`, `visible_sections_count`: Contadores cacheados para eficiencia.
-- `Section`: Una `Category` tiene varias `Sections`.
-  - `name`, `image`, `status`, `order`.
-  - `products_count`, `visible_products_count`: Contadores cacheados.
-- `Product`: Una `Section` tiene varios `Products`.
-  - `name`, `description`, `price`, `image`, `status`, `order`.
+1.  **Inmutabilidad de `DashboardView.tsx`:**
+
+    - **Lección:** Este archivo es extremadamente complejo.
+    - **Regla:** **NUNCA** modificar `DashboardView.tsx` con herramientas de edición automática (`edit_file`). Cualquier intento ha resultado en la corrupción del archivo.
+
+2.  **Inconsistencia del Campo `deleted`:**
+
+    - **Lección:** No todos los campos `deleted` son iguales. `products.deleted` es `Boolean`, mientras que en `sections` y `categories` es `Int`.
+    - **Regla:** Siempre verificar `prisma/schema.prisma` antes de escribir una consulta que involucre `deleted`. Usar `deleted: 0` para secciones/categorías y `deleted: false` para productos.
+
+3.  **Rutas de API Atómicas:**
+
+    - **Lección:** Sobrecargar rutas genéricas (ej: `PUT /api/sections/[id]`) es una mala práctica.
+    - **Regla:** Crear rutas de API específicas para cada acción (ej: `PUT /api/sections/[id]/visibility`). Simplifica la lógica y la depuración.
+
+4.  **Error `params should be awaited` en Next.js:**
+
+    - **Lección:** En las rutas de API dinámicas de Next.js, no se puede desestructurar `params` directamente si se usa `await` antes en el cuerpo de la función.
+    - **Regla:** La forma correcta y segura de acceder a los parámetros es asignándolos a una variable primero.
+      - **Incorrecto:** `const { id } = params;`
+      - **Correcto:** `const id = params.id;`
+
+5.  **La Saga de la Visibilidad: Depuración de Fallos en Cascada**
+
+    - **Problema Inicial:** Al cambiar la visibilidad de un ítem (producto, sección, etc.), el ítem no se movía visualmente al final de la lista hasta que se refrescaba la página manualmente.
+    - **Lección #1: La actualización optimista no reordena.** La primera implementación actualizaba el estado del ítem localmente (`setProducts(...)`). Esto es rápido para la UI, pero no reordena la lista completa según las reglas (`orderBy: { status: 'desc' }`) que solo existen en el servidor.
+    - **Solución #1: Forzar la recarga (`refetch`).** La solución correcta es, tras una llamada exitosa a la API, forzar una recarga completa de la lista (`fetchProductsBySection`, `fetchCategories`, etc.). Esto pide al servidor la lista fresca, que ya viene ordenada correctamente.
+    - **Problema Secundario (Errores 404/405/500):** Tras implementar el refetch, la UI empezó a lanzar errores genéricos de `API Error: {}`.
+    - **Lección #2: Conflictos de rutas, métodos y tipos.** La investigación reveló una cascada de errores en el backend que tuvieron que ser solucionados en orden:
+      - **Conflicto de Rutas:** Existían dos carpetas dinámicas (`/api/products/[id]` y `/api/products/[productId]`), creando ambigüedad. La solución fue consolidar todo bajo `[id]`.
+      - **Método HTTP Incorrecto:** Los hooks llamaban con `PATCH` (correcto para actualizaciones parciales), pero las APIs esperaban `PUT`. Esto causaba un error `405 Method Not Allowed`. La solución fue estandarizar todas las rutas de visibilidad a `PATCH`.
+      - **Inconsistencia de Tipos:** El frontend enviaba el `status` como un `boolean` (`true`/`false`), pero el backend esperaba un `number` (`1`/`0`) y fallaba al validar. La solución fue alinear el backend para que aceptara el `boolean`.
+    - **Regla:** Ante un `API Error` genérico, verificar la cadena completa de la petición: **URL de la Ruta -> Método HTTP -> Tipos de Datos del Payload (Cuerpo)**.
+
+6.  **La Trampa de los Hooks Anidados y el Bucle Infinito:**
+    - **Problema:** La aplicación sufría un bucle de renderizado infinito ("Maximum update depth exceeded"), especialmente en `MobileView`.
+    - **Lección:** La arquitectura de hooks anidados (ej. `useDashboardState` usando `useCategoryManagement`, que a su vez usa `useState`) creaba referencias inestables. Cada render de un hook hijo provocaba un re-render del padre, generando un ciclo. Intentar estabilizar esto con `useMemo` y `useCallback` en cada nivel se volvió extremadamente complejo y frágil, tratando el síntoma y no la causa.
+    - **Regla/Solución Definitiva:** Para estados complejos y compartidos que son modificados desde múltiples componentes, es superior usar una librería de estado dedicada. Se ha decidido migrar toda la gestión de estado del dashboard a un **único store de Zustand**. Esto elimina las dependencias circulares, garantiza referencias estables, simplifica el código al evitar el _prop drilling_, y centraliza la lógica de negocio en un solo lugar.

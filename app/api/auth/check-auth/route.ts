@@ -1,3 +1,8 @@
+/**
+ * @fileoverview API Route for Checking Authentication Status
+ * @description This route provides an endpoint to verify if a user has an active session.
+ * @module app/api/auth/check-auth/route
+ */
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -6,19 +11,19 @@ export async function GET() {
   try {
     // Intentar obtener la sesión
     const session = await getServerSession(authOptions);
-    
+
     // Si no hay sesión, devolver un error
     if (!session) {
       return NextResponse.json(
-        { 
-          status: 'error', 
+        {
+          status: 'error',
           message: 'No hay sesión activa',
-          authenticated: false 
-        }, 
+          authenticated: false
+        },
         { status: 401 }
       );
     }
-    
+
     // Si hay sesión, devolver información de la sesión
     return NextResponse.json({
       status: 'success',
@@ -36,14 +41,14 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error al verificar autenticación:', error);
-    
+
     return NextResponse.json(
-      { 
-        status: 'error', 
+      {
+        status: 'error',
         message: 'Error al verificar autenticación',
         error: String(error),
-        authenticated: false 
-      }, 
+        authenticated: false
+      },
       { status: 500 }
     );
   }

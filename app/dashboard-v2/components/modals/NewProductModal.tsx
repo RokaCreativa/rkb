@@ -16,7 +16,7 @@ import Image from 'next/image';
 import { Dialog, Transition } from '@headlessui/react';
 import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
-import { Section, Product } from '@/app/types/menu';
+import { Section, Product } from '@/app/dashboard-v2/types';
 import { PrismaClient } from '@prisma/client';
 import eventBus, { Events } from '@/app/lib/eventBus';
 
@@ -111,7 +111,7 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setProductImage(file);
-      
+
       // Crear una vista previa de la imagen
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -177,7 +177,7 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
     try {
       // Mostrar toast de carga
       toast.loading("Creando producto...", { id: "create-product" });
-      
+
       const response = await fetch('/api/products', {
         method: 'POST',
         body: formData,
@@ -187,12 +187,12 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
         throw new Error('Error al crear el producto');
       }
 
-      const newProduct = await response.json();
-      
+      const newProduct: Product = await response.json();
+
       // Normalizar el status para consistencia en la UI
       const normalizedProduct = {
         ...newProduct,
-        status: typeof newProduct.status === 'boolean' ? 
+        status: typeof newProduct.status === 'boolean' ?
           (newProduct.status ? 1 : 0) : Number(newProduct.status)
       };
 
@@ -201,32 +201,32 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
         setProducts(prev => {
           // Crear copia del estado para modificarlo
           const updated = { ...prev };
-          
+
           // Si no existe la sección, inicializarla como array vacío
           if (!updated[sectionId]) {
             updated[sectionId] = [];
           }
-          
+
           // Añadir el nuevo producto a la sección correspondiente
           // @ts-ignore - Sabemos que la estructura es correcta
-          updated[sectionId] = [...updated[sectionId], normalizedProduct];
-          
+          updated[sectionId] = [...updated[sectionId], normalizedProduct as Product];
+
           return updated;
         });
       }
 
       // Emisión de evento para notificar que se creó un producto
       eventBus.emit(Events.PRODUCT_CREATED, {
-        product: normalizedProduct,
+        product: normalizedProduct as Product,
         sectionId: sectionId
       });
 
       // Toast de éxito
       toast.success('Producto creado correctamente', { id: "create-product" });
-      
+
       // Cerrar el modal y limpiar el formulario
       handleCancel();
-      
+
       // Si hay una función de éxito, ejecutarla
       if (onSuccess) {
         onSuccess();
@@ -279,7 +279,7 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
 
           {/* Truco para centrar el modal verticalmente */}
           <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-          
+
           {/* Contenido del modal con animación */}
           <Transition.Child
             as={Fragment}
@@ -295,7 +295,7 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                 <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
                   Crear nuevo producto en {selectedSection?.name}
                 </Dialog.Title>
-                
+
                 <form onSubmit={handleSubmit} className="mt-4">
                   {/* Campo de nombre de producto */}
                   <div className="mb-4">
@@ -313,7 +313,7 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                       required
                     />
                   </div>
-                  
+
                   {/* Campo de precio del producto */}
                   <div className="mb-4">
                     <label htmlFor="product-price" className="block text-sm font-medium text-gray-700">
@@ -348,7 +348,7 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                       />
                     </div>
                   </div>
-                  
+
                   {/* Campo de descripción del producto */}
                   <div className="mb-4">
                     <label htmlFor="product-description" className="block text-sm font-medium text-gray-700">
@@ -364,13 +364,13 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                       placeholder="Escribe una descripción para el producto"
                     />
                   </div>
-                  
+
                   {/* Campo de imagen del producto */}
                   <div className="mb-4">
                     <label htmlFor="product-image" className="block text-sm font-medium text-gray-700">
                       Imagen del producto (opcional)
                     </label>
-                    
+
                     <input
                       type="file"
                       id="product-image"
@@ -380,7 +380,7 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                       className="hidden"
                       accept="image/*"
                     />
-                    
+
                     <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                       <div className="space-y-1 text-center">
                         {imagePreview ? (
@@ -435,14 +435,13 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Botones de acción */}
                   <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
                     <button
                       type="submit"
-                      className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm ${
-                        isCreating ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                      className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm ${isCreating ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
                       disabled={isCreating}
                     >
                       {isCreating ? (

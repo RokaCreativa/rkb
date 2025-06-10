@@ -14,7 +14,7 @@
  * que actúa como fachada para coordinar todos los hooks de dominio.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Section, SectionState, SectionActions } from '@/app/dashboard-v2/types';
 import { toast } from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
@@ -65,6 +65,13 @@ export default function useSectionManagement() {
    */
   const fetchSectionsByCategory = useCallback(async (categoryId: number): Promise<Section[]> => {
     try {
+      // Forzar la eliminación del caché en desarrollo para asegurar datos frescos siempre.
+      if (process.env.NODE_ENV === 'development') {
+        const sessionKey = `sections_data_category_${categoryId}`;
+        sessionStorage.removeItem(sessionKey);
+        console.log(`🧹 Cache de secciones para categoría ${categoryId} limpiado.`);
+      }
+
       // Comprobar primero si tenemos los datos en sessionStorage para desarrollo
       if (process.env.NODE_ENV === 'development') {
         const sessionKey = `sections_data_category_${categoryId}`;
@@ -406,83 +413,34 @@ export default function useSectionManagement() {
     categoryId: number,
     currentStatus: number
   ) => {
+    setIsUpdatingVisibility(sectionId);
+
     try {
-      // Marcar que estamos actualizando la visibilidad de esta sección
-      setIsUpdatingVisibility(sectionId);
+      const newStatus = !currentStatus;
 
-      // Actualizar el estado de la UI (actualización optimista)
-      setSections(prevSections => {
-        // Obtener las secciones actuales para esta categoría
-        const currentSections = prevSections[categoryId.toString()] || [];
-
-        // Crear un nuevo array con la sección actualizada
-        const updatedSections = currentSections.map(section => {
-          if (section.section_id === sectionId) {
-            return { ...section, status: currentStatus };
-          }
-          return section;
-        });
-
-        // Devolver el nuevo estado
-        return {
-          ...prevSections,
-          [categoryId.toString()]: updatedSections
-        };
-      });
-
-      // Determinar el nuevo estado (1 si era 0, 0 si era 1)
-      const newStatus = currentStatus === 1 ? 0 : 1;
-
-      // Hacer la petición a la API para actualizar la visibilidad
       const response = await fetch(`/api/sections/${sectionId}/visibility`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
 
-      // Verificar si la respuesta fue exitosa
       if (!response.ok) {
-        throw new Error(`Error al cambiar la visibilidad: ${response.status}`);
+        throw new Error('Error al cambiar la visibilidad');
       }
 
-      // Marcar que hemos completado la actualización
-      setIsUpdatingVisibility(null);
+      // Forzar la recarga de las secciones de la categoría para obtener el nuevo orden
+      await fetchSectionsByCategory(categoryId);
 
-      // Devolver true para indicar éxito
+      toast.success('Visibilidad actualizada');
       return true;
     } catch (err) {
-      // Registrar el error en la consola para depuración
       console.error('Error al cambiar visibilidad de sección:', err);
-
-      // Revertir cambio en caso de error (volver al estado anterior)
-      setSections(prevSections => {
-        const currentSections = prevSections[categoryId.toString()] || [];
-
-        const revertedSections = currentSections.map(section => {
-          if (section.section_id === sectionId) {
-            return { ...section, status: currentStatus };
-          }
-          return section;
-        });
-
-        return {
-          ...prevSections,
-          [categoryId.toString()]: revertedSections
-        };
-      });
-
-      // Marcar que hemos completado la actualización (con error)
-      setIsUpdatingVisibility(null);
-
-      // Mostrar mensaje de error al usuario
       toast.error('Error al cambiar la visibilidad de la sección');
-
-      // Devolver false para indicar fallo
       return false;
+    } finally {
+      setIsUpdatingVisibility(null);
     }
-  }, []);
+  }, [fetchSectionsByCategory]);
 
   /**
    * Reordena un conjunto de secciones y actualiza su orden en el servidor
@@ -545,18 +503,28 @@ export default function useSectionManagement() {
     }
   }, []);
 
-  // Devolver todos los estados y funciones necesarios para la gestión de secciones
-  return {
-    sections,           // Estado: Objeto con secciones indexadas por ID de categoría
-    setSections,        // Función: Actualizar directamente el estado de secciones
-    isLoading,          // Estado: Indica si hay una operación en curso
-    isUpdatingVisibility, // Estado: ID de la sección que está actualizando visibilidad (o null)
-    error,              // Estado: Mensaje de error si algo falla
-    fetchSectionsByCategory, // Función: Cargar secciones de una categoría
-    createSection,      // Función: Crear nueva sección
-    updateSection,      // Función: Actualizar sección existente
-    deleteSection,      // Función: Eliminar sección
-    toggleSectionVisibility, // Función: Cambiar visibilidad de sección
-    reorderSections     // Función: Reordenar secciones
-  };
+  return useMemo(() => ({
+    sections,
+    isLoading,
+    error,
+    isUpdatingVisibility,
+    fetchSectionsByCategory,
+    createSection,
+    updateSection,
+    deleteSection,
+    toggleSectionVisibility,
+    reorderSections,
+    setSections,
+  }), [
+    sections,
+    isLoading,
+    error,
+    isUpdatingVisibility,
+    fetchSectionsByCategory,
+    createSection,
+    updateSection,
+    deleteSection,
+    toggleSectionVisibility,
+    reorderSections
+  ]);
 } 

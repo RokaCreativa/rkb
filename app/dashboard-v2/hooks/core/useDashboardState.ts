@@ -31,10 +31,10 @@
  * +---------------------+  +----------------------+  +----------------------+
  */
 
-import { useState, useCallback } from 'react';
-import { 
-  Category, 
-  Client, 
+import { useState, useCallback, useMemo } from 'react';
+import {
+  Category,
+  Client,
   DashboardState
 } from '@/app/dashboard-v2/types';
 import { toast } from 'react-hot-toast';
@@ -75,7 +75,7 @@ export default function useDashboardState() {
   const [sectionsProducts, setSectionsProducts] = useState<Record<string, any>>({});
   const [currentCategoryId, setCurrentCategoryId] = useState<number | null>(null);
   const [currentSectionId, setCurrentSectionId] = useState<number | null>(null);
-  
+
   // Hooks de gestión
   const categoryManagement = useCategoryManagement();
   const sectionManagement = useSectionManagement();
@@ -86,13 +86,13 @@ export default function useDashboardState() {
     try {
       // Forzar recarga ignorando la caché
       sessionStorage.removeItem('dashboard_client_data');
-      
+
       console.log('🔄 Cargando datos del cliente...');
-    setIsLoading(true);
+      setIsLoading(true);
 
       // Usar categoryManagement para cargar los datos del cliente
       const clientData = await categoryManagement.fetchClientData();
-      
+
       if (clientData) {
         // Almacenar en sessionStorage para desarrollo
         sessionStorage.setItem('dashboard_client_data', JSON.stringify(clientData));
@@ -107,7 +107,7 @@ export default function useDashboardState() {
       console.error('❌ Error al cargar datos del cliente:', err);
       toast.error('Error al cargar los datos del cliente');
       setIsLoading(false);
-    return null;
+      return null;
     }
   }, [categoryManagement]);
 
@@ -117,19 +117,19 @@ export default function useDashboardState() {
       // Comprobar si ya tenemos datos en sessionStorage para desarrollo
       const sessionKey = 'dashboard_categories_data';
       const storedData = sessionStorage.getItem(sessionKey);
-      
+
       if (storedData) {
         const parsedData = JSON.parse(storedData);
         console.log('Usando categorías almacenadas en sesión');
         setCategories(parsedData);
         return parsedData;
       }
-      
+
       console.log('Cargando categorías...');
       setIsLoading(true);
-      
+
       const categoriesData = await categoryManagement.fetchCategories();
-      
+
       if (categoriesData && categoriesData.length > 0) {
         // Almacenar en sessionStorage para desarrollo
         sessionStorage.setItem(sessionKey, JSON.stringify(categoriesData));
@@ -139,7 +139,7 @@ export default function useDashboardState() {
         return categoriesData;
       } else {
         console.warn('No se encontraron categorías');
-      setIsLoading(false);
+        setIsLoading(false);
         return [];
       }
     } catch (err) {
@@ -151,40 +151,68 @@ export default function useDashboardState() {
   }, [categoryManagement]);
 
   // Devolver objeto con estados y funciones
-  return {
+  return useMemo(() => ({
     // Estados
     client,
     categories,
     sections: categorySections,
     products: sectionsProducts,
     isLoading,
-    isUpdatingVisibility: categoryManagement.isUpdatingVisibility || 
-                          sectionManagement.isUpdatingVisibility || 
-                          productManagement.isUpdatingVisibility,
-    error: categoryManagement.error || 
-           sectionManagement.error || 
-           productManagement.error,
-    
+    isUpdatingVisibility: categoryManagement.isUpdatingVisibility ||
+      sectionManagement.isUpdatingVisibility ||
+      productManagement.isUpdatingVisibility,
+    error: categoryManagement.error ||
+      sectionManagement.error ||
+      productManagement.error,
+
     // Funciones
     fetchClientData,
     fetchCategories,
     fetchSectionsByCategory: sectionManagement.fetchSectionsByCategory,
     fetchProductsBySection: productManagement.fetchProductsBySection,
-    
+
     // Operaciones CRUD
     createCategory: categoryManagement.createCategory,
     updateCategory: categoryManagement.updateCategory,
     deleteCategory: categoryManagement.deleteCategory,
     toggleCategoryVisibility: categoryManagement.toggleCategoryVisibility,
-    
+
     createSection: sectionManagement.createSection,
     updateSection: sectionManagement.updateSection,
     deleteSection: sectionManagement.deleteSection,
     toggleSectionVisibility: sectionManagement.toggleSectionVisibility,
-    
+
     createProduct: productManagement.createProduct,
     updateProduct: productManagement.updateProduct,
     deleteProduct: productManagement.deleteProduct,
     toggleProductVisibility: productManagement.toggleProductVisibility
-  };
+  }), [
+    client,
+    categories,
+    categorySections,
+    sectionsProducts,
+    isLoading,
+    categoryManagement.isUpdatingVisibility,
+    sectionManagement.isUpdatingVisibility,
+    productManagement.isUpdatingVisibility,
+    categoryManagement.error,
+    sectionManagement.error,
+    productManagement.error,
+    fetchClientData,
+    fetchCategories,
+    sectionManagement.fetchSectionsByCategory,
+    productManagement.fetchProductsBySection,
+    categoryManagement.createCategory,
+    categoryManagement.updateCategory,
+    categoryManagement.deleteCategory,
+    categoryManagement.toggleCategoryVisibility,
+    sectionManagement.createSection,
+    sectionManagement.updateSection,
+    sectionManagement.deleteSection,
+    sectionManagement.toggleSectionVisibility,
+    productManagement.createProduct,
+    productManagement.updateProduct,
+    productManagement.deleteProduct,
+    productManagement.toggleProductVisibility
+  ]);
 }

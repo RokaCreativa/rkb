@@ -17,12 +17,13 @@ import { Loader } from '../Loader';
  * 
  * @typedef ButtonVariant
  */
-export type ButtonVariant = 
+export type ButtonVariant =
   | 'primary'   // Botón principal/de acción destacada (fondo azul)
   | 'secondary' // Botón secundario/menos destacado (fondo gris)
   | 'outline'   // Botón con borde pero sin fondo (transparente)
   | 'ghost'     // Botón sin borde y sin fondo (solo texto)
-  | 'danger';   // Botón para acciones peligrosas (fondo rojo)
+  | 'danger'   // Botón para acciones peligrosas (fondo rojo)
+  | 'success';  // Botón para acciones de éxito o confirmación (fondo teal)
 
 /**
  * Tamaños disponibles para el botón
@@ -110,7 +111,7 @@ export const Button: React.FC<ButtonProps> = ({
    * - transition-colors: Anima los cambios de color
    */
   const baseClasses = "flex items-center justify-center font-medium focus:outline-none focus:ring-2 transition-colors";
-  
+
   /**
    * Clases para cada variante visual del botón
    * Definimos colores de fondo, texto, bordes y estados de hover/focus
@@ -120,9 +121,10 @@ export const Button: React.FC<ButtonProps> = ({
     secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500",
     outline: "bg-transparent border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-gray-500",
     ghost: "bg-transparent text-gray-700 hover:bg-gray-50 focus:ring-gray-500",
-    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500"
+    danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+    success: "bg-teal-50 border border-teal-300 text-teal-700 hover:bg-teal-100 focus:ring-teal-500"
   };
-  
+
   /**
    * Clases para cada tamaño del botón
    * Definimos padding, bordes redondeados y tamaño de texto
@@ -133,7 +135,7 @@ export const Button: React.FC<ButtonProps> = ({
     md: "text-sm px-4 py-2 rounded-md",
     lg: "text-base px-6 py-3 rounded-lg"
   };
-  
+
   /**
    * Construimos las clases finales combinando:
    * - Clases base (común a todos los botones)
@@ -167,7 +169,7 @@ export const Button: React.FC<ButtonProps> = ({
           {leftIcon && !isLoading && (
             <span className="mr-2">{leftIcon}</span>
           )}
-          
+
           {/* Si el botón está cargando, mostramos el spinner junto al texto */}
           {isLoading ? (
             <>
@@ -177,7 +179,7 @@ export const Button: React.FC<ButtonProps> = ({
           ) : (
             <>{children}</>
           )}
-          
+
           {/* Si hay un ícono derecho y el botón no está cargando, lo mostramos */}
           {rightIcon && !isLoading && (
             <span className="ml-2">{rightIcon}</span>

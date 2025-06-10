@@ -1,3 +1,8 @@
+/**
+ * @fileoverview API Route for Section Visibility
+ * @description Handles updating the visibility status of a specific section.
+ * @module app/api/sections/[id]/visibility/route
+ */
 import { NextResponse } from 'next/server';
 import prisma from '@/prisma/prisma';
 
@@ -34,7 +39,7 @@ import prisma from '@/prisma/prisma';
  *       500:
  *         description: Error interno del servidor.
  */
-export async function PUT(
+export async function PATCH(
     request: Request,
     { params }: { params: { id: string } }
 ) {
@@ -42,8 +47,8 @@ export async function PUT(
         const id = params.id;
         const { status } = await request.json();
 
-        if (typeof status !== 'number' || (status !== 0 && status !== 1) || !id) {
-            return NextResponse.json({ message: 'Invalid status or ID provided.' }, { status: 400 });
+        if (typeof status !== 'boolean' || !id) {
+            return NextResponse.json({ message: 'Invalid status or ID provided. Expected a boolean for status.' }, { status: 400 });
         }
 
         const updatedSection = await prisma.sections.update({
@@ -51,7 +56,7 @@ export async function PUT(
                 section_id: parseInt(id, 10),
             },
             data: {
-                status: status === 1,
+                status: status,
             },
         });
 

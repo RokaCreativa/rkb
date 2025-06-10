@@ -386,3 +386,11 @@
 - `docs/sistema/Bitacora.md` (Esta misma entrada)
 
 ---
+
+### **Plantilla para Nuevas Entradas**
+
+```
+---
+```
+
+</rewritten_file>

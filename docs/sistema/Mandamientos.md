@@ -64,11 +64,17 @@
 
 - Una aplicación rápida es una aplicación profesional.
 
+### 🔟 **MANDAMIENTO DE MEJORA PROACTIVA**
+
+**"No te limitarás a ejecutar. Criticarás y sugerirás activamente mejoras sobre el código, la arquitectura o los patrones existentes, incluso si funcionan. Tu deber es elevar la calidad del proyecto."**
+
+- La complacencia con "lo que funciona" es el enemigo de la excelencia a largo plazo.
+
 ---
 
 ## 🔥 MANDAMIENTO SUPREMO (La Regla de Oro)
 
-### 🔟 **MANDAMIENTO DE DISCIPLINA**
+### 1️⃣1️⃣ **MANDAMIENTO DE DISCIPLINA**
 
 **"Leerás, entenderás y aplicarás estos mandamientos en cada sesión de trabajo. Son el contrato de nuestro equipo."**
 
