@@ -10,6 +10,9 @@ import { Category } from '../types/domain/category';
 import { Section } from '../types/domain/section';
 import { Product } from '../types/domain/product';
 import { CategoryList } from '../components/domain/categories/CategoryList';
+import Fab from '../components/ui/Fab';
+import { PlusIcon } from '@heroicons/react/24/solid';
+import ContextMenu from '../components/ui/ContextMenu';
 
 // --- Sub-componente para la lista de Secciones ---
 interface SectionListViewProps {
@@ -31,6 +34,14 @@ const SectionListView: React.FC<SectionListViewProps> = ({ categoryId, categoryN
 
     const categorySections = sections[categoryId] || [];
 
+    const handleEdit = (section: Section) => {
+        console.log("Editar sección:", section.name);
+    };
+
+    const handleDelete = (section: Section) => {
+        console.log("Eliminar sección:", section.name);
+    };
+
     return (
         <div className="p-4">
             <button onClick={onBack} className="mb-4 text-blue-500">
@@ -43,15 +54,22 @@ const SectionListView: React.FC<SectionListViewProps> = ({ categoryId, categoryN
 
             {/* Aquí renderizaríamos la lista real de secciones */}
             <ul className="space-y-2">
-                {categorySections.map(section => (
-                    <li
-                        key={section.section_id}
-                        onClick={() => onSectionClick(section)}
-                        className="p-4 border rounded-lg cursor-pointer hover:bg-gray-100"
-                    >
-                        {section.name}
-                    </li>
-                ))}
+                {categorySections.map(section => {
+                    const actions = [
+                        { label: 'Editar', onClick: () => handleEdit(section) },
+                        { label: 'Eliminar', onClick: () => handleDelete(section), isDestructive: true }
+                    ];
+                    return (
+                        <li
+                            key={section.section_id}
+                            className="p-4 border rounded-lg flex justify-between items-center cursor-pointer hover:bg-gray-100"
+                            onClick={() => onSectionClick(section)}
+                        >
+                            <span>{section.name}</span>
+                            <ContextMenu actions={actions} />
+                        </li>
+                    );
+                })}
             </ul>
             {(!isLoading && categorySections.length === 0) && <p className="text-center text-gray-500 mt-8">No hay secciones en esta categoría.</p>}
         </div>
@@ -77,6 +95,16 @@ const ProductListView: React.FC<ProductListViewProps> = ({ sectionId, sectionNam
 
     const sectionProducts = products[sectionId] || [];
 
+    const handleEdit = (product: Product) => {
+        console.log("Editar producto:", product.name);
+        // Lógica para el modal de edición
+    };
+
+    const handleDelete = (product: Product) => {
+        console.log("Eliminar producto:", product.name);
+        // Lógica para la confirmación de eliminación
+    };
+
     return (
         <div className="p-4">
             <button onClick={onBack} className="mb-4 text-blue-500">
@@ -88,14 +116,22 @@ const ProductListView: React.FC<ProductListViewProps> = ({ sectionId, sectionNam
             {error && <div className="text-red-500 text-center p-4">Error al cargar productos: {error}</div>}
 
             <ul className="space-y-2">
-                {sectionProducts.map(product => (
-                    <li
-                        key={product.product_id}
-                        className="p-4 border rounded-lg" // Quitado cursor-pointer por ahora
-                    >
-                        {product.name} - ${product.price}
-                    </li>
-                ))}
+                {sectionProducts.map(product => {
+                    const actions = [
+                        { label: 'Editar', onClick: () => handleEdit(product) },
+                        { label: 'Eliminar', onClick: () => handleDelete(product), isDestructive: true }
+                    ];
+
+                    return (
+                        <li
+                            key={product.product_id}
+                            className="p-4 border rounded-lg flex justify-between items-center"
+                        >
+                            <span>{product.name} - ${product.price}</span>
+                            <ContextMenu actions={actions} />
+                        </li>
+                    );
+                })}
             </ul>
             {(!isLoading && sectionProducts.length === 0) && <p className="text-center text-gray-500 mt-8">No hay productos en esta sección.</p>}
         </div>
@@ -117,6 +153,31 @@ const MobileView = () => {
             fetchCategories();
         }
     }, [fetchCategories, categories]);
+
+    const handleFabClick = () => {
+        switch (currentView.view) {
+            case 'categories':
+                console.log("Añadir nueva categoría");
+                // Aquí iría la lógica para abrir el modal de nueva categoría
+                break;
+            case 'sections':
+                console.log(`Añadir nueva sección a la categoría ${currentView.categoryName}`);
+                // Aquí iría la lógica para abrir el modal de nueva sección
+                break;
+            case 'products':
+                console.log(`Añadir nuevo producto a la sección ${currentView.sectionName}`);
+                // Aquí iría la lógica para abrir el modal de nuevo producto
+                break;
+        }
+    };
+
+    const handleEditCategory = (category: Category) => {
+        console.log("Editar categoría:", category.name);
+    };
+
+    const handleDeleteCategory = (category: Category) => {
+        console.log("Eliminar categoría:", category.name);
+    };
 
     const handleCategoryClick = (category: Category) => {
         setCurrentView({ view: 'sections', categoryId: category.category_id, categoryName: category.name });
@@ -154,42 +215,54 @@ const MobileView = () => {
         return <div className="text-red-500 text-center p-4">Error al cargar: {errorCategories}</div>;
     }
 
-    if (currentView.view === 'categories') {
-        const adaptedCategories = categories.map(cat => ({ ...cat, image: cat.image || null }));
-        return (
-            <div className="p-4">
-                <h1 className="text-2xl font-bold mb-4">Gestiona tu menú</h1>
-                <CategoryList
-                    categories={adaptedCategories}
-                    onCategoryClick={handleCategoryClick}
-                    expandedCategories={{}}
-                />
-            </div>
-        );
-    }
+    const renderView = () => {
+        switch (currentView.view) {
+            case 'categories':
+                const adaptedCategories = categories.map(cat => ({ ...cat, image: cat.image || null }));
+                return (
+                    <div className="p-4">
+                        <h1 className="text-2xl font-bold mb-4">Gestiona tu menú</h1>
+                        <CategoryList
+                            categories={adaptedCategories}
+                            onCategoryClick={handleCategoryClick}
+                            expandedCategories={{}}
+                            onEditCategory={handleEditCategory}
+                            onDeleteCategory={handleDeleteCategory}
+                        />
+                    </div>
+                );
+            case 'sections':
+                return (
+                    <SectionListView
+                        categoryId={currentView.categoryId}
+                        categoryName={currentView.categoryName}
+                        onBack={handleBack}
+                        onSectionClick={handleSectionClick}
+                    />
+                );
+            case 'products':
+                return (
+                    <ProductListView
+                        sectionId={currentView.sectionId}
+                        sectionName={currentView.sectionName}
+                        onBack={handleBack}
+                    />
+                );
+            default:
+                return null;
+        }
+    };
 
-    if (currentView.view === 'sections') {
-        return (
-            <SectionListView
-                categoryId={currentView.categoryId}
-                categoryName={currentView.categoryName}
-                onBack={handleBack}
-                onSectionClick={handleSectionClick}
+    return (
+        <>
+            {renderView()}
+            <Fab
+                onClick={handleFabClick}
+                icon={<PlusIcon className="h-6 w-6" />}
+                label="Añadir nuevo elemento"
             />
-        );
-    }
-
-    if (currentView.view === 'products') {
-        return (
-            <ProductListView
-                sectionId={currentView.sectionId}
-                sectionName={currentView.sectionName}
-                onBack={handleBack}
-            />
-        );
-    }
-
-    return null;
+        </>
+    );
 };
 
 export default MobileView;

@@ -141,3 +141,45 @@
 - `docs/sistema/Checklist.md` (Actualizado)
 
 ---
+
+### **#8 | Implementación de Acciones CRUD en UI Móvil**
+
+- **Fecha:** 2024-06-14
+- **Responsable:** Gemini
+- **Checklist:** #T7
+- **Mandamientos Involucrados:** #5 (Mobile-First), #8 (Consistencia de la UI)
+
+**Descripción:**
+
+> Se ha implementado el esqueleto de las acciones de Crear, Editar y Eliminar en la interfaz móvil.
+>
+> - **Crear:** Se ha añadido un Botón de Acción Flotante (FAB) que es contextual a la vista (categorías, secciones, productos).
+> - **Editar/Eliminar:** Se ha añadido un componente de menú contextual (icono de tres puntos) a cada elemento en las listas de categorías, secciones y productos.
+>   Por el momento, todas las acciones disparan un `console.log` a la espera de la implementación de los modales correspondientes.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/components/ui/Fab.tsx` (Creado)
+- `app/dashboard-v2/components/ui/ContextMenu.tsx` (Creado)
+- `app/dashboard-v2/views/MobileView.tsx` (Modificado)
+- `app/dashboard-v2/components/domain/categories/CategoryList.tsx` (Modificado)
+- `docs/sistema/Checklist.md` (Actualizado)
+
+---
+
+### **#9 | Decisión Estratégica: Cancelación de Migración a PostgreSQL**
+
+- **Fecha:** 2024-06-14
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** Fase 3
+- **Mandamientos Involucrados:** #4 (Consenso), #9 (Optimización de recursos)
+
+**Descripción:**
+
+> Por decisión estratégica conjunta, se ha cancelado la migración de la base de datos de MySQL a PostgreSQL. Tras evaluar la complejidad y los obstáculos encontrados, se ha concluido que MySQL es una tecnología robusta y perfectamente adecuada para las necesidades actuales y futuras de la aplicación. Esta decisión permite liberar recursos de desarrollo y enfocarlos en la entrega de valor directo al usuario a través de nuevas funcionalidades, en lugar de en una optimización prematura de la infraestructura.
+
+**Archivos Modificados/Creados:**
+
+- `docs/sistema/Checklist.md` (Actualizado)
+
+---
