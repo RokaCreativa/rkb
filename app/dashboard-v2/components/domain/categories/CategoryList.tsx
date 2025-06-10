@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { Category } from '@/app/types/menu';
+import { Category } from '@/app/dashboard-v2/types/domain/category';
 import Image from 'next/image';
 import { ArrowLongRightIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { getImagePath, handleImageError } from '@/app/dashboard-v2/utils/imageUtils';
@@ -44,7 +44,7 @@ export function CategoryList({ categories, onCategoryClick, expandedCategories, 
                 <div className="p-4 flex items-center gap-4">
                   <div className="flex-shrink-0 h-14 w-14 relative">
                     <Image
-                      src={getImagePath(category.image, 'categories')}
+                      src={getImagePath(category.image || null, 'categories')}
                       alt={category.name}
                       fill
                       className="object-cover rounded-md"
@@ -54,7 +54,9 @@ export function CategoryList({ categories, onCategoryClick, expandedCategories, 
 
                   <div className="flex-grow cursor-pointer" onClick={() => onCategoryClick(category)}>
                     <h3 className="font-bold text-lg text-gray-800">{category.name}</h3>
-                    <span className="text-sm text-gray-500">X/Y Secciones Visibles</span>
+                    <span className="text-sm text-gray-500">
+                      {category.visible_sections_count} / {category.sections_count} Secciones Visibles
+                    </span>
                   </div>
 
                   <div className="flex-shrink-0 flex items-center gap-2">

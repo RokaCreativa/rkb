@@ -38,7 +38,7 @@ export default function useCategoryManagement() {
       if (process.env.NODE_ENV === 'development') {
         const sessionKey = 'client_data_cache';
         const storedData = sessionStorage.getItem(sessionKey);
-        
+
         if (storedData) {
           const parsedData = JSON.parse(storedData);
           console.log('📋 Usando datos de cliente almacenados en sessionStorage');
@@ -46,22 +46,22 @@ export default function useCategoryManagement() {
           return parsedData;
         }
       }
-      
+
       setIsLoading(true);
-      
+
       // Determinar qué ID de cliente usar
       const clientId = session?.user?.client_id || 3; // Usar 3 como cliente de prueba si no hay sesión
       console.log(`🔍 Obteniendo datos del cliente ID=${clientId}...`);
-      
+
       const clientData = await fetch(`/api/client?id=${clientId}`);
       const clientJson = await clientData.json();
-      
+
       // Guardar en sessionStorage para desarrollo
       if (process.env.NODE_ENV === 'development') {
         sessionStorage.setItem('client_data_cache', JSON.stringify(clientJson));
         console.log('💾 Datos de cliente guardados en sessionStorage');
       }
-      
+
       setClient(clientJson);
       setIsLoading(false);
       return clientJson;
@@ -82,27 +82,27 @@ export default function useCategoryManagement() {
       if (process.env.NODE_ENV === 'development') {
         sessionStorage.removeItem('categories_data_cache');
       }
-      
+
       setIsLoading(true);
       setError(null); // Limpiar errores previos
-      
+
       // Determinar qué ID de cliente usar
       const clientId = session?.user?.client_id || 3; // Usar 3 como cliente de prueba si no hay sesión
       console.log(`🔍 Obteniendo categorías del cliente ID=${clientId}...`);
-      
+
       const response = await fetch(`/api/categories?client_id=${clientId}`);
-      
+
       if (!response.ok) {
         throw new Error(`Error en la respuesta de la API: ${response.status} ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (!data || !Array.isArray(data)) {
         console.error('Formato de datos incorrecto recibido de la API:', data);
         throw new Error('Formato de datos incorrecto recibido de la API');
       }
-      
+
       // Asegurar que los datos sean consistentes
       const cleanData = data.map(category => ({
         ...category,
@@ -110,17 +110,19 @@ export default function useCategoryManagement() {
         image: category.image || null, // Asegurar que image sea string | null (nunca undefined)
         status: Number(category.status), // Asegurar que status sea número
         display_order: Number(category.display_order || 0), // Asegurar que display_order sea número
-        client_id: Number(category.client_id) // Asegurar que client_id sea número
+        client_id: Number(category.client_id), // Asegurar que client_id sea número
+        sections_count: Number(category.sections_count || 0), // Incluir contador total
+        visible_sections_count: Number(category.visible_sections_count || 0) // Incluir contador visible
       }));
-      
+
       console.log(`✅ Obtenidas ${cleanData.length} categorías del cliente ID=${clientId}`);
-      
+
       // Guardar en sessionStorage para desarrollo
       if (process.env.NODE_ENV === 'development') {
         sessionStorage.setItem('categories_data_cache', JSON.stringify(cleanData));
         console.log('💾 Datos de categorías guardados en sessionStorage');
       }
-      
+
       // Actualizar el estado local
       setCategories(cleanData);
       setIsLoading(false);
@@ -147,16 +149,16 @@ export default function useCategoryManagement() {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al crear la categoría');
       }
-      
+
       const newCategory = await response.json();
-      
+
       // Actualizar el estado local con la nueva categoría
       setCategories(prevCategories => [...prevCategories, newCategory]);
-      
+
       toast.success('Categoría creada correctamente');
       setIsLoading(false);
       return newCategory;
@@ -180,25 +182,25 @@ export default function useCategoryManagement() {
     try {
       setIsLoading(true);
       formData.append('id', categoryId.toString());
-      
+
       const response = await fetch(`/api/categories/${categoryId}`, {
         method: 'PUT',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al actualizar la categoría');
       }
-      
+
       const updatedCategory = await response.json();
-      
+
       // Actualizar el estado local con la categoría actualizada
       setCategories(prevCategories =>
         prevCategories.map(category =>
           category.category_id === categoryId ? updatedCategory : category
         )
       );
-      
+
       toast.success('Categoría actualizada correctamente');
       setIsLoading(false);
       return updatedCategory;
@@ -223,16 +225,16 @@ export default function useCategoryManagement() {
       const response = await fetch(`/api/categories/${categoryId}`, {
         method: 'DELETE',
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al eliminar la categoría');
       }
-      
+
       // Actualizar el estado local eliminando la categoría
       setCategories(prevCategories =>
         prevCategories.filter(category => category.category_id !== categoryId)
       );
-      
+
       setIsLoading(false);
       return true;
     } catch (err) {
@@ -254,10 +256,10 @@ export default function useCategoryManagement() {
     try {
       // Marcar que estamos actualizando la visibilidad de esta categoría
       setIsUpdatingVisibility(categoryId);
-      
+
       // Actualización optimista en UI
       const newStatus = currentStatus === 1 ? 0 : 1;
-      
+
       setCategories(prevCategories =>
         prevCategories.map(cat => {
           if (cat.category_id === categoryId) {
@@ -266,7 +268,7 @@ export default function useCategoryManagement() {
           return cat;
         })
       );
-      
+
       // Enviar actualización al servidor
       const response = await fetch(`/api/categories/${categoryId}/visibility`, {
         method: 'PUT',
@@ -275,17 +277,17 @@ export default function useCategoryManagement() {
         },
         body: JSON.stringify({ status: newStatus }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Error al actualizar la visibilidad');
       }
-      
+
       // Marcar que hemos completado la actualización
       setIsUpdatingVisibility(null);
       return true;
     } catch (err) {
       console.error('Error toggling category visibility:', err);
-      
+
       // Revertir cambio en caso de error
       setCategories(prevCategories =>
         prevCategories.map(cat => {
@@ -295,7 +297,7 @@ export default function useCategoryManagement() {
           return cat;
         })
       );
-      
+
       // Marcar que hemos completado la actualización (con error)
       setIsUpdatingVisibility(null);
       toast.error('Error al cambiar la visibilidad de la categoría');
