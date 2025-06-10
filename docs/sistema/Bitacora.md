@@ -387,6 +387,45 @@
 
 ---
 
+### **#21 | Limpieza de Dependencias Obsoletas**
+
+- **Fecha:** 2024-06-19
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** #T21.1
+- **Mandamientos Involucrados:** #8 (Respeto al Sistema de Diseño y Dependencias)
+
+**Descripción:**
+
+> Se ha completado la primera tarea del plan de refactorización. Se eliminó la dependencia `react-beautiful-dnd` y sus tipos (`@types/react-beautiful-dnd`) del `package.json`. Esta librería es obsoleta y el proyecto ya utiliza su sucesor moderno (`@hello-pangea/dnd`), por lo que su eliminación limpia el proyecto de código innecesario y potenciales conflictos.
+
+**Archivos Modificados/Creados:**
+
+- `package.json`
+- `package-lock.json`
+- `docs/sistema/Checklist.md`
+- `docs/sistema/Bitacora.md` (Esta misma entrada)
+
+---
+
+### **#22 | Extensión de Store Global para Vista de Escritorio**
+
+- **Fecha:** 2024-06-19
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** #T21.2
+- **Mandamientos Involucrados:** #6 (Separación de Responsabilidades), #8 (Consistencia Estructural)
+
+**Descripción:**
+
+> Se ha completado el segundo paso del plan de refactorización. Se extendió el store central de Zustand (`useDashboardStore`) para incluir los estados y acciones que antes eran gestionados localmente por la vista de escritorio (`DashboardView.tsx`). Se añadieron `selectedCategory`, `selectedSection`, `expandedCategories` y `isReorderModeActive`, junto con sus acciones correspondientes. Este cambio es fundamental para unificar la gestión de estado de toda la aplicación y preparar el terreno para la refactorización final de `DashboardView.tsx`.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/stores/dashboardStore.ts`
+- `docs/sistema/Checklist.md`
+- `docs/sistema/Bitacora.md` (Esta misma entrada)
+
+---
+
 ### **Plantilla para Nuevas Entradas**
 
 ```

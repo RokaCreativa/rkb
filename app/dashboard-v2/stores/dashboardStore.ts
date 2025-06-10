@@ -35,10 +35,18 @@ interface DashboardState {
     initialDataLoaded: boolean;
     isUpdatingVisibility: Record<string, number | null>; // ej: { category: 1, section: null }
     error: string | null;
+
+    // --- Estado de UI para VISTA MÓVIL ---
     activeView: 'categories' | 'sections' | 'products';
     activeCategoryId: number | null;
     activeSectionId: number | null;
     history: { view: 'categories' | 'sections' | 'products'; id: number | null }[];
+
+    // --- Estado de UI para VISTA DE ESCRITORIO ---
+    selectedCategory: Category | null;
+    selectedSection: Section | null;
+    expandedCategories: Record<number, boolean>;
+    isReorderModeActive: boolean;
 }
 
 interface DashboardActions {
@@ -55,6 +63,12 @@ interface DashboardActions {
     handleCategorySelect: (category: Category) => void;
     handleSectionSelect: (section: Section) => void;
     handleBack: () => void;
+
+    // --- Acciones para VISTA DE ESCRITORIO ---
+    setSelectedCategory: (category: Category | null) => void;
+    setSelectedSection: (section: Section | null) => void;
+    toggleCategoryExpansion: (categoryId: number) => void;
+    toggleReorderMode: () => void;
 
     // Aquí irán las demás acciones CRUD (create, update, delete)
 }
@@ -74,6 +88,12 @@ const initialState: DashboardState = {
     activeCategoryId: null,
     activeSectionId: null,
     history: [],
+
+    // --- Estado de UI para VISTA DE ESCRITORIO ---
+    selectedCategory: null,
+    selectedSection: null,
+    expandedCategories: {},
+    isReorderModeActive: false,
 };
 
 // --- CREACIÓN DEL STORE ---
@@ -269,7 +289,7 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
         }
     },
 
-    // --- ACCIONES DE NAVEGACIÓN ---
+    // --- ACCIONES DE NAVEGACIÓN (VISTA MÓVIL) ---
 
     handleCategorySelect: (category) => {
         set(state => ({
@@ -320,6 +340,23 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
                 activeSectionId: null
             };
         });
-    }
+    },
+
+    // --- ACCIONES DE UI (VISTA ESCRITORIO) ---
+
+    setSelectedCategory: (category) => set({ selectedCategory: category, selectedSection: null }), // Al cambiar de categoría, reseteamos la sección
+
+    setSelectedSection: (section) => set({ selectedSection: section }),
+
+    toggleCategoryExpansion: (categoryId) => {
+        set(state => ({
+            expandedCategories: {
+                ...state.expandedCategories,
+                [categoryId]: !state.expandedCategories[categoryId],
+            }
+        }));
+    },
+
+    toggleReorderMode: () => set(state => ({ isReorderModeActive: !state.isReorderModeActive })),
 
 })); 
