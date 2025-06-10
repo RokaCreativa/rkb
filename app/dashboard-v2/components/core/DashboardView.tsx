@@ -743,30 +743,27 @@ export default function DashboardView() {
     }
   }, []);  // Solo ejecutar una vez al montar el componente
 
-  // Actualizar toggleProductVisibility para que devuelva una Promise<void>
-  const handleToggleProductVisibility = useCallback(async (productId: number, currentStatus: number, sectionId?: number): Promise<void> => {
-    try {
-      // Mostrar notificación de carga
-      toast.loading('Actualizando visibilidad...', { id: `visibility-${productId}` });
+  // HANDLERS PARA VISIBILIDAD CON RECARGA DE DATOS
+  // Estos handlers envuelven las funciones de los hooks para asegurar que
+  // los datos se recarguen después de una actualización, manteniendo los contadores
+  // y estados visuales sincronizados.
 
-      // Llamar a la función original de toggleProductVisibility
+  const handleToggleCategoryVisibility = async (categoryId: number, currentStatus: number) => {
+    await toggleCategoryVisibility(categoryId, currentStatus);
+    fetchCategories(); // Recargar todas las categorías para actualizar contadores.
+  };
+
+  const handleToggleSectionVisibility = async (sectionId: number, categoryId: number, currentStatus: number) => {
+    await toggleSectionVisibility(sectionId, categoryId, currentStatus);
+    fetchCategories(); // Recargar categorías para actualizar 'visible_sections_count'.
+  };
+
+  const handleToggleProductVisibility = async (productId: number, currentStatus: number) => {
+    if (selectedSection) {
       await toggleProductVisibility(productId, currentStatus);
-
-      // Actualizar notificación
-      toast.dismiss(`visibility-${productId}`);
-      toast.success(`Producto ${currentStatus === 1 ? 'oculto' : 'visible'}`);
-
-      // Retornar void (no valor)
-      return;
-    } catch (error) {
-      console.error('Error al cambiar visibilidad:', error);
-      toast.dismiss(`visibility-${productId}`);
-      toast.error('Error al cambiar visibilidad');
-
-      // Retornar void (no valor)
-      return;
+      fetchSectionsByCategory(selectedSection.category_id); // Recargar secciones para actualizar 'visible_products_count'.
     }
-  }, [toggleProductVisibility]);
+  };
 
   // Renderizado condicional para estados de carga y error
   if (isLoading || isDataLoading) {
@@ -863,23 +860,7 @@ export default function DashboardView() {
                     expandedCategories={expandedCategories}
                     expandedSections={expandedSections}
                     isUpdatingVisibility={isUpdatingVisibility}
-                    onToggleCategoryVisibility={(categoryId, status) => {
-                      setExpandedCategories(prev => ({
-                        ...prev,
-                        [categoryId]: !prev[categoryId]
-                      }));
-
-                      // DEBUG: Log para verificar si este callback se está ejecutando
-                      console.log(`🔍 DEBUG - onToggleCategoryVisibility ejecutado para categoría ${categoryId}`,
-                        "Estado actual:", expandedCategories[categoryId] ? "Expandida" : "Colapsada",
-                        "Cambiará a:", !expandedCategories[categoryId] ? "Expandida" : "Colapsada",
-                        "Secciones disponibles:", sections[categoryId] ? sections[categoryId].length : 0);
-
-                      if (!expandedCategories[categoryId] && (!sections[categoryId] || sections[categoryId].length === 0)) {
-                        console.log(`🔄 DEBUG - Cargando secciones desde onToggleCategoryVisibility para categoría ${categoryId}`);
-                        fetchSectionsByCategory(categoryId);
-                      }
-                    }}
+                    onToggleCategoryVisibility={handleToggleCategoryVisibility}
                     onEditCategorySubmit={(category) => {
                       if (category.category_id) {
                         handleEditCategory(fromMenuCategory(category) as DashboardCategory);
@@ -988,9 +969,9 @@ export default function DashboardView() {
                         }
                       }
                     }}
-                    onToggleSectionVisibility={async (sectionId, currentStatus) => {
+                    onToggleSectionVisibility={(sectionId, currentStatus) => {
                       try {
-                        await toggleSectionVisibility(sectionId, selectedCategory.category_id, currentStatus);
+                        handleToggleSectionVisibility(sectionId, selectedCategory.category_id, currentStatus);
                         return;
                       } catch (error) {
                         console.error("Error al cambiar visibilidad de sección:", error);

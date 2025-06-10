@@ -45,7 +45,7 @@ export async function PUT(
     { params }: { params: { id: string } }
 ) {
     try {
-        const { id } = params;
+        const id = params.id;
         const { status } = await request.json();
 
         if (typeof status !== 'number' || status < 0 || status > 1) {

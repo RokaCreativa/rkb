@@ -269,7 +269,7 @@ export default function useCategoryManagement() {
         })
       );
 
-      // Enviar actualización al servidor
+      // Realizar la llamada a la API
       const response = await fetch(`/api/categories/${categoryId}/visibility`, {
         method: 'PUT',
         headers: {

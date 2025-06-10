@@ -252,3 +252,29 @@
 - `docs/sistema/Bitacora.md` (Actualizado)
 
 ---
+
+### **#13 | Depuración General de Visibilidad y Contadores**
+
+- **Fecha:** 2024-06-16
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** #T17 (Corrección sobre la tarea)
+- **Mandamientos Involucrados:** #1, #2, #6, #7, #10
+
+**Descripción:**
+
+> Se ha realizado una depuración exhaustiva del sistema de visibilidad que afectaba a toda la aplicación (móvil y escritorio), solucionando una cadena de errores:
+
+> 1.  **Error de `params` en API:** Se corrigió un error crítico del servidor en las rutas `PUT /api/products/[id]/visibility` y `PUT /api/sections/[id]/visibility`. El error impedía que la base de datos se actualizara de forma fiable, causando que los contadores no reflejaran los cambios.
+> 2.  **API de Categorías (Error 404):** Se descubrió que la llamada para cambiar la visibilidad de una categoría apuntaba a una ruta inexistente. Se creó la ruta `PUT /api/categories/[id]/visibility` y se corrigió el hook `useCategoryManagement` para usarla, eliminando el error 404.
+> 3.  **Lógica de Recarga de Datos:** Se revisó la lógica de recarga de datos en las vistas para asegurar que, tras un cambio de visibilidad, se pidan los datos actualizados al servidor, forzando la actualización de los contadores en la UI. Se aplicaron correcciones en `DashboardView.tsx` para la vista de escritorio.
+
+**Archivos Modificados/Creados:**
+
+- `app/api/products/[id]/visibility/route.ts` (Modificado)
+- `app/api/sections/[id]/visibility/route.ts` (Modificado)
+- `app/api/categories/[id]/visibility/route.ts` (Creado)
+- `app/dashboard-v2/hooks/domain/category/useCategoryManagement.ts` (Modificado)
+- `app/dashboard-v2/components/core/DashboardView.tsx` (Modificado)
+- `docs/sistema/Bitacora.md` (Actualizado)
+
+---

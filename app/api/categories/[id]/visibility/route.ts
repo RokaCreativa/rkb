@@ -3,18 +3,18 @@ import prisma from '@/prisma/prisma';
 
 /**
  * @swagger
- * /api/sections/{id}/visibility:
+ * /api/categories/{id}/visibility:
  *   put:
- *     summary: Actualiza la visibilidad de una sección.
- *     description: Cambia el estado de visibilidad (status) de una sección específica.
- *     tags: [Sections]
+ *     summary: Actualiza la visibilidad de una categoría.
+ *     description: Cambia el estado de visibilidad (status) de una categoría específica.
+ *     tags: [Categories]
  *     parameters:
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: integer
- *         description: El ID de la sección a actualizar.
+ *         description: El ID de la categoría a actualizar.
  *     requestBody:
  *       required: true
  *       content:
@@ -28,7 +28,7 @@ import prisma from '@/prisma/prisma';
  *                 example: 1
  *     responses:
  *       200:
- *         description: Sección actualizada exitosamente.
+ *         description: Categoría actualizada exitosamente.
  *       400:
  *         description: Error de validación (ID o estado inválido).
  *       500:
@@ -46,18 +46,18 @@ export async function PUT(
             return NextResponse.json({ message: 'Invalid status or ID provided.' }, { status: 400 });
         }
 
-        const updatedSection = await prisma.sections.update({
+        const updatedCategory = await prisma.categories.update({
             where: {
-                section_id: parseInt(id, 10),
+                category_id: parseInt(id, 10),
             },
             data: {
                 status: status === 1,
             },
         });
 
-        return NextResponse.json(updatedSection);
+        return NextResponse.json(updatedCategory);
     } catch (error) {
-        console.error('Error updating section visibility:', error);
-        return NextResponse.json({ message: 'Error updating section visibility.' }, { status: 500 });
+        console.error('Error updating category visibility:', error);
+        return NextResponse.json({ message: 'Error updating category visibility.' }, { status: 500 });
     }
 } 
