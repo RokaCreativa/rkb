@@ -102,3 +102,42 @@
 - `docs/sistema/Mandamientos.md` (Actualizado con Mandamiento #11)
 
 ---
+
+### **#6 | Implementación de Vista Móvil y Sincronización con GitHub**
+
+- **Fecha:** 2024-06-14
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** #T6, #T6.1
+- **Mandamientos Involucrados:** #5, #11
+
+**Descripción:**
+
+> Se implementó la estructura fundamental para la experiencia de usuario en dispositivos móviles. Se creó un componente 'ViewSwitcher' que renderiza una 'MobileView' específica en pantallas pequeñas, dejando intacta la 'DashboardView' de escritorio. La 'MobileView' ahora carga y muestra la lista de categorías, con una navegación funcional (aunque básica) a una vista de "secciones". Todo el progreso ha sido subido y sincronizado con el repositorio de GitHub.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/page.tsx` (Modificado)
+- `app/dashboard-v2/components/core/ViewSwitcher.tsx` (Creado)
+- `app/dashboard-v2/hooks/ui/useIsMobile.ts` (Creado)
+- `app/dashboard-v2/views/MobileView.tsx` (Creado)
+- `.cursor/rules/*.mdc` (Creados y modificados)
+
+---
+
+### **#7 | Implementación de Vista de Productos en Móvil**
+
+- **Fecha:** 2024-06-14
+- **Responsable:** Gemini
+- **Checklist:** #T6.4, #T6.5
+- **Mandamientos Involucrados:** #5 (Mobile-First)
+
+**Descripción:**
+
+> Se ha completado el flujo de navegación "Drill-Down" en la vista móvil. Se implementó la lógica para que, al seleccionar una sección, se muestren los productos correspondientes. Esto se logró creando un nuevo sub-componente `ProductListView` dentro de `MobileView.tsx`, que utiliza el hook `useProductManagement` para buscar los datos. Se ha corregido también la navegación hacia atrás para que el usuario pueda volver fluidamente desde la vista de productos a la de secciones.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/views/MobileView.tsx` (Modificado)
+- `docs/sistema/Checklist.md` (Actualizado)
+
+---

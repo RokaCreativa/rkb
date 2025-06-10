@@ -25,14 +25,18 @@
   - [ ] **#T4 - Temas Predefinidos:** Crear 3-5 temas visuales (ej: "Moderno", "Clásico", "Minimalista") que el cliente pueda aplicar con un solo clic.
   - [ ] **#T5 - Guardado y Aplicación:** Diseñar la API y la lógica del frontend para guardar estas preferencias de personalización por cliente y aplicarlas al menú público.
 
-### **Fase 2: Experiencia Móvil Superior**
+### **Fase 1: Experiencia Móvil Superior**
 
-- **Objetivo:** Asegurar que tanto el Dashboard de gestión como el Menú público sean impecables en dispositivos móviles.
+- **Objetivo:** Asegurar que el Dashboard de gestión sea impecable en dispositivos móviles, usando un modelo de navegación "Drill-Down".
 - **Tareas:**
-  - [ ] **#T6 - Auditoría UI/UX Móvil:** Realizar una revisión completa del dashboard en vistas móviles para identificar puntos de fricción.
-  - [ ] **#T7 - Rediseño de Live Preview Móvil:** Asegurar que la previsualización en vivo dentro del dashboard sea 100% fiel a cómo se verá en un teléfono real.
-  - [ ] **#T8 - Componentes Responsivos:** Revisar y refactorizar componentes clave (`Table`, `Modal`, `Form`) para garantizar su perfecta funcionalidad en pantallas pequeñas.
-  - [ ] **#T9 - Gestos Táctiles:** Explorar la mejora del drag-and-drop en móvil con mejor respuesta táctil.
+  - [x] **#T6 - Auditoría UI/UX Móvil y Definición de Estrategia:** Se completó la auditoría inicial y se definió la estrategia de "View Switcher" y "Drill-Down".
+  - [x] **#T6.1 - Crear `useIsMobile` hook:** Creado para detectar el dispositivo.
+  - [x] **#T6.2 - Implementar `ViewSwitcher`:** Creado e implementado en `page.tsx` para separar la vista móvil de la de escritorio.
+  - [x] **#T6.3 - Vista de Categorías Móvil:** Implementada la vista inicial en `MobileView.tsx` que carga y muestra la lista de categorías.
+  - [x] **#T6.4 - Vista de Secciones Móvil:** Implementar la lógica para mostrar las secciones de una categoría seleccionada.
+  - [x] **#T6.5 - Vista de Productos Móvil:** Implementar la lógica para mostrar los productos de una sección seleccionada.
+  - [ ] **#T7 - Rediseño de Acciones en Móvil:** Adaptar los botones de añadir/editar/eliminar a una interfaz táctil.
+  - [ ] **#T8 - Componentes Responsivos:** Revisar y refactorizar componentes clave (`Modal`, `Form`) para garantizar su perfecta funcionalidad en pantallas pequeñas.
 
 ### **Fase 3: Migración de Base de Datos (MySQL a PostgreSQL)**
 
