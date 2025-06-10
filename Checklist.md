@@ -1,8 +1,0 @@
-- **#T17: Implementación de Botón de Visibilidad (Ojo)**: Conectar los botones de "ojo" a los hooks para cambiar el estado de visibilidad.
-  - [x] Conectar botón de visibilidad para Categorías.
-  - [x] Conectar botón de visibilidad para Secciones.
-  - [x] Conectar botón de visibilidad para Productos.
-  - [x] Validar que la funcionalidad también se haya corregido en la vista de escritorio.
-  - [x] Corregir bug de actualización de contadores de visibilidad.
-- **#T18: Visualizador de Imágenes Lightbox**: Crear o integrar un componente para previsualizar imágenes en pantalla completa.
-- **#T19: Optimización de Subida de Imágenes**: Investigar e implementar una estrategia para optimizar las imágenes antes de subirlas al servidor.

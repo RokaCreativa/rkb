@@ -278,3 +278,73 @@
 - `docs/sistema/Bitacora.md` (Actualizado)
 
 ---
+
+### **#14 | Brainstorming Estratégico y Futuro de la UI Móvil**
+
+- **Fecha:** 2024-06-15
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** #T9 (creada), #T18 (creada), #T19 (creada)
+- **Mandamientos Involucrados:** #4 (Consenso), #5 (Mobile-First), #8 (Consistencia)
+
+**Descripción:**
+
+> Se realizó una sesión de brainstorming para definir la evolución de la experiencia móvil. Se tomaron las siguientes decisiones clave:
+>
+> 1.  **Reordenación en Móvil (#T9):** Se implementará un "Modo de Ordenación" con flechas o agarraderas, en lugar de un drag-and-drop complejo.
+> 2.  **Mejora de las Listas:** Se acordó enriquecer las listas con imágenes, contadores de visibilidad y un botón de "ojo". Los ítems ocultos se mostrarán con opacidad reducida.
+> 3.  **Cancelación de Migración:** Se canceló oficialmente la migración a PostgreSQL, decidiendo continuar con MySQL.
+> 4.  **Nuevas Tareas:** Se crearon las tareas #T18 (Lightbox) y #T19 (Optimización de subida de imágenes).
+> 5.  **Implementación de Diseño:** Se aplicó el nuevo diseño visual a las listas en `MobileView` y se corrigió un bug en los contadores.
+
+**Archivos Modificados/Creados:**
+
+- `docs/sistema/Checklist.md` (Actualizado)
+- `docs/sistema/Bitacora.md` (Actualizado)
+- `app/dashboard-v2/views/MobileView.tsx` (Modificado)
+- `app/dashboard-v2/hooks/domain/category/useCategoryManagement.ts` (Modificado)
+- `app/dashboard-v2/hooks/domain/section/useSectionManagement.ts` (Modificado)
+
+---
+
+### **#15 | Implementación Completa de Visibilidad en Móvil**
+
+- **Fecha:** 2024-06-16
+- **Responsable:** Gemini
+- **Checklist:** #T17
+- **Mandamientos Involucrados:** #5 (Mobile-First), #6 (Separación de Responsabilidades)
+
+**Descripción:**
+
+> Se ha conectado y refactorizado por completo la funcionalidad de visibilidad (botón de "ojo") en la vista móvil para Categorías, Secciones y Productos.
+> `MobileView.tsx` fue refactorizado para usar un patrón de estado centralizado, eliminando lógica duplicada y solucionando conflictos de tipos. La funcionalidad ahora usa "actualización optimista" desde los hooks para una respuesta instantánea.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/views/MobileView.tsx` (Modificado)
+
+---
+
+### **#16 | Análisis Arquitectónico y Plan de Refactorización de `DashboardView`**
+
+- **Fecha:** 2024-06-18
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** #T21
+- **Mandamientos Involucrados:** #1 (Conocer lo que existe), #4 (Consenso), #6 (Separación de Responsabilidades), #10 (Disciplina)
+
+**Descripción:**
+
+> Se realizó una inmersión y análisis profundo de toda la base de código para recuperar el contexto. Durante este proceso, se identificó una dualidad crítica en la gestión del estado:
+>
+> 1. La vista de escritorio (`DashboardView.tsx`) utiliza un sistema complejo y frágil basado en el hook `useDashboardState` y múltiples `useState` locales.
+> 2. La vista móvil (`MobileView.tsx`) utiliza un store de `Zustand` (`useDashboardStore`), una solución mucho más limpia y robusta.
+>
+> Por decisión estratégica, se ha definido que la prioridad es refactorizar la vista de escritorio para que también consuma `useDashboardStore`, unificando así la arquitectura de toda la aplicación. Se ha creado la tarea **#T21** en el `Checklist.md` para detallar este plan.
+>
+> Adicionalmente, se limpió la estructura de documentación, fusionando y eliminando archivos `Bitacora.md` y `Checklist.md` duplicados de la raíz del proyecto.
+
+**Archivos Modificados/Creados:**
+
+- `docs/sistema/Checklist.md` (Actualizado)
+- `docs/sistema/Bitacora.md` (Actualizado)
+
+---

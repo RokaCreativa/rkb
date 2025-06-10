@@ -25,7 +25,7 @@
   - [ ] **#T4 - Temas Predefinidos:** Crear 3-5 temas visuales (ej: "Moderno", "Clásico", "Minimalista") que el cliente pueda aplicar con un solo clic.
   - [ ] **#T5 - Guardado y Aplicación:** Diseñar la API y la lógica del frontend para guardar estas preferencias de personalización por cliente y aplicarlas al menú público.
 
-### **Fase 1: Experiencia Móvil Superior**
+### **Fase 2: Experiencia Móvil Superior**
 
 - **Objetivo:** Asegurar que el Dashboard de gestión sea impecable en dispositivos móviles, usando un modelo de navegación "Drill-Down".
 - **Tareas:**
@@ -36,6 +36,7 @@
   - [x] **#T6.4 - Vista de Secciones Móvil:** Implementar la lógica para mostrar las secciones de una categoría seleccionada.
   - [x] **#T6.5 - Vista de Productos Móvil:** Implementar la lógica para mostrar los productos de una sección seleccionada.
   - [x] **#T7 - Rediseño de Acciones en Móvil:** Adaptar los botones de añadir/editar/eliminar a una interfaz táctil.
+  - [x] **#T7.1 - Completar Flujo CRUD Móvil:** Asegurar que los modales y formularios para crear y editar categorías, secciones y productos sean 100% funcionales y responsivos en móvil. (Completado con la migración a Zustand)
   - [ ] **#T8 - Componentes Responsivos:** Revisar y refactorizar componentes clave (`Modal`, `Form`) para garantizar su perfecta funcionalidad en pantallas pequeñas.
   - [ ] **#T9 - Modo de Ordenación Móvil:** Implementar una interfaz para reordenar categorías, secciones y productos en la vista móvil.
 
@@ -56,8 +57,17 @@
 - **Tareas:**
   - [ ] **#T15 - Revisión de `//TODO`:** Buscar en todo el código comentarios `//TODO` o `FIXME` y abordarlos.
   - [ ] **#T16 - Optimización de Hooks:** Revisar los hooks de `useQuery` y `useMutation` para asegurar que las `queryKeys` sean consistentes y el cache se invalide correctamente.
-  - [ ] **#T17 - Consolidación de Tipos:** Auditar la carpeta `types` para eliminar duplicados y asegurar una única fuente de verdad para los modelos de datos.
-  - [ ] **#T18 - Visualizador de Imágenes (Lightbox):** Implementar un modal para ampliar las imágenes de categorías, secciones y productos al hacer clic sobre ellas. Debe funcionar en escritorio y móvil.
-  - [ ] **#T19 - Optimización de Subida de Imágenes:**
-    - [ ] **#T19.1 - Compresión en Cliente:** Integrar una librería para comprimir las imágenes en el navegador antes de enviarlas al servidor.
-    - [ ] **#T19.2 - Validación de Tamaño:** Añadir un límite de 2MB en el cliente para los archivos de imagen antes de iniciar la subida.
+  - [x] **#T17 - Consolidación de Tipos y Botón de Visibilidad:** Conectar los botones de "ojo" a los hooks para cambiar el estado de visibilidad.
+    - [x] Conectar botón de visibilidad para Categorías.
+    - [x] Conectar botón de visibilidad para Secciones.
+    - [x] Conectar botón de visibilidad para Productos.
+    - [x] Validar que la funcionalidad también se haya corregido en la vista de escritorio.
+    - [x] Corregir bug de actualización de contadores de visibilidad.
+  - [ ] **#T18 - Visualizador de Imágenes (Lightbox):** Crear o integrar un componente para previsualizar imágenes en pantalla completa.
+  - [ ] **#T19 - Optimización de Subida de Imágenes:** Investigar e implementar una estrategia para optimizar las imágenes antes de subirlas al servidor.
+  - [x] **#T20 - Migración de Estado a Zustand:** Se migró toda la lógica de estado del dashboard a un store central de Zustand para resolver bucles de renderizado y simplificar la arquitectura. (Completado el 18/06).
+  - [ ] **#T21 - Unificación de Estado en Vista de Escritorio (Refactorización de `DashboardView.tsx`)**
+    - [ ] **#T21.1:** Limpiar dependencias duplicadas (`react-beautiful-dnd`).
+    - [ ] **#T21.2:** Extender `useDashboardStore` para incluir estados específicos de la vista de escritorio (ej. `selectedCategory`, `expandedCategories`).
+    - [ ] **#T21.3:** Refactorizar `DashboardView.tsx` para que consuma datos y acciones del `useDashboardStore`.
+    - [ ] **#T21.4:** Eliminar el hook `useDashboardState.ts` una vez que `DashboardView.tsx` haya sido completamente migrado.
