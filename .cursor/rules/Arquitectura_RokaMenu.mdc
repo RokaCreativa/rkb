@@ -1,0 +1,14 @@
+---
+description:     Principios de arquitectura del proyecto (Mobile-First, Separación de Responsabilidades, DDD, etc.).
+globs: 
+alwaysApply: false
+---
+---
+type: Agent Requested
+description: Principios de arquitectura del proyecto (Mobile-First, Separación de Responsabilidades, DDD, etc.).
+---
+## Arquitectura y Calidad
+- **Mobile-First:** La experiencia móvil es la máxima prioridad. Todo se diseña y construye para móvil primero.
+- **Separación de Responsabilidades:** Mantener una estricta separación entre la lógica (hooks) y la presentación (componentes UI).
+
+- **No Reiventar la Rueda:** Reutilizar componentes y lógica existentes antes de crear código nuevo.

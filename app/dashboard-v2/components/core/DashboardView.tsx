@@ -12,8 +12,8 @@ import useDashboardState from "../../hooks/core/useDashboardState";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
-import { 
-  adaptCategories, adaptSections, adaptProducts, adaptClient, 
+import {
+  adaptCategories, adaptSections, adaptProducts, adaptClient,
   adaptCategory, adaptSection, adaptProduct,
   fromMenuCategory, fromMenuSection, fromMenuProduct,
   toPreviewCategories, toPreviewSections, toPreviewProducts,
@@ -48,14 +48,14 @@ import { ViewType } from "../../types/dashboard";
 import useDragAndDrop from "../../hooks/ui/useDragAndDrop";
 
 // Tipos
-import { 
-  adaptDomainCategoriesToMenu, 
-  adaptDomainSectionsToMenu, 
+import {
+  adaptDomainCategoriesToMenu,
+  adaptDomainSectionsToMenu,
   adaptDomainProductsToMenu
 } from '@/app/dashboard-v2/types/type-adapters';
 
 // Importar los tipos unificados
-import { 
+import {
   UnifiedCategory,
   UnifiedSection,
   UnifiedProduct,
@@ -88,19 +88,19 @@ export default function DashboardView() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const isAuthenticated = status === "authenticated";
-  
+
   // IMPORTANTE: Estado para vistas - siempre al inicio de todos los useState
   const [currentView, setCurrentView] = useState<ViewType>("CATEGORIES");
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Estado local para modo sin conexión
   const [offlineMode, setOfflineMode] = useState(false);
-  
+
   // useRef para controlar si ya hemos cargado datos iniciales
   const initialDataLoadedRef = useRef(false);
-  
+
   // Log de depuración al montar el componente
   useEffect(() => {
     if (DEBUG) {
@@ -109,7 +109,7 @@ export default function DashboardView() {
       console.log('👤 Sesión:', session ? 'Presente' : 'No presente');
     }
   }, [session, status]);
-  
+
   // Inicializar hook de estado para la gestión del estado global
   const {
     client,
@@ -136,18 +136,18 @@ export default function DashboardView() {
     updateSection,
     updateProduct
   } = useDashboardState();
-  
+
   // Estados para selección y expansión
   const [selectedCategory, setSelectedCategory] = useState<DashboardCategory | null>(null);
   const [selectedSection, setSelectedSection] = useState<DashboardSection | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<{ [key: number]: boolean }>({});
   const [expandedSections, setExpandedSections] = useState<{ [key: number]: boolean }>({});
-  
+
   // Estado adicional para manejar actualizaciones locales de categorías, secciones y productos
   const [localCategories, setLocalCategories] = useState<DashboardCategory[]>([]);
   const [localSections, setLocalSections] = useState<Record<string, DashboardSection[]>>({});
   const [localProducts, setLocalProducts] = useState<Record<string, DashboardProduct[]>>({});
-  
+
   // Sincronizar datos del hook con estado local
   useEffect(() => {
     if (categories && categories.length > 0) {
@@ -160,27 +160,27 @@ export default function DashboardView() {
       }
     }
   }, [categories]);
-  
+
   useEffect(() => {
     if (sections) {
       try {
         // Usamos adaptDomainSectionsToMenu para asegurar compatibilidad de tipos
         const menuSections = adaptDomainSectionsToMenu(sections);
         setLocalSections(menuSections as any as Record<string, DashboardSection[]>);
-        
+
         // DEBUG: Log para verificar la adaptación de secciones
-        console.log(`🔍 DEBUG - Estado 'sections' actualizado:`, 
-          Object.keys(sections).length, "categorías con secciones", 
+        console.log(`🔍 DEBUG - Estado 'sections' actualizado:`,
+          Object.keys(sections).length, "categorías con secciones",
           "Total secciones:", Object.values(sections).flat().length);
-        console.log(`🔍 DEBUG - Estado 'localSections' después de adaptación:`, 
-          Object.keys(menuSections).length, "categorías con secciones", 
+        console.log(`🔍 DEBUG - Estado 'localSections' después de adaptación:`,
+          Object.keys(menuSections).length, "categorías con secciones",
           "¿Son diferentes los objetos?", menuSections !== sections);
       } catch (error) {
         console.error("Error al adaptar secciones:", error);
       }
     }
   }, [sections]);
-  
+
   useEffect(() => {
     if (products) {
       try {
@@ -192,15 +192,15 @@ export default function DashboardView() {
       }
     }
   }, [products]);
-  
+
   // Añadir useEffect para sincronizar las secciones cuando se cargan
   useEffect(() => {
     if (sections && Object.keys(sections).length > 0) {
       console.log("🔄 Sincronizando secciones desde useDashboardState con localSections", sections);
-      
+
       // Convertir las secciones a formato compatible con el estado local
       const adaptedSections: Record<string, DashboardSection[]> = {};
-      
+
       Object.entries(sections).forEach(([categoryId, categorySections]) => {
         if (Array.isArray(categorySections) && categorySections.length > 0) {
           // Tiparlo explícitamente para evitar errores de TypeScript
@@ -208,7 +208,7 @@ export default function DashboardView() {
           adaptedSections[categoryId] = typedSections.map((section: Section) => fromMenuSection(section));
         }
       });
-      
+
       // Actualizar el estado local si hay secciones adaptadas
       if (Object.keys(adaptedSections).length > 0) {
         setLocalSections(prev => ({
@@ -219,7 +219,7 @@ export default function DashboardView() {
       }
     }
   }, [sections]); // Esta dependencia asegura que se ejecute cuando sections cambie
-  
+
   // Estados para control de modales
   const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
   const [showNewSectionModal, setShowNewSectionModal] = useState(false);
@@ -230,31 +230,31 @@ export default function DashboardView() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteEntityType, setDeleteEntityType] = useState<'category' | 'section' | 'product'>('category');
   const [itemToDelete, setItemToDelete] = useState<DashboardCategory | DashboardSection | DashboardProduct | null>(null);
-  
+
   // Cargar datos al montar el componente
   useEffect(() => {
     if (typeof window === 'undefined') return; // No ejecutar en SSR
-    
+
     // Forzar la carga de datos nuevos en cada inicio
     sessionStorage.removeItem('dashboard_initial_load_complete');
     sessionStorage.removeItem('dashboard_client_data');
     sessionStorage.removeItem('dashboard_categories_data');
     sessionStorage.removeItem('client_data_cache');
     sessionStorage.removeItem('categories_data_cache');
-    
+
     console.log('🔄 Iniciando carga inicial de datos...');
-    
+
     // Función para cargar datos con reintentos limitados
     const loadData = async () => {
       try {
         setIsLoading(true);
-        
+
         // Paso 1: Cargar datos del cliente
         const clientData = await fetchClientData();
         if (!clientData) {
           throw new Error('No se pudo cargar la información del cliente');
         }
-        
+
         // Paso 2: Cargar categorías
         const categoriesData = await fetchCategories();
         if (!categoriesData || categoriesData.length === 0) {
@@ -262,33 +262,33 @@ export default function DashboardView() {
         } else {
           console.log(`✅ Cargadas ${categoriesData.length} categorías`);
         }
-        
+
         // Marcar como cargado para no repetir
         sessionStorage.setItem('dashboard_initial_load_complete', 'true');
         console.log('✅ Carga inicial completada y registrada en sessionStorage');
-        
+
         setIsLoading(false);
       } catch (error) {
         console.error('❌ Error en carga inicial:', error);
         setIsLoading(false);
         setError('Error al cargar datos iniciales');
-        
+
         // Intentar mostrar un toast de error para mejor feedback
         toast.error('Error al cargar los datos. Por favor, recarga la página.');
       }
     };
-    
+
     // Ejecutar la carga después de un pequeño delay para evitar race conditions
     const timer = setTimeout(() => {
       loadData();
     }, 300);
-    
+
     return () => clearTimeout(timer);
-    
+
     // Dependencias vacías para que solo se ejecute al montar
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  
+
   // Verificar si estamos en modo offline cada 10 segundos
   useEffect(() => {
     const checkConnectivity = () => {
@@ -296,48 +296,48 @@ export default function DashboardView() {
       setOfflineMode(isOffline);
       console.log(`🌐 Estado de conexión: ${isOffline ? 'OFFLINE' : 'ONLINE'}`);
     };
-    
+
     // Comprobar inmediatamente
     checkConnectivity();
-    
+
     // Agregar event listeners para cambios de conectividad
     window.addEventListener('online', () => setOfflineMode(false));
     window.addEventListener('offline', () => setOfflineMode(true));
-    
+
     // Comprobar periódicamente
     const interval = setInterval(checkConnectivity, 10000);
-    
+
     return () => {
       clearInterval(interval);
       window.removeEventListener('online', () => setOfflineMode(false));
       window.removeEventListener('offline', () => setOfflineMode(true));
     };
   }, []);
-  
+
   // Agregar efecto de diagnóstico para la detección de problemas de drag and drop
   useEffect(() => {
     if (DEBUG) {
       console.log('🧪 [DRAG DEBUG] Verificando configuración de drag and drop...');
-      
+
       // Comprobar si react-beautiful-dnd o hello-pangea/dnd está correctamente inicializado
       console.log('🔍 DragDropContext:', typeof DragDropContext, 'Disponible:', !!DragDropContext);
-      
+
       // Registrar funciones de reordenamiento
-      console.log('🔄 handleReorderCategories:', typeof handleReorderCategories, 
-                  'handleReorderSections:', typeof handleReorderSections,
-                  'handleReorderProducts:', typeof handleReorderProducts);
-      
+      console.log('🔄 handleReorderCategories:', typeof handleReorderCategories,
+        'handleReorderSections:', typeof handleReorderSections,
+        'handleReorderProducts:', typeof handleReorderProducts);
+
       // Verificar si las secciones están disponibles para el drag and drop
-      console.log('📊 Secciones disponibles:', Object.keys(sections).length > 0 ? 'Sí' : 'No', 
-                  'Total categorías con secciones:', Object.keys(sections).length);
-      
+      console.log('📊 Secciones disponibles:', Object.keys(sections).length > 0 ? 'Sí' : 'No',
+        'Total categorías con secciones:', Object.keys(sections).length);
+
       const totalSections = Object.values(sections).reduce((acc, secs) => acc + secs.length, 0);
       console.log('📈 Total de secciones en todas las categorías:', totalSections);
-      
+
       console.log('🚀 Sistema de drag and drop inicializado correctamente');
     }
   }, [sections]);
-  
+
   // Handlers para navegación
   const goToHome = useCallback(() => {
     setCurrentView('CATEGORIES');
@@ -349,59 +349,59 @@ export default function DashboardView() {
     // Guardar la categoría seleccionada
     setSelectedCategory(fromMenuCategory(category));
     console.log(`🎯 Seleccionada categoría: ${category.name} (ID: ${category.category_id})`);
-    
+
     // Alternar expansión de la categoría
     setExpandedCategories(prev => ({
       ...prev,
       [category.category_id]: !prev[category.category_id]
     }));
-    
+
     // DEBUG: Log para verificar el estado actual de expansión
-    console.log(`🔍 DEBUG - Estado expandedCategories para categoría ${category.category_id}:`, 
-      expandedCategories[category.category_id] ? "Expandida" : "Colapsada", 
-      "-> Cambiará a:", 
+    console.log(`🔍 DEBUG - Estado expandedCategories para categoría ${category.category_id}:`,
+      expandedCategories[category.category_id] ? "Expandida" : "Colapsada",
+      "-> Cambiará a:",
       !expandedCategories[category.category_id] ? "Expandida" : "Colapsada");
-    
+
     // Si la categoría se está expandiendo (no estaba expandida antes), 
     // cargar sus secciones si aún no están cargadas
     if (!expandedCategories[category.category_id]) {
       console.log(`📂 Expandiendo categoría ${category.name}, verificando secciones...`);
-      
+
       // Verificar si ya hay secciones cargadas para esta categoría
       const hasSections = sections[category.category_id] && sections[category.category_id].length > 0;
-      
+
       // DEBUG: Log para verificar las secciones actuales
-      console.log(`🔍 DEBUG - Secciones actuales para categoría ${category.category_id}:`, 
+      console.log(`🔍 DEBUG - Secciones actuales para categoría ${category.category_id}:`,
         hasSections ? `${sections[category.category_id].length} secciones cargadas` : "No hay secciones cargadas",
         sections[category.category_id] || []);
-      
+
       if (!hasSections) {
         console.log(`🔄 No hay secciones cargadas para categoría ${category.category_id}, cargando...`);
         toast.loading(`Cargando secciones...`, { id: `loading-cat-${category.category_id}` });
-        
+
         fetchSectionsByCategory(category.category_id)
           .then(loadedSections => {
             console.log(`✅ Cargadas ${loadedSections.length} secciones para categoría ${category.name}`);
             toast.dismiss(`loading-cat-${category.category_id}`);
-            
+
             if (loadedSections && loadedSections.length > 0) {
               toast.success(`${loadedSections.length} secciones cargadas`);
-              
+
               // Actualizar el estado local inmediatamente después de cargar
               const sectionsCopy = [...loadedSections]; // Crear una copia para evitar mutaciones
               const adaptedSections = {
                 [category.category_id]: sectionsCopy.map((section: any) => fromMenuSection(section))
               };
-              
+
               // Actualizar localSections con las secciones recién cargadas
               setLocalSections(prev => ({
                 ...prev,
                 ...adaptedSections
               }));
-              
+
               // DEBUG: Log para verificar las secciones después de cargarlas
-              console.log(`🔍 DEBUG - Secciones después de cargar para categoría ${category.category_id}:`, 
-                loadedSections, 
+              console.log(`🔍 DEBUG - Secciones después de cargar para categoría ${category.category_id}:`,
+                loadedSections,
                 "Estado actual del objeto sections:", sections);
             }
           })
@@ -414,24 +414,24 @@ export default function DashboardView() {
         console.log(`✅ Ya hay ${sections[category.category_id].length} secciones cargadas para categoría ${category.name}`);
 
         // DEBUG: Inspeccionar el contenido de las secciones cargadas
-        console.log(`🔍 DEBUG - Contenido detallado de las secciones para categoría ${category.category_id}:`, 
+        console.log(`🔍 DEBUG - Contenido detallado de las secciones para categoría ${category.category_id}:`,
           JSON.stringify(sections[category.category_id].slice(0, 3)), // Mostrar las 3 primeras secciones para no saturar el log
-          "Tipos de datos:", 
+          "Tipos de datos:",
           sections[category.category_id].map((s: Section) => typeof s));
       }
     }
-    
+
     // Limpiar la selección de sección
     setSelectedSection(null);
-    
+
     // Mantener la vista actual en categorías
     setCurrentView('CATEGORIES');
   }, [expandedCategories, fetchSectionsByCategory, sections, setLocalSections]);
 
   const goToSection = useCallback(async (sectionIdOrSection: number | MenuSection) => {
     // Extraer el ID de sección según el tipo de argumento
-    const sectionId = typeof sectionIdOrSection === 'number' 
-      ? sectionIdOrSection 
+    const sectionId = typeof sectionIdOrSection === 'number'
+      ? sectionIdOrSection
       : sectionIdOrSection.section_id;
 
     console.log(`🎯 goToSection llamado con sección ID: ${sectionId}`);
@@ -446,14 +446,14 @@ export default function DashboardView() {
     // 1. Buscar en el estado global sections
     const allSections = Object.values(sections).flat();
     console.log(`🔍 Buscando sección ${sectionId} entre ${allSections.length} secciones globales`);
-    
+
     // 2. Buscar también en el estado local localSections para mayor seguridad
     const allLocalSections = Object.values(localSections).flat();
     console.log(`🔍 Buscando sección ${sectionId} entre ${allLocalSections.length} secciones locales`);
-    
+
     // Intentar encontrar la sección en cualquiera de las dos fuentes
     let sectionToSelect = allSections.find(s => s.section_id === sectionId);
-    
+
     if (!sectionToSelect) {
       // Si no se encuentra en el estado global, intentar en el estado local
       sectionToSelect = allLocalSections.find(s => s.section_id === sectionId);
@@ -464,20 +464,20 @@ export default function DashboardView() {
     if (!sectionToSelect) {
       console.warn(`⚠️ No se encontró la sección con ID ${sectionId} en memoria, intentando cargar por API...`);
       toast.loading(`Cargando información de sección...`, { id: `loading-section-${sectionId}` });
-      
+
       try {
         // Hacer una petición específica para obtener los datos de esta sección
         const response = await fetch(`/api/sections/${sectionId}`);
-        
+
         if (response.ok) {
           const sectionData = await response.json();
-          
+
           if (sectionData && sectionData.section_id) {
             sectionToSelect = sectionData;
             console.log(`✅ Sección ${sectionId} cargada exitosamente desde API:`, sectionData);
             toast.dismiss(`loading-section-${sectionId}`);
             toast.success(`Sección cargada correctamente`);
-            
+
             // Si tenemos la categoría, cargar todas las secciones de esa categoría
             if (sectionData.category_id) {
               fetchSectionsByCategory(sectionData.category_id);
@@ -503,16 +503,16 @@ export default function DashboardView() {
 
     // A partir de aquí tenemos la sección confirmada
     console.log(`✅ Sección encontrada: ${sectionToSelect.name}`);
-    
+
     // Actualizar estado de la sección seleccionada
     setSelectedSection(fromMenuSection(sectionToSelect));
-    
+
     // IMPORTANTE: alternar el estado de expansión de la sección al hacer clic
     setExpandedSections(prev => ({
       ...prev,
       [sectionId]: !prev[sectionId]
     }));
-    
+
     // Obtener la categoría a la que pertenece esta sección
     const categoryId = sectionToSelect.category_id;
     if (categoryId) {
@@ -521,7 +521,7 @@ export default function DashboardView() {
         ...prev,
         [categoryId]: true
       }));
-      
+
       // Actualizar la categoría seleccionada
       const categoryObj = categories.find(c => c.category_id === categoryId);
       if (categoryObj) {
@@ -530,14 +530,14 @@ export default function DashboardView() {
         console.warn(`⚠️ No se encontró la categoría ${categoryId} para esta sección`);
       }
     }
-    
+
     // En el modo anterior cambiábamos a vista PRODUCTS, pero ahora queremos mantener la vista de categorías
     setCurrentView('CATEGORIES');
     console.log(`🔀 Vista mantenida en CATEGORIES, sección expandida: ${sectionToSelect.name}`);
 
     // Preparar local state
     const sectionIdStr = sectionId.toString();
-    
+
     // Verificar si ya tenemos productos cargados
     if (!products[sectionIdStr] || products[sectionIdStr].length === 0) {
       // NUEVA IMPLEMENTACIÓN: Primero forzar un estado vacío para mostrar el loader
@@ -552,25 +552,25 @@ export default function DashboardView() {
       try {
         // Cargar productos forzando la recarga
         console.log(`⏳ [CRITICAL] Cargando productos para sección ${sectionId} (forzado)...`);
-        
+
         // Llamar a fetchProductsBySection con un solo argumento (sectionId)
         const loadedProducts = await fetchProductsBySection(sectionId);
-        
+
         console.log(`✅ Productos cargados para sección ${sectionId}:`, loadedProducts?.length || 0);
-        
+
         // Actualizar el estado local con los productos cargados
         if (loadedProducts && loadedProducts.length > 0) {
           setLocalProducts(prev => ({
             ...prev,
             [sectionIdStr]: loadedProducts.map((p: any) => fromMenuProduct(p))
           }));
-          
+
           console.log(`✅ Estado local de productos actualizado para sección ${sectionId}`);
         }
-        
+
         // Cerrar la notificación de carga
         toast.dismiss(`loading-${sectionId}`);
-        
+
         if (loadedProducts && loadedProducts.length > 0) {
           toast.success(`${loadedProducts.length} productos cargados`);
         } else {
@@ -586,26 +586,26 @@ export default function DashboardView() {
       console.log(`ℹ️ Ya hay ${products[sectionIdStr].length} productos cargados para esta sección`);
     }
   }, [fetchProductsBySection, sections, localSections, setCurrentView, setSelectedSection, setExpandedSections, setSelectedCategory, categories, products, setLocalProducts, fetchSectionsByCategory]);
-  
+
   // Handlers para manejo de categorías
   const handleAddCategory = useCallback(() => {
     setShowNewCategoryModal(true);
   }, []);
-  
+
   const handleEditCategory = (category: DashboardCategory) => {
     setSelectedCategory(category);
     setShowEditCategoryModal(true);
   };
-  
+
   const handleDeleteCategory = (category: DashboardCategory) => {
     setItemToDelete(category);
     setDeleteEntityType('category');
     setShowDeleteModal(true);
   };
-  
+
   const handleConfirmDeleteCategory = async () => {
     if (!itemToDelete || !('category_id' in itemToDelete)) return;
-    
+
     try {
       await deleteCategory(itemToDelete.category_id);
       toast.success('Categoría eliminada correctamente');
@@ -615,28 +615,28 @@ export default function DashboardView() {
       toast.error('Error al eliminar la categoría');
     }
   };
-  
+
   // Handlers para manejo de secciones
   const handleAddSection = (categoryId: number) => {
     setShowNewSectionModal(true);
   };
-  
+
   const handleEditSection = (section: DashboardSection) => {
     setSelectedSection(section);
     setShowEditSectionModal(true);
   };
-  
+
   const handleDeleteSection = (section: DashboardSection) => {
     setItemToDelete(section);
     setDeleteEntityType('section');
     setShowDeleteModal(true);
   };
-  
+
   const handleConfirmDeleteSection = async () => {
     if (!itemToDelete || !('section_id' in itemToDelete)) return;
-    
+
     const categoryId = 'category_id' in itemToDelete ? itemToDelete.category_id : 0;
-    
+
     try {
       await deleteSection(itemToDelete.section_id, categoryId);
       toast.success('Sección eliminada correctamente');
@@ -646,7 +646,7 @@ export default function DashboardView() {
       toast.error('Error al eliminar la sección');
     }
   };
-  
+
   // Handlers para manejo de productos
   const handleAddProduct = (sectionId: number) => {
     // Buscar la sección en todas las categorías
@@ -660,28 +660,28 @@ export default function DashboardView() {
       }
     }
   };
-  
+
   const handleEditProduct = (product: DashboardProduct) => {
     setShowEditProductModal(true);
     // Almacenamos directamente el producto en el estado
     setItemToDelete(product);
   };
-  
+
   const handleDeleteProduct = (product: DashboardProduct) => {
     setItemToDelete(product);
     setDeleteEntityType('product');
     setShowDeleteModal(true);
   };
-  
+
   const handleConfirmDeleteProduct = async () => {
     if (!itemToDelete || !('product_id' in itemToDelete) || !selectedSection) return;
-    
+
     try {
       await deleteProduct(itemToDelete.product_id);
       toast.success('Producto eliminado correctamente');
       setShowDeleteModal(false);
       setItemToDelete(null);
-      
+
       // Actualizar la lista de productos
       if (selectedSection && selectedSection.section_id) {
         fetchProductsBySection(selectedSection.section_id);
@@ -690,7 +690,7 @@ export default function DashboardView() {
       toast.error('Error al eliminar el producto');
     }
   };
-  
+
   // Obtener funciones de arrastrar y soltar
   const {
     isReorderModeActive,
@@ -711,7 +711,7 @@ export default function DashboardView() {
     setLocalSections as any,   // Usamos 'as any' para resolver problema de compatibilidad temporal
     setLocalProducts as any    // Usamos 'as any' para resolver problema de compatibilidad temporal
   );
-  
+
   // Diagnóstico extensivo para verificar la inicialización del hook
   useEffect(() => {
     console.log('🔍 [DRAG DEBUG] Inicialización de useDragAndDrop:', {
@@ -724,14 +724,14 @@ export default function DashboardView() {
       categoriesCount: localCategories?.length || 0
     });
   }, [
-    handleReorderCategories, 
-    handleReorderSections, 
-    handleReorderProducts, 
-    isReorderModeActive, 
-    isDragging, 
+    handleReorderCategories,
+    handleReorderSections,
+    handleReorderProducts,
+    isReorderModeActive,
+    isDragging,
     localCategories
   ]);
-  
+
   // Activar el modo de reordenamiento por defecto
   useEffect(() => {
     console.log("🔄 Estado inicial de isReorderModeActive:", isReorderModeActive);
@@ -742,44 +742,44 @@ export default function DashboardView() {
       console.log("✅ Modo de reordenamiento activado");
     }
   }, []);  // Solo ejecutar una vez al montar el componente
-  
+
   // Actualizar toggleProductVisibility para que devuelva una Promise<void>
   const handleToggleProductVisibility = useCallback(async (productId: number, currentStatus: number, sectionId?: number): Promise<void> => {
     try {
       // Mostrar notificación de carga
       toast.loading('Actualizando visibilidad...', { id: `visibility-${productId}` });
-      
+
       // Llamar a la función original de toggleProductVisibility
       await toggleProductVisibility(productId, currentStatus);
-      
+
       // Actualizar notificación
       toast.dismiss(`visibility-${productId}`);
       toast.success(`Producto ${currentStatus === 1 ? 'oculto' : 'visible'}`);
-      
+
       // Retornar void (no valor)
       return;
     } catch (error) {
       console.error('Error al cambiar visibilidad:', error);
       toast.dismiss(`visibility-${productId}`);
       toast.error('Error al cambiar visibilidad');
-      
+
       // Retornar void (no valor)
       return;
     }
   }, [toggleProductVisibility]);
-  
+
   // Renderizado condicional para estados de carga y error
   if (isLoading || isDataLoading) {
     return <Loader />;
   }
-  
+
   if (error || dataError) {
     return (
       <div className="flex flex-col items-center justify-center h-screen">
         <p className="text-red-500 mb-4">
           Error: {error || dataError}
         </p>
-        <button 
+        <button
           onClick={() => window.location.reload()}
           className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
         >
@@ -788,7 +788,7 @@ export default function DashboardView() {
       </div>
     );
   }
-  
+
   // Renderizado principal del dashboard
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -798,7 +798,7 @@ export default function DashboardView() {
         isReorderModeActive={isReorderModeActive}
         onToggleReorderMode={toggleReorderMode}
       />
-      
+
       {offlineMode && (
         <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 flex items-center" role="alert">
           <div className="flex-shrink-0 mr-2">
@@ -810,7 +810,7 @@ export default function DashboardView() {
           </div>
         </div>
       )}
-      
+
       {/* *** ENVOLVER CONTENIDO PRINCIPAL CON DragDropContext *** */}
       <DragDropContext
         onDragEnd={handleDragEnd}
@@ -830,10 +830,10 @@ export default function DashboardView() {
                 // Usar una conversión de tipo más específica y segura
                 if (typeof section === 'object') {
                   // Extraer section_id con verificación de seguridad para evitar errores
-                  const sectionId = 'section_id' in section ? 
-                    (section as { section_id: number }).section_id : 
+                  const sectionId = 'section_id' in section ?
+                    (section as { section_id: number }).section_id :
                     ('id' in section ? (section as { id: number }).id : undefined);
-                    
+
                   if (sectionId) {
                     goToSection(sectionId);
                   }
@@ -844,7 +844,7 @@ export default function DashboardView() {
               }
             }}
           />
-          
+
           {/* Contenido principal */}
           <div className="w-full">
             {isLoading || isDataLoading ? (
@@ -868,13 +868,13 @@ export default function DashboardView() {
                         ...prev,
                         [categoryId]: !prev[categoryId]
                       }));
-                      
+
                       // DEBUG: Log para verificar si este callback se está ejecutando
-                      console.log(`🔍 DEBUG - onToggleCategoryVisibility ejecutado para categoría ${categoryId}`, 
-                        "Estado actual:", expandedCategories[categoryId] ? "Expandida" : "Colapsada", 
+                      console.log(`🔍 DEBUG - onToggleCategoryVisibility ejecutado para categoría ${categoryId}`,
+                        "Estado actual:", expandedCategories[categoryId] ? "Expandida" : "Colapsada",
                         "Cambiará a:", !expandedCategories[categoryId] ? "Expandida" : "Colapsada",
                         "Secciones disponibles:", sections[categoryId] ? sections[categoryId].length : 0);
-                      
+
                       if (!expandedCategories[categoryId] && (!sections[categoryId] || sections[categoryId].length === 0)) {
                         console.log(`🔄 DEBUG - Cargando secciones desde onToggleCategoryVisibility para categoría ${categoryId}`);
                         fetchSectionsByCategory(categoryId);
@@ -921,10 +921,10 @@ export default function DashboardView() {
                         // Usar una conversión de tipo más específica y segura
                         if (typeof section === 'object') {
                           // Extraer section_id con verificación de seguridad para evitar errores
-                          const sectionId = 'section_id' in section ? 
-                            (section as { section_id: number }).section_id : 
+                          const sectionId = 'section_id' in section ?
+                            (section as { section_id: number }).section_id :
                             ('id' in section ? (section as { id: number }).id : undefined);
-                            
+
                           if (sectionId) {
                             goToSection(sectionId);
                           }
@@ -952,7 +952,7 @@ export default function DashboardView() {
                       console.log('🔄 [CategoryView] Llamando a handleReorderCategories desde onSectionsReorder:', {
                         categoryId, sourceIndex, destinationIndex
                       });
-                      
+
                       // Caso especial: si todos los parámetros son -1, es una señal para alternar
                       // el modo de reordenamiento desde el botón en CategoryView
                       if (categoryId === -1 && sourceIndex === -1 && destinationIndex === -1) {
@@ -960,11 +960,11 @@ export default function DashboardView() {
                         toggleReorderMode();
                         return;
                       }
-                      
+
                       // Para categorías, ignoramos el categoryId y usamos directamente los índices
                       handleReorderCategories(sourceIndex, destinationIndex);
                     }}
-                    onProductReorder={(sectionId, sourceIndex, destinationIndex) => 
+                    onProductReorder={(sectionId, sourceIndex, destinationIndex) =>
                       handleReorderProducts(sectionId, sourceIndex, destinationIndex)
                     }
                   />
@@ -1020,7 +1020,7 @@ export default function DashboardView() {
                 {currentView === 'PRODUCTS' && selectedSection && selectedCategory && (() => {
                   // Obtener el sectionId como string para acceder al objeto products
                   const sectionIdStr = selectedSection.section_id.toString();
-                  
+
                   // Verificar el objeto products con más detalle
                   console.log(`📊 [CRITICAL] ANTES de renderizar ProductView:`, {
                     todasLasKeys: Object.keys(products),
@@ -1030,11 +1030,11 @@ export default function DashboardView() {
                     esArray: Array.isArray(products[sectionIdStr]),
                     contieneDatos: products[sectionIdStr]?.length > 0
                   });
-                  
+
                   // SOLUCIÓN TEMPORAL: Si no hay productos en el state global, cargarlos ahora
                   if (!products[sectionIdStr] || products[sectionIdStr].length === 0) {
                     console.log(`⚠️ [CRITICAL] NO hay productos en el state, intentando cargar ahora...`);
-                    
+
                     // Este es un último recurso - idealmente no debería ser necesario
                     fetchProductsBySection(selectedSection.section_id)
                       .then(loadedProducts => {
@@ -1044,20 +1044,20 @@ export default function DashboardView() {
                         console.error(`❌ Error en carga de emergencia:`, err);
                       });
                   }
-                  
+
                   // Obtener productos para esta sección - intentamos todas las opciones posibles
                   let sectionProducts: DashboardProduct[] = [];
-                  
+
                   // Opción 1: Productos en el state global
                   if (products[sectionIdStr] && products[sectionIdStr].length > 0) {
                     sectionProducts = convertProductsToDashboard(products)[sectionIdStr] || [];
                     console.log(`✅ Usando productos del state global: ${sectionProducts.length}`);
-                  } 
+                  }
                   // Si no hay productos, mandamos un array vacío pero lo registramos
                   else {
                     console.log(`⚠️ [CRITICAL] No hay productos disponibles para mostrar`);
                   }
-                  
+
                   return (
                     <>
                       {/* Debug info visible solo en desarrollo */}
@@ -1070,7 +1070,7 @@ export default function DashboardView() {
                           <div>Tiene key {sectionIdStr}: {sectionIdStr in products ? 'Sí' : 'No'}</div>
                         </div>
                       )}
-                      
+
                       <ProductView
                         products={adaptProducts(localProducts)[selectedSection.section_id] || []}
                         sectionName={selectedSection.name || ''}
@@ -1090,13 +1090,13 @@ export default function DashboardView() {
             )}
           </div>
         </div>
-      </DragDropContext> { /* Fin del DragDropContext global */ }
-      
+      </DragDropContext> { /* Fin del DragDropContext global */}
+
       {/* Vista previa móvil */}
       {client && (
-        <FloatingPhonePreview 
+        <FloatingPhonePreview
           clientName={client?.name || 'RokaMenu'}
-          clientLogo={client?.main_logo || ''} 
+          clientLogo={client?.main_logo || ''}
           clientMainLogo={client?.main_logo || ''}
           categories={toPreviewCategories(localCategories)}
           sections={toPreviewSections(localSections)}
@@ -1105,7 +1105,7 @@ export default function DashboardView() {
           selectedSection={selectedSection ? toPreviewSection(selectedSection) : null}
         />
       )}
-      
+
       {/* Modales */}
       {showNewCategoryModal && (
         <NewCategoryModal
@@ -1122,7 +1122,7 @@ export default function DashboardView() {
           })}
         />
       )}
-      
+
       {showEditCategoryModal && selectedCategory && (
         <EditCategoryModal
           isOpen={showEditCategoryModal}
@@ -1139,7 +1139,7 @@ export default function DashboardView() {
           }}
         />
       )}
-      
+
       {showDeleteModal && itemToDelete && (
         <DeleteModal
           isOpen={showDeleteModal}
@@ -1149,18 +1149,18 @@ export default function DashboardView() {
             deleteEntityType === 'category' && 'category_id' in itemToDelete
               ? itemToDelete.category_id
               : deleteEntityType === 'section' && 'section_id' in itemToDelete
-              ? itemToDelete.section_id
-              : deleteEntityType === 'product' && 'product_id' in itemToDelete
-              ? itemToDelete.product_id
-              : 0
+                ? itemToDelete.section_id
+                : deleteEntityType === 'product' && 'product_id' in itemToDelete
+                  ? itemToDelete.product_id
+                  : 0
           }
           entityName={itemToDelete.name || `este ${deleteEntityType === 'category' ? 'categoría' : deleteEntityType === 'section' ? 'sección' : 'producto'}`}
           deleteFunction={
             deleteEntityType === 'category'
               ? deleteCategory
               : deleteEntityType === 'section'
-              ? deleteSection
-              : deleteProduct
+                ? deleteSection
+                : deleteProduct
           }
           deleteArgs={
             deleteEntityType === 'section' && 'category_id' in itemToDelete
@@ -1179,9 +1179,9 @@ export default function DashboardView() {
           }}
         />
       )}
-      
+
       {showNewSectionModal && selectedCategory && (
-        <NewSectionModal 
+        <NewSectionModal
           isOpen={showNewSectionModal}
           onClose={() => setShowNewSectionModal(false)}
           categoryId={selectedCategory.category_id}
@@ -1197,9 +1197,9 @@ export default function DashboardView() {
           }}
         />
       )}
-      
+
       {showEditSectionModal && selectedSection && (
-        <EditSectionModal 
+        <EditSectionModal
           isOpen={showEditSectionModal}
           onClose={() => setShowEditSectionModal(false)}
           section={selectedSection}
@@ -1210,9 +1210,9 @@ export default function DashboardView() {
           }}
         />
       )}
-      
+
       {showNewProductModal && selectedSection && (
-        <NewProductModal 
+        <NewProductModal
           isOpen={showNewProductModal}
           onClose={() => setShowNewProductModal(false)}
           sectionId={selectedSection.section_id}
@@ -1228,9 +1228,9 @@ export default function DashboardView() {
           }}
         />
       )}
-      
+
       {showEditProductModal && itemToDelete && 'product_id' in itemToDelete && (
-        <EditProductModal 
+        <EditProductModal
           isOpen={showEditProductModal}
           onClose={() => setShowEditProductModal(false)}
           product={itemToDelete as DashboardProduct}
@@ -1248,18 +1248,18 @@ export default function DashboardView() {
           }}
         />
       )}
-      
+
       {/* Indicador de arrastre para mejorar experiencia móvil */}
-      <DragIndicator 
+      <DragIndicator
         entityName={
-          currentView === "CATEGORIES" 
-            ? 'categoría' 
-            : currentView === "SECTIONS" 
-              ? 'sección' 
+          currentView === "CATEGORIES"
+            ? 'categoría'
+            : currentView === "SECTIONS"
+              ? 'sección'
               : 'producto'
-        } 
+        }
       />
-      
+
     </div>
   );
 } 

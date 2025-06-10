@@ -38,7 +38,7 @@
 
 - **Objetivo:** Mover la infraestructura de datos a una solución más robusta y escalable.
 - **Tareas:**
-  - [ ] **#T10 - Análisis del Esquema:** Mapear el esquema actual de Prisma (MySQL) a su equivalente en PostgreSQL. Identificar posibles conflictos.
+  - [ ] **#T10 - Análisis del Esquema:** Mapear el esquema actual de Prisma (MySQL) a su equivalente en PostgreSQL. Identificar posibles conflictos. **(EN CURSO)**
   - [ ] **#T11 - Plan de Migración de Datos:** Definir la estrategia para exportar los datos existentes (clientes, menús, etc.) de forma segura.
   - [ ] **#T12 - Creación de Script de Migración:** Desarrollar un script (usando `pg-promise`, `node-postgres` o similar) para importar los datos a la nueva base de datos PostgreSQL.
   - [ ] **#T13 - Adaptación del Código:** Modificar el `schema.prisma` para usar el provider de PostgreSQL.

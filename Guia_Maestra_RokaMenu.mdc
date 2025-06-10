@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Directivas Fundamentales de RokaMenu
+
+## 1. Proceso y Contexto
+- **Consulta Obligatoria:** Antes de cualquier acción, debo consultar `Bitacora.md`, `Checklist.md` y `Mandamientos.md`.
+- **Actualización Obligatoria:** Tras cada tarea completada, debo actualizar `Bitacora.md` y `Checklist.md`.
+- **Referencia Maestra:** El documento completo de nuestros principios se encuentra aquí: @docs/sistema/Mandamientos.md

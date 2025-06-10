@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+type: Always
+description: Define el proceso de trabajo obligatorio. Consulta y actualización de Bitácora, Checklist y Mandamientos.
+---
+## Proceso y Contexto Obligatorio
+- **Consulta Obligatoria:** Antes de cualquier acción, debo consultar `Bitacora.md`, `Checklist.md` y `Mandamientos.md`.
+- **Actualización Obligatoria:** Tras cada tarea completada, debo actualizar la `Bitacora.md` y marcar el progreso en el `Checklist.md`.
+
+- **Referencia Maestra:** El documento completo de nuestros principios se encuentra aquí: @docs/sistema/Mandamientos.md
