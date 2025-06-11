@@ -19,61 +19,124 @@
  */
 'use client';
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { BaseModal } from '@/app/dashboard-v2/components/ui/Modal/BaseModal';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
 import { Category, Section, Product } from '@/app/dashboard-v2/types';
-// Asumiremos que tenemos formularios específicos para cada uno
-// import { CategoryForm } from '../domain/categories/CategoryForm';
-// import { SectionForm } from '../domain/sections/SectionForm';
-// import { ProductForm } from '../domain/products/ProductForm';
+import { useDashboardStore } from '../../stores/dashboardStore';
+
+// Importamos los formularios y sus tipos de 'ref'
+import { CategoryForm, CategoryFormRef } from '../domain/categories/CategoryForm';
+import { SectionForm, SectionFormRef } from '../domain/sections/SectionForm';
+import { ProductForm, ProductFormRef } from '../domain/products/ProductForm';
+
+type ItemWithId = Category | Section | Product;
 
 // --- PROPS PARA LOS MODALES ---
-interface EditModalProps<T> {
+interface EditModalProps<T extends ItemWithId> {
     isOpen: boolean;
     onClose: () => void;
     item: T | null;
     itemType: 'Categoría' | 'Sección' | 'Producto';
+    // Propiedades adicionales para saber dónde crear/actualizar
+    clientId?: number;
+    categoryId?: number;
+    sectionId?: number;
 }
 
-// --- COMPONENTES DE MODAL GENÉRICOS ---
-const EditModal = <T,>({ isOpen, onClose, item, itemType }: EditModalProps<T>) => {
+// --- COMPONENTE DE MODAL GENÉRICO ---
+const EditModal = <T extends ItemWithId>({ isOpen, onClose, item, itemType, clientId, categoryId, sectionId }: EditModalProps<T>) => {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const formRef = useRef<CategoryFormRef | SectionFormRef | ProductFormRef>(null);
+
+    // Acciones del store
+    const { createCategory, updateCategory, createSection, updateSection, createProduct, updateProduct } = useDashboardStore();
+
     if (!isOpen) return null;
 
     const title = item ? `Editar ${itemType}` : `Crear ${itemType}`;
 
+    const handleSave = async () => {
+        if (!formRef.current) return;
+
+        setIsSubmitting(true);
+        try {
+            const { data, imageFile } = formRef.current.getFormData();
+
+            switch (itemType) {
+                case 'Categoría':
+                    if (item) {
+                        await updateCategory((item as Category).category_id, data as Partial<Category>, imageFile);
+                    } else if (clientId) {
+                        await createCategory({ ...data, client_id: clientId } as Partial<Category>, imageFile);
+                    }
+                    break;
+                case 'Sección':
+                    if (item) {
+                        await updateSection((item as Section).section_id, data as Partial<Section>, imageFile);
+                    } else if (categoryId) {
+                        await createSection({ ...data, category_id: categoryId } as Partial<Section>, imageFile);
+                    }
+                    break;
+                case 'Producto':
+                    if (item) {
+                        await updateProduct((item as Product).product_id, data as Partial<Product>, imageFile);
+                    } else if (sectionId) {
+                        await createProduct({ ...data, section_id: sectionId } as Partial<Product>, imageFile);
+                    }
+                    break;
+            }
+            onClose();
+        } catch (error) {
+            console.error(`Error al guardar ${itemType}:`, error);
+            // El toast de error ya se muestra desde el store
+        } finally {
+            setIsSubmitting(false);
+        }
+    }
+
     const footer = (
         <div className="flex justify-end space-x-2">
-            <Button variant="ghost" onClick={onClose}>Cancelar</Button>
-            {/* En un futuro, este botón llamaría a la función de guardado */}
-            <Button onClick={onClose}>Guardar Cambios</Button>
+            <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={isSubmitting}>
+                {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+            </Button>
         </div>
     );
 
+    const renderForm = () => {
+        switch (itemType) {
+            case 'Categoría':
+                return <CategoryForm ref={formRef as React.Ref<CategoryFormRef>} category={item as Category | null} />;
+            case 'Sección':
+                return <SectionForm ref={formRef as React.Ref<SectionFormRef>} section={item as Section | null} />;
+            case 'Producto':
+                return <ProductForm ref={formRef as React.Ref<ProductFormRef>} product={item as Product | null} />;
+            default:
+                return null;
+        }
+    }
+
     return (
         <BaseModal isOpen={isOpen} onClose={onClose} title={title} footer={footer}>
-            <p className="text-sm text-gray-500">
-                El formulario para {item ? `editar esta ${itemType.toLowerCase()}` : `crear una nueva ${itemType.toLowerCase()}`} irá aquí.
-            </p>
-            <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
-                {JSON.stringify(item, null, 2)}
-            </pre>
+            {renderForm()}
         </BaseModal>
     );
 };
 
 // --- EXPORTACIONES ESPECÍFICAS ---
-export const EditCategoryModal: React.FC<{ isOpen: boolean; onClose: () => void; category: Category | null }> =
-    ({ isOpen, onClose, category }) => (
-        <EditModal isOpen={isOpen} onClose={onClose} item={category} itemType="Categoría" />
+// Añadimos las props necesarias para el contexto de creación
+export const EditCategoryModal: React.FC<{ isOpen: boolean; onClose: () => void; category: Category | null; clientId: number | undefined; }> =
+    ({ isOpen, onClose, category, clientId }) => (
+        <EditModal isOpen={isOpen} onClose={onClose} item={category} itemType="Categoría" clientId={clientId} />
     );
 
-export const EditSectionModal: React.FC<{ isOpen: boolean; onClose: () => void; section: Section | null }> =
-    ({ isOpen, onClose, section }) => (
-        <EditModal isOpen={isOpen} onClose={onClose} item={section} itemType="Sección" />
+export const EditSectionModal: React.FC<{ isOpen: boolean; onClose: () => void; section: Section | null; categoryId: number | undefined; }> =
+    ({ isOpen, onClose, section, categoryId }) => (
+        <EditModal isOpen={isOpen} onClose={onClose} item={section} itemType="Sección" categoryId={categoryId} />
     );
 
-export const EditProductModal: React.FC<{ isOpen: boolean; onClose: () => void; product: Product | null }> =
-    ({ isOpen, onClose, product }) => (
-        <EditModal isOpen={isOpen} onClose={onClose} item={product} itemType="Producto" />
+export const EditProductModal: React.FC<{ isOpen: boolean; onClose: () => void; product: Product | null; sectionId: number | undefined; }> =
+    ({ isOpen, onClose, product, sectionId }) => (
+        <EditModal isOpen={isOpen} onClose={onClose} item={product} itemType="Producto" sectionId={sectionId} />
     );

@@ -45,18 +45,21 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
         {
             key: 'name',
             header: 'Nombre',
-            render: (section) => (
-                <div className="flex items-center">
-                    <Image
-                        src={section.image || '/images/placeholder.png'}
-                        alt={section.name || 'Sección'}
-                        width={40}
-                        height={40}
-                        className="rounded-md object-cover mr-4"
-                    />
-                    <span className="font-medium">{section.name}</span>
-                </div>
-            ),
+            render: (section) => {
+                const imageUrl = section.image ? `/images/sections/${section.image}` : '/images/placeholder.png';
+                return (
+                    <div className="flex items-center">
+                        <Image
+                            src={imageUrl}
+                            alt={section.name || 'Sección'}
+                            width={40}
+                            height={40}
+                            className="rounded-md object-cover mr-4"
+                        />
+                        <span className="font-medium">{section.name}</span>
+                    </div>
+                );
+            }
         },
         {
             key: 'display_order',

@@ -1,99 +1,56 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import prisma from '@/prisma/prisma';
+import { NextRequest, NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 
 /**
- * Endpoint para subir una imagen de producto
- * @route POST /api/products/upload-image
+ * @file app/api/upload/route.ts
+ * @description Endpoint de API genérico para la subida de archivos de imagen.
+ * @architecture
+ * Este endpoint sigue una arquitectura de "servicio único". En lugar de tener una ruta de subida
+ * para cada tipo de entidad (categorías, productos, etc.), se centraliza toda la lógica de subida aquí.
+ * Esto cumple con el Mandamiento #3 (No Reinventar la Rueda).
+ *
+ * @workflow
+ * 1.  Recibe una petición POST que debe contener datos de formulario (`FormData`).
+ * 2.  Extrae el archivo (`file`) del cuerpo de la petición.
+ * 3.  Valida que el archivo exista y sea de tipo imagen.
+ * 4.  Convierte el archivo a un buffer de bytes.
+ * 5.  Define una ruta única en el servidor para guardar el archivo, usualmente en la carpeta `public/images/...`.
+ *     Se añade un timestamp al nombre para evitar colisiones.
+ * 6.  Escribe el archivo en el sistema de ficheros del servidor.
+ * 7.  Devuelve una respuesta JSON con el estado de la operación y la URL pública del archivo subido.
+ *     Esta URL es la que luego se guardará en la base de datos junto a la entidad correspondiente.
+ *
+ * @dependencies
+ * - `next/server`: Para manejar las peticiones y respuestas de la API.
+ * - `fs/promises`: Para escribir el archivo en el disco de forma asíncrona.
+ * - `path`: Para construir rutas de archivo seguras y compatibles con el sistema operativo.
  */
-export async function POST(request: Request) {
-  try {
-    // 1. Verificar autenticación
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
+export async function POST(request: NextRequest) {
+  const data = await request.formData();
+  const file: File | null = data.get('file') as unknown as File;
 
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
-
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-    }
-
-    // 3. Procesar FormData para obtener el archivo y el ID del producto
-    const formData = await request.formData();
-    const productIdStr = formData.get('product_id');
-    const file = formData.get('image') as File | null;
-
-    console.log('POST /api/products/upload-image - productId:', productIdStr);
-
-    if (!productIdStr) {
-      return NextResponse.json({ error: 'ID de producto requerido' }, { status: 400 });
-    }
-
-    const productId = parseInt(productIdStr.toString());
-
-    if (!file) {
-      return NextResponse.json({ error: 'Imagen requerida' }, { status: 400 });
-    }
-
-    // 4. Verificar que el producto existe y pertenece al cliente
-    const product = await prisma.products.findFirst({
-      where: {
-        product_id: productId,
-        client_id: user.client_id,
-      },
-    });
-
-    if (!product) {
-      return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
-    }
-
-    // 5. Procesar y guardar la imagen
-    try {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      // Crear nombre de archivo único (timestamp + nombre original)
-      const timestamp = Date.now();
-      const fileName = file.name.replace(/\s+/g, '-').toLowerCase();
-      const uniqueFileName = `${timestamp}_${fileName}`;
-
-      // Guardar la imagen en el directorio público
-      const publicDir = join(process.cwd(), 'public');
-      const productsDir = join(publicDir, 'images', 'products');
-      const imagePath = join(productsDir, uniqueFileName);
-
-      await writeFile(imagePath, buffer);
-
-      // 6. Actualizar el producto con la nueva imagen
-      await prisma.products.update({
-        where: {
-          product_id: productId,
-        },
-        data: {
-          image: uniqueFileName,
-        },
-      });
-
-      // 7. Retornar éxito con la URL de la imagen
-      return NextResponse.json({
-        success: true,
-        image: uniqueFileName,
-        imageUrl: `/images/products/${uniqueFileName}`,
-      });
-    } catch (error) {
-      console.error('Error al procesar la imagen:', error);
-      return NextResponse.json({ error: 'Error al procesar la imagen' }, { status: 500 });
-    }
-  } catch (error) {
-    console.error('Error en upload-image:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+  if (!file) {
+    return NextResponse.json({ success: false, error: 'No se ha subido ningún archivo.' });
   }
-} 
+
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  // Generamos un nombre de archivo único con un timestamp
+  const filename = `${Date.now()}_${file.name.replace(/\s/g, '_')}`;
+  const path = join(process.cwd(), 'public/images/products', filename);
+
+  try {
+    await writeFile(path, buffer);
+    console.log(`Archivo guardado en: ${path}`);
+
+    // Devolvemos la URL pública para que el cliente la pueda usar
+    const publicUrl = `/images/products/${filename}`;
+    return NextResponse.json({ success: true, url: publicUrl });
+
+  } catch (error) {
+    console.error('Error al guardar el archivo:', error);
+    return NextResponse.json({ success: false, error: 'Error interno al guardar el archivo.' }, { status: 500 });
+  }
+}

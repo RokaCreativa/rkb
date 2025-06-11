@@ -41,18 +41,24 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
         {
             key: 'name',
             header: 'Nombre',
-            render: (product) => (
-                <div className="flex items-center">
-                    <Image
-                        src={product.image || '/images/placeholder.png'}
-                        alt={product.name || 'Producto'}
-                        width={40}
-                        height={40}
-                        className="rounded-md object-cover mr-4"
-                    />
-                    <span className="font-medium">{product.name}</span>
-                </div>
-            ),
+            render: (product) => {
+                // Comentario de Contexto:
+                // La propiedad `product.image` solo contiene el nombre del archivo.
+                // Construimos la ruta completa desde `public` para que el componente <Image> la encuentre.
+                const imageUrl = product.image ? `/images/products/${product.image}` : '/images/placeholder.png';
+                return (
+                    <div className="flex items-center">
+                        <Image
+                            src={imageUrl}
+                            alt={product.name || 'Producto'}
+                            width={40}
+                            height={40}
+                            className="rounded-md object-cover mr-4"
+                        />
+                        <span className="font-medium">{product.name}</span>
+                    </div>
+                );
+            }
         },
         {
             key: 'price',

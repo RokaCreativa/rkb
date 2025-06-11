@@ -10,14 +10,15 @@
  * 1.  **Obtiene Estado y Acciones:** Se suscribe al `dashboardStore` para obtener los arrays de datos
  *     (categorías, secciones, productos) y las acciones para cambiar el estado de selección
  *     (`setSelectedCategoryId`, `setSelectedSectionId`).
- * 2.  **Filtra Datos:** Utiliza `useMemo` para calcular eficientemente qué secciones y productos
+ * 2.  **Carga de Datos Reactiva:** Utiliza `useEffect` para reaccionar a los cambios en los IDs de selección.
+ *     Cuando `selectedCategoryId` cambia, dispara la acción `fetchSectionsByCategory`.
+ *     Cuando `selectedSectionId` cambia, dispara la acción `fetchProductsBySection`.
+ * 3.  **Filtra Datos:** Utiliza `useMemo` para calcular eficientemente qué secciones y productos
  *     deben mostrarse (`visibleSections`, `visibleProducts`) basándose en los IDs seleccionados.
- * 3.  **Renderiza las Columnas:** Muestra hasta tres componentes `GridView` en un layout de columnas.
- *     La visibilidad de las columnas de "detalle" (`SectionGridView`, `ProductGridView`) es condicional,
- *     dependiendo de si se ha seleccionado un item en la columna "maestra" anterior.
- * 4.  **Gestiona Modales:** Utiliza el hook `useModalState` para manejar la apertura/cierre de
- *     todos los modales, pasando las funciones de apertura (`openModal`, `handleDeleteItem`)
- *     a los `GridView` hijos como props.
+ * 4.  **Renderiza las Columnas:** Muestra hasta tres componentes `GridView` en un layout de columnas.
+ *     La visibilidad de las columnas de "detalle" (`SectionGridView`, `ProductGridView`) es condicional.
+ * 5.  **Gestiona Modales:** Utiliza el hook `useModalState` para manejar la apertura/cierre de
+ *     todos los modales, pasando las funciones de apertura a los `GridView` hijos.
  *
  * @dependencies
  * - `dashboardStore`: Su fuente de verdad para todos los datos y el estado de selección.
@@ -26,7 +27,7 @@
  */
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
 import { useModalState } from '@/app/dashboard-v2/hooks/ui/useModalState';
 import { CategoryGridView } from '../domain/categories/CategoryGridView';
@@ -49,6 +50,8 @@ export const DashboardView: React.FC = () => {
     toggleCategoryVisibility,
     toggleSectionVisibility,
     toggleProductVisibility,
+    fetchSectionsByCategory,
+    fetchProductsBySection,
   } = useDashboardStore();
 
   const {
@@ -71,6 +74,20 @@ export const DashboardView: React.FC = () => {
     return products[selectedSectionId] || [];
   }, [products, selectedSectionId]);
 
+  // --- REACTIVE DATA FETCHING ---
+  // Cuando el usuario selecciona una categoría, disparamos la carga de sus secciones.
+  useEffect(() => {
+    if (selectedCategoryId) {
+      fetchSectionsByCategory(selectedCategoryId);
+    }
+  }, [selectedCategoryId, fetchSectionsByCategory]);
+
+  // Cuando el usuario selecciona una sección, disparamos la carga de sus productos.
+  useEffect(() => {
+    if (selectedSectionId) {
+      fetchProductsBySection(selectedSectionId);
+    }
+  }, [selectedSectionId, fetchProductsBySection]);
 
   // --- RENDER ---
   return (

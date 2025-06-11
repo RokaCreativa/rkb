@@ -52,7 +52,7 @@ export function BaseModal({
         />
 
         {/* Modal con mejor posicionamiento y animación */}
-        <div 
+        <div
           className="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all duration-300 ease-in-out sm:my-8 sm:w-full sm:align-middle w-full mx-auto"
           onClick={handleModalClick}
         >

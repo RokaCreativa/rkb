@@ -59,9 +59,8 @@ export function GenericTable<T>({
             <tr
               key={rowIndex}
               onClick={() => onRowClick?.(item)}
-              className={`${
-                onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''
-              }`}
+              className={`${onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''
+                }`}
             >
               {columns.map((column, colIndex) => (
                 <td
