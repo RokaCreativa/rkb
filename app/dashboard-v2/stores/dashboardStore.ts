@@ -26,7 +26,7 @@ import { toast } from 'react-hot-toast';
 
 // --- TIPOS DE ESTADO Y ACCIONES ---
 
-interface DashboardState {
+export interface DashboardState {
     client: Client | null;
     categories: Category[];
     sections: Record<string, Section[]>;
@@ -48,9 +48,14 @@ interface DashboardState {
     selectedSection: Section | null;
     expandedCategories: Record<number, boolean>;
     isReorderModeActive: boolean;
+
+    // Estado de navegación para la vista de escritorio
+    selectedCategoryId: number | null;
+    selectedSectionId: number | null;
 }
 
-interface DashboardActions {
+export interface DashboardActions {
+    initializeDashboard: (clientId: number) => Promise<void>;
     fetchClientData: (clientId: number) => Promise<void>;
     fetchCategories: (clientId: number) => Promise<void>;
     fetchSectionsByCategory: (categoryId: number) => Promise<void>;
@@ -86,6 +91,16 @@ interface DashboardActions {
     setSelectedSection: (section: Section | null) => void;
     toggleCategoryExpansion: (categoryId: number) => void;
     toggleReorderMode: () => void;
+
+    // Acciones de navegación
+    setActiveView: (view: 'categories' | 'sections' | 'products') => void;
+    goToCategory: (categoryId: number) => void;
+    goToSection: (sectionId: number) => void;
+    goBack: () => void;
+
+    // Acciones para la navegación de escritorio
+    setSelectedCategoryId: (categoryId: number | null) => void;
+    setSelectedSectionId: (sectionId: number | null) => void;
 }
 
 // --- ESTADO INICIAL ---
@@ -110,6 +125,10 @@ const initialState: DashboardState = {
     selectedSection: null,
     expandedCategories: {},
     isReorderModeActive: false,
+
+    // Estado de navegación para la vista de escritorio
+    selectedCategoryId: null,
+    selectedSectionId: null,
 };
 
 // --- CREACIÓN DEL STORE ---
@@ -118,6 +137,13 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
     ...initialState,
 
     // --- ACCIONES ---
+
+    initializeDashboard: async (clientId) => {
+        set({ isLoading: true });
+        await get().fetchClientData(clientId);
+        await get().fetchCategories(clientId);
+        set({ isLoading: false, initialDataLoaded: true });
+    },
 
     fetchClientData: async (clientId) => {
         set({ isLoading: true, error: null });
@@ -700,5 +726,26 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
             toast.error('No se pudo actualizar la sección.');
         }
     },
+
+    // Acciones de navegación
+    setActiveView: (view) => set({ activeView: view }),
+
+    goToCategory: (categoryId) => set({ activeView: 'sections', activeCategoryId: categoryId }),
+
+    goToSection: (sectionId) => set({ activeView: 'products', activeSectionId: sectionId }),
+
+    goBack: () => set((state) => {
+        if (state.activeView === 'products') {
+            return { activeView: 'sections', activeSectionId: null };
+        }
+        if (state.activeView === 'sections') {
+            return { activeView: 'categories', activeCategoryId: null };
+        }
+        return {};
+    }),
+
+    // Implementación de las nuevas acciones de escritorio
+    setSelectedCategoryId: (categoryId) => set({ selectedCategoryId: categoryId, selectedSectionId: null }), // Al cambiar de categoría, reseteamos la sección
+    setSelectedSectionId: (sectionId) => set({ selectedSectionId: sectionId }),
 
 })); 

@@ -64,18 +64,27 @@
 
 - **Objetivo:** Mantener el código sano y manetenible a largo plazo.
 - **Tareas:**
+  - [x] **#T27 - Refactorización de Vista de Escritorio a "Master-Detail":**
+    - **Objetivo:** Reemplazar el "componente Dios" `DashboardView` por una arquitectura limpia, mantenible y escalable de 3 vistas (o columnas) separadas.
+    - **Justificación:** La complejidad actual de `DashboardView` dificulta el mantenimiento, introduce riesgos de regresión y va en contra del Mandamiento #6 (Separación de Responsabilidades). Esta nueva arquitectura mejorará drásticamente la mantenibilidad y la experiencia de usuario en escritorio.
+    - **Tareas Detalladas:**
+      - [x] **#T27.1 - Crear `CategoryGridView.tsx`:** Un componente aislado y reutilizable que solo se encarga de mostrar la tabla de categorías.
+      - [x] **#T27.2 - Crear `SectionGridView.tsx`:** Un componente que muestra la tabla de secciones de una categoría seleccionada.
+      - [x] **#T27.3 - Crear `ProductGridView.tsx`:** Un componente que muestra la tabla de productos de una sección seleccionada.
+      - [x] **#T27.4 - Orquestar las Vistas:** Modificar `DashboardView` (o un nuevo contenedor) para que actúe como un "director de orquesta", mostrando el grid correcto (`Category`, `Section`, o `Product`) basado en el estado de selección del usuario, gestionado centralmente en Zustand.
+      - [x] **#T27.5 - Unificar Estado de Navegación:** Adaptar el `dashboardStore` para que maneje el estado de navegación del escritorio (`selectedCategoryId`, `selectedSectionId`) de una forma similar a como ya lo hace para la vista móvil, unificando la lógica.
   - [x] **#T26 - Corrección de Errores Críticos (Visibilidad e Hidratación):**
     - [x] **#T26.1 - Reparar API de Visibilidad:** Se alineó el `dashboardStore` para enviar `boolean` en lugar de `number` al backend, solucionando el error 400.
     - [x] **#T26.2 - Solucionar Error de Hidratación:** Se reemplazó `ViewSwitcher` por una importación dinámica con SSR deshabilitado para `DynamicView`, eliminando el desajuste de renderizado.
-  - [ ] **#T21 - Refactorización de Vista de Escritorio a Zustand:**
+  - [x] **#T21 - Refactorización de Vista de Escritorio a Zustand:**
     - **Objetivo:** Unificar la gestión de estado de toda la aplicación, eliminando la arquitectura legada de `DashboardView.tsx` y `useDashboardState.ts` para que utilice el store central `useDashboardStore`.
     - **Tareas Detalladas:**
       - [x] **#T21.1 - Limpieza de Dependencias:** Eliminar la librería obsoleta `react-beautiful-dnd` y sus tipos.
       - [x] **#T21.2 - Extender `useDashboardStore`:** Añadir al store los estados y acciones necesarios para la vista de escritorio que actualmente faltan (ej: `selectedCategory`, `selectedSection`, `expandedCategories`, modo de reordenación, etc.).
       - [x] **#T21.3 - Refactorizar `DashboardView.tsx` (Incremental):**
         - [x] Conectar el componente al `useDashboardStore`.
-      - [ ] **#T21.4 - Eliminar `useDashboardState.ts`:** Una vez que `DashboardView.tsx` y sus hijos ya no lo utilicen, eliminar el hook obsoleto.
-      - [ ] **#T21.5 - Refactorizar Hijos:** Evaluar si los componentes hijos (`CategoryView`, `SectionView`) pueden consumir directamente del store en lugar de recibir todas las props desde `DashboardView`.
+      - [x] **#T21.4 - Eliminar `useDashboardState.ts`:** Una vez que `DashboardView.tsx` y sus hijos ya no lo utilicen, eliminar el hook obsoleto.
+      - [x] **#T21.5 - Refactorizar Hijos:** Evaluar si los componentes hijos (`CategoryView`, `SectionView`) pueden consumir directamente del store en lugar de recibir todas las props desde `DashboardView`.
   - [ ] **#T15 - Revisión de `//TODO`:** Buscar en todo el código comentarios `//TODO` o `FIXME` y abordarlos.
   - [ ] **#T16 - Optimización de Hooks:** Revisar los hooks existentes para asegurar que las `queryKeys` sean consistentes y el cache se invalide correctamente.
   - [x] **#T17 - Consolidación de Tipos:** Auditar la carpeta `types` para eliminar duplicados y asegurar una única fuente de verdad para los modelos de datos. (Completado durante la auditoría de API del 18/06).

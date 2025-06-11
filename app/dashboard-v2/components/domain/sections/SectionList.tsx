@@ -274,8 +274,8 @@ const SectionList: React.FC<SectionListProps> = ({
                         <button
                           onClick={() => onSectionClick(section.section_id)}
                           className={`p-1 rounded-full transition-colors ${expandedSections[section.section_id]
-                              ? "bg-teal-100 section-title"
-                              : "hover:bg-gray-200 text-gray-500"
+                            ? "bg-teal-100 section-title"
+                            : "hover:bg-gray-200 text-gray-500"
                             }`}
                           aria-label={expandedSections[section.section_id] ? "Colapsar" : "Expandir"}
                         >
@@ -302,8 +302,8 @@ const SectionList: React.FC<SectionListProps> = ({
                         </div>
                         <div className="flex flex-col">
                           <span className={`text-sm font-medium ${expandedSections[section.section_id]
-                              ? "section-text"
-                              : "text-gray-700"
+                            ? "section-text"
+                            : "text-gray-700"
                             }`}>{section.name}</span>
                           <span className="text-xs text-gray-500">
                             ({section.visible_products_count || 0}/{section.products_count || 0} productos visibles)
@@ -334,8 +334,8 @@ const SectionList: React.FC<SectionListProps> = ({
                       <button
                         onClick={() => onToggleSectionVisibility(section.section_id, section.status)}
                         className={`inline-flex items-center justify-center h-6 w-6 rounded ${section.status === 1
-                            ? 'section-action section-icon-hover'
-                            : 'text-gray-400 hover:bg-gray-100'
+                          ? 'section-action section-icon-hover'
+                          : 'text-gray-400 hover:bg-gray-100'
                           }`}
                         disabled={isUpdatingVisibility === section.section_id}
                         aria-label={section.status === 1 ? "Ocultar sección" : "Mostrar sección"}

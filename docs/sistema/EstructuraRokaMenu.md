@@ -12,11 +12,15 @@ RokaMenu es una aplicación web (SaaS) diseñada para que dueños de restaurante
 - **Producto Final:** Un menú digital interactivo accesible a través de un código QR.
 - **Enfoque Principal:** **Mobile-First**. La experiencia de gestión está optimizada para dispositivos móviles, con una interfaz de escritorio completa también disponible.
 - **Funcionalidad Clave:**
-  - **Dashboard de Gestión Dual:**
-    - `MobileView`: Una interfaz de usuario diseñada específicamente para la gestión rápida y eficiente en móviles.
-    - `DashboardView`: Una vista de escritorio más tradicional y completa.
-    - `DynamicView` y `DashboardClient`: Para evitar errores de hidratación, la decisión de qué vista renderizar (`MobileView` o `DashboardView`) ahora se toma en el lado del cliente. `DashboardClient` importa `DynamicView` con el renderizado del lado del servidor (SSR) deshabilitado. `DynamicView` contiene la lógica para detectar el tamaño de la pantalla y mostrar el componente adecuado.
   - **Jerarquía Intuitiva:** `Categoría` > `Sección` > `Producto`.
+  - **Dashboard de Gestión Dual:**
+    - `MobileView`: Una interfaz "Drill-Down" optimizada para la gestión rápida en móviles.
+    - `DashboardView` (Vista de Escritorio): Implementa una **arquitectura "Master-Detail"**.
+      - **Master:** La primera columna muestra siempre la lista de **categorías** (`CategoryGridView`).
+      - **Detail (Nivel 1):** Al seleccionar una categoría, una segunda columna muestra sus **secciones** (`SectionGridView`).
+      - **Detail (Nivel 2):** Al seleccionar una sección, una tercera columna muestra sus **productos** (`ProductGridView`).
+      - Esta estructura es orquestada por `DashboardView.tsx`, pero la lógica de renderizado real está encapsulada en los componentes `GridView` dedicados, que son "tontos".
+    - **`DynamicView` y `DashboardClient`:** Son el corazón de la carga del dashboard. `DashboardClient` carga los datos iniciales y renderiza `DynamicView` sin SSR. `DynamicView` detecta el tipo de dispositivo y renderiza `MobileView` o `DashboardView`, previniendo errores de hidratación.
   - **Reordenamiento:** Drag & Drop en escritorio (`dnd-kit`) y un "modo de ordenación" planificado para móvil.
   - **Live Preview:** (En desarrollo) Visualización en tiempo real de los cambios realizados en el menú.
 
@@ -53,15 +57,15 @@ El corazón de la aplicación, siguiendo el paradigma de App Router.
 - **`app/api/`**: Contiene todas las rutas de la API del backend. La estructura es RESTful.
 - **`app/dashboard-v2/`**
 
-  - **`views/`**: Contiene los componentes de vista de alto nivel (`MobileView.tsx`, `DashboardView.tsx`).
   - **`components/`**: La carpeta más importante para la UI.
-    - `core/`: Componentes agnósticos al dominio. Los más importantes son `DashboardClient.tsx` y `DynamicView.tsx`, que gestionan la carga de la sesión y el cambio de vista (móvil/escritorio) respectivamente.
-    - `domain/`: Componentes específicos de un modelo de datos (ej: `CategoryList`, `SectionListView`). **Son componentes "tontos"** que reciben datos y funciones como props.
-    - `layout/`: Componentes estructurales (ej: `Sidebar`, `Header`).
-    - `modals/`: Contiene todos los modales (ej: `DeleteModal`, `ProductModal`).
+    - **`views/`**: **NUEVO.** Contiene los nuevos componentes de vista de alto nivel, específicos para la arquitectura Master-Detail (`CategoryGridView.tsx`, `SectionGridView.tsx`, `ProductGridView.tsx`).
+    - `core/`: Componentes agnósticos al dominio. Los más importantes son `DashboardClient.tsx` (punto de entrada, carga de datos), `DynamicView.tsx` (switcher móvil/escritorio) y `DashboardView.tsx` (orquestador de la vista Master-Detail).
+    - `domain/`: Componentes específicos de un modelo de datos (ej: `CategoryList`, `SectionListView`). **Son componentes "tontos"** que reciben datos y funciones como props. Ahora se usan principalmente dentro de la `MobileView`.
+    - `layout/`: Componentes estructurales (ej: `Sidebar`, `Header`, `TopNavbar`).
+    - `modals/`: Contiene todos los modales (ej: `DeleteModal`, `ProductModal`, `EditModals.tsx`).
     - `ui/`: Componentes reutilizables y básicos. (ej: `Fab.tsx`, `ContextMenu.tsx`).
-  - **`stores/`**: **EL NUEVO CEREBRO DEL FRONTEND.**
-    - `dashboardStore.ts`: Este store de Zustand centraliza toda la lógica de estado del dashboard. Maneja el estado de la UI (qué vista está activa), los datos de las entidades (arrays de categorías, secciones, etc.) y contiene todas las acciones asíncronas que llaman a las APIs y actualizan el estado de forma segura.
+  - **`stores/`**: **EL CEREBRO DEL FRONTEND.**
+    - `dashboardStore.ts`: Este store de Zustand centraliza TODA la lógica de estado del dashboard. Maneja el estado de la UI (qué vista está activa, qué categoría está seleccionada), los datos de las entidades (arrays de categorías, secciones, etc.) y contiene todas las acciones asíncronas que llaman a las APIs y actualizan el estado de forma segura.
   - **`hooks/`**: Su rol ha sido simplificado. Ya no contiene la lógica de estado compleja. Ahora se usa para hooks de UI simples (ej: `useIsMobile`) o para stores de Zustand específicos y aislados (ej: `useModalStore`).
   - **`types/`**: Definiciones de TypeScript.
   - **`utils/`**: Funciones de utilidad genéricas.

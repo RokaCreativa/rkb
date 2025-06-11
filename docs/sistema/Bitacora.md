@@ -251,199 +251,59 @@
 
 ---
 
-### **#13 | Depuración General de Visibilidad y Contadores**
+### **#13 | Épica de Refactorización: De "God Component" a "Master-Detail" y Resurrección de la UI**
 
-- **Fecha:** 2024-06-16
+- **Fecha:** 2024-06-18
 - **Responsable:** Gemini & Rokacreativa
-- **Checklist:** #T17 (Corrección sobre la tarea)
-- **Mandamientos Involucrados:** #1, #2, #6, #7, #10
+- **Checklist:** #T18, #T19, #T20, #T21, #T22 (completados en esta sesión)
+- **Mandamientos Involucrados:** #3, #5, #6, #7, #9, #10, #11
 
 **Descripción:**
 
-> Se ha realizado una depuración exhaustiva del sistema de visibilidad que afectaba a toda la aplicación (móvil y escritorio), solucionando una cadena de errores:
+> Esta sesión fue una de las más intensas y transformadoras del proyecto. Se abordaron y resolvieron múltiples problemas críticos, culminando en una refactorización masiva de la arquitectura del dashboard.
 
-> 1.  **Error de `params` en API:** Se corrigió un error crítico del servidor en las rutas `PUT /api/products/[id]/visibility` y `PUT /api/sections/[id]/visibility`. El error impedía que la base de datos se actualizara de forma fiable, causando que los contadores no reflejaran los cambios.
-> 2.  **API de Categorías (Error 404):** Se descubrió que la llamada para cambiar la visibilidad de una categoría apuntaba a una ruta inexistente. Se creó la ruta `PUT /api/categories/[id]/visibility` y se corrigió el hook `useCategoryManagement` para usarla, eliminando el error 404.
-> 3.  **Lógica de Recarga de Datos:** Se revisó la lógica de recarga de datos en las vistas para asegurar que, tras un cambio de visibilidad, se pidan los datos actualizados al servidor, forzando la actualización de los contadores en la UI. Se aplicaron correcciones en `DashboardView.tsx` para la vista de escritorio.
+> **1. Corrección de Bugs Críticos:**
+>
+> - Se solucionó un `TypeError` en `goToCategory` y un fallo en los botones de visibilidad de la vista móvil. La causa raíz era una inconsistencia de tipos: el frontend enviaba `0/1` y el backend esperaba `boolean`. Se corrigió en `dashboardStore.ts`.
+> - Se eliminó un error de hidratación de React que rompía la aplicación al eliminar el `ViewSwitcher.tsx` y reemplazarlo por una carga dinámica (`ssr: false`) del nuevo `DynamicView.tsx` desde un `DashboardClient.tsx` reestructurado.
+
+> **2. Refactorización a "Master-Detail":**
+>
+> - Se identificó a `DashboardView.tsx` como un "God Component" insostenible.
+> - Se descompuso en una arquitectura "Master-Detail" orquestada por el `dashboardStore`:
+>   - `DashboardView.tsx` ahora actúa como un orquestador simple.
+>   - Se crearon tres componentes de vista "tontos" y reutilizables: `CategoryGridView.tsx`, `SectionGridView.tsx`, y `ProductGridView.tsx`.
+>   - Se crearon modales genéricos (`EditModals.tsx`, `DeleteConfirmationModal.tsx`) y un hook para su estado (`useModalState.tsx`).
+>   - Se actualizó el `dashboardStore` para manejar el estado de selección (`selectedCategoryId`, `selectedSectionId`).
+
+> **3. Crisis y Recuperación:**
+>
+> - La refactorización inicial provocó una regresión catastrófica: la UI entera (móvil y escritorio) se rompió.
+> - **Diagnóstico:** Al reescribir `DashboardClient.tsx`, se eliminó por error la lógica de carga de datos y, crucialmente, la renderización del `DynamicView.tsx`.
+> - **Solución:** Se restauró la arquitectura correcta en `DashboardClient.tsx`, devolviéndole la responsabilidad de cargar los datos y de renderizar el `DynamicView`, que a su vez volvió a actuar como el "switcher" entre `MobileView` y `DashboardView`.
+
+> **4. Auditoría de Código:**
+>
+> - Tras restaurar la funcionalidad, se realizó una auditoría completa de todos los archivos modificados para añadir comentarios contextuales de alta calidad ("migas de pan"), cumpliendo con el Mandamiento #7.
 
 **Archivos Modificados/Creados:**
 
-- `app/api/products/[id]/visibility/route.ts` (Modificado)
-- `app/api/sections/[id]/visibility/route.ts` (Modificado)
-- `app/api/categories/[id]/visibility/route.ts` (Creado)
-- `app/dashboard-v2/hooks/domain/category/useCategoryManagement.ts` (Modificado)
+- `app/dashboard-v2/stores/dashboardStore.ts` (Modificado)
+- `app/dashboard-v2/components/core/DashboardClient.tsx` (Modificado)
+- `app/dashboard-v2/components/core/DynamicView.tsx` (Creado)
+- `app/dashboard-v2/components/core/ViewSwitcher.tsx` (Eliminado)
 - `app/dashboard-v2/components/core/DashboardView.tsx` (Modificado)
+- `app/dashboard-v2/components/views/CategoryGridView.tsx` (Creado)
+- `app/dashboard-v2/components/views/SectionGridView.tsx` (Creado)
+- `app/dashboard-v2/components/views/ProductGridView.tsx` (Creado)
+- `app/dashboard-v2/components/modals/EditModals.tsx` (Creado)
+- `app/dashboard-v2/components/modals/DeleteConfirmationModal.tsx` (Creado)
+- `app/dashboard-v2/hooks/ui/useModalState.tsx` (Creado)
 - `docs/sistema/Bitacora.md` (Actualizado)
 
 ---
 
-### **#14 | Brainstorming Estratégico y Futuro de la UI Móvil**
-
-- **Fecha:** 2024-06-15
-- **Responsable:** Gemini & Rokacreativa
-- **Checklist:** #T9 (creada), #T18 (creada), #T19 (creada)
-- **Mandamientos Involucrados:** #4 (Consenso), #5 (Mobile-First), #8 (Consistencia)
-
-**Descripción:**
-
-> Se realizó una sesión de brainstorming para definir la evolución de la experiencia móvil. Se tomaron las siguientes decisiones clave:
->
-> 1.  **Reordenación en Móvil (#T9):** Se implementará un "Modo de Ordenación" con flechas o agarraderas, en lugar de un drag-and-drop complejo.
-> 2.  **Mejora de las Listas:** Se acordó enriquecer las listas con imágenes, contadores de visibilidad y un botón de "ojo". Los ítems ocultos se mostrarán con opacidad reducida.
-> 3.  **Cancelación de Migración:** Se canceló oficialmente la migración a PostgreSQL, decidiendo continuar con MySQL.
-> 4.  **Nuevas Tareas:** Se crearon las tareas #T18 (Lightbox) y #T19 (Optimización de subida de imágenes).
-> 5.  **Implementación de Diseño:** Se aplicó el nuevo diseño visual a las listas en `MobileView` y se corrigió un bug en los contadores.
-
-**Archivos Modificados/Creados:**
-
-- `docs/sistema/Checklist.md` (Actualizado)
-- `docs/sistema/Bitacora.md` (Actualizado)
-- `app/dashboard-v2/views/MobileView.tsx` (Modificado)
-- `app/dashboard-v2/hooks/domain/category/useCategoryManagement.ts` (Modificado)
-- `app/dashboard-v2/hooks/domain/section/useSectionManagement.ts` (Modificado)
-
----
-
-### **#15 | Implementación Completa de Visibilidad en Móvil**
-
-- **Fecha:** 2024-06-16
-- **Responsable:** Gemini
-- **Checklist:** #T17
-- **Mandamientos Involucrados:** #5 (Mobile-First), #6 (Separación de Responsabilidades)
-
-**Descripción:**
-
-> Se ha conectado y refactorizado por completo la funcionalidad de visibilidad (botón de "ojo") en la vista móvil para Categorías, Secciones y Productos.
-> `MobileView.tsx` fue refactorizado para usar un patrón de estado centralizado, eliminando lógica duplicada y solucionando conflictos de tipos. La funcionalidad ahora usa "actualización optimista" desde los hooks para una respuesta instantánea.
-
-**Archivos Modificados/Creados:**
-
-- `app/dashboard-v2/views/MobileView.tsx` (Modificado)
-
----
-
-### **#16 | Análisis Arquitectónico y Plan de Refactorización de `DashboardView`**
-
-- **Fecha:** 2024-06-18
-- **Responsable:** Gemini & Rokacreativa
-- **Checklist:** #T21
-- **Mandamientos Involucrados:** #1 (Conocer lo que existe), #4 (Consenso), #6 (Separación de Responsabilidades), #10 (Disciplina)
-
-**Descripción:**
-
-> Se realizó una inmersión y análisis profundo de toda la base de código para recuperar el contexto. Durante este proceso, se identificó una dualidad crítica en la gestión del estado:
->
-> 1. La vista de escritorio (`DashboardView.tsx`) utiliza un sistema complejo y frágil basado en el hook `useDashboardState` y múltiples `useState` locales.
-> 2. La vista móvil (`MobileView.tsx`) utiliza un store de `Zustand` (`useDashboardStore`), una solución mucho más limpia y robusta.
->
-> Por decisión estratégica, se ha definido que la prioridad es refactorizar la vista de escritorio para que también consuma `useDashboardStore`, unificando así la arquitectura de toda la aplicación. Se ha creado la tarea **#T21** en el `Checklist.md` para detallar este plan.
->
-> Adicionalmente, se limpió la estructura de documentación, fusionando y eliminando archivos `Bitacora.md` y `Checklist.md` duplicados de la raíz del proyecto.
-
-**Archivos Modificados/Creados:**
-
-- `docs/sistema/Checklist.md` (Actualizado)
-- `docs/sistema/Bitacora.md` (Actualizado)
-
----
-
-### **#19 | Blindaje del Dashboard Contra Errores de Hidratación**
-
-- **Fecha:** 2024-06-18
-- **Responsable:** Gemini & Rokacreativa
-- **Checklist:** N/A (Bug Crítico)
-- **Mandamientos Involucrados:** #1, #2, #9, #10
-
-**Descripción:**
-
-> Tras un intenso proceso de depuración de un error de hidratación que persistía incluso después de múltiples correcciones, se llegó a una conclusión clave gracias a la insistencia del usuario en no aceptar soluciones superficiales. El problema no era una simple extensión, sino una condición de carrera entre el estado de la sesión de NextAuth y la hidratación de React, especialmente en navegadores con caché agresivo como Chrome.
-
-> La solución definitiva fue refactorizar la carga del dashboard para hacerlo inmune a estos problemas. Se movió toda la lógica de sesión a un componente cliente (`DashboardClient.tsx`). La clave de la solución fue usar el estado de la sesión de `useSession` como una `key` para el componente `ViewSwitcher` (`<ViewSwitcher key={status} />`). Esto fuerza a React a destruir y reconstruir completamente el componente de la vista cuando el estado de autenticación cambia (de `loading` a `authenticated`), eliminando cualquier posibilidad de estado inconsistente y resolviendo el bug de raíz.
-
-**Archivos Modificados/Creados:**
-
-- `app/dashboard-v2/page.tsx` (Simplificado)
-- `app/dashboard-v2/components/core/DashboardClient.tsx` (Refactorizado con lógica de sesión y `key`)
-
----
-
-### **#20 | Restauración de Contexto y Plan de Refactorización Global**
-
-- **Fecha:** 2024-06-19
-- **Responsable:** Gemini & Rokacreativa
-- **Checklist:** #T21 (creada)
-- **Mandamientos Involucrados:** #1, #2, #4, #6, #7, #10
-
-**Descripción:**
-
-> Tras una sesión de depuración y restauración del contexto a partir de una conversación anterior, se ha establecido una base de conocimiento sólida y compartida. Se localizó con éxito el store de Zustand (`app/dashboard-v2/stores/dashboardStore.ts`), confirmando que la vista móvil ya utiliza una gestión de estado moderna. Esto ha clarificado que la inconsistencia arquitectónica con la vista de escritorio (`DashboardView.tsx`) es el principal punto de deuda técnica. Se ha trazado un plan de acción claro y detallado (Tarea #T21 en el Checklist) para refactorizar la vista de escritorio, unificando así toda la aplicación bajo una única fuente de verdad (Zustand).
-
-**Archivos Modificados/Creados:**
-
-- `docs/sistema/Checklist.md` (Actualizado con plan de refactorización)
-- `docs/sistema/Bitacora.md` (Esta misma entrada)
-
----
-
-### **#21 | Limpieza de Dependencias Obsoletas**
-
-- **Fecha:** 2024-06-19
-- **Responsable:** Gemini & Rokacreativa
-- **Checklist:** #T21.1
-- **Mandamientos Involucrados:** #8 (Respeto al Sistema de Diseño y Dependencias)
-
-**Descripción:**
-
-> Se ha completado la primera tarea del plan de refactorización. Se eliminó la dependencia `react-beautiful-dnd` y sus tipos (`@types/react-beautiful-dnd`) del `package.json`. Esta librería es obsoleta y el proyecto ya utiliza su sucesor moderno (`@hello-pangea/dnd`), por lo que su eliminación limpia el proyecto de código innecesario y potenciales conflictos.
-
-**Archivos Modificados/Creados:**
-
-- `package.json`
-- `package-lock.json`
-- `docs/sistema/Checklist.md`
-- `docs/sistema/Bitacora.md` (Esta misma entrada)
-
----
-
-### **#22 | Extensión de Store Global para Vista de Escritorio**
-
-- **Fecha:** 2024-06-19
-- **Responsable:** Gemini & Rokacreativa
-- **Checklist:** #T21.2
-- **Mandamientos Involucrados:** #6 (Separación de Responsabilidades), #8 (Consistencia Estructural)
-
-**Descripción:**
-
-> Se ha completado el segundo paso del plan de refactorización. Se extendió el store central de Zustand (`useDashboardStore`) para incluir los estados y acciones que antes eran gestionados localmente por la vista de escritorio (`DashboardView.tsx`). Se añadieron `selectedCategory`, `selectedSection`, `expandedCategories` y `isReorderModeActive`, junto con sus acciones correspondientes. Este cambio es fundamental para unificar la gestión de estado de toda la aplicación y preparar el terreno para la refactorización final de `DashboardView.tsx`.
-
-**Archivos Modificados/Creados:**
-
-- `app/dashboard-v2/stores/dashboardStore.ts`
-- `docs/sistema/Checklist.md`
-- `docs/sistema/Bitacora.md` (Esta misma entrada)
-
----
-
-### **#23 | Conexión Exitosa de Vista de Escritorio a Store Central**
-
-- **Fecha:** 2024-06-19
-- **Responsable:** Gemini & Rokacreativa
-- **Checklist:** #T21.3
-- **Mandamientos Involucrados:** #1 (Contexto), #2 (Actualización), #6 (Separación de Responsabilidades)
-
-**Descripción:**
-
-> Se ha completado exitosamente la conexión de `DashboardView.tsx` al store central de Zustand. Tras resolver errores de nomenclatura de funciones (`fetchSections` vs `fetchSectionsByCategory`), ambas vistas (escritorio y móvil) ahora comparten la misma fuente de verdad para el estado global. Esto representa un hito arquitectónico importante: la aplicación completa ahora utiliza una gestión de estado unificada y moderna. Las pruebas confirman que tanto la vista de escritorio como la móvil cargan y funcionan perfectamente con la nueva arquitectura.
-
-**Archivos Modificados/Creados:**
-
-- `app/dashboard-v2/components/core/DashboardView.tsx`
-- `docs/sistema/Checklist.md`
-- `docs/sistema/Bitacora.md` (Esta misma entrada)
-
----
-
-### **#24 | Corrección Arquitectónica: Extracción de ClientId en DashboardView**
+### **#14 | Corrección Arquitectónica: Extracción de ClientId en DashboardView**
 
 - **Fecha:** 2024-12-20
 - **Responsable:** Gemini
@@ -468,7 +328,7 @@
 
 ---
 
-### **#25 | Eliminación Completa de Drag & Drop - Progreso #T25.1**
+### **#15 | Eliminación Completa de Drag & Drop - Progreso #T25.1**
 
 - **Fecha:** 2024-12-20
 - **Responsable:** Gemini
@@ -609,6 +469,26 @@ Solo quedan correcciones menores en archivos secundarios
 - `docs/sistema/EstructuraRokaMenu.md` (Actualizado)
 - `docs/sistema/Checklist.md` (Actualizado)
 - `docs/sistema/Bitacora.md` (Actualizado)
+
+---
+
+### **#27 | decyzja strategiczna: Refaktoryzacja widoku pulpitu na architekturę "Master-Detail"**
+
+- **Data:** 2024-06-21
+- **Odpowiedzialny:** Gemini & Rokacreativa
+- **Lista kontrolna:** #T27
+- **Zaangażowane przykazania:** #6 (Separacja odpowiedzialności), #9 (Optymalizacja), #10 (Proaktywna poprawa)
+
+**Opis:**
+
+> W strategicznej decyzji mającej na celu rozwiązanie długu technicznego i poprawę długoterminowej konserwowalności, zdecydowano się na priorytetowe potraktowanie całkowitej refaktoryzacji widoku pulpitu (`DashboardView.tsx`). Obecna architektura zagnieżdżona okazała się krucha, trudna w utrzymaniu i podatna na błędy regresji.
+
+> Nowym podejściem jest wdrożenie czystego i sprawdzonego wzorca "Master-Detail", który rozdzieli interfejs na trzy niezależne widoki siatki: jeden dla kategorii, jeden dla sekcji i jeden dla produktów. To nie tylko drastycznie uprości kod i ułatwi przyszły rozwój, ale także znacząco poprawi doświadczenie użytkownika na pulpicie, czyniąc je bardziej intuicyjnym i skupionym. Prace nad naprawą błędów w starym widoku zostają wstrzymane na rzecz budowy tego nowego, solidnego fundamentu.
+
+**Zmodyfikowane/Utworzone pliki:**
+
+- `docs/sistema/Checklist.md` (Nowe zadanie #T27 dodane i priorytetyzowane)
+- `docs/sistema/Bitacora.md` (Ten wpis)
 
 ---
 
