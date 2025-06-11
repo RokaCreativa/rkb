@@ -97,47 +97,47 @@ const CategoryView: React.FC<CategoryViewProps> = ({
   const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
   const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  
+
   const [isAddSectionModalOpen, setIsAddSectionModalOpen] = useState(false);
   const [isEditSectionModalOpen, setIsEditSectionModalOpen] = useState(false);
   const [isDeleteSectionModalOpen, setIsDeleteSectionModalOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  
+
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [selectedSectionIdForProduct, setSelectedSectionIdForProduct] = useState<number | null>(null);
-  
+
   // Category modal handlers
   const handleAddCategory = () => {
     setIsAddCategoryModalOpen(true);
   };
-  
+
   const handleEditCategory = (category: Category) => {
     setSelectedCategory(category);
     setIsEditCategoryModalOpen(true);
   };
-  
+
   const handleDeleteCategory = (category: Category) => {
     setSelectedCategory(category);
     setIsDeleteCategoryModalOpen(true);
   };
-  
+
   // Section modal handlers
   const handleAddSection = (categoryId: number) => {
     setSelectedCategoryId(categoryId);
     setIsAddSectionModalOpen(true);
   };
-  
+
   const handleEditSection = (section: Section) => {
     setSelectedSection(section);
     setIsEditSectionModalOpen(true);
   };
-  
+
   const handleDeleteSection = (section: Section) => {
     setSelectedSection(section);
     setIsDeleteSectionModalOpen(true);
   };
-  
+
   // Product modal handlers
   const handleAddProduct = (sectionId: number) => {
     setSelectedSectionIdForProduct(sectionId);
@@ -181,7 +181,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
         if (selectedCategory) {
           const categoryId = selectedCategory.category_id;
           console.log('✅ CategoryView -> Reordenando secciones para categoría:', categoryId);
-          
+
           if (onSectionsReorder) {
             // Llamamos directamente a la función onSectionsReorder con los parámetros esperados
             onSectionsReorder(categoryId, sourceIndex, destinationIndex);
@@ -191,7 +191,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
         } else {
           // Estamos reordenando categorías globalmente
           console.log('✅ CategoryView -> Reordenando categorías globalmente');
-          
+
           // Usar el primer argumento disponible para la reordenación
           if (onSectionsReorder) {
             // En este caso, usamos el ID de la primera categoría como un comodín
@@ -222,11 +222,10 @@ const CategoryView: React.FC<CategoryViewProps> = ({
                 onSectionsReorder(-1, -1, -1);
               }
             }}
-            className={`px-2 py-1 rounded-md text-sm font-medium flex items-center ${
-              isReorderModeActive 
+            className={`px-2 py-1 rounded-md text-sm font-medium flex items-center ${isReorderModeActive
                 ? 'bg-indigo-600 text-white hover:bg-indigo-700'
                 : 'border border-indigo-600 text-indigo-600 hover:bg-indigo-50'
-            }`}
+              }`}
           >
             {isReorderModeActive ? 'Finalizar' : 'Reordenar'}
           </button>
@@ -238,7 +237,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
           </button>
         </div>
       </div>
-      
+
       <div className="flex-grow rounded-lg overflow-hidden">
         <CategoryTable
           categories={categories}
@@ -277,14 +276,14 @@ const CategoryView: React.FC<CategoryViewProps> = ({
         isOpen={isAddCategoryModalOpen}
         onClose={() => setIsAddCategoryModalOpen(false)}
         client={null}
-        setCategories={(() => {}) as any}
+        setCategories={(() => { }) as any}
         onSuccess={() => {
           if (onAddCategorySubmit) {
             onAddCategorySubmit({} as Partial<Category>);
           }
         }}
       />
-      
+
       {isEditCategoryModalOpen && selectedCategory && (
         <EditCategoryModal
           isOpen={isEditCategoryModalOpen}
@@ -294,14 +293,14 @@ const CategoryView: React.FC<CategoryViewProps> = ({
           setCategories={(cats) => {
             if (onEditCategorySubmit && selectedCategory) {
               // Buscar la categoría editada y enviarla al callback
-              const updatedCategory = Array.isArray(cats) ? 
+              const updatedCategory = Array.isArray(cats) ?
                 cats.find(c => c.category_id === selectedCategory.category_id) : null;
               if (updatedCategory) onEditCategorySubmit(updatedCategory);
             }
           }}
         />
       )}
-      
+
       {isDeleteCategoryModalOpen && selectedCategory && (
         <DeleteModal
           isOpen={isDeleteCategoryModalOpen}
@@ -315,7 +314,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
           }}
         />
       )}
-      
+
       {isAddSectionModalOpen && selectedCategoryId !== null && (
         <NewSectionModal
           isOpen={isAddSectionModalOpen}
@@ -328,16 +327,16 @@ const CategoryView: React.FC<CategoryViewProps> = ({
               const sectionList = sections[sectionId] || [];
               const lastSection = sectionList.length > 0 ? sectionList[sectionList.length - 1] : null;
               if (lastSection) {
-               onAddSectionSubmit({
+                onAddSectionSubmit({
                   ...lastSection,
-                category_id: selectedCategoryId
-              });
+                  category_id: selectedCategoryId
+                });
               }
             }
           }}
         />
       )}
-      
+
       {isEditSectionModalOpen && selectedSection && (
         <EditSectionModal
           isOpen={isEditSectionModalOpen}
@@ -352,7 +351,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
           }}
         />
       )}
-      
+
       {isDeleteSectionModalOpen && selectedSection && (
         <DeleteModal
           isOpen={isDeleteSectionModalOpen}
@@ -366,7 +365,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
           }}
         />
       )}
-      
+
       {isAddProductModalOpen && selectedSectionIdForProduct !== null && (
         <NewProductModal
           isOpen={isAddProductModalOpen}
@@ -379,10 +378,10 @@ const CategoryView: React.FC<CategoryViewProps> = ({
               const productList = products[sectionId] || [];
               const lastProduct = productList.length > 0 ? productList[productList.length - 1] : null;
               if (lastProduct) {
-               onAddProductSubmit({
+                onAddProductSubmit({
                   ...lastProduct,
-                section_id: selectedSectionIdForProduct
-              });
+                  section_id: selectedSectionIdForProduct
+                });
               }
             }
           }}
@@ -392,7 +391,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
       {/* Añadir logs de diagnóstico para debug */}
       {selectedCategory && (
         <div className="mt-2 ml-4">
-          <SectionList 
+          <SectionList
             sections={sections[selectedCategory.category_id] || []}
             expandedSections={expandedSections}
             onSectionClick={onSectionClick}
@@ -410,7 +409,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
             categoryId={selectedCategory.category_id}
             onAddSectionToCategory={() => onAddSectionSubmit && onAddSectionSubmit({ category_id: selectedCategory.category_id } as any)}
             isReorderModeActive={isReorderModeActive}
-            onSectionsReorder={isReorderModeActive && onSectionsReorder ? 
+            onSectionsReorder={isReorderModeActive && onSectionsReorder ?
               (categoryId: number, sourceIndex: number, destinationIndex: number) => {
                 onSectionsReorder(categoryId, sourceIndex, destinationIndex);
               } : undefined

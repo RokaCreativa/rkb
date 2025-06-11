@@ -39,6 +39,15 @@
   - [x] **#T7.1 - Completar Flujo CRUD Móvil:** Asegurar que los modales y formularios para crear y editar categorías, secciones y productos sean 100% funcionales y responsivos en móvil. (Completado con la migración a Zustand)
   - [ ] **#T8 - Componentes Responsivos:** Revisar y refactorizar componentes clave (`Modal`, `Form`) para garantizar su perfecta funcionalidad en pantallas pequeñas.
   - [ ] **#T9 - Modo de Ordenación Móvil:** Implementar una interfaz para reordenar categorías, secciones y productos en la vista móvil.
+  - [ ] **#T25 - Reemplazo de Drag & Drop por Flechitas de Ordenamiento:**
+    - **Objetivo:** Reemplazar el sistema de drag & drop por flechitas de subir/bajar más intuitivas y compatibles con móvil.
+    - **Justificación:** Las flechitas son más simples, accesibles, compatibles con todos los dispositivos y siguen el principio Mobile-First.
+    - **Tareas Detalladas:**
+      - [ ] **#T25.1 - Eliminar Drag & Drop:** Remover todas las dependencias y código relacionado con `@hello-pangea/dnd`.
+      - [ ] **#T25.2 - Implementar Flechitas en Móvil:** Crear componente de flechitas para `MobileView.tsx`.
+      - [ ] **#T25.3 - Implementar Flechitas en Escritorio:** Adaptar las flechitas para `DashboardView.tsx`.
+      - [ ] **#T25.4 - APIs de Reordenamiento:** Asegurar que las APIs `reorder` funcionen correctamente.
+      - [ ] **#T25.5 - Limpiar Código Legacy:** Eliminar componentes, hooks y utilidades de drag & drop obsoletos.
 
 ### **Fase 3: Migración de Base de Datos (CANCELADA)**
 
@@ -55,13 +64,16 @@
 
 - **Objetivo:** Mantener el código sano y manetenible a largo plazo.
 - **Tareas:**
+  - [x] **#T26 - Corrección de Errores Críticos (Visibilidad e Hidratación):**
+    - [x] **#T26.1 - Reparar API de Visibilidad:** Se alineó el `dashboardStore` para enviar `boolean` en lugar de `number` al backend, solucionando el error 400.
+    - [x] **#T26.2 - Solucionar Error de Hidratación:** Se reemplazó `ViewSwitcher` por una importación dinámica con SSR deshabilitado para `DynamicView`, eliminando el desajuste de renderizado.
   - [ ] **#T21 - Refactorización de Vista de Escritorio a Zustand:**
     - **Objetivo:** Unificar la gestión de estado de toda la aplicación, eliminando la arquitectura legada de `DashboardView.tsx` y `useDashboardState.ts` para que utilice el store central `useDashboardStore`.
     - **Tareas Detalladas:**
       - [x] **#T21.1 - Limpieza de Dependencias:** Eliminar la librería obsoleta `react-beautiful-dnd` y sus tipos.
       - [x] **#T21.2 - Extender `useDashboardStore`:** Añadir al store los estados y acciones necesarios para la vista de escritorio que actualmente faltan (ej: `selectedCategory`, `selectedSection`, `expandedCategories`, modo de reordenación, etc.).
-      - [ ] **#T21.3 - Refactorizar `DashboardView.tsx` (Incremental):**
-        - [ ] Conectar el componente al `useDashboardStore`.
+      - [x] **#T21.3 - Refactorizar `DashboardView.tsx` (Incremental):**
+        - [x] Conectar el componente al `useDashboardStore`.
       - [ ] **#T21.4 - Eliminar `useDashboardState.ts`:** Una vez que `DashboardView.tsx` y sus hijos ya no lo utilicen, eliminar el hook obsoleto.
       - [ ] **#T21.5 - Refactorizar Hijos:** Evaluar si los componentes hijos (`CategoryView`, `SectionView`) pueden consumir directamente del store en lugar de recibir todas las props desde `DashboardView`.
   - [ ] **#T15 - Revisión de `//TODO`:** Buscar en todo el código comentarios `//TODO` o `FIXME` y abordarlos.

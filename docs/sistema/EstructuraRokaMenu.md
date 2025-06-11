@@ -15,7 +15,7 @@ RokaMenu es una aplicación web (SaaS) diseñada para que dueños de restaurante
   - **Dashboard de Gestión Dual:**
     - `MobileView`: Una interfaz de usuario diseñada específicamente para la gestión rápida y eficiente en móviles.
     - `DashboardView`: Una vista de escritorio más tradicional y completa.
-    - `ViewSwitcher`: Un componente que renderiza automáticamente la vista correcta según el tamaño de la pantalla.
+    - `DynamicView` y `DashboardClient`: Para evitar errores de hidratación, la decisión de qué vista renderizar (`MobileView` o `DashboardView`) ahora se toma en el lado del cliente. `DashboardClient` importa `DynamicView` con el renderizado del lado del servidor (SSR) deshabilitado. `DynamicView` contiene la lógica para detectar el tamaño de la pantalla y mostrar el componente adecuado.
   - **Jerarquía Intuitiva:** `Categoría` > `Sección` > `Producto`.
   - **Reordenamiento:** Drag & Drop en escritorio (`dnd-kit`) y un "modo de ordenación" planificado para móvil.
   - **Live Preview:** (En desarrollo) Visualización en tiempo real de los cambios realizados en el menú.
@@ -55,7 +55,7 @@ El corazón de la aplicación, siguiendo el paradigma de App Router.
 
   - **`views/`**: Contiene los componentes de vista de alto nivel (`MobileView.tsx`, `DashboardView.tsx`).
   - **`components/`**: La carpeta más importante para la UI.
-    - `core/`: Componentes agnósticos al dominio. El más importante es `ViewSwitcher.tsx`.
+    - `core/`: Componentes agnósticos al dominio. Los más importantes son `DashboardClient.tsx` y `DynamicView.tsx`, que gestionan la carga de la sesión y el cambio de vista (móvil/escritorio) respectivamente.
     - `domain/`: Componentes específicos de un modelo de datos (ej: `CategoryList`, `SectionListView`). **Son componentes "tontos"** que reciben datos y funciones como props.
     - `layout/`: Componentes estructurales (ej: `Sidebar`, `Header`).
     - `modals/`: Contiene todos los modales (ej: `DeleteModal`, `ProductModal`).
@@ -154,7 +154,7 @@ Esta sección documenta los problemas recurrentes y las lecciones críticas apre
     - **Lección #2: Conflictos de rutas, métodos y tipos.** La investigación reveló una cascada de errores en el backend que tuvieron que ser solucionados en orden:
       - **Conflicto de Rutas:** Existían dos carpetas dinámicas (`/api/products/[id]` y `/api/products/[productId]`), creando ambigüedad. La solución fue consolidar todo bajo `[id]`.
       - **Método HTTP Incorrecto:** Los hooks llamaban con `PATCH` (correcto para actualizaciones parciales), pero las APIs esperaban `PUT`. Esto causaba un error `405 Method Not Allowed`. La solución fue estandarizar todas las rutas de visibilidad a `PATCH`.
-      - **Inconsistencia de Tipos:** El frontend enviaba el `status` como un `boolean` (`true`/`false`), pero el backend esperaba un `number` (`1`/`0`) y fallaba al validar. La solución fue alinear el backend para que aceptara el `boolean`.
+      - **Inconsistencia de Tipos:** El frontend enviaba el `status` como un `number` (`1`/`0`), pero el backend esperaba un `boolean` (`true`/`false`) y fallaba al validar. La solución fue alinear el frontend para que siempre envíe `boolean`.
     - **Regla:** Ante un `API Error` genérico, verificar la cadena completa de la petición: **URL de la Ruta -> Método HTTP -> Tipos de Datos del Payload (Cuerpo)**.
 
 6.  **La Trampa de los Hooks Anidados y el Bucle Infinito:**

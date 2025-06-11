@@ -4,13 +4,13 @@ import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 
-const ViewSwitcher = dynamic(
-    () => import('./ViewSwitcher'),
+const DynamicView = dynamic(
+    () => import('./DynamicView'),
     {
         ssr: false,
         loading: () => (
-            <div className="md:hidden p-4 bg-gray-50 min-h-screen flex items-center justify-center">
-                <p className="text-gray-500">Cargando...</p>
+            <div className="p-4 bg-gray-50 min-h-screen flex items-center justify-center">
+                <p className="text-gray-500">Cargando interfaz...</p>
             </div>
         )
     }
@@ -32,5 +32,5 @@ export default function DashboardClient() {
         );
     }
 
-    return <ViewSwitcher key={status} />;
+    return <DynamicView key={status} />;
 } 

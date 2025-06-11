@@ -33,6 +33,7 @@ interface DashboardState {
     products: Record<string, Product[]>;
     isLoading: boolean;
     initialDataLoaded: boolean;
+    isUpdating: boolean; // Estado general para operaciones CRUD (create, update, delete)
     isUpdatingVisibility: Record<string, number | null>; // ej: { category: 1, section: null }
     error: string | null;
 
@@ -55,9 +56,25 @@ interface DashboardActions {
     fetchSectionsByCategory: (categoryId: number) => Promise<void>;
     fetchProductsBySection: (sectionId: number) => Promise<void>;
 
+    // Alias para compatibilidad con DashboardView.tsx - delega a fetchProductsBySection
+    fetchProducts: (sectionId: number) => Promise<void>;
+
     toggleCategoryVisibility: (categoryId: number, currentStatus: number) => Promise<void>;
     toggleSectionVisibility: (sectionId: number, categoryId: number, currentStatus: number) => Promise<void>;
     toggleProductVisibility: (productId: number, sectionId: number, currentStatus: number) => Promise<void>;
+
+    // --- Operaciones CRUD ---
+    deleteCategory: (categoryId: number) => Promise<void>;
+    deleteSection: (sectionId: number) => Promise<void>;
+    deleteProduct: (productId: number) => Promise<void>;
+
+    createCategory: (categoryData: Partial<Category>) => Promise<void>;
+    createSection: (sectionData: Partial<Section>) => Promise<void>;
+    createProduct: (productData: Partial<Product>) => Promise<void>;
+
+    updateCategory: (categoryId: number, categoryData: Partial<Category>) => Promise<void>;
+    updateSection: (sectionId: number, sectionData: Partial<Section>) => Promise<void>;
+    updateProduct?: (productId: number, productData: Partial<Product>) => Promise<void>; // Opcional por ahora
 
     // Acciones de Navegación
     handleCategorySelect: (category: Category) => void;
@@ -69,8 +86,6 @@ interface DashboardActions {
     setSelectedSection: (section: Section | null) => void;
     toggleCategoryExpansion: (categoryId: number) => void;
     toggleReorderMode: () => void;
-
-    // Aquí irán las demás acciones CRUD (create, update, delete)
 }
 
 // --- ESTADO INICIAL ---
@@ -82,6 +97,7 @@ const initialState: DashboardState = {
     products: {},
     isLoading: false,
     initialDataLoaded: false,
+    isUpdating: false,
     isUpdatingVisibility: {},
     error: null,
     activeView: 'categories',
@@ -186,7 +202,7 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
             const response = await fetch(`/api/categories/${categoryId}/visibility`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: currentStatus === 1 ? 0 : 1 }),
+                body: JSON.stringify({ status: currentStatus === 1 ? false : true }),
             });
             if (!response.ok) throw new Error('Error en el servidor');
 
@@ -228,7 +244,7 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
             const response = await fetch(`/api/sections/${sectionId}/visibility`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: currentStatus === 1 ? 0 : 1 }),
+                body: JSON.stringify({ status: currentStatus === 1 ? false : true }),
             });
             if (!response.ok) throw new Error('Error en el servidor');
             // Tras el éxito, recargamos las secciones de la categoría para obtener los contadores y el orden correctos.
@@ -262,7 +278,7 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
             const response = await fetch(`/api/products/${productId}/visibility`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: currentStatus === 1 ? 0 : 1 }),
+                body: JSON.stringify({ status: currentStatus === 1 ? false : true }),
             });
             if (!response.ok) throw new Error('Error en el servidor');
             // Recargamos los productos de la sección para que los contadores de la sección (padre) puedan actualizarse
@@ -358,5 +374,331 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
     },
 
     toggleReorderMode: () => set(state => ({ isReorderModeActive: !state.isReorderModeActive })),
+
+    // --- OPERACIONES CRUD ---
+
+    /**
+     * fetchProducts - Alias para mantener compatibilidad con DashboardView.tsx
+     * Internamente delega a fetchProductsBySection ya que los productos siempre se buscan por sección
+     */
+    fetchProducts: async (sectionId) => {
+        await get().fetchProductsBySection(sectionId);
+    },
+
+    /**
+     * deleteCategory - Elimina una categoría del sistema
+     * Refresca automáticamente la lista de categorías tras la eliminación para mantener el estado sincronizado
+     */
+    deleteCategory: async (categoryId) => {
+        set({ isUpdating: true, error: null });
+
+        try {
+            const response = await fetch(`/api/categories/${categoryId}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) throw new Error('Error al eliminar la categoría');
+
+            // Eliminar del estado local optimísticamente
+            set(state => ({
+                categories: state.categories.filter(c => c.category_id !== categoryId),
+                isUpdating: false
+            }));
+
+            // Recargar categorías para sincronizar con el servidor y recalcular contadores
+            const clientId = get().client?.client_id;
+            if (clientId) await get().fetchCategories(clientId);
+
+            toast.success('Categoría eliminada exitosamente');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            set({ error: errorMessage, isUpdating: false });
+            toast.error('No se pudo eliminar la categoría.');
+        }
+    },
+
+    /**
+     * deleteSection - Elimina una sección del sistema  
+     * Mantiene la sincronización con categorías padre para actualizar contadores
+     */
+    deleteSection: async (sectionId) => {
+        set({ isUpdating: true, error: null });
+
+        try {
+            const response = await fetch(`/api/sections/${sectionId}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) throw new Error('Error al eliminar la sección');
+
+            // Encontrar la categoría que contiene esta sección para actualizarla después
+            let categoryId: number | null = null;
+            Object.entries(get().sections).forEach(([catId, sections]) => {
+                if (sections.some(s => s.section_id === sectionId)) {
+                    categoryId = Number(catId);
+                }
+            });
+
+            // Eliminar del estado local
+            set(state => ({
+                sections: Object.fromEntries(
+                    Object.entries(state.sections).map(([catId, sections]) => [
+                        catId,
+                        sections.filter(s => s.section_id !== sectionId)
+                    ])
+                ),
+                isUpdating: false
+            }));
+
+            // Recargar las secciones de la categoría para sincronizar contadores
+            if (categoryId) await get().fetchSectionsByCategory(categoryId);
+
+            toast.success('Sección eliminada exitosamente');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            set({ error: errorMessage, isUpdating: false });
+            toast.error('No se pudo eliminar la sección.');
+        }
+    },
+
+    /**
+     * deleteProduct - Elimina un producto del sistema
+     * Sincroniza con secciones padre y categorías abuelo para mantener contadores actualizados
+     */
+    deleteProduct: async (productId) => {
+        set({ isUpdating: true, error: null });
+
+        try {
+            const response = await fetch(`/api/products/${productId}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) throw new Error('Error al eliminar el producto');
+
+            // Encontrar la sección que contiene este producto
+            let sectionId: number | null = null;
+            Object.entries(get().products).forEach(([secId, products]) => {
+                if (products.some(p => p.product_id === productId)) {
+                    sectionId = Number(secId);
+                }
+            });
+
+            // Eliminar del estado local
+            set(state => ({
+                products: Object.fromEntries(
+                    Object.entries(state.products).map(([secId, products]) => [
+                        secId,
+                        products.filter(p => p.product_id !== productId)
+                    ])
+                ),
+                isUpdating: false
+            }));
+
+            // Recargar productos de la sección para sincronizar
+            if (sectionId) {
+                await get().fetchProductsBySection(sectionId);
+
+                // También recargar las secciones para actualizar contadores de la categoría padre
+                const categoryIdKey = Object.keys(get().sections).find(key =>
+                    get().sections[key]?.some(s => s.section_id === sectionId)
+                );
+                if (categoryIdKey) {
+                    await get().fetchSectionsByCategory(Number(categoryIdKey));
+                }
+            }
+
+            toast.success('Producto eliminado exitosamente');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            set({ error: errorMessage, isUpdating: false });
+            toast.error('No se pudo eliminar el producto.');
+        }
+    },
+
+    /**
+     * createCategory - Crea una nueva categoría
+     * Refresca la lista para mostrar la nueva categoría en su posición correcta
+     */
+    createCategory: async (categoryData) => {
+        set({ isUpdating: true, error: null });
+
+        try {
+            const response = await fetch('/api/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(categoryData),
+            });
+            if (!response.ok) throw new Error('Error al crear la categoría');
+
+            const newCategory = await response.json();
+
+            // Añadir al estado local
+            set(state => ({
+                categories: [...state.categories, newCategory],
+                isUpdating: false
+            }));
+
+            // Recargar para obtener el orden correcto del servidor
+            const clientId = get().client?.client_id;
+            if (clientId) await get().fetchCategories(clientId);
+
+            toast.success('Categoría creada exitosamente');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            set({ error: errorMessage, isUpdating: false });
+            toast.error('No se pudo crear la categoría.');
+        }
+    },
+
+    /**
+     * createSection - Crea una nueva sección en una categoría específica
+     * Sincroniza con la categoría padre para mantener contadores actualizados
+     */
+    createSection: async (sectionData) => {
+        set({ isUpdating: true, error: null });
+
+        try {
+            const response = await fetch('/api/sections', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sectionData),
+            });
+            if (!response.ok) throw new Error('Error al crear la sección');
+
+            const newSection = await response.json();
+            const categoryId = newSection.category_id;
+
+            // Añadir al estado local
+            set(state => ({
+                sections: {
+                    ...state.sections,
+                    [categoryId]: [...(state.sections[categoryId] || []), newSection],
+                },
+                isUpdating: false
+            }));
+
+            // Recargar las secciones de la categoría para sincronizar
+            await get().fetchSectionsByCategory(categoryId);
+
+            toast.success('Sección creada exitosamente');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            set({ error: errorMessage, isUpdating: false });
+            toast.error('No se pudo crear la sección.');
+        }
+    },
+
+    /**
+     * createProduct - Crea un nuevo producto en una sección específica
+     * Mantiene sincronización a través de toda la jerarquía (producto -> sección -> categoría)
+     */
+    createProduct: async (productData) => {
+        set({ isUpdating: true, error: null });
+
+        try {
+            const response = await fetch('/api/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(productData),
+            });
+            if (!response.ok) throw new Error('Error al crear el producto');
+
+            const newProduct = await response.json();
+            const sectionId = newProduct.section_id;
+
+            // Añadir al estado local
+            set(state => ({
+                products: {
+                    ...state.products,
+                    [sectionId]: [...(state.products[sectionId] || []), newProduct],
+                },
+                isUpdating: false
+            }));
+
+            // Recargar productos de la sección
+            await get().fetchProductsBySection(sectionId);
+
+            // También recargar secciones para actualizar contadores de la categoría
+            const categoryIdKey = Object.keys(get().sections).find(key =>
+                get().sections[key]?.some(s => s.section_id === sectionId)
+            );
+            if (categoryIdKey) {
+                await get().fetchSectionsByCategory(Number(categoryIdKey));
+            }
+
+            toast.success('Producto creado exitosamente');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            set({ error: errorMessage, isUpdating: false });
+            toast.error('No se pudo crear el producto.');
+        }
+    },
+
+    /**
+     * updateCategory - Actualiza los datos de una categoría existente
+     * Refresca para mantener coherencia con el servidor
+     */
+    updateCategory: async (categoryId, categoryData) => {
+        set({ isUpdating: true, error: null });
+
+        try {
+            const response = await fetch(`/api/categories/${categoryId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(categoryData),
+            });
+            if (!response.ok) throw new Error('Error al actualizar la categoría');
+
+            const updatedCategory = await response.json();
+
+            // Actualizar en el estado local
+            set(state => ({
+                categories: state.categories.map(c =>
+                    c.category_id === categoryId ? updatedCategory : c
+                ),
+                isUpdating: false
+            }));
+
+            toast.success('Categoría actualizada exitosamente');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            set({ error: errorMessage, isUpdating: false });
+            toast.error('No se pudo actualizar la categoría.');
+        }
+    },
+
+    /**
+     * updateSection - Actualiza los datos de una sección existente  
+     * Mantiene sincronización con la categoría padre
+     */
+    updateSection: async (sectionId, sectionData) => {
+        set({ isUpdating: true, error: null });
+
+        try {
+            const response = await fetch(`/api/sections/${sectionId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(sectionData),
+            });
+            if (!response.ok) throw new Error('Error al actualizar la sección');
+
+            const updatedSection = await response.json();
+            const categoryId = updatedSection.category_id;
+
+            // Actualizar en el estado local
+            set(state => ({
+                sections: {
+                    ...state.sections,
+                    [categoryId]: state.sections[categoryId]?.map(s =>
+                        s.section_id === sectionId ? updatedSection : s
+                    ) || [],
+                },
+                isUpdating: false
+            }));
+
+            toast.success('Sección actualizada exitosamente');
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+            set({ error: errorMessage, isUpdating: false });
+            toast.error('No se pudo actualizar la sección.');
+        }
+    },
 
 })); 

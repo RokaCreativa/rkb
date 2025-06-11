@@ -13,9 +13,8 @@
  */
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { useDashboardStore } from '../stores/dashboardStore';
 import { CategoryList } from '../components/domain/categories/CategoryList';
 import { SectionListView } from '../components/domain/sections/SectionListView';
@@ -25,6 +24,7 @@ import { useModalStore } from '../hooks/ui/state/useModalStore';
 import { ModalManager } from '../components/modals/ModalManager';
 import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/solid';
 import { Category, Section, Product } from '../types';
+import { toast } from 'react-hot-toast';
 
 export const MobileView: React.FC = () => {
     // --- CONEXIÓN AL STORE CENTRAL DE ZUSTAND ---
@@ -56,19 +56,6 @@ export const MobileView: React.FC = () => {
             fetchCategories(clientId);
         }
     }, [sessionStatus, clientId, fetchCategories, initialDataLoaded]);
-
-    /**
-     * @function onDragEnd
-     * @description Manejador para el evento de finalización de arrastre de `DragDropContext`.
-     * Aunque el drag-and-drop visual no esté activo en móvil, este manejador es requerido
-     * por el contexto para que los componentes anidados funcionen sin errores.
-     * En el futuro, aquí se implementará la lógica para el "modo de reordenación" móvil.
-     * @param {DropResult} result - El resultado de la operación de arrastre.
-     */
-    const onDragEnd = (result: DropResult) => {
-        // TODO: Implementar la lógica de reordenamiento para el modo móvil.
-        console.log('Drag ended', result);
-    };
 
     /**
      * Renderiza el Botón de Acción Flotante (FAB) según el contexto.
@@ -116,60 +103,77 @@ export const MobileView: React.FC = () => {
     }
 
     return (
-        <DragDropContext onDragEnd={onDragEnd}>
-            <div className="md:hidden p-4 bg-gray-50 min-h-screen relative pb-20">
-                <ModalManager
-                    setCategories={() => { }}
-                    setSections={() => { }}
-                    setProducts={() => { }}
-                    onSuccess={() => { }}
-                    activeCategoryId={activeCategoryId ?? undefined}
-                    activeSectionId={activeSectionId ?? undefined}
-                />
+        <div className="md:hidden p-4 bg-gray-50 min-h-screen relative pb-20">
+            <ModalManager
+                setCategories={() => { }}
+                setSections={() => { }}
+                setProducts={() => { }}
+                onSuccess={() => { }}
+                activeCategoryId={activeCategoryId ?? undefined}
+                activeSectionId={activeSectionId ?? undefined}
+            />
 
-                <div className="bg-white p-4 rounded-lg shadow-md mb-4">
-                    <div className="flex items-center mb-4">
-                        {activeView !== 'categories' && (
-                            <button onClick={handleBack} className="mr-4 p-2 rounded-full hover:bg-gray-100">
-                                <ArrowLeftIcon className="h-6 w-6 text-gray-700" />
-                            </button>
-                        )}
-                        <h2 className="text-xl font-bold capitalize">{getTitle()}</h2>
-                    </div>
-
-                    {activeView === 'categories' && (
-                        <CategoryList
-                            categories={categories}
-                            onCategoryClick={handleCategorySelect}
-                            onEditCategory={(category: Category) => openModal('editCategory', { category })}
-                            onDeleteCategory={(category: Category) => openModal('deleteCategory', { category })}
-                            onToggleVisibility={(category: Category) => toggleCategoryVisibility(category.category_id, category.status)}
-                            expandedCategories={{}}
-                        />
+            <div className="bg-white p-4 rounded-lg shadow-md mb-4">
+                <div className="flex items-center mb-4">
+                    {activeView !== 'categories' && (
+                        <button onClick={handleBack} className="mr-4 p-2 rounded-full hover:bg-gray-100">
+                            <ArrowLeftIcon className="h-6 w-6 text-gray-700" />
+                        </button>
                     )}
-
-                    {activeView === 'sections' && activeCategoryId && (
-                        <SectionListView
-                            sections={sections[activeCategoryId] || []}
-                            onSectionClick={handleSectionSelect}
-                            onToggleVisibility={(section: Section) => toggleSectionVisibility(section.section_id, activeCategoryId, section.status)}
-                            onEdit={(section: Section) => openModal('editSection', { section })}
-                            onDelete={(section: Section) => openModal('deleteSection', { section })}
-                        />
-                    )}
-
-                    {activeView === 'products' && activeSectionId && (
-                        <ProductListView
-                            products={products[activeSectionId] || []}
-                            onToggleVisibility={(product: Product) => toggleProductVisibility(product.product_id, activeSectionId, product.status)}
-                            onEdit={(product: Product) => openModal('editProduct', { product })}
-                            onDelete={(product: Product) => openModal('deleteProduct', { product })}
-                        />
-                    )}
+                    <h2 className="text-xl font-bold capitalize">{getTitle()}</h2>
                 </div>
 
-                {renderFab()}
+                {activeView === 'categories' && (
+                    <CategoryList
+                        categories={categories}
+                        onCategoryClick={handleCategorySelect}
+                        onEditCategory={(category: Category) => openModal('editCategory', { category })}
+                        onDeleteCategory={(category: Category) => openModal('deleteCategory', { category })}
+                        onToggleVisibility={(category: Category) => toggleCategoryVisibility(category.category_id, category.status)}
+                        expandedCategories={{}}
+                    />
+                )}
+
+                {activeView === 'sections' && activeCategoryId && (
+                    <SectionListView
+                        sections={sections[activeCategoryId] || []}
+                        onSectionClick={handleSectionSelect}
+                        onToggleVisibility={(section: Section) => {
+                            // 🧭 MIGA DE PAN: activeCategoryId está conectado con handleCategorySelect del store
+                            // y es fundamental para la jerarquía Category->Section->Product en la navegación móvil
+                            if (!activeCategoryId) {
+                                console.error('Error: activeCategoryId es null al cambiar visibilidad de sección');
+                                toast.error('Error de navegación. Regrese a categorías e intente de nuevo.');
+                                return;
+                            }
+                            toggleSectionVisibility(section.section_id, activeCategoryId, section.status);
+                        }}
+                        onEdit={(section: Section) => openModal('editSection', { section })}
+                        onDelete={(section: Section) => openModal('deleteSection', { section })}
+                    />
+                )}
+
+                {activeView === 'products' && activeSectionId && (
+                    <ProductListView
+                        products={products[activeSectionId] || []}
+                        onToggleVisibility={(product: Product) => {
+                            // 🧭 MIGA DE PAN: Validamos activeSectionId porque MobileView puede tener estado inconsistente
+                            // durante transiciones de navegación. Esta validación conecta con el sistema de navegación
+                            // móvil (handleSectionSelect/handleBack) que gestiona el activeSectionId en el store
+                            if (!activeSectionId) {
+                                console.error('Error: activeSectionId es null al intentar cambiar visibilidad de producto');
+                                toast.error('Error de navegación. Regrese a la categoría e intente de nuevo.');
+                                return;
+                            }
+                            toggleProductVisibility(product.product_id, activeSectionId, product.status);
+                        }}
+                        onEdit={(product: Product) => openModal('editProduct', { product })}
+                        onDelete={(product: Product) => openModal('deleteProduct', { product })}
+                    />
+                )}
             </div>
-        </DragDropContext>
+
+            {renderFab()}
+        </div>
     );
 };

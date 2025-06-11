@@ -8,10 +8,9 @@ import { PlusIcon } from "@heroicons/react/24/outline";
 import { TopNavbar } from "./TopNavbar";
 import { Loader } from "../ui/Loader";
 import { Category, Section, Product } from "@/app/types/menu";
-import useDashboardState from "../../hooks/core/useDashboardState";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { cn } from "@/lib/utils";
-import { DragDropContext, DropResult } from '@hello-pangea/dnd';
+// Drag & Drop eliminado - usando flechitas de ordenamiento
 import {
   adaptCategories, adaptSections, adaptProducts, adaptClient,
   adaptCategory, adaptSection, adaptProduct,
@@ -45,7 +44,10 @@ import DeleteModal from "../modals/DeleteModal";
 import { ViewType } from "../../types/dashboard";
 
 // Importar el nuevo hook useDragAndDrop
-import useDragAndDrop from "../../hooks/ui/useDragAndDrop";
+// import { useDragAndDrop } from '../../hooks/ui/useDragAndDrop'; // ELIMINADO: Drag & Drop
+
+// Importar el store de Zustand
+import { useDashboardStore } from '../../stores/dashboardStore';
 
 // Tipos
 import {
@@ -72,6 +74,13 @@ import {
 // Importar el componente DragIndicator
 import DragIndicator from '../ui/DragIndicator';
 
+// Importar tipos del dominio
+import {
+  Category as DashboardCategory,
+  Section as DashboardSection,
+  Product as DashboardProduct
+} from '../../types';
+
 // Constante para habilitar logs de depuración
 const DEBUG = process.env.NODE_ENV === 'development';
 
@@ -89,10 +98,12 @@ export default function DashboardView() {
   const router = useRouter();
   const isAuthenticated = status === "authenticated";
 
+  // IMPORTANTE: Extraer clientId de la sesión (siguiendo patrón de MobileView.tsx)
+  const clientId = session?.user?.client_id;
+
   // IMPORTANTE: Estado para vistas - siempre al inicio de todos los useState
   const [currentView, setCurrentView] = useState<ViewType>("CATEGORIES");
 
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Estado local para modo sin conexión
@@ -101,28 +112,44 @@ export default function DashboardView() {
   // useRef para controlar si ya hemos cargado datos iniciales
   const initialDataLoadedRef = useRef(false);
 
+  // TEMPORAL: Definiciones para evitar errores de referencias no definidas
+  // TODO: Reemplazar con implementación de flechitas de ordenamiento
+  const isReorderModeActive = false;
+  const toggleReorderMode = () => { };
+  const handleDragEnd = () => { };
+  const handleDragStart = () => { };
+  const handleDragUpdate = () => { };
+  const handleReorderCategories = () => { };
+  const handleReorderSections = () => { };
+  const handleReorderProducts = () => { };
+
+  // TEMPORAL: Componente placeholder para DragDropContext
+  const DragDropContext = ({ children }: { children: React.ReactNode }) => <>{children}</>;
+
   // Log de depuración al montar el componente
   useEffect(() => {
     if (DEBUG) {
       console.log('🔍 DashboardView montado');
       console.log('🔑 Estado de autenticación:', status);
       console.log('👤 Sesión:', session ? 'Presente' : 'No presente');
+      console.log('🆔 ClientId extraído:', clientId);
     }
-  }, [session, status]);
+  }, [session, status, clientId]);
 
-  // Inicializar hook de estado para la gestión del estado global
+  // Conectar al store de Zustand
   const {
     client,
     categories,
     sections,
     products,
-    isLoading: isDataLoading,
-    isUpdatingVisibility,
+    isLoading,
+    isUpdating,
+    initialDataLoaded,
     error: dataError,
-    fetchSectionsByCategory,
     fetchClientData,
     fetchCategories,
-    fetchProductsBySection,
+    fetchSectionsByCategory,
+    fetchProducts,
     toggleCategoryVisibility,
     toggleSectionVisibility,
     toggleProductVisibility,
@@ -135,7 +162,7 @@ export default function DashboardView() {
     updateCategory,
     updateSection,
     updateProduct
-  } = useDashboardState();
+  } = useDashboardStore();
 
   // Estados para selección y expansión
   const [selectedCategory, setSelectedCategory] = useState<DashboardCategory | null>(null);
@@ -196,7 +223,7 @@ export default function DashboardView() {
   // Añadir useEffect para sincronizar las secciones cuando se cargan
   useEffect(() => {
     if (sections && Object.keys(sections).length > 0) {
-      console.log("🔄 Sincronizando secciones desde useDashboardState con localSections", sections);
+      console.log("🔄 Sincronizando secciones desde useDashboardStore con localSections", sections);
 
       // Convertir las secciones a formato compatible con el estado local
       const adaptedSections: Record<string, DashboardSection[]> = {};
@@ -235,46 +262,33 @@ export default function DashboardView() {
   useEffect(() => {
     if (typeof window === 'undefined') return; // No ejecutar en SSR
 
-    // Forzar la carga de datos nuevos en cada inicio
-    sessionStorage.removeItem('dashboard_initial_load_complete');
-    sessionStorage.removeItem('dashboard_client_data');
-    sessionStorage.removeItem('dashboard_categories_data');
-    sessionStorage.removeItem('client_data_cache');
-    sessionStorage.removeItem('categories_data_cache');
+    // Solo cargar si hay sesión autenticada y clientId disponible
+    if (status !== 'authenticated' || !clientId || initialDataLoaded) return;
 
-    console.log('🔄 Iniciando carga inicial de datos...');
+    console.log('🔄 Iniciando carga inicial de datos para clientId:', clientId);
 
     // Función para cargar datos con reintentos limitados
     const loadData = async () => {
       try {
-        setIsLoading(true);
+        setError(null);
 
-        // Paso 1: Cargar datos del cliente
-        const clientData = await fetchClientData();
-        if (!clientData) {
-          throw new Error('No se pudo cargar la información del cliente');
-        }
+        // Llama a la acción del store para cargar los datos del cliente
+        await fetchClientData(clientId);
 
         // Paso 2: Cargar categorías
-        const categoriesData = await fetchCategories();
-        if (!categoriesData || categoriesData.length === 0) {
-          console.warn('⚠️ No se encontraron categorías o hubo un error al cargarlas');
-        } else {
-          console.log(`✅ Cargadas ${categoriesData.length} categorías`);
-        }
+        await fetchCategories(clientId);
+        console.log('✅ Carga inicial completada');
 
-        // Marcar como cargado para no repetir
-        sessionStorage.setItem('dashboard_initial_load_complete', 'true');
-        console.log('✅ Carga inicial completada y registrada en sessionStorage');
-
-        setIsLoading(false);
       } catch (error) {
         console.error('❌ Error en carga inicial:', error);
-        setIsLoading(false);
         setError('Error al cargar datos iniciales');
 
         // Intentar mostrar un toast de error para mejor feedback
         toast.error('Error al cargar los datos. Por favor, recarga la página.');
+
+        if (error instanceof Error && error.message === 'Unauthorized') {
+          router.push("/auth/signin");
+        }
       }
     };
 
@@ -285,9 +299,7 @@ export default function DashboardView() {
 
     return () => clearTimeout(timer);
 
-    // Dependencias vacías para que solo se ejecute al montar
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [status, clientId, initialDataLoaded, fetchClientData, fetchCategories, router]);
 
   // Verificar si estamos en modo offline cada 10 segundos
   useEffect(() => {
@@ -553,8 +565,8 @@ export default function DashboardView() {
         // Cargar productos forzando la recarga
         console.log(`⏳ [CRITICAL] Cargando productos para sección ${sectionId} (forzado)...`);
 
-        // Llamar a fetchProductsBySection con un solo argumento (sectionId)
-        const loadedProducts = await fetchProductsBySection(sectionId);
+        // Llamar a fetchProducts con un solo argumento (sectionId)
+        const loadedProducts = await fetchProducts(sectionId);
 
         console.log(`✅ Productos cargados para sección ${sectionId}:`, loadedProducts?.length || 0);
 
@@ -585,7 +597,7 @@ export default function DashboardView() {
     } else {
       console.log(`ℹ️ Ya hay ${products[sectionIdStr].length} productos cargados para esta sección`);
     }
-  }, [fetchProductsBySection, sections, localSections, setCurrentView, setSelectedSection, setExpandedSections, setSelectedCategory, categories, products, setLocalProducts, fetchSectionsByCategory]);
+  }, [fetchProducts, sections, localSections, setCurrentView, setSelectedSection, setExpandedSections, setSelectedCategory, categories, products, setLocalProducts, fetchSectionsByCategory]);
 
   // Handlers para manejo de categorías
   const handleAddCategory = useCallback(() => {
@@ -635,10 +647,8 @@ export default function DashboardView() {
   const handleConfirmDeleteSection = async () => {
     if (!itemToDelete || !('section_id' in itemToDelete)) return;
 
-    const categoryId = 'category_id' in itemToDelete ? itemToDelete.category_id : 0;
-
     try {
-      await deleteSection(itemToDelete.section_id, categoryId);
+      await deleteSection(itemToDelete.section_id);
       toast.success('Sección eliminada correctamente');
       setShowDeleteModal(false);
       setItemToDelete(null);
@@ -684,64 +694,12 @@ export default function DashboardView() {
 
       // Actualizar la lista de productos
       if (selectedSection && selectedSection.section_id) {
-        fetchProductsBySection(selectedSection.section_id);
+        fetchProducts(selectedSection.section_id);
       }
     } catch (error) {
       toast.error('Error al eliminar el producto');
     }
   };
-
-  // Obtener funciones de arrastrar y soltar
-  const {
-    isReorderModeActive,
-    isDragging,
-    handleDragEnd,
-    handleDragStart,
-    handleDragUpdate,
-    handleReorderCategories,
-    handleReorderSections,
-    handleReorderProducts,
-    toggleReorderMode,
-    registerDragHandle
-  } = useDragAndDrop(
-    localCategories as any,  // Usamos 'as any' para resolver problema de compatibilidad temporal
-    localSections as any,    // Usamos 'as any' para resolver problema de compatibilidad temporal
-    localProducts as any,    // Usamos 'as any' para resolver problema de compatibilidad temporal
-    setLocalCategories as any, // Usamos 'as any' para resolver problema de compatibilidad temporal
-    setLocalSections as any,   // Usamos 'as any' para resolver problema de compatibilidad temporal
-    setLocalProducts as any    // Usamos 'as any' para resolver problema de compatibilidad temporal
-  );
-
-  // Diagnóstico extensivo para verificar la inicialización del hook
-  useEffect(() => {
-    console.log('🔍 [DRAG DEBUG] Inicialización de useDragAndDrop:', {
-      handleGlobalDragEndExists: typeof handleReorderCategories === 'function',
-      handleReorderCategoriesExists: typeof handleReorderCategories === 'function',
-      handleReorderSectionsExists: typeof handleReorderSections === 'function',
-      handleReorderProductsExists: typeof handleReorderProducts === 'function',
-      isReorderModeActive,
-      isDragging,
-      categoriesCount: localCategories?.length || 0
-    });
-  }, [
-    handleReorderCategories,
-    handleReorderSections,
-    handleReorderProducts,
-    isReorderModeActive,
-    isDragging,
-    localCategories
-  ]);
-
-  // Activar el modo de reordenamiento por defecto
-  useEffect(() => {
-    console.log("🔄 Estado inicial de isReorderModeActive:", isReorderModeActive);
-    if (!isReorderModeActive) {
-      console.log("🔄 Activando modo de reordenamiento automáticamente");
-      // Activar inmediatamente para evitar problemas de sincronización
-      toggleReorderMode();
-      console.log("✅ Modo de reordenamiento activado");
-    }
-  }, []);  // Solo ejecutar una vez al montar el componente
 
   // HANDLERS PARA VISIBILIDAD CON RECARGA DE DATOS
   // Estos handlers envuelven las funciones de los hooks para asegurar que
@@ -750,23 +708,49 @@ export default function DashboardView() {
 
   const handleToggleCategoryVisibility = async (categoryId: number, currentStatus: number) => {
     await toggleCategoryVisibility(categoryId, currentStatus);
-    fetchCategories(); // Recargar todas las categorías para actualizar contadores.
+    if (clientId) {
+      fetchCategories(clientId); // Recargar todas las categorías para actualizar contadores.
+    }
   };
 
   const handleToggleSectionVisibility = async (sectionId: number, categoryId: number, currentStatus: number) => {
     await toggleSectionVisibility(sectionId, categoryId, currentStatus);
-    fetchCategories(); // Recargar categorías para actualizar 'visible_sections_count'.
+    if (clientId) {
+      fetchCategories(clientId); // Recargar categorías para actualizar 'visible_sections_count'.
+    }
   };
 
   const handleToggleProductVisibility = async (productId: number, currentStatus: number) => {
-    if (selectedSection) {
-      await toggleProductVisibility(productId, currentStatus);
+    if (selectedSection && clientId) {
+      await toggleProductVisibility(productId, selectedSection.section_id, currentStatus);
       fetchSectionsByCategory(selectedSection.category_id); // Recargar secciones para actualizar 'visible_products_count'.
     }
   };
 
+  const handleToggleCategory = (categoryId: number) => {
+    const isExpanded = expandedCategories[categoryId];
+    setExpandedCategories(prev => ({ ...prev, [categoryId]: !isExpanded }));
+
+    // Si vamos a expandir y no tenemos las secciones, las cargamos
+    if (!isExpanded && (!localSections[categoryId] || localSections[categoryId].length === 0)) {
+      console.log(`🚀 Cargando secciones para la categoría ${categoryId}...`);
+      fetchSectionsByCategory(categoryId);
+    }
+  };
+
+  const handleToggleSection = (sectionId: number, categoryId: number) => {
+    const isExpanded = expandedSections[sectionId];
+    setExpandedSections(prev => ({ ...prev, [sectionId]: !isExpanded }));
+
+    // Si vamos a expandir y no tenemos los productos, los cargamos
+    if (!isExpanded && (!localProducts[sectionId] || localProducts[sectionId].length === 0)) {
+      console.log(`🚀 Cargando productos para la sección ${sectionId}...`);
+      fetchProducts(sectionId);
+    }
+  };
+
   // Renderizado condicional para estados de carga y error
-  if (isLoading || isDataLoading) {
+  if (isLoading || isUpdating) {
     return <Loader />;
   }
 
@@ -844,7 +828,7 @@ export default function DashboardView() {
 
           {/* Contenido principal */}
           <div className="w-full">
-            {isLoading || isDataLoading ? (
+            {isLoading || isUpdating ? (
               <Loader message="Cargando datos..." />
             ) : error || dataError ? (
               <div className="rounded-lg bg-red-50 p-4 text-red-800">
@@ -859,7 +843,7 @@ export default function DashboardView() {
                     sections={adaptSections(localSections)}
                     expandedCategories={expandedCategories}
                     expandedSections={expandedSections}
-                    isUpdatingVisibility={isUpdatingVisibility}
+                    isUpdatingVisibility={isUpdating}
                     onToggleCategoryVisibility={handleToggleCategoryVisibility}
                     onEditCategorySubmit={(category) => {
                       if (category.category_id) {
@@ -927,7 +911,7 @@ export default function DashboardView() {
                         handleAddProduct(product.section_id);
                       }
                     }}
-                    isUpdatingProductVisibility={isUpdatingVisibility}
+                    isUpdatingProductVisibility={isUpdating}
                     isReorderModeActive={isReorderModeActive}
                     onSectionsReorder={(categoryId, sourceIndex, destinationIndex) => {
                       console.log('🔄 [CategoryView] Llamando a handleReorderCategories desde onSectionsReorder:', {
@@ -980,7 +964,7 @@ export default function DashboardView() {
                     }}
                     onEditSection={(section) => handleEditSection(fromMenuSection(section as any) as DashboardSection)}
                     onDeleteSection={(sectionId) => handleDeleteSection({ section_id: sectionId } as any)}
-                    isUpdatingVisibility={isUpdatingVisibility as number | null}
+                    isUpdatingVisibility={isUpdating as number | null}
                     products={adaptProducts(localProducts)}
                     categoryName={selectedCategory.name}
                     categoryId={selectedCategory.category_id}
@@ -990,10 +974,10 @@ export default function DashboardView() {
                     onEditProduct={(product) => handleEditProduct(fromMenuProduct(product) as DashboardProduct)}
                     onDeleteProduct={(product) => handleDeleteProduct(fromMenuProduct(product) as DashboardProduct)}
                     onToggleProductVisibility={handleToggleProductVisibility}
-                    isUpdatingProductVisibility={isUpdatingVisibility}
+                    isUpdatingProductVisibility={isUpdating}
                     onSectionReorder={(categoryId, sourceIndex, destIndex) => handleReorderSections(categoryId, sourceIndex, destIndex)}
                     onProductReorder={(sectionId, sourceIndex, destIndex) => handleReorderProducts(sectionId, sourceIndex, destIndex)}
-                    isLoading={isLoading || isDataLoading}
+                    isLoading={isLoading || isUpdating}
                   />
                 )}
 
@@ -1017,7 +1001,7 @@ export default function DashboardView() {
                     console.log(`⚠️ [CRITICAL] NO hay productos en el state, intentando cargar ahora...`);
 
                     // Este es un último recurso - idealmente no debería ser necesario
-                    fetchProductsBySection(selectedSection.section_id)
+                    fetchProducts(selectedSection.section_id)
                       .then(loadedProducts => {
                         console.log(`✅ Carga de emergencia completada: ${loadedProducts.length} productos`);
                       })
@@ -1056,7 +1040,7 @@ export default function DashboardView() {
                         products={adaptProducts(localProducts)[selectedSection.section_id] || []}
                         sectionName={selectedSection.name || ''}
                         sectionId={selectedSection.section_id}
-                        isUpdatingVisibility={isUpdatingVisibility}
+                        isUpdatingVisibility={isUpdating}
                         onAddProduct={() => handleAddProduct(selectedSection.section_id)}
                         onEditProduct={(product) => handleEditProduct(fromMenuProduct(product))}
                         onDeleteProduct={(product) => handleDeleteProduct(fromMenuProduct(product))}
@@ -1155,7 +1139,7 @@ export default function DashboardView() {
             } else if (deleteEntityType === 'section' && selectedCategory) {
               fetchSectionsByCategory(selectedCategory.category_id);
             } else if (deleteEntityType === 'product' && selectedSection) {
-              fetchProductsBySection(selectedSection.section_id);
+              fetchProducts(selectedSection.section_id);
             }
           }}
         />

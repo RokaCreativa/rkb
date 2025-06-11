@@ -5,21 +5,27 @@ import useIsMobile from '../../hooks/ui/useIsMobile';
 import { MobileView } from '../../views/MobileView';
 import DashboardView from './DashboardView';
 
-const ViewSwitcher = () => {
+const DynamicView = () => {
     const isMobile = useIsMobile();
 
     // Esta comprobación es para evitar errores de hidratación en Next.js.
-    // El hook solo funciona en el cliente.
+    // El hook useIsMobile solo funciona del lado del cliente.
     const [hasMounted, setHasMounted] = React.useState(false);
     React.useEffect(() => {
         setHasMounted(true);
     }, []);
 
     if (!hasMounted) {
-        return null; // O un loader/spinner si se prefiere
+        // Renderiza un loader genérico que coincide en servidor y cliente
+        // para evitar el mismatch de hidratación.
+        return (
+            <div className="p-4 bg-gray-50 min-h-screen flex items-center justify-center">
+                <p className="text-gray-500">Cargando vista...</p>
+            </div>
+        );
     }
 
     return isMobile ? <MobileView /> : <DashboardView />;
 };
 
-export default ViewSwitcher;
+export default DynamicView; 

@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 # 🧠 Instrucciones Base para Cursor IA – Proyecto RokaMenu
 
 Este archivo define el comportamiento mínimo requerido en cada sesión de trabajo del agente IA. Su objetivo es mantener el contexto y la calidad del desarrollo en todo momento.
@@ -52,3 +57,4 @@ Cada acción debe:
 - Asegurarse de cumplir los principios del `Mandamientos.md`.
 
 Nada se da por hecho. Nada se olvida.
+
