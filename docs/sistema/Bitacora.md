@@ -558,6 +558,133 @@
 
 ---
 
+### **#19 | Planificación Estratégica - Jerarquía Flexible y Features Gastronómicos Críticos**
+
+- **Fecha:** 2024-12-24
+- **Responsable:** Claude (Asistente IA)
+- **Checklist:** #T32-T35 (planificación estratégica)
+- **Mandamientos Involucrados:** #1 (Contexto), #4 (Sugerencias), #10 (Mejora proactiva)
+
+**Descripción:**
+
+> Sesión de análisis profundo y planificación estratégica basada en casos de uso reales del usuario. Se ha refinado completamente la propuesta de jerarquía flexible y se han identificado features críticos obligatorios para restaurantes profesionales que actualmente faltan en v2.
+
+**Decisiones Estratégicas Clave:**
+
+1. **Jerarquía Híbrida por Categoría (Actualización de Propuesta):**
+
+   - **Descubrimiento**: Casos reales como Palm Beach necesitan AMBAS jerarquías EN EL MISMO MENÚ
+   - **Ejemplo Real**:
+     - "SNACKS" → Productos directos (Sopas, Sándwiches, Papas Fritas)
+     - "HAMBURGUESAS" → Secciones → Productos (Sencilla, Con Queso, Doble)
+   - **Solución**: Campo `hierarchy_mode` en tabla `categories` ("simple" | "sections")
+   - **Ventaja**: Flexibilidad total sin complejidad para el usuario
+
+2. **Alcance de Alergenos Ampliado:**
+
+   - **Decisión**: Obligatorio para TODOS los negocios gastronómicos (no solo restaurantes)
+   - **Justificación**: "Todo lo que tenga que ver con gastronomía en general lleva alergenos incluso un café con leche que tiene lactosa"
+   - **Implementación**: Basado en `business_type` (Restaurante, Bar, Cafetería, etc.)
+
+3. **Migración de Precios Múltiples:**
+
+   - **Problema Identificado**: Campo `multiple_prices` usa "S"/"N" (VARCHAR) en lugar de boolean estándar
+   - **Solución**: Migración a BOOLEAN siguiendo estándares del proyecto
+   - **Casos de Uso**: Bocadillo Grande/Mediano/Pequeño con hasta 4 variantes de precio
+
+4. **Sistema Multiidioma con Auto-Traducción:**
+   - **Enfoque**: Fase 1 manual → Fase 2 auto-traducción cuando haya presupuesto
+   - **Costo Estimado**: $2-5 USD una sola vez por restaurante promedio
+   - **Prioridad**: Override manual más importante que auto-traducción
+
+**Contexto del Proyecto:**
+
+- **Sin Clientes en Producción**: Libertad total para cambios de schema sin riesgo
+- **Data de Prueba Abundante**: Múltiples clientes legacy disponibles para testing
+- **Base Sólida**: Arquitectura Master-Detail consolidada, lista para extensión
+
+**Plan de Implementación Acordado:**
+
+1. **#T32 - Jerarquía Híbrida** (Base fundamental)
+2. **#T34 - Precios Múltiples** (Crítico para restaurantes)
+3. **#T33 - Alergenos** (Obligatorio legal)
+4. **#T35 - Multiidioma** (Expansión internacional)
+
+**Archivos de Documentación Actualizados:**
+
+- `docs/sistema/EstructuraRokaMenu.md`: Añadida arquitectura de jerarquía flexible y features gastronómicos
+- `docs/sistema/Checklist.md`: Nueva Fase 6 con tareas T32-T35 detalladas
+- `docs/sistema/Bitacora.md`: Esta entrada
+
+**Commit Realizado:**
+
+- Estado actual guardado con mensaje descriptivo completo
+- 49 archivos modificados con correcciones UX integrales
+- Reorganización de iconos de alergenos a ubicación estándar
+
+**Próximos Pasos Inmediatos:**
+
+1. Iniciar implementación T32.1: Extensión schema categories con hierarchy_mode
+2. Crear migración SQL para campo nuevo con default 'sections'
+3. Actualizar Prisma schema con enum categories_hierarchy_mode
+4. Implementar lógica adaptativa en DashboardStore
+
+---
+
+### **#20 | Decisión Estratégica: Auto-Detección Inteligente para Jerarquía Flexible**
+
+- **Fecha:** 2024-12-24
+- **Responsable:** Claude (Asistente IA)
+- **Checklist:** #T32.1 (decisión de implementación)
+- **Mandamientos Involucrados:** #3 (No Reinventar), #6 (Separación Responsabilidades), #10 (Mejora Proactiva)
+
+**Descripción:**
+
+> Sesión de análisis final donde se tomó la decisión definitiva sobre la implementación de jerarquía flexible. Tras revisar capturas de la aplicación antigua y analizar la estructura existente de la DB, se optó por la **auto-detección inteligente** como la solución más elegante y práctica.
+
+**Análisis de la Aplicación Antigua:**
+
+- **Estructura Observada**: La app legacy ya implementaba jerarquía Categorías → Secciones → Productos de forma consistente
+- **Casos de Uso Reales**: Se confirmó que clientes como "piscis" necesitan flexibilidad (algunas categorías con pocas secciones, otras con muchas)
+- **Features Existentes**: Alergenos con iconos, configuración de colores, modal de productos - todo ya funcionaba correctamente
+
+**Decisión Final: Auto-Detección vs Campo Manual**
+
+```typescript
+// OPCIÓN ELEGIDA: Auto-detección inteligente
+const getCategoryDisplayMode = (categoryId: number) => {
+  const sections = getSectionsByCategory(categoryId);
+  return sections.length === 1 ? "simple" : "sections";
+};
+```
+
+**Razones de la Decisión:**
+
+1. **Complejidad Menor**: 20 líneas de código vs 200+ con migración DB
+2. **Elegancia Arquitectónica**: La data define el comportamiento (principio DRY)
+3. **Migración Inmediata**: Funciona instantáneamente con toda la data legacy existente
+4. **Cero Configuración**: No hay UI que el usuario pueda configurar incorrectamente
+5. **Mantenimiento Simplificado**: Se auto-adapta cuando se añaden/quitan secciones
+
+**Plan de Implementación T32.1:**
+
+1. **Función de Auto-Detección**: `getCategoryDisplayMode(categoryId)` en utils
+2. **Integración en Store**: Modificar `fetchDataForCategory` para usar auto-detección
+3. **UI Condicional**: Renderizar `ProductGridView` O `SectionGridView` según resultado
+4. **Mobile Adaptation**: Adaptar navegación móvil para saltar secciones en modo simple
+
+**Preparativos Completados:**
+
+- ✅ **Checklist actualizado** con tareas T32.1-T32.4 refinadas según auto-detección
+- ✅ **Commit previo** con estado estable antes de iniciar implementación
+- ✅ **Documentación actualizada** en EstructuraRokaMenu.md
+
+**Siguiente Paso Inmediato:**
+
+Iniciar implementación de T32.1 siguiendo los Mandamientos, especialmente #5 (Mobile-First) y #7 (Código documentado con "migas de pan" contextuales).
+
+---
+
 ```
 
 ```

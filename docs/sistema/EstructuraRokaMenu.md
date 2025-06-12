@@ -12,15 +12,22 @@ RokaMenu es una aplicación web (SaaS) diseñada para que dueños de restaurante
 - **Producto Final:** Un menú digital interactivo accesible a través de un código QR.
 - **Enfoque Principal:** **Mobile-First**. La experiencia de gestión está optimizada para dispositivos móviles, con una interfaz de escritorio completa también disponible.
 - **Funcionalidad Clave:**
-  - **Jerarquía Intuitiva:** `Categoría` > `Sección` > `Producto`.
+  - **Jerarquía Flexible:**
+    - **Tradicional:** `Categoría` > `Sección` > `Producto` (para casos complejos como "HAMBURGUESAS" → "Tipos" → Productos específicos)
+    - **Simplificada:** `Categoría` > `Producto` (para casos directos como "SNACKS" → Lista de productos)
+    - **Híbrida:** EN EL MISMO MENÚ, diferentes categorías pueden usar diferentes jerarquías según su naturaleza
   - **Dashboard de Gestión Dual:**
     - `MobileView`: Una interfaz "Drill-Down" optimizada para la gestión rápida en móviles.
     - `DashboardView` (Vista de Escritorio): Implementa una **arquitectura "Master-Detail"**.
       - **Master:** La primera columna muestra siempre la lista de **categorías** (`CategoryGridView`).
-      - **Detail (Nivel 1):** Al seleccionar una categoría, una segunda columna muestra sus **secciones** (`SectionGridView`).
-      - **Detail (Nivel 2):** Al seleccionar una sección, una tercera columna muestra sus **productos** (`ProductGridView`).
+      - **Detail (Nivel 1):** Al seleccionar una categoría, una segunda columna muestra sus **secciones** (`SectionGridView`) O **productos directamente** (`ProductGridView`) según el `hierarchy_mode` de la categoría.
+      - **Detail (Nivel 2):** Solo en categorías con `hierarchy_mode: "sections"`, al seleccionar una sección, una tercera columna muestra sus **productos** (`ProductGridView`).
       - Esta estructura es orquestada por `DashboardView.tsx`, pero la lógica de renderizado real está encapsulada en los componentes `GridView` dedicados, que son "tontos".
     - **`DynamicView` y `DashboardClient`:** Son el corazón de la carga del dashboard. `DashboardClient` carga los datos iniciales y renderiza `DynamicView` sin SSR. `DynamicView` detecta el tipo de dispositivo y renderiza `MobileView` o `DashboardView`, previniendo errores de hidratación.
+  - **Features Críticos Gastronómicos:**
+    - **Alergenos:** Sistema obligatorio para todos los negocios gastronómicos (restaurantes, bares, cafeterías) con iconos visuales según normativas europeas
+    - **Precios Múltiples:** Productos con variantes (Ej: Bocadillo Grande/Mediano/Pequeño) con hasta 4 precios y labels personalizables
+    - **Multiidioma:** Sistema avanzado con auto-traducción y capacidad de override manual por cliente
   - **Reordenamiento:** Drag & Drop en escritorio (`dnd-kit`) y un "modo de ordenación" planificado para móvil.
   - **Live Preview:** (En desarrollo) Visualización en tiempo real de los cambios realizados en el menú.
 
@@ -115,6 +122,56 @@ Este flujo demuestra el nuevo patrón con Zustand y la API de subida genérica.
 ### Esquema de la Base de Datos (Resumen Prisma)
 
 La jerarquía principal es: `Client` -> `Category` -> `Section` -> `Product`.
+
+#### Arquitectura de Jerarquía Flexible
+
+**NUEVA FUNCIONALIDAD EN DESARROLLO (T32):**
+
+El sistema permite que diferentes categorías dentro del MISMO menú usen diferentes jerarquías:
+
+```typescript
+// Extensión del modelo categories
+model categories {
+  // ... campos existentes
+  hierarchy_mode categories_hierarchy_mode @default(sections)
+}
+
+enum categories_hierarchy_mode {
+  simple    // Categoría → Productos (directamente)
+  sections  // Categoría → Secciones → Productos
+}
+```
+
+**Casos de Uso Reales:**
+
+- **Categoría "SNACKS" (`hierarchy_mode: "simple"`)**: Lista directa de productos (Sopas, Sándwiches, Papas Fritas)
+- **Categoría "HAMBURGUESAS" (`hierarchy_mode: "sections"`)**: Secciones como tipos (Sencilla, Con Queso, Doble) → Productos específicos
+
+**Implementación Técnica:**
+
+- **Categorías "simple"**: Auto-creación de sección invisible para mantener integridad referencial de la DB
+- **UI Adaptativa**: `DashboardView` renderiza `SectionGridView` O `ProductGridView` según `hierarchy_mode`
+- **Navegación Móvil**: Se mantiene igual - el usuario navega intuitivamente sin notar la diferencia técnica
+
+#### Nuevos Features Gastronómicos
+
+**Alergenos (Obligatorio para Gastronomía):**
+
+- Tablas: `allergens`, `allergens_product` (relación many-to-many)
+- Iconos: `public/images/allergensIcons/`
+- Aplicable a: Todos los `business_type` gastronómicos (Restaurante, Bar, Cafetería, etc.)
+
+**Precios Múltiples:**
+
+- Campo actual: `multiple_prices` VARCHAR("S"/"N") → **MIGRAR A**: BOOLEAN
+- Campos: `price1-4`, `label_price1-4` para variantes (Grande/Mediano/Pequeño)
+- Validación: Al menos `price1` requerido cuando `multiple_prices = true`
+
+**Sistema Multiidioma:**
+
+- Tablas existentes: `languages`, `translations`, `client_languages`
+- **NUEVA FUNCIONALIDAD**: Auto-traducción + Override manual por cliente
+- Fallback inteligente: Si traducción no existe → idioma principal del cliente
 
 #### Advertencia sobre Tipos de Datos Inconsistentes
 

@@ -121,13 +121,13 @@
   - [ ] **#T32 - Jerarquía Híbrida por Categoría:**
 
     - **Objetivo:** Permitir que EN EL MISMO MENÚ, algunas categorías vayan directo a productos (ej: "SNACKS") y otras usen secciones (ej: "HAMBURGUESAS" → "Tipos" → Productos).
-    - **Actualización de Propuesta:** La jerarquía flexible debe ser POR CATEGORÍA, no por cliente completo.
-    - **Justificación:** Casos reales como Palm Beach necesitan ambos modos en el mismo menú.
+    - **Estrategia Decidida:** Auto-detección inteligente basada en la estructura existente, sin necesidad de campos adicionales en la DB.
+    - **Justificación:** Casos reales como Palm Beach necesitan ambos modos en el mismo menú. La auto-detección es más elegante y funciona inmediatamente con data legacy.
     - **Tareas Detalladas:**
-      - [ ] **#T32.1 - Extender Schema de Categorías:** Añadir campo `hierarchy_mode` ("simple" | "sections") a la tabla `categories`.
-      - [ ] **#T32.2 - UI Adaptativa:** Modificar vistas para mostrar productos directamente O secciones según el `hierarchy_mode` de la categoría seleccionada.
-      - [ ] **#T32.3 - Gestión de Secciones Auto:** En categorías "simple", auto-crear sección invisible para mantener consistencia de DB.
-      - [ ] **#T32.4 - Toggle por Categoría:** Permitir al usuario cambiar el `hierarchy_mode` de cada categoría individualmente.
+      - [ ] **#T32.1 - Implementar Auto-Detección Inteligente:** Crear función que detecte automáticamente si una categoría debe usar modo "simple" (1 sección) o "sections" (múltiples secciones) basado en la estructura existente.
+      - [ ] **#T32.2 - UI Adaptativa en DashboardStore:** Modificar lógica de fetching para mostrar productos directamente O secciones según la auto-detección de jerarquía.
+      - [ ] **#T32.3 - UI Adaptativa en DashboardView:** Renderizar `ProductGridView` O `SectionGridView` condicionalmente según el resultado de la auto-detección.
+      - [ ] **#T32.4 - Navegación Móvil Adaptativa:** Adaptar `MobileView` para manejar categorías simples saltando la vista de secciones automáticamente.
 
   - [ ] **#T33 - Sistema de Alergenos (OBLIGATORIO para Restaurantes):**
 
