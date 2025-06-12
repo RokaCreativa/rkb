@@ -41,6 +41,11 @@ export const ProductListView: React.FC<ProductListViewProps> = ({ products, onTo
                             <div className="flex-grow">
                                 <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
                                 <span className="text-sm text-gray-500">${product.price}</span>
+                                {product.description && (
+                                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                        {product.description}
+                                    </p>
+                                )}
                             </div>
                             <div className="flex-shrink-0 flex items-center gap-2">
                                 <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(product); }} className="p-2 rounded-full hover:bg-gray-200">

@@ -29,7 +29,7 @@
  */
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import {
@@ -40,6 +40,11 @@ import {
 import dynamic from 'next/dynamic';
 import { TopNavbar } from './TopNavbar';
 import { Loader } from '../ui/Loader';
+import { useMediaQuery } from 'react-responsive';
+import { DashboardView } from './DashboardView';
+import { MobileView } from '../../views/MobileView';
+import AuthDebugLayout from '../../AuthDebugLayout';
+import { Toaster } from 'react-hot-toast';
 
 // Carga dinámica del componente que cambiará entre vista móvil y de escritorio.
 // SSR se deshabilita para evitar errores de hidratación, ya que el componente
@@ -56,7 +61,10 @@ const DynamicView = dynamic(
     }
 );
 
-const DashboardClient = () => {
+interface DashboardClientProps {
+}
+
+export const DashboardClient: React.FC<DashboardClientProps> = () => {
     const { data: session, status } = useSession({
         required: true,
         onUnauthenticated() {
@@ -64,41 +72,46 @@ const DashboardClient = () => {
         },
     });
 
-    const initializeDashboard = useDashboardStore(
-        (s: DashboardState & DashboardActions) => s.initializeDashboard
-    );
-    const initialDataLoaded = useDashboardStore(
-        (s: DashboardState) => s.initialDataLoaded
-    );
+    const { initializeDashboard, initialDataLoaded, isClientLoading } = useDashboardStore();
+
+    const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
-        // Asegurarse de que tengamos el client_id y que los datos no se hayan cargado ya.
         if (session?.user?.client_id && !initialDataLoaded) {
             initializeDashboard(session.user.client_id);
         }
     }, [session, initialDataLoaded, initializeDashboard]);
 
-    // Muestra un loader mientras se valida la sesión o se cargan los datos iniciales.
-    if (status === 'loading' || !initialDataLoaded) {
-        return (
-            <div className="p-4 bg-gray-50 min-h-screen flex items-center justify-center">
-                <Loader message="Cargando datos del menú..." />
-            </div>
-        );
-    }
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    const isDesktop = useMediaQuery({ query: '(min-width: 1024px)' });
+
+    const renderContent = () => {
+        if (isClientLoading || !initialDataLoaded) {
+            return <div className="flex justify-center items-center h-screen">Cargando...</div>;
+        }
+
+        if (isDesktop) {
+            return <DashboardView />;
+        } else {
+            return <MobileView />;
+        }
+    };
 
     return (
-        <div className="flex h-screen flex-col">
-            {/* La barra de navegación es común para ambas vistas y se renderiza aquí. */}
-            <TopNavbar />
-            <main
-                className="flex-1 overflow-y-auto bg-gray-100 p-4"
-                style={{ height: 'calc(100vh - 64px)' }}
-            >
-                {/* El DynamicView decide qué vista mostrar (móvil o escritorio) solo en el cliente. */}
-                <DynamicView />
-            </main>
-        </div>
+        <AuthDebugLayout>
+            <div className="flex h-screen bg-gray-100">
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <TopNavbar />
+                    <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
+                        {isMounted ? renderContent() : null}
+                    </main>
+                </div>
+                <Toaster position="bottom-right" />
+            </div>
+        </AuthDebugLayout>
     );
 };
 

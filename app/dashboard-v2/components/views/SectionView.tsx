@@ -141,8 +141,16 @@ const SectionView: React.FC<SectionViewProps> = ({
   }
 
   // Manejar clics en secciones (para expandir/colapsar)
-  const handleSectionClick = (section: Section) => {
-    onSectionClick(section);
+  const handleSectionClick = (sectionId: number) => {
+    const section = sections.find(s => s.section_id === sectionId);
+    if (section) {
+      onSectionClick(section);
+    }
+  };
+
+  // Adaptar función de delete para pasar solo el sectionId
+  const handleDeleteSection = (section: Section) => {
+    onDeleteSection(section.section_id);
   };
 
   return (
@@ -167,16 +175,22 @@ const SectionView: React.FC<SectionViewProps> = ({
       {/* Lista de secciones con soporte para drag & drop */}
       <SectionList
         sections={sections}
+        expandedSections={expandedSections}
         onSectionClick={handleSectionClick}
         onToggleSectionVisibility={onToggleSectionVisibility}
         onEditSection={onEditSection}
-        onDeleteSection={onDeleteSection}
+        onDeleteSection={handleDeleteSection}
+        onAddProduct={onAddProduct || (() => { })}
+        products={products}
+        onToggleProductVisibility={onToggleProductVisibility}
+        onEditProduct={onEditProduct}
+        onDeleteProduct={onDeleteProduct}
         isUpdatingVisibility={isUpdatingVisibility}
+        isUpdatingProductVisibility={isUpdatingProductVisibility}
+        categoryName={categoryName}
+        categoryId={categoryId}
+        onSectionsReorder={onSectionReorder}
         isReorderModeActive={isReorderModeActive}
-        onSectionReorder={onSectionReorder}
-        onProductReorder={onProductReorder}
-        isLoading={isLoading}
-        category={category}
       />
     </div>
   );

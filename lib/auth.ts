@@ -11,6 +11,14 @@ import prisma from "./prisma";
 import { compare } from "bcrypt";
 // O la ruta relativa que corresponda
 
+// Definir tipo de usuario personalizado
+type CustomUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  client_id?: number;
+};
 
 // Extender tipos de NextAuth
 declare module "next-auth" {
@@ -34,15 +42,6 @@ declare module "next-auth/jwt" {
     client_id?: number;
   }
 }
-
-// Definir tipo de usuario personalizado
-type CustomUser = {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  client_id?: number;
-};
 
 export const authOptions: NextAuthOptions = {
   pages: {

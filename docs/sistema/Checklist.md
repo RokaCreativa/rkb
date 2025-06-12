@@ -93,3 +93,73 @@
     - [ ] **#T19.1 - Compresión en Cliente:** Integrar una librería para comprimir las imágenes en el navegador antes de enviarlas al servidor.
     - [ ] **#T19.2 - Validación de Tamaño:** Añadir un límite de 2MB en el cliente para los archivos de imagen antes de iniciar la subida.
   - [x] **#T20 - Migración de Estado a Zustand:** Se migró la lógica de estado de la **vista móvil** a un store central de Zustand para resolver bucles de renderizado y simplificar la arquitectura. (Completado el 18/06).
+  - [x] **#T28 - Corrección Masiva de Errores TypeScript:** Se corrigieron sistemáticamente todos los errores de compilación TypeScript que quedaron tras las refactorizaciones, incluyendo problemas en APIs, tipos de funciones, navegación móvil y declaraciones de módulos. (Completado el 20/12).
+  - [x] **#T29 - Implementación Completa de Funciones CRUD:** Se implementaron todas las funciones CRUD faltantes (crear, actualizar, eliminar) para categorías, secciones y productos en el `dashboardStore`, eliminando los errores "Función no implementada" y completando la funcionalidad del sistema de gestión. (Completado el 23/12).
+  - [x] **#T30 - Corrección Integral de UX - Sistema de Toasts, Contadores y Modal:** Se solucionaron problemas críticos de user experience: eliminación de toasts duplicados, implementación de contadores de visibilidad en todas las vistas, corrección de función toggleProductVisibility, imágenes funcionando en modales de edición y diseño responsivo de modales. (Completado el 24/12).
+
+### **Fase 5: Arquitectura Flexible y Personalización Avanzada**
+
+- **Objetivo:** Permitir diferentes tipos de jerarquía de menú según las necesidades del cliente manteniendo la arquitectura actual.
+- **Tareas:**
+  - [ ] **#T31 - Implementación de Jerarquía Flexible "Smart Sections":**
+    - **Objetivo:** Permitir a los clientes elegir entre estructura completa (Categorías → Secciones → Productos) o simplificada (Categorías → Productos) sin cambios en DB o APIs.
+    - **Propuesta:** Sistema "Smart Sections" con secciones auto-creadas invisibles al usuario en modo simple.
+    - **Justificación:** 90% de clientes usan estructura completa, pero 10% necesita simplicidad. No podemos joder al 90% por el 10%.
+    - **Tareas Detalladas:**
+      - [ ] **#T31.1 - Extender Schema de Cliente:** Añadir `client_settings.ui_mode` ("full" | "simple") y `custom_names` para personalización de labels.
+      - [ ] **#T31.2 - Sistema de Secciones Auto:** Implementar flag `is_auto` en secciones para auto-crear secciones invisibles en modo simple.
+      - [ ] **#T31.3 - Adaptar DashboardStore:** Modificar lógica de fetching para manejar ambos modos transparentemente.
+      - [ ] **#T31.4 - UI Condicional:** Adaptar vistas para mostrar/ocultar secciones según ui_mode.
+      - [ ] **#T31.5 - Nombres Personalizables:** Implementar sistema para que clientes personalicen labels ("Categorías" → "Tipos", etc.).
+      - [ ] **#T31.6 - Configuración de Cliente:** Crear interfaz para que clientes cambien entre modos y personalicen nombres.
+
+### **Fase 6: Features Críticos del Sistema de Menús**
+
+- **Objetivo:** Implementar funcionalidades obligatorias para restaurantes profesionales que actualmente faltan en v2.
+- **Tareas:**
+
+  - [ ] **#T32 - Jerarquía Híbrida por Categoría:**
+
+    - **Objetivo:** Permitir que EN EL MISMO MENÚ, algunas categorías vayan directo a productos (ej: "SNACKS") y otras usen secciones (ej: "HAMBURGUESAS" → "Tipos" → Productos).
+    - **Actualización de Propuesta:** La jerarquía flexible debe ser POR CATEGORÍA, no por cliente completo.
+    - **Justificación:** Casos reales como Palm Beach necesitan ambos modos en el mismo menú.
+    - **Tareas Detalladas:**
+      - [ ] **#T32.1 - Extender Schema de Categorías:** Añadir campo `hierarchy_mode` ("simple" | "sections") a la tabla `categories`.
+      - [ ] **#T32.2 - UI Adaptativa:** Modificar vistas para mostrar productos directamente O secciones según el `hierarchy_mode` de la categoría seleccionada.
+      - [ ] **#T32.3 - Gestión de Secciones Auto:** En categorías "simple", auto-crear sección invisible para mantener consistencia de DB.
+      - [ ] **#T32.4 - Toggle por Categoría:** Permitir al usuario cambiar el `hierarchy_mode` de cada categoría individualmente.
+
+  - [ ] **#T33 - Sistema de Alergenos (OBLIGATORIO para Restaurantes):**
+
+    - **Objetivo:** Implementar gestión completa de alergenos con iconos visuales según normativas europeas.
+    - **Justificación:** Es obligatorio por ley en establecimientos de restauración mostrar alergenos.
+    - **Ubicación Iconos:** `public/images/allergensIcons/`
+    - **Tareas Detalladas:**
+      - [ ] **#T33.1 - Auditar Tablas Existentes:** Revisar y limpiar tablas `allergens` y `allergens_product` en el schema.
+      - [ ] **#T33.2 - Componente Selector de Alergenos:** Crear selector visual con iconos para formularios de productos.
+      - [ ] **#T33.3 - Display de Alergenos:** Mostrar iconos de alergenos en las vistas de productos (móvil y escritorio).
+      - [ ] **#T33.4 - Gestión de Alergenos:** CRUD completo para gestionar lista de alergenos disponibles.
+      - [ ] **#T33.5 - Integración con Menú Público:** Asegurar que alergenos se muestren correctamente en el menú del cliente final.
+
+  - [ ] **#T34 - Precios Múltiples por Producto:**
+
+    - **Objetivo:** Permitir productos con múltiples variantes de precio (ej: Bocadillo Grande/Mediano/Pequeño).
+    - **Problema Actual:** Campo `multiple_prices` usa "S"/"N" en lugar de boolean estándar.
+    - **Justificación:** Muchos productos necesitan variantes de tamaño/precio.
+    - **Tareas Detalladas:**
+      - [ ] **#T34.1 - Estandarizar Campo Boolean:** Migrar `multiple_prices` de VARCHAR("S"/"N") a BOOLEAN(true/false).
+      - [ ] **#T34.2 - Componente Precios Múltiples:** Crear formulario para gestionar hasta 4 precios con labels personalizables.
+      - [ ] **#T34.3 - Display Precios Múltiples:** Mostrar variantes de precio en vistas de productos y menú público.
+      - [ ] **#T34.4 - Validación de Precios:** Asegurar que al menos price1 esté definido cuando multiple_prices es true.
+
+  - [ ] **#T35 - Sistema Multiidioma Avanzado:**
+    - **Objetivo:** Implementar sistema completo de traducciones con capacidad de auto-traducción y override manual.
+    - **Justificación:** Clientes internacionales necesitan menús en múltiples idiomas.
+    - **Tablas Existentes:** `languages`, `translations`, `client_languages`
+    - **Tareas Detalladas:**
+      - [ ] **#T35.1 - Auditar Sistema Actual:** Revisar y documentar funcionamiento de tablas de traducción existentes.
+      - [ ] **#T35.2 - Auto-Traducción:** Integrar servicio de traducción automática (Google Translate API o similar).
+      - [ ] **#T35.3 - Override Manual:** Permitir que clientes modifiquen traducciones automáticas específicas.
+      - [ ] **#T35.4 - UI de Gestión:** Crear interfaz para gestionar idiomas activos y traducciones por cliente.
+      - [ ] **#T35.5 - Selector de Idioma:** Implementar selector en menú público para cambiar idioma dinámicamente.
+      - [ ] **#T35.6 - Fallback Inteligente:** Si traducción no existe, mostrar idioma principal del cliente.

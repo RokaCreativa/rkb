@@ -57,7 +57,9 @@ const EditModal = <T extends ItemWithId>({ isOpen, onClose, item, itemType, clie
     const title = item ? `Editar ${itemType}` : `Crear ${itemType}`;
 
     const handleSave = async () => {
-        if (!formRef.current) return;
+        if (!formRef.current) {
+            return;
+        }
 
         setIsSubmitting(true);
         try {
@@ -68,7 +70,8 @@ const EditModal = <T extends ItemWithId>({ isOpen, onClose, item, itemType, clie
                     if (item) {
                         await updateCategory((item as Category).category_id, data as Partial<Category>, imageFile);
                     } else if (clientId) {
-                        await createCategory({ ...data, client_id: clientId } as Partial<Category>, imageFile);
+                        const categoryData = { ...data, client_id: clientId } as Partial<Category>;
+                        await createCategory(categoryData, imageFile);
                     }
                     break;
                 case 'Sección':
@@ -88,7 +91,7 @@ const EditModal = <T extends ItemWithId>({ isOpen, onClose, item, itemType, clie
             }
             onClose();
         } catch (error) {
-            console.error(`Error al guardar ${itemType}:`, error);
+            console.error(`❌ Error al guardar ${itemType}:`, error);
             // El toast de error ya se muestra desde el store
         } finally {
             setIsSubmitting(false);
@@ -118,7 +121,7 @@ const EditModal = <T extends ItemWithId>({ isOpen, onClose, item, itemType, clie
     }
 
     return (
-        <BaseModal isOpen={isOpen} onClose={onClose} title={title} footer={footer}>
+        <BaseModal isOpen={isOpen} onClose={onClose} title={title} footer={footer} size="xl">
             {renderForm()}
         </BaseModal>
     );

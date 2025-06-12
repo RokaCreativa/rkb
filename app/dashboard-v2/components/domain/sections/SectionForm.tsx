@@ -69,7 +69,7 @@ export const SectionForm = forwardRef<SectionFormRef, SectionFormProps>(({ secti
             <ImageUploader
                 label="Imagen de la Sección"
                 onImageChange={setImageFile}
-                initialImageUrl={section?.image}
+                initialImageUrl={section?.image ? `/images/sections/${section.image}` : null}
             />
         </form>
     );

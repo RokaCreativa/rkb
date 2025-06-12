@@ -1,111 +1,61 @@
 /**
  * @fileoverview dashboardStore.ts - Store centralizado de Zustand para el estado del dashboard.
- *
- * @description
- * Este store actúa como la ÚNICA FUENTE DE VERDAD para todos los datos y operaciones
- * relacionados con el dashboard de RokaMenu. Reemplaza la arquitectura anterior de hooks anidados
- * (`useDashboardState`, `use...Management`) para resolver problemas de rendimiento (bucles infinitos)
- * y simplificar la gestión del estado.
- *
- * @state Contiene los datos crudos del dashboard: client, categories, sections, products, y estados de UI como isLoading.
- * @actions Contiene todas las funciones para modificar el estado, incluyendo las llamadas a la API para operaciones CRUD.
- * 
- * @dependencies
- * - `zustand`: La librería de gestión de estado.
- * - `types`: Las definiciones de tipos de TypeScript para las entidades del dominio.
- *
- * @usage
- * En cualquier componente, se puede acceder al estado y a las acciones así:
- * `const { categories, fetchCategories } = useDashboardStore();`
- * Esto proporciona un acceso directo y reactivo sin necesidad de prop drilling.
+ * @description Este store es la única fuente de verdad para el dashboard.
+ * Se ha restaurado su estado completo para dar servicio tanto a la vista móvil como a la de escritorio,
+ * y se ha corregido la lógica CRUD para que sea robusta y segura en tipos.
  */
-
 import { create } from 'zustand';
 import { Category, Section, Product, Client } from '../types';
 import { toast } from 'react-hot-toast';
 
-type EntityType = 'categories' | 'sections' | 'products';
-
-// --- TIPOS DE ESTADO Y ACCIONES ---
+// --- INTERFACES ---
 
 export interface DashboardState {
     client: Client | null;
     categories: Category[];
-    sections: Record<string, Section[]>;
-    products: Record<string, Product[]>;
-    isLoading: boolean;
-    initialDataLoaded: boolean;
-    isUpdating: boolean; // Estado general para operaciones CRUD (create, update, delete)
-    isUpdatingVisibility: Record<string, number | null>; // ej: { category: 1, section: null }
-    error: string | null;
+    sections: Record<string, Section[]>; // key: categoryId
+    products: Record<string, Product[]>; // key: sectionId
 
-    // --- Estado de UI para VISTA MÓVIL ---
+    // Estados de carga y error
+    isLoading: boolean;
+    isClientLoading: boolean;
+    isUpdating: boolean;
+    error: string | null;
+    initialDataLoaded: boolean;
+
+    // Estado de UI para VISTA MÓVIL
     activeView: 'categories' | 'sections' | 'products';
     activeCategoryId: number | null;
     activeSectionId: number | null;
     history: { view: 'categories' | 'sections' | 'products'; id: number | null }[];
 
-    // --- Estado de UI para VISTA DE ESCRITORIO ---
-    selectedCategory: Category | null;
-    selectedSection: Section | null;
-    expandedCategories: Record<number, boolean>;
-    isReorderModeActive: boolean;
-
-    // Estado de navegación para la vista de escritorio
+    // Estado de UI para VISTA DE ESCRITORIO
     selectedCategoryId: number | null;
     selectedSectionId: number | null;
 }
 
 export interface DashboardActions {
     initializeDashboard: (clientId: number) => Promise<void>;
-    fetchClientData: (clientId: number) => Promise<void>;
     fetchCategories: (clientId: number) => Promise<void>;
     fetchSectionsByCategory: (categoryId: number) => Promise<void>;
     fetchProductsBySection: (sectionId: number) => Promise<void>;
-
-    // Alias para compatibilidad con DashboardView.tsx - delega a fetchProductsBySection
-    fetchProducts: (sectionId: number) => Promise<void>;
-
-    toggleCategoryVisibility: (categoryId: number, currentStatus: number) => Promise<void>;
-    toggleSectionVisibility: (sectionId: number, categoryId: number, currentStatus: number) => Promise<void>;
-    toggleProductVisibility: (productId: number, sectionId: number, currentStatus: number) => Promise<void>;
-
-    // --- Operaciones CRUD ---
-    deleteCategory: (categoryId: number) => Promise<void>;
-    deleteSection: (sectionId: number) => Promise<void>;
-    deleteProduct: (productId: number) => Promise<void>;
-
-    createCategory: (categoryData: Partial<Category>, imageFile?: File | null) => Promise<void>;
-    createSection: (sectionData: Partial<Section>, imageFile?: File | null) => Promise<void>;
-    createProduct: (productData: Partial<Product>, imageFile?: File | null) => Promise<void>;
-
-    updateCategory: (categoryId: number, categoryData: Partial<Category>, imageFile?: File | null) => Promise<void>;
-    updateSection: (sectionId: number, sectionData: Partial<Section>, imageFile?: File | null) => Promise<void>;
-    updateProduct: (productId: number, productData: Partial<Product>, imageFile?: File | null) => Promise<void>;
-
-    // --- Helpers Internos ---
-    _uploadImage: (imageFile: File, entityType: EntityType) => Promise<string>;
-
-    // Acciones de Navegación
-    handleCategorySelect: (category: Category) => void;
-    handleSectionSelect: (section: Section) => void;
+    createCategory: (data: Partial<Category>, imageFile?: File | null) => Promise<void>;
+    updateCategory: (id: number, data: Partial<Category>, imageFile?: File | null) => Promise<void>;
+    deleteCategory: (id: number) => Promise<void>;
+    toggleCategoryVisibility: (id: number, status: number) => Promise<void>;
+    createSection: (data: Partial<Section>, imageFile?: File | null) => Promise<void>;
+    updateSection: (id: number, data: Partial<Section>, imageFile?: File | null) => Promise<void>;
+    deleteSection: (id: number) => Promise<void>;
+    toggleSectionVisibility: (id: number, status: number) => Promise<void>;
+    createProduct: (data: Partial<Product>, imageFile?: File | null) => Promise<void>;
+    updateProduct: (id: number, data: Partial<Product>, imageFile?: File | null) => Promise<void>;
+    deleteProduct: (id: number) => Promise<void>;
+    toggleProductVisibility: (id: number, status: number) => Promise<void>;
+    setSelectedCategoryId: (id: number | null) => void;
+    setSelectedSectionId: (id: number | null) => void;
+    handleCategorySelect: (id: number) => void;
+    handleSectionSelect: (id: number) => void;
     handleBack: () => void;
-
-    // --- Acciones para VISTA DE ESCRITORIO ---
-    setSelectedCategory: (category: Category | null) => void;
-    setSelectedSection: (section: Section | null) => void;
-    toggleCategoryExpansion: (categoryId: number) => void;
-    toggleReorderMode: () => void;
-
-    // Acciones de navegación
-    setActiveView: (view: 'categories' | 'sections' | 'products') => void;
-    goToCategory: (categoryId: number) => void;
-    goToSection: (sectionId: number) => void;
-    goBack: () => void;
-
-    // Acciones para la navegación de escritorio
-    setSelectedCategoryId: (categoryId: number | null) => void;
-    setSelectedSectionId: (sectionId: number | null) => void;
 }
 
 // --- ESTADO INICIAL ---
@@ -116,22 +66,14 @@ const initialState: DashboardState = {
     sections: {},
     products: {},
     isLoading: false,
-    initialDataLoaded: false,
+    isClientLoading: true,
     isUpdating: false,
-    isUpdatingVisibility: {},
     error: null,
+    initialDataLoaded: false,
     activeView: 'categories',
     activeCategoryId: null,
     activeSectionId: null,
     history: [],
-
-    // --- Estado de UI para VISTA DE ESCRITORIO ---
-    selectedCategory: null,
-    selectedSection: null,
-    expandedCategories: {},
-    isReorderModeActive: false,
-
-    // Estado de navegación para la vista de escritorio
     selectedCategoryId: null,
     selectedSectionId: null,
 };
@@ -141,494 +83,539 @@ const initialState: DashboardState = {
 export const useDashboardStore = create<DashboardState & DashboardActions>((set, get) => ({
     ...initialState,
 
-    /**
-     * @description
-     * Helper interno para subir imágenes. Ahora es genérico y robusto.
-     * @param imageFile El archivo a subir.
-     * @param entityType El tipo de entidad ('categories', 'sections', 'products'), usado por la API para determinar la carpeta de destino.
-     * @returns El `filename` de la imagen guardada (ej: '12345_mi-imagen.jpg').
-     */
-    _uploadImage: async (imageFile, entityType) => {
-        const formData = new FormData();
-        formData.append('file', imageFile);
-        formData.append('entityType', entityType); // <-- Pasamos el tipo a la API
-
-        const response = await fetch('/api/upload', { // <-- Apuntamos a la nueva API genérica
-            method: 'POST',
-            body: formData,
-        });
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-            throw new Error(result.error || 'Error en la subida de la imagen.');
-        }
-        // Devolvemos solo el nombre del archivo, que es lo que se guarda en la DB.
-        return result.filename;
-    },
-
-    // --- ACCIONES ---
-
     initializeDashboard: async (clientId) => {
-        set({ isLoading: true });
-        await get().fetchClientData(clientId);
-        await get().fetchCategories(clientId);
-        set({ isLoading: false, initialDataLoaded: true });
-    },
-
-    fetchClientData: async (clientId) => {
-        set({ isLoading: true, error: null });
+        set({ isClientLoading: true, initialDataLoaded: false });
         try {
-            const response = await fetch(`/api/client?id=${clientId}`);
-            if (!response.ok) throw new Error('Error al cargar los datos del cliente');
-            const clientData = await response.json();
-            set({ client: clientData, isLoading: false });
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage, isLoading: false });
-            toast.error('Error al cargar los datos del cliente.');
+            const clientRes = await fetch(`/api/client?id=${clientId}`);
+            if (!clientRes.ok) throw new Error('Cliente no encontrado');
+            set({ client: await clientRes.json() });
+            await get().fetchCategories(clientId);
+        } catch (e) {
+            set({ error: e instanceof Error ? e.message : 'Error' });
+        } finally {
+            set({ isClientLoading: false, initialDataLoaded: true });
         }
     },
 
     fetchCategories: async (clientId) => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true });
         try {
-            const response = await fetch(`/api/categories?client_id=${clientId}`);
-            if (!response.ok) throw new Error('Error al cargar las categorías');
-            const categoriesData = await response.json();
-            set({ categories: categoriesData, isLoading: false, initialDataLoaded: true });
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage, isLoading: false });
-            toast.error('Error al cargar las categorías.');
+            const res = await fetch(`/api/categories?client_id=${clientId}`);
+            if (!res.ok) throw new Error('Error al cargar categorías');
+            set({ categories: await res.json() });
+        } catch (e) {
+            set({ error: e instanceof Error ? e.message : 'Error' });
+        } finally {
+            set({ isLoading: false });
         }
     },
 
     fetchSectionsByCategory: async (categoryId) => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true });
         try {
-            const response = await fetch(`/api/sections?category_id=${categoryId}`);
-            if (!response.ok) throw new Error('Error al cargar las secciones');
-            const sectionsData = await response.json();
-            set(state => ({
-                sections: {
-                    ...state.sections,
-                    [categoryId]: sectionsData,
-                },
-                isLoading: false,
-            }));
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage, isLoading: false });
-            toast.error('Error al cargar las secciones.');
+            const res = await fetch(`/api/sections?category_id=${categoryId}`);
+            if (!res.ok) throw new Error('Error al cargar secciones');
+            const sectionsData = await res.json();
+            set(state => ({ sections: { ...state.sections, [categoryId]: sectionsData } }));
+        } catch (e) {
+            set({ error: e instanceof Error ? e.message : 'Error' });
+        } finally {
+            set({ isLoading: false });
         }
     },
 
     fetchProductsBySection: async (sectionId) => {
-        set({ isLoading: true, error: null });
+        set({ isLoading: true });
         try {
-            const response = await fetch(`/api/products?section_id=${sectionId}`);
-            if (!response.ok) throw new Error('Error al cargar los productos');
-            const productsData = await response.json();
-            set(state => ({
-                products: {
-                    ...state.products,
-                    [sectionId]: productsData,
-                },
-                isLoading: false
-            }));
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage, isLoading: false });
-            toast.error('Error al cargar los productos.');
-        }
-    },
-
-    toggleCategoryVisibility: async (categoryId, currentStatus) => {
-        set({ isUpdatingVisibility: { ...get().isUpdatingVisibility, category: categoryId } });
-        const originalCategories = get().categories;
-
-        set(state => ({
-            categories: state.categories.map(c =>
-                c.category_id === categoryId ? { ...c, status: currentStatus === 1 ? 0 : 1 } : c
-            ),
-        }));
-
-        try {
-            const response = await fetch(`/api/categories/${categoryId}/visibility`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: currentStatus === 1 ? false : true }),
-            });
-            if (!response.ok) throw new Error('Error en el servidor');
-
-            const updatedCategory = await response.json();
-            await get().fetchCategories(updatedCategory.client_id);
-            toast.success('Visibilidad actualizada');
-
-        } catch (error) {
-            toast.error('No se pudo actualizar la visibilidad.');
-            set({ categories: originalCategories });
+            const res = await fetch(`/api/products?section_id=${sectionId}`);
+            if (!res.ok) throw new Error('Error al cargar productos');
+            const productsData = await res.json();
+            set(state => ({ products: { ...state.products, [sectionId]: productsData } }));
+        } catch (e) {
+            set({ error: e instanceof Error ? e.message : 'Error' });
         } finally {
-            set({ isUpdatingVisibility: { ...get().isUpdatingVisibility, category: null } });
+            set({ isLoading: false });
         }
     },
 
-    toggleSectionVisibility: async (sectionId, categoryId, currentStatus) => {
-        set({ isUpdatingVisibility: { ...get().isUpdatingVisibility, section: sectionId } });
-        const originalSections = get().sections[categoryId];
-
-        set(state => ({
-            sections: {
-                ...state.sections,
-                [categoryId]: state.sections[categoryId].map(s =>
-                    s.section_id === sectionId ? { ...s, status: currentStatus === 1 ? 0 : 1 } : s
-                ),
-            }
-        }));
-
+    createCategory: async (data, imageFile) => {
+        const toastId = 'crud-category';
+        set({ isUpdating: true });
+        toast.loading('Creando categoría...', { id: toastId });
         try {
-            const response = await fetch(`/api/sections/${sectionId}/visibility`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: currentStatus === 1 ? false : true }),
+            const formData = new FormData();
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null) formData.append(key, String(value));
             });
-            if (!response.ok) throw new Error('Error en el servidor');
-            await get().fetchSectionsByCategory(categoryId);
-            toast.success('Visibilidad actualizada');
-        } catch (error) {
-            toast.error('No se pudo actualizar la visibilidad.');
-            set(state => ({
-                sections: { ...state.sections, [categoryId]: originalSections }
-            }));
-        } finally {
-            set({ isUpdatingVisibility: { ...get().isUpdatingVisibility, section: null } });
-        }
-    },
-
-    toggleProductVisibility: async (productId, sectionId, currentStatus) => {
-        set({ isUpdatingVisibility: { ...get().isUpdatingVisibility, product: productId } });
-        const originalProducts = get().products[sectionId];
-
-        set(state => ({
-            products: {
-                ...state.products,
-                [sectionId]: state.products[sectionId].map(p =>
-                    p.product_id === productId ? { ...p, status: currentStatus === 1 ? 0 : 1 } : p
-                ),
-            }
-        }));
-
-        try {
-            const response = await fetch(`/api/products/${productId}/visibility`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: currentStatus === 1 ? false : true }),
-            });
-            if (!response.ok) throw new Error('Error en el servidor');
-            await get().fetchProductsBySection(sectionId);
-
-            const categoryIdKey = Object.keys(get().sections).find(key =>
-                get().sections[key]?.some(s => s.section_id === sectionId)
-            );
-
-            if (categoryIdKey) {
-                await get().fetchSectionsByCategory(Number(categoryIdKey));
+            if (imageFile) {
+                formData.append('image', imageFile);
             }
 
-            toast.success('Visibilidad actualizada');
-        } catch (error) {
-            toast.error('No se pudo actualizar la visibilidad.');
-            set(state => ({
-                products: { ...state.products, [sectionId]: originalProducts }
-            }));
+            const res = await fetch('/api/categories', { method: 'POST', body: formData });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error);
+            }
+
+            const responseData = await res.json();
+            toast.success('Categoría creada', { id: toastId });
+
+            const clientId = get().client?.id;
+            if (clientId) await get().fetchCategories(clientId);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
         } finally {
-            set({ isUpdatingVisibility: { ...get().isUpdatingVisibility, product: null } });
+            set({ isUpdating: false });
         }
     },
 
-    // --- ACCIONES DE NAVEGACIÓN (VISTA MÓVIL) ---
+    updateCategory: async (id, data, imageFile) => {
+        // 🧭 MIGA DE PAN: Esta función actualiza categorías existentes siguiendo el mismo patrón
+        // que createCategory, pero usando PUT y un endpoint específico por ID.
+        // Se conecta con EditCategoryModal.tsx y CategoryForm.tsx para la edición desde ambas vistas.
+        const toastId = `update-category-${id}`;
+        set({ isUpdating: true });
+        toast.loading('Actualizando categoría...', { id: toastId });
+        try {
+            const formData = new FormData();
+            formData.append('category_id', String(id));
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null && key !== 'category_id') {
+                    formData.append(key, String(value));
+                }
+            });
+            if (imageFile) formData.append('image', imageFile);
 
-    handleCategorySelect: (category) => {
+            const res = await fetch('/api/categories', { method: 'PUT', body: formData });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error);
+            }
+
+            toast.success('Categoría actualizada', { id: toastId });
+
+            // Recargar categorías para reflejar cambios en ambas vistas (móvil y escritorio)
+            const clientId = get().client?.id;
+            if (clientId) await get().fetchCategories(clientId);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    deleteCategory: async (id) => {
+        // 🧭 MIGA DE PAN: Esta función elimina categorías usando el endpoint DELETE.
+        // Se conecta con DeleteConfirmationModal.tsx que es invocado desde ambas vistas.
+        // Al eliminar una categoría, también se resetea la selección en escritorio.
+        const toastId = `delete-category-${id}`;
+        set({ isUpdating: true });
+        toast.loading('Eliminando categoría...', { id: toastId });
+        try {
+            const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Error al eliminar categoría');
+            }
+
+            toast.success('Categoría eliminada', { id: toastId });
+
+            // Resetear selecciones si se eliminó la categoría activa
+            const state = get();
+            if (state.selectedCategoryId === id) {
+                set({ selectedCategoryId: null, selectedSectionId: null });
+            }
+            if (state.activeCategoryId === id) {
+                set({ activeView: 'categories', activeCategoryId: null, activeSectionId: null, history: [] });
+            }
+
+            // Recargar categorías
+            const clientId = get().client?.id;
+            if (clientId) await get().fetchCategories(clientId);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    toggleCategoryVisibility: async (id, status) => {
+        // 🧭 MIGA DE PAN: Esta función alterna la visibilidad de categorías usando el endpoint PATCH.
+        // Se conecta con CategoryGridView.tsx y CategoryList.tsx para el botón "ojo" en ambas vistas.
+        const toastId = `toggle-category-${id}`;
+        set({ isUpdating: true });
+        toast.loading('Actualizando visibilidad...', { id: toastId });
+        try {
+            const newStatus = status === 1 ? false : true;
+            const res = await fetch(`/api/categories/${id}/visibility`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Error al actualizar visibilidad');
+            }
+
+            toast.success('Visibilidad actualizada', { id: toastId });
+
+            // Recargar categorías para reflejar cambios
+            const clientId = get().client?.id;
+            if (clientId) await get().fetchCategories(clientId);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error desconocido', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    createSection: async (data, imageFile) => {
+        // 🧭 MIGA DE PAN: Esta función crea secciones siguiendo el patrón exitoso de createCategory.
+        // Se conecta con EditSectionModal.tsx y SectionForm.tsx desde ambas vistas.
+        const toastId = 'crud-section';
+        set({ isUpdating: true });
+        toast.loading('Creando sección...', { id: toastId });
+
+        console.log('🎯 createSection - Datos recibidos:', { data, hasImageFile: !!imageFile });
+
+        try {
+            const formData = new FormData();
+
+            console.log('🎯 createSection - Procesando campos de data...');
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null) {
+                    console.log(`🎯 createSection - FormData: ${key} = ${value}`);
+                    formData.append(key, String(value));
+                }
+            });
+
+            if (imageFile) {
+                console.log('🎯 createSection - Añadiendo imagen:', imageFile.name);
+                formData.append('image', imageFile);
+            }
+
+            console.log('🎯 createSection - Enviando request a /api/sections');
+            const res = await fetch('/api/sections', { method: 'POST', body: formData });
+
+            console.log('🎯 createSection - Response status:', res.status);
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                console.error('🎯 createSection - Error response:', errorData);
+                throw new Error(errorData.error || errorData.message || 'Error al crear sección');
+            }
+
+            const responseData = await res.json();
+            console.log('🎯 createSection - Success response:', responseData);
+
+            toast.success('Sección creada', { id: toastId });
+
+            // Recargar secciones de la categoría activa/seleccionada
+            const { activeCategoryId, selectedCategoryId } = get();
+            const targetCategoryId = activeCategoryId || selectedCategoryId;
+            console.log('🎯 createSection - Recargando secciones para categoría:', targetCategoryId);
+
+            if (targetCategoryId) await get().fetchSectionsByCategory(targetCategoryId);
+        } catch (e) {
+            console.error('🎯 createSection - Error completo:', e);
+            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    updateSection: async (id, data, imageFile) => {
+        // 🧭 MIGA DE PAN: Actualiza secciones existentes usando PUT en el endpoint de secciones.
+        // Se conecta con EditSectionModal.tsx para la edición desde ambas vistas.
+        // IMPORTANTE: El endpoint PUT de secciones espera el campo 'id' (no 'section_id')
+        const toastId = `update-section-${id}`;
+        set({ isUpdating: true });
+        toast.loading('Actualizando sección...', { id: toastId });
+        try {
+            const formData = new FormData();
+            formData.append('id', String(id));
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null && key !== 'id') {
+                    formData.append(key, String(value));
+                }
+            });
+            if (imageFile) formData.append('image', imageFile);
+
+            const res = await fetch('/api/sections', { method: 'PUT', body: formData });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error);
+            }
+
+            toast.success('Sección actualizada', { id: toastId });
+
+            // Recargar secciones de la categoría activa
+            const { activeCategoryId, selectedCategoryId } = get();
+            const targetCategoryId = activeCategoryId || selectedCategoryId;
+            if (targetCategoryId) await get().fetchSectionsByCategory(targetCategoryId);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    deleteSection: async (id) => {
+        // 🧭 MIGA DE PAN: Elimina secciones usando DELETE en endpoint específico por ID.
+        // Se conecta con DeleteConfirmationModal.tsx desde ambas vistas.
+        // Al eliminar una sección, resetea la selección si era la sección activa.
+        const toastId = `delete-section-${id}`;
+        set({ isUpdating: true });
+        toast.loading('Eliminando sección...', { id: toastId });
+        try {
+            const res = await fetch(`/api/sections/${id}`, { method: 'DELETE' });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Error al eliminar sección');
+            }
+
+            toast.success('Sección eliminada', { id: toastId });
+
+            // Resetear selecciones si se eliminó la sección activa
+            const state = get();
+            if (state.selectedSectionId === id) {
+                set({ selectedSectionId: null });
+            }
+            if (state.activeSectionId === id) {
+                set({ activeView: 'sections', activeSectionId: null });
+            }
+
+            // Recargar secciones de la categoría activa
+            const { activeCategoryId, selectedCategoryId } = get();
+            const targetCategoryId = activeCategoryId || selectedCategoryId;
+            if (targetCategoryId) await get().fetchSectionsByCategory(targetCategoryId);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    toggleSectionVisibility: async (id, status) => {
+        // 🧭 MIGA DE PAN: Esta función alterna la visibilidad de secciones usando el endpoint PATCH.
+        // Se conecta con SectionGridView.tsx y SectionList.tsx para el botón "ojo" en ambas vistas.
+        const toastId = `toggle-section-${id}`;
+        set({ isUpdating: true });
+        toast.loading('Actualizando visibilidad...', { id: toastId });
+        try {
+            const newStatus = status === 1 ? false : true;
+            const res = await fetch(`/api/sections/${id}/visibility`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Error al actualizar visibilidad');
+            }
+            toast.success('Visibilidad actualizada', { id: toastId });
+
+            // Recargar secciones de la categoría correcta (escritorio usa selectedCategoryId, móvil usa activeCategoryId)
+            const { activeCategoryId, selectedCategoryId } = get();
+            const targetCategoryId = selectedCategoryId || activeCategoryId;
+            if (targetCategoryId) {
+                await get().fetchSectionsByCategory(targetCategoryId);
+            }
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error desconocido', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    createProduct: async (data, imageFile) => {
+        // 🧭 MIGA DE PAN: Esta función crea productos siguiendo el patrón exitoso de createCategory.
+        // Se conecta con EditProductModal.tsx y ProductForm.tsx desde ambas vistas.
+        // IMPORTANTE: El endpoint POST requiere un campo 'sections' con array JSON de IDs.
+        const toastId = 'crud-product';
+        set({ isUpdating: true });
+        toast.loading('Creando producto...', { id: toastId });
+        try {
+            const formData = new FormData();
+
+            // El endpoint requiere array 'sections' en lugar de section_id individual
+            const { activeSectionId, selectedSectionId } = get();
+            const targetSectionId = data.section_id || activeSectionId || selectedSectionId;
+
+            // Añadir todos los campos excepto section_id
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null && key !== 'section_id') {
+                    formData.append(key, String(value));
+                }
+            });
+
+            // Añadir array de secciones como requiere el endpoint
+            if (targetSectionId) {
+                formData.append('sections', JSON.stringify([targetSectionId]));
+            }
+
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            const res = await fetch('/api/products', { method: 'POST', body: formData });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error);
+            }
+
+            const responseData = await res.json();
+            toast.success('Producto creado', { id: toastId });
+
+            // Recargar productos de la sección activa/seleccionada
+            if (targetSectionId) await get().fetchProductsBySection(targetSectionId);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    updateProduct: async (id, data, imageFile) => {
+        // 🧭 MIGA DE PAN: Actualiza productos existentes usando PUT en el endpoint de productos.
+        // Se conecta con EditProductModal.tsx para la edición desde ambas vistas.
+        // IMPORTANTE: El endpoint PUT requiere product_id, section_id y client_id obligatorios
+        const toastId = `update-product-${id}`;
+        set({ isUpdating: true });
+        toast.loading('Actualizando producto...', { id: toastId });
+        try {
+            const formData = new FormData();
+            formData.append('product_id', String(id));
+
+            // Añadir campos requeridos por el endpoint
+            const { activeSectionId, selectedSectionId, client } = get();
+            const targetSectionId = activeSectionId || selectedSectionId;
+
+            if (targetSectionId) formData.append('section_id', String(targetSectionId));
+            if (client?.id) formData.append('client_id', String(client.id));
+
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null && key !== 'product_id') {
+                    formData.append(key, String(value));
+                }
+            });
+            if (imageFile) formData.append('image', imageFile);
+
+            const res = await fetch('/api/products', { method: 'PUT', body: formData });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || errorData.error || 'Error al actualizar producto');
+            }
+
+            toast.success('Producto actualizado', { id: toastId });
+
+            // Recargar productos de la sección activa
+            if (targetSectionId) await get().fetchProductsBySection(targetSectionId);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    deleteProduct: async (id) => {
+        // 🧭 MIGA DE PAN: Elimina productos usando DELETE en endpoint específico por ID.
+        // Se conecta con DeleteConfirmationModal.tsx desde ambas vistas.
+        // Al ser el nivel más profundo de la jerarquía, solo necesita recargar la lista de productos.
+        const toastId = `delete-product-${id}`;
+        set({ isUpdating: true });
+        toast.loading('Eliminando producto...', { id: toastId });
+        try {
+            const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Error al eliminar producto');
+            }
+
+            toast.success('Producto eliminado', { id: toastId });
+
+            // Recargar productos de la sección activa
+            const { activeSectionId, selectedSectionId } = get();
+            const targetSectionId = activeSectionId || selectedSectionId;
+            if (targetSectionId) await get().fetchProductsBySection(targetSectionId);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    toggleProductVisibility: async (id, status) => {
+        // 🧭 MIGA DE PAN: Esta función alterna la visibilidad de productos usando el endpoint PATCH.
+        // Se conecta con ProductGridView.tsx y ProductList.tsx para el botón "ojo" en ambas vistas.
+        const toastId = `toggle-product-${id}`;
+        set({ isUpdating: true });
+        toast.loading('Actualizando visibilidad...', { id: toastId });
+        try {
+            const newStatus = status === 1 ? false : true;
+            const res = await fetch(`/api/products/${id}/visibility`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.message || 'Error al actualizar visibilidad');
+            }
+            toast.success('Visibilidad actualizada', { id: toastId });
+
+            // Recargar productos para reflejar cambios
+            // 🧭 MIGA DE PAN: En escritorio usamos selectedSectionId, en móvil activeSectionId
+            const { activeSectionId, selectedSectionId } = get();
+            const targetSectionId = selectedSectionId || activeSectionId;
+            if (targetSectionId) {
+                await get().fetchProductsBySection(targetSectionId);
+            }
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error desconocido', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    setSelectedCategoryId: (id) => set({ selectedCategoryId: id, selectedSectionId: null }),
+    setSelectedSectionId: (id) => set({ selectedSectionId: id }),
+
+    handleCategorySelect: (id) => {
         set(state => ({
-            history: [...state.history, { view: state.activeView, id: state.activeCategoryId }],
-            activeCategoryId: category.category_id,
             activeView: 'sections',
+            activeCategoryId: id,
+            history: [...state.history, { view: state.activeView, id: state.activeCategoryId }]
         }));
-        get().fetchSectionsByCategory(category.category_id);
+        get().fetchSectionsByCategory(id);
     },
-
-    handleSectionSelect: (section: Section) => {
-        set({
+    handleSectionSelect: (id) => {
+        set(state => ({
             activeView: 'products',
-            activeSectionId: section.section_id,
-            history: [...get().history, { view: 'sections', id: get().activeCategoryId }],
-        });
-        if (!get().products[section.section_id]) {
-            get().fetchProductsBySection(section.section_id);
-        }
+            activeSectionId: id,
+            history: [...state.history, { view: state.activeView, id: state.activeSectionId }]
+        }));
+        get().fetchProductsBySection(id);
     },
-
-    handleBack: () => {
-        set(state => {
-            const history = [...state.history];
-            const previousState = history.pop();
-            if (previousState?.view === 'categories') {
-                return { history, activeView: 'categories', activeCategoryId: null, activeSectionId: null };
-            }
-            if (previousState?.view === 'sections') {
-                return { history, activeView: 'sections', activeSectionId: null };
-            }
-            return { history: [], activeView: 'categories', activeCategoryId: null, activeSectionId: null };
-        });
-    },
-
-    // --- ACCIONES DE UI (VISTA ESCRITORIO) ---
-    setSelectedCategory: (category) => set({ selectedCategory: category, selectedSection: null }),
-    setSelectedSection: (section) => set({ selectedSection: section }),
-    toggleCategoryExpansion: (categoryId) => set(state => ({ expandedCategories: { ...state.expandedCategories, [categoryId]: !state.expandedCategories[categoryId] } })),
-    toggleReorderMode: () => set(state => ({ isReorderModeActive: !state.isReorderModeActive })),
-
-    // --- OPERACIONES CRUD ---
-    fetchProducts: async (sectionId) => { await get().fetchProductsBySection(sectionId); },
-    deleteCategory: async (categoryId) => {
-        set({ isUpdating: true, error: null });
-        try {
-            const response = await fetch(`/api/categories/${categoryId}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Error al eliminar la categoría');
-            const clientId = get().client?.client_id;
-            if (clientId) await get().fetchCategories(clientId);
-            toast.success('Categoría eliminada exitosamente');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage, isUpdating: false });
-            toast.error('No se pudo eliminar la categoría.');
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-    deleteSection: async (sectionId) => {
-        set({ isUpdating: true, error: null });
-        try {
-            const response = await fetch(`/api/sections/${sectionId}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Error al eliminar la sección');
-            let categoryId: number | null = null;
-            Object.entries(get().sections).forEach(([catId, sections]) => {
-                if (sections.some(s => s.section_id === sectionId)) {
-                    categoryId = Number(catId);
-                }
-            });
-            if (categoryId) await get().fetchSectionsByCategory(categoryId);
-            toast.success('Sección eliminada exitosamente');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage, isUpdating: false });
-            toast.error('No se pudo eliminar la sección.');
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-    deleteProduct: async (productId) => {
-        set({ isUpdating: true, error: null });
-        try {
-            const response = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Error al eliminar el producto');
-            let sectionId: number | null = null;
-            Object.entries(get().products).forEach(([secId, products]) => {
-                if (products.some(p => p.product_id === productId)) {
-                    sectionId = Number(secId);
-                }
-            });
-            if (sectionId) {
-                await get().fetchProductsBySection(sectionId);
-                const categoryIdKey = Object.keys(get().sections).find(key =>
-                    get().sections[key]?.some(s => s.section_id === sectionId)
-                );
-                if (categoryIdKey) await get().fetchSectionsByCategory(Number(categoryIdKey));
-            }
-            toast.success('Producto eliminado exitosamente');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage, isUpdating: false });
-            toast.error('No se pudo eliminar el producto.');
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-
-    createCategory: async (categoryData, imageFile) => {
-        set({ isUpdating: true, error: null });
-        try {
-            let finalCategoryData = { ...categoryData };
-            if (imageFile) {
-                finalCategoryData.image = await get()._uploadImage(imageFile, 'categories');
-            }
-            const response = await fetch('/api/categories', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(finalCategoryData),
-            });
-            if (!response.ok) throw new Error('Error al crear la categoría');
-            const clientId = get().client?.client_id;
-            if (clientId) await get().fetchCategories(clientId);
-            toast.success('Categoría creada exitosamente');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage });
-            toast.error(errorMessage);
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-
-    createSection: async (sectionData, imageFile) => {
-        set({ isUpdating: true, error: null });
-        try {
-            let finalSectionData = { ...sectionData };
-            if (imageFile) {
-                finalSectionData.image = await get()._uploadImage(imageFile, 'sections');
-            }
-            const response = await fetch('/api/sections', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(finalSectionData),
-            });
-            if (!response.ok) throw new Error('Error al crear la sección');
-            const newSection = await response.json();
-            await get().fetchSectionsByCategory(newSection.category_id);
-            toast.success('Sección creada exitosamente');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage });
-            toast.error(errorMessage);
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-
-    createProduct: async (productData, imageFile) => {
-        set({ isUpdating: true, error: null });
-        try {
-            let finalProductData = { ...productData };
-            if (imageFile) {
-                finalProductData.image = await get()._uploadImage(imageFile, 'products');
-            }
-            const response = await fetch('/api/products', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(finalProductData),
-            });
-            if (!response.ok) throw new Error('Error al crear el producto');
-            const newProduct = await response.json();
-            await get().fetchProductsBySection(newProduct.section_id);
-            toast.success('Producto creado exitosamente');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage });
-            toast.error(errorMessage);
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-
-    updateCategory: async (categoryId, categoryData, imageFile) => {
-        set({ isUpdating: true, error: null });
-        try {
-            let finalCategoryData = { ...categoryData };
-            if (imageFile) {
-                finalCategoryData.image = await get()._uploadImage(imageFile, 'categories');
-            }
-            const response = await fetch(`/api/categories/${categoryId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(finalCategoryData),
-            });
-            if (!response.ok) throw new Error('Error al actualizar la categoría');
-            const updatedCategory = await response.json();
-            set(state => ({
-                categories: state.categories.map(c =>
-                    c.category_id === categoryId ? updatedCategory : c
-                )
-            }));
-            toast.success('Categoría actualizada exitosamente');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage });
-            toast.error(errorMessage);
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-
-    updateSection: async (sectionId, sectionData, imageFile) => {
-        set({ isUpdating: true, error: null });
-        try {
-            let finalSectionData = { ...sectionData };
-            if (imageFile) {
-                finalSectionData.image = await get()._uploadImage(imageFile, 'sections');
-            }
-            const response = await fetch(`/api/sections/${sectionId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(finalSectionData),
-            });
-            if (!response.ok) throw new Error('Error al actualizar la sección');
-            const updatedSection = await response.json();
-            await get().fetchSectionsByCategory(updatedSection.category_id);
-            toast.success('Sección actualizada exitosamente');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage });
-            toast.error(errorMessage);
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-
-    updateProduct: async (productId, productData, imageFile) => {
-        set({ isUpdating: true, error: null });
-        try {
-            let finalProductData = { ...productData };
-            if (imageFile) {
-                finalProductData.image = await get()._uploadImage(imageFile, 'products');
-            }
-            const response = await fetch(`/api/products/${productId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(finalProductData),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Error al actualizar el producto');
-            }
-            const updatedProduct = await response.json();
-            await get().fetchProductsBySection(updatedProduct.section_id);
-            toast.success('Producto actualizado exitosamente');
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-            set({ error: errorMessage });
-            toast.error(errorMessage);
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-
-    // Acciones de navegación
-    setActiveView: (view) => set({ activeView: view }),
-    goToCategory: (categoryId) => set({ activeView: 'sections', activeCategoryId: categoryId }),
-    goToSection: (sectionId) => set({ activeView: 'products', activeSectionId: sectionId }),
-    goBack: () => set((state) => {
-        if (state.activeView === 'products') {
-            return { activeView: 'sections', activeSectionId: null };
-        }
-        if (state.activeView === 'sections') {
-            return { activeView: 'categories', activeCategoryId: null };
-        }
-        return {};
+    handleBack: () => set(state => {
+        const last = state.history.pop();
+        if (!last) return { activeView: 'categories', activeCategoryId: null, activeSectionId: null };
+        return {
+            history: state.history,
+            activeView: last.view,
+            activeCategoryId: last.view === 'sections' ? last.id : state.activeCategoryId,
+            activeSectionId: last.view === 'products' ? last.id : null
+        };
     }),
 
-    // Implementación de las nuevas acciones de escritorio
-    setSelectedCategoryId: (categoryId) => set({ selectedCategoryId: categoryId, selectedSectionId: null }),
-    setSelectedSectionId: (sectionId) => set({ selectedSectionId: sectionId }),
 
-})); 
+}));

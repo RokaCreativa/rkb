@@ -58,8 +58,6 @@ export interface SectionListProps {
   onAddSectionToCategory?: (categoryId: number) => void;
   /** Indica si el modo de reordenamiento está activo */
   isReorderModeActive?: boolean;
-  /** Función para reordenar productos (arrastrar y soltar) */
-  onProductsReorder?: (sectionId: number, sourceIndex: number, destinationIndex: number) => void;
 }
 
 /**
@@ -93,7 +91,6 @@ const SectionList: React.FC<SectionListProps> = ({
   onSectionsReorder,
   onAddSectionToCategory,
   isReorderModeActive = false,
-  onProductsReorder
 }) => {
   // Log de diagnóstico al renderizar el componente
   console.log("🔍 [RENDER DEBUG] SectionList renderizado con:", {
@@ -200,7 +197,6 @@ const SectionList: React.FC<SectionListProps> = ({
           onToggleVisibility={onToggleProductVisibility}
           isUpdatingVisibility={isUpdatingProductVisibility}
           isReorderModeActive={isReorderModeActive}
-          onProductsReorder={onProductsReorder}
         />
       </div>
     );

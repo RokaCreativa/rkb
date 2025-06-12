@@ -38,7 +38,12 @@
     "sections": "Secciones",
     "products": "Productos",
     "settings": "Configuración",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "openMenu": "Abrir menú",
+    "dashboard": "Dashboard",
+    "menu": "Menú",
+    "statistics": "Estadísticas",
+    "profile": "Perfil"
   },
   "categories": {
     "title": "Categorías",

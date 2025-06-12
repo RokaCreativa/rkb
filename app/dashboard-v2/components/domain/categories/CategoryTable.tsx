@@ -425,7 +425,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         }
                         onAddSectionToCategory={onAddSection}
                         isReorderModeActive={isReorderModeActive}
-                        onProductsReorder={onProductsReorder}
+
                       />
                     </div>
                   </td>

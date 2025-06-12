@@ -126,7 +126,7 @@ export const MobileView: React.FC = () => {
                 {activeView === 'categories' && (
                     <CategoryList
                         categories={categories}
-                        onCategoryClick={handleCategorySelect}
+                        onCategoryClick={(category: Category) => handleCategorySelect(category.category_id)}
                         onEditCategory={(category: Category) => openModal('editCategory', { category })}
                         onDeleteCategory={(category: Category) => openModal('deleteCategory', { category })}
                         onToggleVisibility={(category: Category) => toggleCategoryVisibility(category.category_id, category.status)}
@@ -137,7 +137,7 @@ export const MobileView: React.FC = () => {
                 {activeView === 'sections' && activeCategoryId && (
                     <SectionListView
                         sections={sections[activeCategoryId] || []}
-                        onSectionClick={handleSectionSelect}
+                        onSectionClick={(section: Section) => handleSectionSelect(section.section_id)}
                         onToggleVisibility={(section: Section) => {
                             // 🧭 MIGA DE PAN: activeCategoryId está conectado con handleCategorySelect del store
                             // y es fundamental para la jerarquía Category->Section->Product en la navegación móvil
@@ -146,7 +146,7 @@ export const MobileView: React.FC = () => {
                                 toast.error('Error de navegación. Regrese a categorías e intente de nuevo.');
                                 return;
                             }
-                            toggleSectionVisibility(section.section_id, activeCategoryId, section.status);
+                            toggleSectionVisibility(section.section_id, section.status);
                         }}
                         onEdit={(section: Section) => openModal('editSection', { section })}
                         onDelete={(section: Section) => openModal('deleteSection', { section })}
@@ -165,7 +165,7 @@ export const MobileView: React.FC = () => {
                                 toast.error('Error de navegación. Regrese a la categoría e intente de nuevo.');
                                 return;
                             }
-                            toggleProductVisibility(product.product_id, activeSectionId, product.status);
+                            toggleProductVisibility(product.product_id, product.status);
                         }}
                         onEdit={(product: Product) => openModal('editProduct', { product })}
                         onDelete={(product: Product) => openModal('deleteProduct', { product })}

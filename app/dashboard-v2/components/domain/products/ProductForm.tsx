@@ -25,7 +25,9 @@ interface ProductFormProps {
 export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ product }, ref) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [price, setPrice] = useState<number>(0);
+    // 🧭 MIGA DE PAN: El precio se maneja como string porque Prisma.Decimal se serializa como string
+    // para mantener precisión decimal. Se conecta con ProductGridView.tsx y EditProductModal.tsx
+    const [price, setPrice] = useState<string>('0');
     const [displayOrder, setDisplayOrder] = useState(0);
     const [imageFile, setImageFile] = useState<File | null>(null);
 
@@ -33,13 +35,13 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ produ
         if (product) {
             setName(product.name || '');
             setDescription(product.description || '');
-            setPrice(product.price || 0);
+            setPrice(product.price || '0');
             setDisplayOrder(product.display_order || 0);
             setImageFile(null); // Reset
         } else {
             setName('');
             setDescription('');
-            setPrice(0);
+            setPrice('0');
             setDisplayOrder(0);
             setImageFile(null);
         }
@@ -80,7 +82,7 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ produ
                 type="number"
                 step="0.01"
                 value={price}
-                onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
+                onChange={(e) => setPrice(e.target.value)}
                 required
             />
             <FormField
@@ -93,7 +95,7 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ produ
             <ImageUploader
                 label="Imagen del Producto"
                 onImageChange={setImageFile}
-                initialImageUrl={product?.image}
+                initialImageUrl={product?.image ? `/images/products/${product.image}` : null}
             />
         </form>
     );

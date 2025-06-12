@@ -54,7 +54,8 @@ RokaMenu es una aplicación web (SaaS) diseñada para que dueños de restaurante
 
 El corazón de la aplicación, siguiendo el paradigma de App Router.
 
-- **`app/api/`**: Contiene todas las rutas de la API del backend. La estructura es RESTful.
+- **`app/api/`**: Contiene todas las rutas de la API del backend.
+  - **`app/api/upload/route.ts`**: **NUEVO Y CRÍTICO.** Es el endpoint **único y genérico** para la subida de todas las imágenes. Acepta un campo `entityType` ('categories', 'sections', 'products') para determinar dinámicamente la carpeta de destino, centralizando la lógica y mejorando la mantenibilidad.
 - **`app/dashboard-v2/`**
 
   - **`components/`**: La carpeta más importante para la UI.
@@ -80,24 +81,27 @@ El corazón de la aplicación, siguiendo el paradigma de App Router.
 
 ### `public/`
 
-- `images/`: Imágenes de la aplicación.
+- `images/`: Imágenes de la aplicación, ahora estructurada con subcarpetas por entidad:
+  - `categories/`
+  - `sections/`
+  - `products/`
 
 ---
 
-## 4. Flujo de Datos CRUD (Ej: Cambiar Visibilidad de un Producto con Zustand)
+## 4. Flujo de Datos CRUD (Ej: Crear una Sección con Imagen)
 
-Este flujo demuestra el nuevo patrón con Zustand, que es más simple y robusto.
+Este flujo demuestra el nuevo patrón con Zustand y la API de subida genérica.
 
-1.  **Componente (UI):** El usuario hace clic en el ícono del "ojo" en un producto dentro de `ProductListView.tsx`. El `onClick` llama a la prop `onToggleVisibility(productId)`.
-2.  **Vista (`MobileView.tsx`):** El manejador en `MobileView` recibe la llamada y la delega directamente a la acción del store de Zustand: `toggleProductVisibility(productId, activeSectionId)`.
-3.  **Store (`dashboardStore.ts`):** La acción `toggleProductVisibility` se ejecuta:
-    - **a. Obtiene el Estado Actual:** Usa `get()` para acceder al estado actual y encontrar el producto.
-    - **b. Llamada a la API:** Envía una petición `PATCH` a la API específica: `/api/products/[id]/visibility`.
-    - **c. Manejo de Éxito:** Si la API responde con éxito:
-      - Actualiza el estado del producto dentro del store con `set()`.
-      - **Paso Clave:** Llama a OTRA acción dentro del store, como `fetchSections(clientId)`, para recargar los datos del padre y asegurar que los contadores se actualicen. Toda la lógica de invalidación y recarga vive DENTRO del store.
-    - **d. Manejo de Error:** Si la API falla, muestra una notificación. No es necesario revertir el estado porque nunca se hizo una actualización optimista directa.
-4.  **Actualización de la UI:** Como el estado en el store de Zustand ha cambiado, todos los componentes que usen `useDashboardStore()` (como `MobileView`, que a su vez pasa props a `SectionListView` y `ProductListView`) se re-renderizan automáticamente con los datos frescos.
+1.  **Componente (UI):** El usuario hace clic en "Guardar Cambios" en el modal de creación de sección (`EditModals.tsx`).
+2.  **Modal (`EditModals.tsx`):**
+    - **a. Obtiene los Datos:** Llama a `getFormData()` en la `ref` del `SectionForm` para obtener los datos del formulario y el `imageFile`.
+    - **b. Llama al Store:** Invoca la acción `createSection(formData, imageFile)`.
+3.  **Store (`dashboardStore.ts`):** La acción `createSection` se ejecuta:
+    - **a. Sube la Imagen (si existe):** Llama a la acción helper `_uploadImage(imageFile, 'sections')`.
+    - **b. `_uploadImage`:** Envía la petición a la API `POST /api/upload` con el archivo y el `entityType`. La API guarda la imagen en `public/images/sections/` y devuelve solo el `filename`.
+    - **c. Llama a la API de Creación:** Envía una petición `POST` a `/api/sections` con los datos del formulario, incluyendo el `filename` en el campo `image`.
+    - **d. Manejo de Éxito:** Si la API de secciones responde con éxito, llama a `fetchSectionsByCategory()` para recargar la lista de secciones y que la nueva aparezca en la UI.
+4.  **Actualización de la UI:** El cambio en el estado de `sections` en el store provoca que los componentes suscritos se re-rendericen con los datos frescos.
 
 ---
 
@@ -137,10 +141,10 @@ Esta sección documenta los problemas recurrentes y las lecciones críticas apre
     - **Lección:** No todos los campos `deleted` son iguales. `products.deleted` es `Boolean`, mientras que en `sections` y `categories` es `Int`.
     - **Regla:** Siempre verificar `prisma/schema.prisma` antes de escribir una consulta que involucre `deleted`. Usar `deleted: 0` para secciones/categorías y `deleted: false` para productos.
 
-3.  **Rutas de API Atómicas:**
+3.  **Rutas de API Atómicas y Genéricas:**
 
     - **Lección:** Sobrecargar rutas genéricas (ej: `PUT /api/sections/[id]`) es una mala práctica.
-    - **Regla:** Crear rutas de API específicas para cada acción (ej: `PUT /api/sections/[id]/visibility`). Simplifica la lógica y la depuración.
+    - **Regla:** Crear rutas de API específicas para cada acción atómica (ej: `PUT /api/sections/[id]/visibility`). Para acciones comunes como la subida de archivos, crear un endpoint genérico bien definido (como `/api/upload`) es superior a tener uno por entidad.
 
 4.  **Error `params should be awaited` en Next.js:**
 

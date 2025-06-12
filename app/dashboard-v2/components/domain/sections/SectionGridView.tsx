@@ -41,6 +41,10 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
     onDelete,
     onAddNew,
 }) => {
+    // 🧭 MIGA DE PAN: Calcular contador de visibilidad siguiendo el patrón de ProductGridView
+    const visibleSections = sections.filter(section => section.status);
+    const totalSections = sections.length;
+
     const columns: Column<Section>[] = [
         {
             key: 'name',
@@ -87,7 +91,13 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Gestionar Secciones</h2>
+                <div className="flex flex-col">
+                    <h2 className="text-xl font-semibold">Gestionar Secciones</h2>
+                    {/* 🧭 MIGA DE PAN: Contador de visibilidad siguiendo el patrón de ProductGridView */}
+                    <p className="text-sm text-gray-500">
+                        {visibleSections.length} / {totalSections} secciones visibles
+                    </p>
+                </div>
                 <Button onClick={onAddNew}>Añadir Sección</Button>
             </div>
             <GenericTable

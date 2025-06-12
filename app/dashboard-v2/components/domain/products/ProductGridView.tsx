@@ -37,6 +37,10 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
     onDelete,
     onAddNew,
 }) => {
+    // 🧭 MIGA DE PAN: Calcular contador de visibilidad siguiendo el patrón de SectionListView
+    const visibleProducts = products.filter(product => product.status);
+    const totalProducts = products.length;
+
     const columns: Column<Product>[] = [
         {
             key: 'name',
@@ -55,7 +59,15 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
                             height={40}
                             className="rounded-md object-cover mr-4"
                         />
-                        <span className="font-medium">{product.name}</span>
+                        <div className="flex flex-col">
+                            <span className="font-medium">{product.name}</span>
+                            {/* 🧭 MIGA DE PAN: Agregamos descripción siguiendo el patrón mobile-first */}
+                            {product.description && (
+                                <span className="text-xs text-gray-500 mt-1 line-clamp-2 max-w-xs">
+                                    {product.description}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 );
             }
@@ -87,7 +99,13 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Gestionar Productos</h2>
+                <div className="flex flex-col">
+                    <h2 className="text-xl font-semibold">Gestionar Productos</h2>
+                    {/* 🧭 MIGA DE PAN: Contador de visibilidad siguiendo el patrón de SectionListView */}
+                    <p className="text-sm text-gray-500">
+                        {visibleProducts.length} / {totalProducts} productos visibles
+                    </p>
+                </div>
                 <Button onClick={onAddNew}>Añadir Producto</Button>
             </div>
             <GenericTable

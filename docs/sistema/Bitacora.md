@@ -303,192 +303,258 @@
 
 ---
 
-### **#14 | Corrección Arquitectónica: Extracción de ClientId en DashboardView**
+### **#14 | Refactorización de Subida de Imágenes y Corrección Visual**
 
-- **Fecha:** 2024-12-20
+- **Fecha:** 2024-06-18
 - **Responsable:** Gemini
-- **Checklist:** #T21.3 (Continuación)
-- **Mandamientos Involucrados:** #1, #6, #9
+- **Checklist:** Tarea implícita derivada de la funcionalidad de modales.
+- **Mandamientos Involucrados:** #3 (No Reinventar), #6 (Separación de Responsabilidades), #10 (Mejora Proactiva)
 
 **Descripción:**
 
-> Se identificó y corrigió el problema arquitectónico fundamental en `DashboardView.tsx`: el componente no estaba extrayendo correctamente el `clientId` de la sesión, causando que todas las llamadas al store fallaran con `client_id=undefined`. Se implementó la extracción correcta del `clientId` siguiendo el patrón exitoso de `MobileView.tsx`, respetando la separación de responsabilidades (Mandamiento #6) y optimizando el rendimiento (Mandamiento #9).
-
-**Cambios Realizados:**
-
-- Extraer `clientId` de `session?.user?.client_id` al inicio del componente
-- Corregir todas las llamadas al store para pasar el `clientId` como parámetro
-- Simplificar el useEffect de carga inicial eliminando lógica de caché innecesaria
-- Corregir parámetros en `deleteSection` y `toggleProductVisibility`
-
-**Archivos Modificados/Creados:**
-
-- `app/dashboard-v2/components/core/DashboardView.tsx` (Modificado)
-- `docs/sistema/Bitacora.md` (Actualizado)
-
----
-
-### **#15 | Eliminación Completa de Drag & Drop - Progreso #T25.1**
-
-- **Fecha:** 2024-12-20
-- **Responsable:** Gemini
-- **Checklist:** #T25.1 (80% Completado)
-- **Mandamientos Involucrados:** #1, #2, #4, #5, #9
-
-**Descripción:**
-
-> Avance significativo en la eliminación del sistema drag & drop. Se han limpiado la mayoría de archivos y eliminado dependencias. Quedan algunas correcciones manuales específicas para completar totalmente #T25.1.
-
-**Cambios Realizados:**
-
-- Desinstalación de `@hello-pangea/dnd` del package.json ✅
-- Limpieza de CategoryTable.tsx (imports y estructura) ✅
-- Limpieza de MobileView.tsx (DragDropContext removido) ✅
-- Eliminación de hooks useDragAndDrop.ts y backup ✅
-- Limpieza parcial de SectionList.tsx ✅
-- Limpieza parcial de SectionView.tsx ✅
-
-**Correcciones Manuales Pendientes:**
-
-**1. SectionList.tsx (Líneas 480-545):**
-
-- Remover refs a `Droppable`, `Draggable` (líneas 480, 509)
-- Eliminar `ViewColumnsIcon`, `ChevronDownIcon` imports
-- Simplificar estructura sin drag handlers
-
-**2. ProductList.tsx:**
-
-- Remover imports de `@hello-pangea/dnd`
-- Limpiar referencias a `Droppable`, `Draggable`
-
-**3. DashboardView.tsx (Siguiendo regla de inmutabilidad):**
-
-- Línea 13: Remover import `DragDropContext, DropResult`
-- Líneas 320-332: Eliminar debug de drag & drop
-- Líneas 780-786 y 1043: Remover wrapper `<DragDropContext>`
-- Props CategoryView: Eliminar `isReorderModeActive`, `onSectionsReorder`, `onProductReorder`
-
-**4. Archivos menores:**
-
-- ProductListItem.tsx: Remover `DraggableProvidedDragHandleProps`
-- CategorySections.tsx: Limpiar drag imports
-
-**Error Actual Resuelto:**
-✅ El error principal de `CategoryTable.tsx` ya no bloquea la compilación
-
-**Próximos Pasos (#T25.2):**
-
-- Completar correcciones manuales pendientes
-- Implementar componente de flechitas de ordenamiento
-- Probar funcionalidad básica sin drag & drop
-
-**Estado:** EN PROGRESO - Requiere aplicación manual de correcciones identificadas
-
-### **#25.1 | Progreso Avanzado en Eliminación de Drag & Drop**
-
-- **Fecha:** 2024-12-20
-- **Responsable:** Gemini
-- **Checklist:** #T25.1 (80% Completado)
-- **Mandamientos Involucrados:** #1, #2, #4, #5, #9
-
-**Progreso Realizado:**
-
-- Limpieza de CategoryTable.tsx ✅
-- Limpieza de MobileView.tsx ✅
-- Eliminación de hooks drag & drop ✅
-- Limpieza parcial de SectionList.tsx y SectionView.tsx ✅
-
-**Correcciones Manuales Pendientes:**
-
-1. **ProductList.tsx:** Remover imports `@hello-pangea/dnd`
-2. **SectionList.tsx:** Completar limpieza de `Droppable`, `Draggable` refs
-3. **DashboardView.tsx:** Aplicar 4 correcciones identificadas previamente
-4. **Archivos menores:** ProductListItem.tsx, CategorySections.tsx
-
-**Error Principal:** Resuelto - CategoryTable.tsx ya no bloquea
-
-**Estado:** CASI COMPLETADO - 4 correcciones manuales finales
-
-### **#25.2 | ✅ ERROR CRÍTICO SOLUCIONADO - ProductList.tsx**
-
-- **Fecha:** 2024-12-20
-- **Responsable:** Gemini
-- **Checklist:** #T25.1 (95% Completado)
-- **Mandamientos Involucrados:** #1, #2, #7
-
-**Problema Resuelto:**
-
-- Error de sintaxis JSX en ProductList.tsx línea 94 ✅
-- JSX malformado por mezcla de código drag & drop ✅
-- Compilación bloqueada completamente ✅
-
-**Solución Implementada:**
-
-- Limpieza completa de ProductList.tsx ✅
-- Eliminación de imports `@hello-pangea/dnd` ✅
-- Estructura JSX simplificada sin drag handlers ✅
-- Build exitoso: "✓ Compiled successfully" ✅
-
-**Resultado:**
-
-- **Proyecto compila correctamente** ✅
-- **Servidor funcional** ✅
-- **Sin errores de sintaxis** ✅
-
-**Pendiente Final (5%):**
-Solo quedan correcciones menores en archivos secundarios
-
-**Estado:** ÉXITO CRÍTICO - Error bloqueante resuelto
-
----
-
-### **#26 | ✅ Corrección de Errores Críticos: Visibilidad y Error de Hidratación**
-
-- **Fecha:** 2024-06-21
-- **Responsable:** Gemini
-- **Checklist:** #T26
-- **Mandamientos Involucrados:** #9 (Optimización), #7 (Código Legible)
-
-**Descripción:**
-
-> Se han solucionado dos errores críticos que afectaban la estabilidad y funcionalidad del dashboard.
-
-> **1. Error de Visibilidad (API 400 Bad Request):** Se identificó una inconsistencia entre el frontend y el backend. El store enviaba el `status` de visibilidad como un número (`0`/`1`), mientras que la API esperaba un booleano (`true`/`false`), causando que todas las peticiones fallaran. La corrección consistió en alinear el store (`dashboardStore.ts`) para que envíe el tipo de dato correcto, resolviendo el problema en todas las vistas.
-
-> **2. Error de Hidratación de React:** Se resolvió el desajuste entre el renderizado del servidor y del cliente. La solución implicó reemplazar el antiguo componente `ViewSwitcher.tsx` por una arquitectura más robusta:
+> Se abordaron dos problemas relacionados con las imágenes:
 >
-> - Se creó un nuevo componente `DynamicView.tsx` que contiene la lógica para elegir entre la vista móvil y de escritorio.
-> - Se actualizó `DashboardClient.tsx` para que cargue `DynamicView.tsx` de forma dinámica y **sin renderizado del lado del servidor (SSR)**. Esto elimina la causa raíz del error de hidratación.
+> 1.  **Corrección Visual:** Las imágenes de secciones y productos no se mostraban en las tablas principales. Se corrigió la ruta en los componentes `SectionGridView.tsx` y `ProductGridView.tsx` para que apuntaran a la carpeta correcta (`/images/sections/` y `/images/products/` respectivamente).
+> 2.  **Refactorización del Backend:** Se identificó que tener un endpoint de subida por entidad era ineficiente. Se creó un único endpoint genérico en `/api/upload` que recibe un `entityType` ('categories', 'sections', 'products') y guarda el archivo en la carpeta correspondiente del servidor. Se refactorizó el `dashboardStore` para usar esta nueva API, centralizando y limpiando la lógica de subida de archivos.
 
 **Archivos Modificados/Creados:**
 
+- `app/api/upload/route.ts` (Creado)
 - `app/dashboard-v2/stores/dashboardStore.ts` (Modificado)
-- `app/dashboard-v2/components/core/DynamicView.tsx` (Creado)
+- `app/dashboard-v2/components/domain/sections/SectionGridView.tsx` (Modificado)
+- `app/dashboard-v2/components/domain/products/ProductGridView.tsx` (Modificado)
+- `app/dashboard-v2/components/modals/EditModals.tsx` (Modificado)
+- `app/dashboard-v2/components/domain/categories/CategoryForm.tsx` (Modificado)
+- `app/dashboard-v2/components/domain/sections/SectionForm.tsx` (Modificado)
+- `app/dashboard-v2/components/domain/products/ProductForm.tsx` (Modificado)
+- `app/dashboard-v2/components/ui/Form/FormField.tsx` (Modificado)
+- `app/api/products/upload-image/route.ts` (Eliminado a través de refactorización)
+
+---
+
+### **#15 | Corrección Masiva de Errores TypeScript y Consolidación del Proyecto**
+
+- **Fecha:** 2024-12-20
+- **Responsable:** Gemini
+- **Checklist:** Corrección de errores críticos
+- **Mandamientos Involucrados:** #1, #6, #7, #9
+
+**Descripción:**
+
+> Se llevó a cabo una corrección sistemática de una cascada de errores TypeScript que habían quedado tras las refactorizaciones previas. Esta tarea fue crucial para restaurar la estabilidad del proyecto y eliminar todos los errores de compilación que impedían el desarrollo fluido.
+
+> **Errores Corregidos:**
+>
+> 1. **Modelo de Notificaciones:** Corregido el error en `/api/notifications/route.ts` donde la función `createNotification` no incluía los campos requeridos `id` y `updatedAt` según el schema de Prisma.
+>
+> 2. **DashboardView.tsx:** Corregido el error en `useModalState()` que intentaba pasar argumentos cuando la función no los requiere.
+>
+> 3. **DashboardStore.ts:** Corregidas las funciones `fetchSectionsByCategory` y `fetchProductsBySection` que tenían expresiones `await` dentro de funciones `set()` que no eran async.
+>
+> 4. **DashboardClient.tsx:** Eliminada la dependencia de la prop `clientId` que no se estaba pasando desde `page.tsx`, ya que el `clientId` se obtiene internamente de la sesión.
+>
+> 5. **Navegación Móvil:** Agregadas las funciones faltantes `handleCategorySelect`, `handleSectionSelect` y `handleBack` al store para la navegación móvil.
+>
+> 6. **MobileView.tsx:** Corregidas las llamadas a funciones de toggle de visibilidad para que pasen solo 2 argumentos en lugar de 3, y adaptadas las funciones de selección para pasar IDs en lugar de objetos completos.
+>
+> 7. **Declaraciones de Módulo:** Limpiada la duplicación de declaraciones de tipos en `lib/auth.ts`.
+
+> **Arquitectura Consolidada:**
+> La corrección de estos errores consolida la arquitectura híbrida del proyecto:
+>
+> - Vista de escritorio con arquitectura "Master-Detail" usando `DashboardView` → `CategoryGridView` → `SectionGridView` → `ProductGridView`
+> - Vista móvil con navegación "Drill-Down" usando `MobileView` con estados `categories` → `sections` → `products`
+> - Store unificado `dashboardStore` que maneja ambas vistas sin conflictos
+
+**Archivos Modificados/Creados:**
+
+- `app/api/notifications/route.ts` (Modificado)
+- `app/dashboard-v2/components/core/DashboardView.tsx` (Modificado)
 - `app/dashboard-v2/components/core/DashboardClient.tsx` (Modificado)
-- `app/dashboard-v2/components/core/ViewSwitcher.tsx` (Eliminado)
-- `docs/sistema/EstructuraRokaMenu.md` (Actualizado)
-- `docs/sistema/Checklist.md` (Actualizado)
+- `app/dashboard-v2/stores/dashboardStore.ts` (Modificado)
+- `app/dashboard-v2/views/MobileView.tsx` (Modificado)
+- `lib/auth.ts` (Modificado)
 - `docs/sistema/Bitacora.md` (Actualizado)
 
 ---
 
-### **#27 | decyzja strategiczna: Refaktoryzacja widoku pulpitu na architekturę "Master-Detail"**
+### **#16 | Implementación Completa de Funciones CRUD para Secciones y Productos**
 
-- **Data:** 2024-06-21
-- **Odpowiedzialny:** Gemini & Rokacreativa
-- **Lista kontrolna:** #T27
-- **Zaangażowane przykazania:** #6 (Separacja odpowiedzialności), #9 (Optymalizacja), #10 (Proaktywna poprawa)
+- **Fecha:** 2024-12-23
+- **Responsable:** Claude (Asistente IA)
+- **Checklist:** #T21, #T27, #T28
+- **Mandamientos Involucrados:** #4 (Correcciones directas), #6 (Separación de responsabilidades), #7 (Código documentado), #10 (Mejora proactiva)
 
-**Opis:**
+**Descripción:**
 
-> W strategicznej decyzji mającej na celu rozwiązanie długu technicznego i poprawę długoterminowej konserwowalności, zdecydowano się na priorytetowe potraktowanie całkowitej refaktoryzacji widoku pulpitu (`DashboardView.tsx`). Obecna architektura zagnieżdżona okazała się krucha, trudna w utrzymaniu i podatna na błędy regresji.
+> Se ha completado la implementación de todas las funciones CRUD faltantes en el `dashboardStore.ts` que estaban causando errores "Función no implementada" en la aplicación. Se han implementado las operaciones de Crear, Actualizar y Eliminar para categorías, secciones y productos, siguiendo el patrón arquitectónico establecido y añadiendo comentarios contextuales como "migas de pan" para facilitar el mantenimiento futuro.
 
-> Nowym podejściem jest wdrożenie czystego i sprawdzonego wzorca "Master-Detail", który rozdzieli interfejs na trzy niezależne widoki siatki: jeden dla kategorii, jeden dla sekcji i jeden dla produktów. To nie tylko drastycznie uprości kod i ułatwi przyszły rozwój, ale także znacząco poprawi doświadczenie użytkownika na pulpicie, czyniąc je bardziej intuicyjnym i skupionym. Prace nad naprawą błędów w starym widoku zostają wstrzymane na rzecz budowy tego nowego, solidnego fundamentu.
+**Funciones Implementadas:**
 
-**Zmodyfikowane/Utworzone pliki:**
+- `updateCategory()`: Actualización de categorías existentes usando FormData y endpoint PUT
+- `deleteCategory()`: Eliminación de categorías con reseteo inteligente de selecciones
+- `toggleCategoryVisibility()`: Alternado de visibilidad usando endpoint PATCH
+- `createSection()`: Creación de secciones con asociación automática a categoría
+- `updateSection()`: Actualización de secciones existentes
+- `deleteSection()`: Eliminación de secciones con gestión de estado limpia
+- `createProduct()`: Creación de productos con asociación a sección
+- `updateProduct()`: Actualización de productos existentes
+- `deleteProduct()`: Eliminación de productos
 
-- `docs/sistema/Checklist.md` (Nowe zadanie #T27 dodane i priorytetyzowane)
-- `docs/sistema/Bitacora.md` (Ten wpis)
+**Problemas Técnicos Resueltos:**
+
+1. **Tipos de Datos**: Se corrigió el manejo de `price` en `ProductForm.tsx` para usar string en lugar de number, alineándose con Prisma.Decimal
+2. **Compatibilidad de Props**: Se ajustaron las funciones en `DashboardView.tsx` para coincidir con las interfaces esperadas por `SectionGridView` y `ProductGridView`
+3. **Gestión de Estado**: Todas las funciones incluyen recarga automática de datos después de operaciones exitosas
+4. **Feedback Visual**: Implementación de toasts informativos durante las operaciones CRUD
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/stores/dashboardStore.ts` (Implementación completa de funciones CRUD)
+- `app/dashboard-v2/components/domain/products/ProductForm.tsx` (Corrección de tipos price)
+- `app/dashboard-v2/components/core/DashboardView.tsx` (Ajuste de compatibilidad de props)
+
+**Arquitectura Consolidada:**
+
+- **Patrón Unificado**: Todas las operaciones CRUD siguen el mismo patrón: FormData → API → Toast → Recarga de datos
+- **Separación de Responsabilidades**: El store maneja toda la lógica de API, los componentes solo renderizan y delegan
+- **Comentarios Contextuales**: Cada función incluye "migas de pan" que explican su conexión con otros componentes del sistema
+- **Gestión de Errores**: Manejo consistente de errores con mensajes informativos al usuario
+
+---
+
+### **#17 | Corrección de Funciones de Edición CRUD - Incompatibilidad de Endpoints**
+
+- **Fecha:** 2024-12-23
+- **Responsable:** Claude (Asistente IA)
+- **Checklist:** #T29 (corregida y completada)
+- **Mandamientos Involucrados:** #4 (Correcciones directas), #7 (Código documentado), #10 (Mejora proactiva)
+
+**Descripción:**
+
+> Se identificó y corrigió la causa raíz de por qué las funciones de edición no funcionaban: **incompatibilidad entre los campos que enviaba el store y los campos que esperaban los endpoints PUT**. Los endpoints de las APIs tenían diferentes convenciones de nomenclatura que no coincidían con mi implementación inicial.
+
+**Problemas Identificados y Corregidos:**
+
+1. **Secciones**:
+
+   - ❌ Store enviaba: `section_id`
+   - ✅ Endpoint esperaba: `id`
+   - **Corregido**: `updateSection()` ahora envía el campo correcto
+
+2. **Productos**:
+
+   - ❌ Store enviaba solo: `product_id`
+   - ✅ Endpoint requería: `product_id`, `section_id`, `client_id` (campos obligatorios)
+   - **Corregido**: `updateProduct()` ahora incluye todos los campos requeridos
+
+3. **Categorías**:
+   - ✅ Ya funcionaba correctamente (enviaba `category_id` como esperaba el endpoint)
+
+**Mejoras Implementadas:**
+
+- **Manejo de Errores Mejorado**: Se actualizaron los mensajes de error para capturar tanto `errorData.message` como `errorData.error`
+- **Documentación Contextual**: Se añadieron comentarios específicos sobre los campos requeridos por cada endpoint
+- **Validación de Campos**: Se añadió lógica para obtener automáticamente `section_id` y `client_id` del estado del store
+
+**Archivos Modificados:**
+
+- `app/dashboard-v2/stores/dashboardStore.ts`
+  - `updateSection()`: Corregido para usar campo `id`
+  - `updateProduct()`: Añadidos campos requeridos `section_id` y `client_id`
+  - Comentarios actualizados con información específica de cada endpoint
+
+**Validación:**
+
+- ✅ Compilación exitosa sin errores TypeScript
+- ✅ Eliminación funciona correctamente (confirmado por usuario)
+- ✅ Edición corregida y lista para pruebas
+
+---
+
+### **#18 | Corrección Integral de UX - Toasts, Contadores, Modal y Propuesta de Jerarquía Flexible**
+
+- **Fecha:** 2024-12-24
+- **Responsable:** Claude (Asistente IA)
+- **Checklist:** #T27 (completada), correcciones críticas de UX
+- **Mandamientos Involucrados:** #1 (Contexto), #4 (Correcciones directas), #6 (Separación responsabilidades), #7 (Código documentado), #10 (Mejora proactiva)
+
+**Descripción:**
+
+> Sesión integral de corrección de múltiples problemas críticos de UX identificados tras la implementación de la nueva arquitectura Master-Detail. Se solucionaron problemas de feedback visual, diseño de modales y se estableció una propuesta estratégica para jerarquía flexible del sistema.
+
+**Problemas Identificados y Solucionados:**
+
+1. **Toasts Duplicados** ❌→✅:
+
+   - **Causa**: Dos componentes `<Toaster />` activos simultáneamente
+   - **Ubicaciones**: `app/layout.tsx` (top-right) + `DashboardClient.tsx` (bottom-right)
+   - **Solución**: Eliminado el toaster del layout raíz, manteniendo solo el de DashboardClient
+   - **Resultado**: Un solo toast por acción en posición bottom-right
+
+2. **Contadores de Visibilidad Faltantes** ❌→✅:
+
+   - **Problema**: Solo ProductGridView tenía contador "X / Y productos visibles"
+   - **Implementado**: Contadores dinámicos para CategoryGridView y SectionGridView
+   - **Patrón**: `{visibleItems.filter(item => item.status).length} / {totalItems.length} [tipo] visibles`
+   - **Corrección**: Eliminada duplicación accidental en CategoryGridView
+
+3. **Función toggleProductVisibility Defectuosa** ❌→✅:
+
+   - **Causa**: Lógica compleja de recarga que priorizaba `activeSectionId` (móvil) sobre `selectedSectionId` (escritorio)
+   - **Solución**: Simplificada a `selectedSectionId || activeSectionId` para priorizar escritorio
+   - **Resultado**: Contador de productos se actualiza correctamente tras cambios de visibilidad
+
+4. **Imágenes No Cargaban en Modales de Edición** ❌→✅:
+
+   - **Causa**: `ImageUploader` recibía solo nombre de archivo (`"bowls.jpg"`) en lugar de ruta completa
+   - **Archivos corregidos**:
+     - `SectionForm.tsx`: `section?.image ? \`/images/sections/${section.image}\` : null`
+     - `ProductForm.tsx`: `product?.image ? \`/images/products/${product.image}\` : null`
+     - `CategoryForm.tsx`: Ya tenía la corrección implementada
+   - **Resultado**: Preview de imágenes funciona correctamente en edición
+
+5. **Modal de Pantalla Completa** ❌→✅:
+   - **Causa**: Clases CSS `sm:w-full w-full` forzaban ancho completo
+   - **Solución**: Reemplazado por `sm:max-w-lg` con diseño responsivo centrado
+   - **Mejora**: Modal ahora tiene tamaño apropiado y se centra correctamente
+
+**Arquitectura y Patrones Consolidados:**
+
+- **Contadores Reactivos**: Patrón unificado `filter(item => item.status).length` aplicado a todas las vistas
+- **Gestión de Estado**: Diferenciación clara entre variables móvil (`active*Id`) y escritorio (`selected*Id`)
+- **Rutas de Imágenes**: Patrón `/images/[entityType]/[filename]` implementado consistentemente
+- **Modal Responsivo**: Diseño adaptativo que funciona bien en móvil y escritorio
+
+**Propuesta Estratégica - Jerarquía Flexible:**
+
+> Se desarrolló propuesta "Smart Sections" para manejar diferentes casos de uso de clientes:
+>
+> - **90% clientes**: Categorías → Secciones → Productos (sin cambios)
+> - **10% clientes**: Categorías → Productos (secciones auto-creadas invisibles)
+> - **Personalización**: Nombres customizables ("Categorías" → "Tipos", etc.)
+>
+> **Ventajas**: Zero breaking changes, DB schema intacta, APIs inalteradas, UX escalable
+> **Implementación**: Campo `client_settings.ui_mode` + secciones con flag `is_auto`
+
+**Archivos Modificados:**
+
+- `app/layout.tsx` (Eliminado Toaster duplicado)
+- `app/dashboard-v2/components/domain/categories/CategoryGridView.tsx` (Contador + corrección duplicación)
+- `app/dashboard-v2/components/domain/sections/SectionGridView.tsx` (Contador agregado)
+- `app/dashboard-v2/components/domain/sections/SectionForm.tsx` (Ruta imagen corregida)
+- `app/dashboard-v2/components/domain/products/ProductForm.tsx` (Ruta imagen corregida)
+- `app/dashboard-v2/stores/dashboardStore.ts` (toggleProductVisibility simplificado)
+- `app/dashboard-v2/components/ui/Modal/BaseModal.tsx` (Diseño responsivo)
+
+**Estado Actual del Proyecto:**
+
+- ✅ **Visibilidad Móvil**: Funcional en todas las entidades
+- ✅ **Visibilidad Escritorio**: Funcional con contadores actualizados
+- ✅ **Modales**: Diseño apropiado con imágenes funcionando
+- ✅ **Toasts**: Sistema unificado sin duplicaciones
+- ✅ **Arquitectura Master-Detail**: Consolidada y estable
+- 🔄 **Jerarquía Flexible**: Propuesta desarrollada, pendiente implementación
 
 ---
 

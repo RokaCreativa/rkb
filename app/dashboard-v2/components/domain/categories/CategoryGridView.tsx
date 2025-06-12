@@ -40,6 +40,9 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
     onDelete,
     onAddNew,
 }) => {
+    // 🧭 MIGA DE PAN: Calcular contador de visibilidad siguiendo el patrón de ProductGridView
+    const visibleCategories = categories.filter(category => category.status);
+    const totalCategories = categories.length;
 
     const columns: Column<Category>[] = [
         {
@@ -84,7 +87,13 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
     return (
         <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Gestionar Categorías</h2>
+                <div className="flex flex-col">
+                    <h2 className="text-xl font-semibold">Gestionar Categorías</h2>
+                    {/* 🧭 MIGA DE PAN: Contador de visibilidad siguiendo el patrón de ProductGridView */}
+                    <p className="text-sm text-gray-500">
+                        {visibleCategories.length} / {totalCategories} categorías visibles
+                    </p>
+                </div>
                 <Button onClick={onAddNew}>
                     Añadir Categoría
                 </Button>

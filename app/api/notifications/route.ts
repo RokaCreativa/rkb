@@ -183,10 +183,12 @@ export async function createNotification(userId: string, type: string, message: 
     // @ts-ignore
     const notification = await prisma.notification.create({
       data: {
+        id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // Generar ID único
         userId,
         type,
         message,
         data: data ? JSON.stringify(data) : null,
+        updatedAt: new Date(), // Agregar updatedAt requerido
       },
     });
 

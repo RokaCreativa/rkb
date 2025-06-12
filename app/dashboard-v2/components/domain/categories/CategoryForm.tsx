@@ -81,7 +81,7 @@ export const CategoryForm = forwardRef<CategoryFormRef, CategoryFormProps>(({ ca
             <ImageUploader
                 label="Imagen de la Categoría"
                 onImageChange={setImageFile}
-                initialImageUrl={category?.image}
+                initialImageUrl={category?.image ? `/images/categories/${category.image}` : null}
             />
         </form>
     );

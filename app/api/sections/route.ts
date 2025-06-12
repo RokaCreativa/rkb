@@ -274,7 +274,7 @@ export async function POST(request: Request) {
 
         // Guardar el archivo
         await writeFile(imagePath, buffer);
-        imageUrl = `${IMAGE_BASE_PATH}${filename}`;
+        imageUrl = filename;
       } catch (e) {
         console.error('Error al subir la imagen:', e);
         return NextResponse.json({ error: 'Error al procesar la imagen' }, { status: 500 });
@@ -362,7 +362,7 @@ export async function PUT(request: Request) {
         const filename = `${Date.now()}-${file.name.replace(/\s/g, '_')}`;
         const imagePath = join(process.cwd(), 'public', IMAGE_BASE_PATH, filename);
         await writeFile(imagePath, buffer);
-        imageUrl = `${IMAGE_BASE_PATH}${filename}`;
+        imageUrl = filename;
       } catch (e) {
         console.error('Error al subir la nueva imagen:', e);
         return NextResponse.json({ error: 'Error al procesar la imagen' }, { status: 500 });

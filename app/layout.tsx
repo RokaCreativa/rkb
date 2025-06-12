@@ -3,7 +3,6 @@ import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import { getServerSession } from 'next-auth'
 import { SessionProvider } from '@/components/SessionProvider'
-import { Toaster } from 'react-hot-toast'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,13 +23,12 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   const session = await getServerSession();
-  
+
   return (
     <html lang="es" className="h-full">
       <body className={`${inter.className} h-full bg-gray-50`}>
         <SessionProvider session={session}>
           {children}
-          <Toaster position="top-right" />
         </SessionProvider>
       </body>
     </html>

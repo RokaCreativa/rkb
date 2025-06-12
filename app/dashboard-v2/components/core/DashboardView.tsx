@@ -1,29 +1,12 @@
 /**
  * @file DashboardView.tsx
- * @description Orquestador principal para la vista de escritorio del dashboard.
+ * @description Orquestador principal para la vista de escritorio.
  * @architecture
- * Este componente es el corazón de la nueva arquitectura "Master-Detail" de escritorio.
- * Su responsabilidad ha sido refactorizada para ser únicamente un **orquestador de vistas**,
- * cumpliendo con el Mandamiento #6 (Separación de Responsabilidades). No contiene lógica de negocio.
- *
- * @workflow
- * 1.  **Obtiene Estado y Acciones:** Se suscribe al `dashboardStore` para obtener los arrays de datos
- *     (categorías, secciones, productos) y las acciones para cambiar el estado de selección
- *     (`setSelectedCategoryId`, `setSelectedSectionId`).
- * 2.  **Carga de Datos Reactiva:** Utiliza `useEffect` para reaccionar a los cambios en los IDs de selección.
- *     Cuando `selectedCategoryId` cambia, dispara la acción `fetchSectionsByCategory`.
- *     Cuando `selectedSectionId` cambia, dispara la acción `fetchProductsBySection`.
- * 3.  **Filtra Datos:** Utiliza `useMemo` para calcular eficientemente qué secciones y productos
- *     deben mostrarse (`visibleSections`, `visibleProducts`) basándose en los IDs seleccionados.
- * 4.  **Renderiza las Columnas:** Muestra hasta tres componentes `GridView` en un layout de columnas.
- *     La visibilidad de las columnas de "detalle" (`SectionGridView`, `ProductGridView`) es condicional.
- * 5.  **Gestiona Modales:** Utiliza el hook `useModalState` para manejar la apertura/cierre de
- *     todos los modales, pasando las funciones de apertura a los `GridView` hijos.
- *
- * @dependencies
- * - `dashboardStore`: Su fuente de verdad para todos los datos y el estado de selección.
- * - `useModalState`: Delega toda la gestión de la UI de los modales a este hook.
- * - `*GridView.tsx`: Los componentes "tontos" que se encargan de renderizar cada columna.
+ * Este componente es un orquestador que consume `dashboardStore` y pasa datos y acciones
+ * a los componentes `GridView` hijos. Se usan funciones anónimas para adaptar las acciones
+ * del store a las props que esperan los hijos, resolviendo discrepancias de tipos.
+ * Se ha añadido lógica para renderizar condicionalmente las columnas y adaptar la grilla
+ * de forma dinámica para una mejor UX.
  */
 'use client';
 
@@ -38,116 +21,99 @@ import { DeleteConfirmationModal } from '../modals/DeleteConfirmationModal';
 import { Category, Section, Product } from '@/app/dashboard-v2/types';
 
 export const DashboardView: React.FC = () => {
-  // --- STATE MANAGEMENT ---
-  const {
-    categories,
-    sections,
-    products,
-    selectedCategoryId,
-    selectedSectionId,
-    setSelectedCategoryId,
-    setSelectedSectionId,
-    toggleCategoryVisibility,
-    toggleSectionVisibility,
-    toggleProductVisibility,
-    fetchSectionsByCategory,
-    fetchProductsBySection,
-  } = useDashboardStore();
+  const store = useDashboardStore();
 
-  const {
-    modalState,
-    openModal,
-    closeModal,
-    handleDeleteItem,
-    handleConfirmDelete,
-  } = useModalState();
+  const { modalState, openModal, closeModal, handleDeleteItem, handleConfirmDelete } = useModalState();
 
-  // --- DATA FILTERING ---
-  // Usamos useMemo para evitar recalcular estos arrays en cada render a menos que las dependencias cambien.
-  const visibleSections = useMemo(() => {
-    if (!selectedCategoryId) return [];
-    return sections[selectedCategoryId] || [];
-  }, [sections, selectedCategoryId]);
-
-  const visibleProducts = useMemo(() => {
-    if (!selectedSectionId) return [];
-    return products[selectedSectionId] || [];
-  }, [products, selectedSectionId]);
-
-  // --- REACTIVE DATA FETCHING ---
-  // Cuando el usuario selecciona una categoría, disparamos la carga de sus secciones.
   useEffect(() => {
-    if (selectedCategoryId) {
-      fetchSectionsByCategory(selectedCategoryId);
-    }
-  }, [selectedCategoryId, fetchSectionsByCategory]);
+    if (store.selectedCategoryId) store.fetchSectionsByCategory(store.selectedCategoryId);
+  }, [store.selectedCategoryId, store.fetchSectionsByCategory]);
 
-  // Cuando el usuario selecciona una sección, disparamos la carga de sus productos.
   useEffect(() => {
-    if (selectedSectionId) {
-      fetchProductsBySection(selectedSectionId);
-    }
-  }, [selectedSectionId, fetchProductsBySection]);
+    if (store.selectedSectionId) store.fetchProductsBySection(store.selectedSectionId);
+  }, [store.selectedSectionId, store.fetchProductsBySection]);
 
-  // --- RENDER ---
+  const visibleSections = useMemo(() => store.selectedCategoryId ? store.sections[store.selectedCategoryId] || [] : [], [store.sections, store.selectedCategoryId]);
+  const visibleProducts = useMemo(() => store.selectedSectionId ? store.products[store.selectedSectionId] || [] : [], [store.products, store.selectedSectionId]);
+
+  if (!store.client) return <div className="p-8 text-center">Cargando cliente...</div>;
+
+  // Determinar dinámicamente las columnas de la grilla para un layout adaptable.
+  const gridColsClass = store.selectedSectionId
+    ? 'lg:grid-cols-3' // 3 columnas si hay categoría y sección seleccionadas
+    : store.selectedCategoryId
+      ? 'lg:grid-cols-2' // 2 columnas si solo hay categoría seleccionada
+      : ''; // La categoría ocupará todo el ancho por defecto
+
   return (
     <div className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full items-start">
-        {/* COLUMNA 1: CATEGORÍAS */}
-        <div className="lg:col-span-1 h-full">
+      <div className={`grid grid-cols-1 ${gridColsClass} gap-6 h-full items-start`}>
+        {/* Columna de Categorías (siempre visible) */}
+        <div className={!store.selectedCategoryId ? 'lg:col-span-full' : ''}>
           <CategoryGridView
-            categories={categories}
-            onCategorySelect={(category) => setSelectedCategoryId(category.category_id)}
-            onToggleVisibility={toggleCategoryVisibility}
-            onEdit={(category) => openModal('editCategory', category)}
-            onDelete={(category) => handleDeleteItem(category, 'category')}
+            categories={store.categories}
+            onCategorySelect={(cat) => store.setSelectedCategoryId(cat.category_id)}
+            onToggleVisibility={(cat) => store.toggleCategoryVisibility(cat.category_id, cat.status)}
+            onEdit={(cat) => openModal('editCategory', cat)}
+            onDelete={(cat) => handleDeleteItem(cat, 'category')}
             onAddNew={() => openModal('editCategory', null)}
           />
         </div>
 
-        {/* COLUMNA 2: SECCIONES (CONDICIONAL) */}
-        <div className="lg:col-span-1 h-full">
-          {selectedCategoryId && (
+        {/* Columna de Secciones (visible si se selecciona una categoría) */}
+        {store.selectedCategoryId && (
+          <div className={!store.selectedSectionId && store.selectedCategoryId ? 'lg:col-span-1' : ''}>
             <SectionGridView
               sections={visibleSections}
-              onSectionSelect={(section) => setSelectedSectionId(section.section_id)}
-              onToggleVisibility={toggleSectionVisibility}
-              onEdit={(section) => openModal('editSection', section)}
-              onDelete={(section) => handleDeleteItem(section, 'section')}
-              onAddNew={() => openModal('editSection', null)}
+              onSectionSelect={(section: Section) => store.setSelectedSectionId(section.section_id)}
+              onToggleVisibility={(section: Section) => store.toggleSectionVisibility(section.section_id, section.status)}
+              onEdit={(section: Section) => openModal('editSection', section)}
+              onDelete={(section: Section) => handleDeleteItem(section, 'section')}
+              onAddNew={() => {
+                if (store.selectedCategoryId) {
+                  openModal('editSection', null);
+                }
+              }}
             />
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* COLUMNA 3: PRODUCTOS (CONDICIONAL) */}
-        <div className="lg:col-span-1 h-full">
-          {selectedSectionId && (
+        {/* Columna de Productos (visible si se selecciona una sección) */}
+        {store.selectedSectionId && (
+          <div className="min-w-0 flex-1">
             <ProductGridView
               products={visibleProducts}
-              onToggleVisibility={toggleProductVisibility}
-              onEdit={(product) => openModal('editProduct', product)}
-              onDelete={(product) => handleDeleteItem(product, 'product')}
-              onAddNew={() => openModal('editProduct', null)}
+              onToggleVisibility={(product: Product) => store.toggleProductVisibility(product.product_id, product.status)}
+              onEdit={(product: Product) => openModal('editProduct', product)}
+              onDelete={(product: Product) => handleDeleteItem(product, 'product')}
+              onAddNew={() => {
+                if (store.selectedSectionId) {
+                  openModal('editProduct', null);
+                }
+              }}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* --- MODALES --- */}
+      {/* --- Modales --- */}
       <EditCategoryModal
         isOpen={modalState.type === 'editCategory'}
         onClose={closeModal}
         category={modalState.data as Category | null}
+        clientId={store.client.id}
       />
       <EditSectionModal
         isOpen={modalState.type === 'editSection'}
         onClose={closeModal}
         section={modalState.data as Section | null}
+        categoryId={store.selectedCategoryId ?? undefined}
       />
       <EditProductModal
         isOpen={modalState.type === 'editProduct'}
         onClose={closeModal}
         product={modalState.data as Product | null}
+        sectionId={store.selectedSectionId ?? undefined}
       />
       <DeleteConfirmationModal
         isOpen={modalState.type === 'delete'}

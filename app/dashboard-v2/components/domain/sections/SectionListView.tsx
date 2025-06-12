@@ -20,6 +20,7 @@ import Image from 'next/image';
 import { Section } from '../../../types';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import ContextMenu from '../../ui/ContextMenu';
+import { getImagePath, handleImageError } from '../../../utils/imageUtils';
 
 interface SectionListViewProps {
     sections: Section[];
@@ -63,12 +64,12 @@ export const SectionListView: React.FC<SectionListViewProps> = ({
                     >
                         <div className="relative w-16 h-16 mr-4 rounded-md overflow-hidden flex-shrink-0">
                             <Image
-                                src={section.image ? `/images/sections/${section.image}` : '/images/placeholder.png'}
+                                src={getImagePath(section.image || null, 'sections')}
                                 alt={section.name || 'Imagen de sección'}
-                                layout="fill"
-                                objectFit="cover"
-                                className="transition-opacity duration-300"
+                                fill
+                                className="object-cover transition-opacity duration-300"
                                 style={{ opacity: section.status ? 1 : 0.5 }}
+                                onError={handleImageError}
                             />
                         </div>
 

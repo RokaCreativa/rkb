@@ -189,10 +189,13 @@ export async function GET(request: Request) {
  * @returns Respuesta HTTP con la categoría creada o un mensaje de error
  */
 export async function POST(request: Request) {
+  console.log('🎯 API /api/categories POST - Iniciando...');
   try {
     // 1. Verificación de autenticación
     const session = await getServerSession(authOptions);
+    console.log('🔐 Sesión verificada:', { email: session?.user?.email });
     if (!session?.user?.email) {
+      console.error('❌ Usuario no autenticado');
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
@@ -200,8 +203,10 @@ export async function POST(request: Request) {
     const user = await prisma.users.findFirst({
       where: { email: session.user.email },
     });
+    console.log('👤 Usuario encontrado:', { client_id: user?.client_id });
 
     if (!user?.client_id) {
+      console.error('❌ Cliente no encontrado para el usuario');
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
@@ -211,7 +216,16 @@ export async function POST(request: Request) {
     const file = formData.get('image') as File | null;
     const status = formData.get('status') !== '0'; // Si no se especifica explícitamente como 0, será activo
 
+    console.log('📋 Datos del formulario:', {
+      name,
+      hasFile: !!file,
+      fileName: file?.name,
+      status,
+      formDataEntries: Array.from(formData.entries())
+    });
+
     if (!name) {
+      console.error('❌ Nombre requerido pero no proporcionado');
       return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
     }
 
