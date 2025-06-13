@@ -10,6 +10,9 @@
 - [ ] **Fase 2: Experiencia Móvil Superior**
 - [ ] **Fase 3: Migración de Base de Datos (CANCELADA)**
 - [ ] **Fase 4: Refactorización y Deuda Técnica Continua**
+- [ ] **Fase 5: Arquitectura Flexible y Personalización Avanzada**
+- [ ] **Fase 6: Features Críticos del Sistema de Menús**
+- [ ] **Fase 7: Refactorización de Modales y Unificación de Componentes**
 
 ---
 
@@ -96,6 +99,9 @@
   - [x] **#T28 - Corrección Masiva de Errores TypeScript:** Se corrigieron sistemáticamente todos los errores de compilación TypeScript que quedaron tras las refactorizaciones, incluyendo problemas en APIs, tipos de funciones, navegación móvil y declaraciones de módulos. (Completado el 20/12).
   - [x] **#T29 - Implementación Completa de Funciones CRUD:** Se implementaron todas las funciones CRUD faltantes (crear, actualizar, eliminar) para categorías, secciones y productos en el `dashboardStore`, eliminando los errores "Función no implementada" y completando la funcionalidad del sistema de gestión. (Completado el 23/12).
   - [x] **#T30 - Corrección Integral de UX - Sistema de Toasts, Contadores y Modal:** Se solucionaron problemas críticos de user experience: eliminación de toasts duplicados, implementación de contadores de visibilidad en todas las vistas, corrección de función toggleProductVisibility, imágenes funcionando en modales de edición y diseño responsivo de modales. (Completado el 24/12).
+  - [x] **#T31 - Correcciones Críticas de UX - Secciones, Errores 500 y Navegación:** Se corrigieron problemas críticos reportados por usuario: secciones creadas deshabilitadas en móvil, error 500 editando secciones, y categorías vacías que no mostraban vista de secciones. Incluye corrección de campos FormData, lógica de auto-detección y radio buttons de visibilidad. (Completado el 26/12).
+  - [x] **#T32 - Correcciones Avanzadas de UX - Delays, Navegación y Carga de Imágenes:** Se eliminaron delays innecesarios en modales de eliminación (2.3s → <100ms), se corrigió navegación tras eliminar secciones en móvil con callback específico, y se solucionó carga de imágenes en EditCategoryModal. Incluye eliminación de window.location.reload() y mejora de callbacks contextuales. (Completado el 26/12).
+  - [x] **#T33 - Correcciones Críticas de Navegación y Visualización de Secciones:** Se corrigieron problemas críticos reportados por usuario: modal nueva categoría con radio buttons en lugar de combo, verificación de carga de imágenes en edición, y el problema más grave - secciones que no aparecían después de ser creadas en categorías vacías. Incluye corrección de handleModalSuccess para refrescar datos completos y actualizar modo de visualización dinámicamente. (Completado el 26/12).
 
 ### **Fase 5: Arquitectura Flexible y Personalización Avanzada**
 
@@ -118,16 +124,17 @@
 - **Objetivo:** Implementar funcionalidades obligatorias para restaurantes profesionales que actualmente faltan en v2.
 - **Tareas:**
 
-  - [ ] **#T32 - Jerarquía Híbrida por Categoría:**
+  - [x] **#T32 - Jerarquía Híbrida por Categoría:**
 
     - **Objetivo:** Permitir que EN EL MISMO MENÚ, algunas categorías vayan directo a productos (ej: "SNACKS") y otras usen secciones (ej: "HAMBURGUESAS" → "Tipos" → Productos).
     - **Estrategia Decidida:** Auto-detección inteligente basada en la estructura existente, sin necesidad de campos adicionales en la DB.
     - **Justificación:** Casos reales como Palm Beach necesitan ambos modos en el mismo menú. La auto-detección es más elegante y funciona inmediatamente con data legacy.
+    - **✅ COMPLETADO:** T32.1-T32.4 implementados exitosamente. Sistema híbrido funcionando en escritorio y móvil.
     - **Tareas Detalladas:**
-      - [ ] **#T32.1 - Implementar Auto-Detección Inteligente:** Crear función que detecte automáticamente si una categoría debe usar modo "simple" (1 sección) o "sections" (múltiples secciones) basado en la estructura existente.
-      - [ ] **#T32.2 - UI Adaptativa en DashboardStore:** Modificar lógica de fetching para mostrar productos directamente O secciones según la auto-detección de jerarquía.
-      - [ ] **#T32.3 - UI Adaptativa en DashboardView:** Renderizar `ProductGridView` O `SectionGridView` condicionalmente según el resultado de la auto-detección.
-      - [ ] **#T32.4 - Navegación Móvil Adaptativa:** Adaptar `MobileView` para manejar categorías simples saltando la vista de secciones automáticamente.
+      - [x] **#T32.1 - Implementar Auto-Detección Inteligente:** Crear función que detecte automáticamente si una categoría debe usar modo "simple" (1 sección) o "sections" (múltiples secciones) basado en la estructura existente.
+      - [x] **#T32.2 - UI Adaptativa en DashboardView:** Renderizar `ProductGridView` O `SectionGridView` condicionalmente según el resultado de la auto-detección en vista de escritorio.
+      - [x] **#T32.3 - Actualizar MobileView:** Integrar la auto-detección en MobileView para unificar el comportamiento entre escritorio y móvil.
+      - [x] **#T32.4 - Navegación Móvil Adaptativa:** Adaptar `MobileView` para manejar categorías simples saltando la vista de secciones automáticamente.
 
   - [ ] **#T33 - Sistema de Alergenos (OBLIGATORIO para Restaurantes):**
 
@@ -163,3 +170,42 @@
       - [ ] **#T35.4 - UI de Gestión:** Crear interfaz para gestionar idiomas activos y traducciones por cliente.
       - [ ] **#T35.5 - Selector de Idioma:** Implementar selector en menú público para cambiar idioma dinámicamente.
       - [ ] **#T35.6 - Fallback Inteligente:** Si traducción no existe, mostrar idioma principal del cliente.
+
+### **Fase 7: Refactorización de Modales y Unificación de Componentes**
+
+- **Objetivo:** Eliminar duplicación, mejorar mantenibilidad y resolver inconsistencias en la arquitectura del sistema de modales.
+- **Justificación:** El análisis en EstructuraRokaMenu.md reveló múltiples implementaciones duplicadas de modales, creando bugs como el de EditProductModal y dificultando el mantenimiento.
+- **Tareas:**
+
+  - [x] **#T36 - Refactorización de Modales y Unificación de Componentes:**
+
+    - **Objetivo:** Eliminar duplicación de código en modales y crear un sistema unificado que sea más mantenible y consistente.
+    - **Justificación:** Actualmente cada entidad (Category, Section, Product) tiene sus propios modales con lógica duplicada. Un sistema unificado reduce bugs, mejora mantenibilidad y asegura consistencia UX.
+    - **✅ COMPLETADO:** Sistema unificado implementado, BaseModal consolidado, ModalManager recreado, duplicaciones críticas eliminadas
+    - **Tareas Detalladas:**
+      - [x] **#T36.1 - Crear Sistema Unificado:** Desarrollar `EditModals.tsx` con componentes genéricos reutilizables para todos los tipos de entidades.
+      - [x] **#T36.2 - Actualizar ModalManager:** Migrar `ModalManager.tsx` para usar el sistema unificado en lugar de modales individuales.
+      - [x] **#T36.3 - Eliminar Duplicaciones Críticas:** Eliminados BaseModal duplicado y ModalManager duplicados. Sistema híbrido estable.
+      - [x] **#T36.4 - Consolidar Gestión de Estado:** useModalStore validado como estándar. Deuda técnica en CategoryView.tsx identificada y documentada.
+      - [x] **#T36.5 - Aplicar Comentarios Contextuales:** Sistema de "migas de pan" aplicado sistemáticamente para mantener contexto vivo en el código.
+
+  - [ ] **#T37 - Estandarización de Formularios:**
+    - **Objetivo:** Asegurar que todos los formularios sigan el patrón `forwardRef` con `getFormData()`.
+    - **⚠️ PENDIENTE:** Requiere análisis detallado de formularios existentes
+    - **Tareas Detalladas:**
+      - [ ] **#T37.1 - Evaluar Formularios Existentes:** Verificar que `CategoryForm.tsx`, `SectionForm.tsx` y `ProductForm.tsx` implementen correctamente el patrón.
+      - [ ] **#T37.2 - Extender Formularios:** Añadir validación, manejo de errores y feedback visual consistente a todos los formularios.
+      - [ ] **#T37.3 - Centralizar Manejo de Imágenes:** Asegurar que todos los formularios utilicen `ImageUploader.tsx` de manera consistente.
+  - [ ] **#T38 - Refactorización de Modales de Creación:**
+    - **Objetivo:** Unificar NewCategoryModal, NewSectionModal, NewProductModal en sistema centralizado.
+    - **⚠️ DEUDA TÉCNICA:** Modales legacy funcionales pero candidatos para unificación
+    - **Tareas Detalladas:**
+      - [ ] **#T38.1 - Crear Sistema de Creación Unificado:** Desarrollar componente genérico para creación de entidades.
+      - [ ] **#T38.2 - Migrar Modales Legacy:** Reemplazar modales individuales por sistema unificado.
+      - [ ] **#T38.3 - Actualizar CategoryView.tsx:** Migrar useState múltiples a useModalStore.
+  - [ ] **#T39 - Documentación del Nuevo Sistema:**
+    - **Objetivo:** Crear documentación clara para el nuevo sistema de modales.
+    - **Tareas Detalladas:**
+      - [ ] **#T39.1 - Diagrama del Sistema:** Crear un diagrama visual del flujo de datos en el sistema de modales.
+      - [ ] **#T39.2 - Ejemplos de Uso:** Documentar ejemplos de cómo utilizar el nuevo sistema para futuros desarrolladores.
+      - [ ] **#T39.3 - Actualizar EstructuraRokaMenu.md:** Reflejar los cambios arquitectónicos en la documentación central.

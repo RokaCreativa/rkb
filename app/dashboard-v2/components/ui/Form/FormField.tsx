@@ -11,6 +11,7 @@ interface FormFieldProps {
   error?: string;
   required?: boolean;
   as?: 'input' | 'textarea';
+  className?: string;
 }
 
 export const FormField: React.FC<FormFieldProps> = ({
@@ -24,7 +25,13 @@ export const FormField: React.FC<FormFieldProps> = ({
   error,
   required = false,
   as = 'input',
+  className,
 }) => {
+  const baseClassName = `mt-1 block w-full px-3 py-2 bg-white border ${error ? 'border-red-500' : 'border-gray-300'
+    } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`;
+
+  const finalClassName = className ? `${baseClassName} ${className}` : baseClassName;
+
   const commonProps = {
     id: name,
     name: name,
@@ -33,8 +40,7 @@ export const FormField: React.FC<FormFieldProps> = ({
     placeholder: placeholder,
     required: required,
     step: step,
-    className: `mt-1 block w-full px-3 py-2 bg-white border ${error ? 'border-red-500' : 'border-gray-300'
-      } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`,
+    className: finalClassName,
   };
 
   return (

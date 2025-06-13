@@ -77,11 +77,13 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
    * @property {File | null} sectionImage - Archivo de imagen seleccionado para la sección
    * @property {string | null} imagePreview - URL de previsualización de la imagen como data URL
    * @property {boolean} isCreating - Controla el estado de carga durante la creación
+   * @property {boolean} sectionStatus - Estado de visibilidad de la sección (true = visible, false = oculto)
    */
   const [sectionName, setSectionName] = useState('');
   const [sectionImage, setSectionImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [sectionStatus, setSectionStatus] = useState(true); // Por defecto visible
 
   /** 
    * Referencia al input de tipo file para la carga de imágenes
@@ -161,6 +163,7 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
     const formData = new FormData();
     formData.append('name', sectionName);
     formData.append('category_id', categoryId.toString());
+    formData.append('status', sectionStatus ? '1' : '0'); // Enviar estado de visibilidad
 
     if (sectionImage) {
       formData.append('image', sectionImage);
@@ -229,7 +232,8 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
    * Este método:
    * 1. Limpia el campo de nombre de la sección
    * 2. Elimina la imagen seleccionada y su previsualización
-   * 3. Cierra el modal de creación de sección
+   * 3. Resetea el estado de visibilidad a visible por defecto
+   * 4. Cierra el modal de creación de sección
    * 
    * Se utiliza cuando el usuario cancela la creación o después de
    * crear una sección exitosamente para preparar el formulario para
@@ -239,6 +243,7 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
     setSectionName('');
     setSectionImage(null);
     setImagePreview(null);
+    setSectionStatus(true); // Resetear a visible por defecto
     onClose();
   };
 
@@ -294,6 +299,37 @@ const NewSectionModal: React.FC<NewSectionModalProps> = ({
                       placeholder="Escribe el nombre de la sección"
                       required
                     />
+                  </div>
+
+                  {/* Campo de estado/visibilidad de sección */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Estado
+                    </label>
+                    <div className="space-y-2">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="sectionStatus"
+                          value="visible"
+                          checked={sectionStatus === true}
+                          onChange={() => setSectionStatus(true)}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Visible</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="sectionStatus"
+                          value="oculto"
+                          checked={sectionStatus === false}
+                          onChange={() => setSectionStatus(false)}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">Oculto</span>
+                      </label>
+                    </div>
                   </div>
 
                   {/* Campo de imagen de sección */}

@@ -19,8 +19,6 @@ interface CategoryListProps {
 export function CategoryList({ categories, onCategoryClick, expandedCategories, onEditCategory, onDeleteCategory, onToggleVisibility }: CategoryListProps) {
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold mb-3">Categorías</h2>
-
       {categories.length === 0 ? (
         <div className="bg-white p-6 rounded-lg shadow text-center">
           <p className="text-gray-500">No hay categorías disponibles</p>

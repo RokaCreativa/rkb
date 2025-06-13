@@ -1,17 +1,20 @@
 /**
- * @file CategoryGridView.tsx
- * @description Componente de vista dedicado a renderizar la tabla de categorías.
- * @architecture
- * Este componente es la vista "Master" en la arquitectura "Master-Detail" del dashboard de escritorio.
- * Su única responsabilidad es mostrar la lista de todas las categorías.
+ * 🧭 MIGA DE PAN CONTEXTUAL: Componente MASTER en arquitectura Master-Detail para escritorio
  * 
- * @dependencies
- * - `GenericTable`: En lugar de construir su propia tabla, delega el renderizado a este componente reutilizable.
- *   Le pasa los datos (`categories`) y una configuración de `columns` que define cómo se debe ver cada fila.
- * - `DashboardView` (Padre/Orquestador): Este componente no tiene estado propio. Recibe `categories` y todos los
- *   callbacks (`onCategorySelect`, `onEdit`, etc.) como props desde `DashboardView`.
- * - `dashboardStore`: Indirectamente, depende de `dashboardStore` ya que es su orquestador (`DashboardView`)
- *   quien se suscribe al store y le provee los datos y acciones.
+ * PORQUÉ CRÍTICO: Es el punto de entrada principal para toda la navegación en vista escritorio
+ * RESPONSABILIDAD ÚNICA: Renderizar tabla de categorías y manejar selección (Mandamiento #6)
+ * 
+ * CONEXIONES CRÍTICAS:
+ * - DashboardView.tsx línea ~75: <CategoryGridView categories={store.categories} onCategorySelect={(cat) => store.setSelectedCategoryId(cat.category_id)} />
+ * - dashboardStore.ts: setSelectedCategoryId → fetchSectionsByCategory → actualiza UI
+ * - GenericTable.tsx: Componente reutilizable que maneja toda la lógica de tabla
+ * - useModalState.tsx: onEdit/onDelete conectan con sistema de modales
+ * 
+ * ARQUITECTURA: Componente "tonto" que solo renderiza - NO maneja estado
+ * FLUJO DE DATOS: store → DashboardView → CategoryGridView → GenericTable → UI
+ * 
+ * DECISIÓN UX: onRowClick selecciona categoría (navegación), botones específicos para acciones (editar/eliminar)
+ * PATRÓN: Misma estructura que SectionGridView y ProductGridView para consistencia
  */
 'use client';
 
@@ -40,16 +43,37 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
     onDelete,
     onAddNew,
 }) => {
-    // 🧭 MIGA DE PAN: Calcular contador de visibilidad siguiendo el patrón de ProductGridView
+    /**
+     * 🧭 MIGA DE PAN CONTEXTUAL: Contador de visibilidad para feedback inmediato al usuario
+     * PORQUÉ NECESARIO: Los usuarios necesitan saber cuántas categorías están activas en el menú
+     * PATRÓN CONSISTENTE: Mismo cálculo que ProductGridView y SectionGridView
+     * CONEXIÓN: Se actualiza automáticamente cuando store.toggleCategoryVisibility cambia el estado
+     */
     const visibleCategories = categories.filter(category => category.status);
     const totalCategories = categories.length;
 
+    /**
+     * 🧭 MIGA DE PAN CONTEXTUAL: Configuración de columnas para GenericTable
+     * DECISIONES DE DISEÑO:
+     * - Columna 'name': Imagen + texto para identificación visual rápida
+     * - Columna 'sections': Contador de secciones visibles (igual que en móvil)
+     * - Columna 'display_order': Orden de aparición en el menú (importante para UX)
+     * - Columna 'actions': Botones de acción con stopPropagation para evitar conflicto con onRowClick
+     * 
+     * PATRÓN DE ACCIONES:
+     * - EyeIcon: Verde si visible, gris si oculto (feedback visual inmediato)
+     * - PencilIcon: Editar categoría (abre EditCategoryModal)
+     * - TrashIcon: Eliminar categoría (abre DeleteConfirmationModal)
+     * 
+     * CONEXIÓN: GenericTable.tsx renderiza estas columnas automáticamente
+     */
     const columns: Column<Category>[] = [
         {
             key: 'name',
             header: 'Nombre',
             render: (category) => (
                 <div className="flex items-center">
+                    {/* DECISIÓN UX: Imagen 40x40 para identificación rápida sin ocupar mucho espacio */}
                     <Image
                         src={category.image || '/images/placeholder.png'}
                         alt={category.name || 'Categoría'}
@@ -62,6 +86,15 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
             ),
         },
         {
+            key: 'sections',
+            header: 'Secciones',
+            render: (category) => (
+                <span className="text-sm text-gray-600">
+                    {category.visible_sections_count || 0} / {category.sections_count || 0} visibles
+                </span>
+            ),
+        },
+        {
             key: 'display_order',
             header: 'Orden',
         },
@@ -70,6 +103,7 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
             header: 'Acciones',
             render: (category) => (
                 <div className="flex justify-end items-center space-x-1">
+                    {/* CRÍTICO: stopPropagation evita que se dispare onRowClick al hacer clic en botones */}
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onToggleVisibility(category); }}>
                         <EyeIcon className={`h-5 w-5 ${category.status ? 'text-green-500' : 'text-gray-400'}`} />
                     </Button>
@@ -89,15 +123,21 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
             <div className="flex justify-between items-center mb-4">
                 <div className="flex flex-col">
                     <h2 className="text-xl font-semibold">Gestionar Categorías</h2>
-                    {/* 🧭 MIGA DE PAN: Contador de visibilidad siguiendo el patrón de ProductGridView */}
+                    {/* 🧭 MIGA DE PAN: Contador siguiendo patrón consistente en todo el sistema */}
                     <p className="text-sm text-gray-500">
                         {visibleCategories.length} / {totalCategories} categorías visibles
                     </p>
                 </div>
+                {/* CONEXIÓN: onAddNew → useModalState.openModal('editCategory', null) */}
                 <Button onClick={onAddNew}>
                     Añadir Categoría
                 </Button>
             </div>
+            {/* 
+                🧭 MIGA DE PAN CONTEXTUAL: GenericTable maneja toda la lógica de renderizado
+                PORQUÉ DELEGACIÓN: Reutilización de código y consistencia visual
+                CONEXIÓN: onRowClick → onCategorySelect → store.setSelectedCategoryId → navegación
+            */}
             <GenericTable
                 data={categories}
                 columns={columns}

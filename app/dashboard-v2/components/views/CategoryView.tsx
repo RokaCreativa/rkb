@@ -15,17 +15,22 @@ import CategoryTable from "../domain/categories/CategoryTable";
 import { Category, Section, Product } from "@/app/types/menu";
 import { CompatibleProduct } from '@/app/dashboard-v2/types/type-adapters';
 
-// Modificar las importaciones para usar los componentes que realmente existen
+// ✅ SISTEMA UNIFICADO: Importación del store centralizado
+import { useModalStore } from '@/app/dashboard-v2/hooks/ui/state/useModalStore';
+
+// Componentes de modales (legacy, pendientes de refactorización completa)
 import NewCategoryModal from '../modals/NewCategoryModal';
-import EditCategoryModal from '../modals/EditCategoryModal';
-import DeleteModal from '../modals/DeleteModal';
+import { EditCategoryModal, EditSectionModal } from '../modals/EditModals';
+import { DeleteConfirmationModal } from '../modals/DeleteConfirmationModal';
 import NewSectionModal from '../modals/NewSectionModal';
-import EditSectionModal from '../modals/EditSectionModal';
 import NewProductModal from '../modals/NewProductModal';
 import SectionList from '@/app/dashboard-v2/components/domain/sections/SectionList';
 
 /**
- * Props para el componente CategoryView
+ * 🧭 INTERFAZ CONTEXTUAL: Props del CategoryView
+ * PORQUÉ COMPLEJA: Maneja callbacks para múltiples entidades (categorías, secciones, productos)
+ * CONEXIÓN: DashboardView.tsx pasa estas props desde el dashboardStore
+ * PATRÓN: Delegación de eventos hacia arriba en la jerarquía de componentes
  */
 interface CategoryViewProps {
   categories: Category[];
@@ -55,16 +60,25 @@ interface CategoryViewProps {
 }
 
 /**
- * Componente que gestiona la visualización y acciones relacionadas con categorías
+ * 🧭 MIGA DE PAN CONTEXTUAL: Vista de categorías con gestión de modales legacy
  * 
- * Esta vista centraliza la interacción con las categorías del menú, incluyendo:
- * - Lista de categorías con sus propiedades
- * - Acciones para añadir, editar y eliminar categorías
- * - Navegación a la vista de secciones
- * - Delegación de eventos a los componentes padres a través de callbacks
+ * PORQUÉ CRÍTICO: Centraliza la gestión de categorías en la vista de escritorio
+ * ESTADO ACTUAL: Usa useState locales para modales (patrón legacy)
  * 
- * @param {CategoryViewProps} props - Propiedades del componente
- * @returns {JSX.Element} La vista de categorías renderizada
+ * CONEXIONES CRÍTICAS:
+ * - DashboardView.tsx: Componente padre que pasa props y callbacks
+ * - CategoryTable.tsx: Tabla de categorías con acciones
+ * - SectionList.tsx: Lista de secciones cuando categoría está expandida
+ * 
+ * ⚠️ DEUDA TÉCNICA IDENTIFICADA:
+ * - Múltiples useState para modales (candidato para useModalStore)
+ * - Lógica de modales duplicada en cada handler
+ * - Podría beneficiarse de refactorización futura
+ * 
+ * MANDAMIENTOS APLICADOS:
+ * #6: Separación responsabilidades (lógica delegada a componentes padre)
+ * #7: Código documentado con comentarios contextuales
+ * #8: Consistencia visual en modales
  */
 const CategoryView: React.FC<CategoryViewProps> = ({
   categories,
@@ -92,22 +106,34 @@ const CategoryView: React.FC<CategoryViewProps> = ({
   onSectionsReorder,
   onProductReorder
 }) => {
-  // Modal states
+  /**
+   * 🧭 ESTADO LOCAL DE MODALES: Patrón legacy pero funcional
+   * JUSTIFICACIÓN: Mantener estabilidad mientras se planifica refactorización
+   * CANDIDATO: Futuro reemplazo por useModalStore unificado
+   */
+
+  // Estados de modales de categorías
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
   const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
   const [isDeleteCategoryModalOpen, setIsDeleteCategoryModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
+  // Estados de modales de secciones
   const [isAddSectionModalOpen, setIsAddSectionModalOpen] = useState(false);
   const [isEditSectionModalOpen, setIsEditSectionModalOpen] = useState(false);
   const [isDeleteSectionModalOpen, setIsDeleteSectionModalOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
 
+  // Estados de modales de productos
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [selectedSectionIdForProduct, setSelectedSectionIdForProduct] = useState<number | null>(null);
 
-  // Category modal handlers
+  /**
+   * 🧭 HANDLERS DE CATEGORÍAS: Gestión de modales con patrón consistente
+   * PATRÓN: setState(true) + setSelected(item) para abrir, setState(false) + setSelected(null) para cerrar
+   * CONEXIÓN: Cada handler corresponde a una acción en CategoryTable.tsx
+   */
   const handleAddCategory = () => {
     setIsAddCategoryModalOpen(true);
   };
@@ -122,7 +148,11 @@ const CategoryView: React.FC<CategoryViewProps> = ({
     setIsDeleteCategoryModalOpen(true);
   };
 
-  // Section modal handlers
+  /**
+   * 🧭 HANDLERS DE SECCIONES: Gestión de modales con contexto de categoría
+   * COMPLEJIDAD ADICIONAL: Necesitan categoryId para crear secciones en categoría específica
+   * CONEXIÓN: SectionList.tsx llama estos handlers para acciones de secciones
+   */
   const handleAddSection = (categoryId: number) => {
     setSelectedCategoryId(categoryId);
     setIsAddSectionModalOpen(true);
@@ -138,13 +168,21 @@ const CategoryView: React.FC<CategoryViewProps> = ({
     setIsDeleteSectionModalOpen(true);
   };
 
-  // Product modal handlers
+  /**
+   * 🧭 HANDLERS DE PRODUCTOS: Gestión de modales con contexto de sección
+   * CONEXIÓN: SectionList.tsx → ProductList.tsx llama este handler
+   * CONTEXTO: selectedSectionIdForProduct determina en qué sección crear el producto
+   */
   const handleAddProduct = (sectionId: number) => {
     setSelectedSectionIdForProduct(sectionId);
     setIsAddProductModalOpen(true);
   };
 
-  // Añadir useEffect para log de secciones cuando cambia la categoría seleccionada
+  /**
+   * 🧭 MIGA DE PAN CONTEXTUAL: Logging para debugging de secciones
+   * PORQUÉ: Ayuda a diagnosticar problemas de renderizado en SectionList
+   * CONEXIÓN: selectedCategory determina qué secciones se muestran
+   */
   useEffect(() => {
     if (selectedCategory) {
       console.log("🔍 [DEBUG] Secciones pasadas a SectionList:", {
@@ -157,11 +195,21 @@ const CategoryView: React.FC<CategoryViewProps> = ({
     }
   }, [selectedCategory, sections, expandedSections]);
 
-  // Diagnóstico para isReorderModeActive
+  /**
+   * 🧭 MIGA DE PAN CONTEXTUAL: Logging para debugging de reordenamiento
+   * PORQUÉ: El drag&drop es complejo y necesita debugging
+   * CONEXIÓN: isReorderModeActive viene de DashboardView
+   */
   useEffect(() => {
     console.log("🚨 [CRITICAL] CategoryView - Estado de isReorderModeActive:", isReorderModeActive);
   }, [isReorderModeActive]);
 
+  /**
+   * 🧭 MIGA DE PAN CONTEXTUAL: Handler de reordenamiento con logging detallado
+   * PORQUÉ COMPLEJO: Maneja tanto reordenamiento de categorías como de secciones
+   * CONEXIÓN: onSectionsReorder viene de DashboardView y va al dashboardStore
+   * DECISIÓN: Mantener logging extensivo para debugging de drag&drop
+   */
   const onReorderCategory = (sourceIndex: number, destinationIndex: number) => {
     console.log(
       '🔄 [DRAG DEBUG] CategoryView -> onReorderCategory llamado:',
@@ -206,7 +254,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
         console.error('❌ [DRAG ERROR] No hay categorías disponibles para reordenar');
       }
     } else {
-      console.warn('⚠️ [DRAG WARN] Ignorando reordenamiento porque isReorderModeActive es false');
+      console.warn('⚠️ [DRAG WARNING] Intento de reordenamiento cuando isReorderModeActive es false');
     }
   };
 
@@ -223,8 +271,8 @@ const CategoryView: React.FC<CategoryViewProps> = ({
               }
             }}
             className={`px-2 py-1 rounded-md text-sm font-medium flex items-center ${isReorderModeActive
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                : 'border border-indigo-600 text-indigo-600 hover:bg-indigo-50'
+              ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+              : 'border border-indigo-600 text-indigo-600 hover:bg-indigo-50'
               }`}
           >
             {isReorderModeActive ? 'Finalizar' : 'Reordenar'}
@@ -302,13 +350,11 @@ const CategoryView: React.FC<CategoryViewProps> = ({
       )}
 
       {isDeleteCategoryModalOpen && selectedCategory && (
-        <DeleteModal
+        <DeleteConfirmationModal
           isOpen={isDeleteCategoryModalOpen}
           onClose={() => setIsDeleteCategoryModalOpen(false)}
-          entityType="category"
-          entityId={selectedCategory.category_id}
-          entityName={selectedCategory.name}
-          onConfirm={async () => {
+          itemType="Categoría"
+          onConfirm={() => {
             setIsDeleteCategoryModalOpen(false);
             onDeleteCategorySubmit(selectedCategory.category_id);
           }}
@@ -337,50 +383,48 @@ const CategoryView: React.FC<CategoryViewProps> = ({
         />
       )}
 
-      {isEditSectionModalOpen && selectedSection && (
+      {isEditSectionModalOpen && selectedCategory && (
         <EditSectionModal
           isOpen={isEditSectionModalOpen}
           onClose={() => setIsEditSectionModalOpen(false)}
-          section={selectedSection}
+          section={selectedCategory}
           updateSection={async (formData, sectionId, categoryId) => {
-            if (onEditSectionSubmit && selectedSection) {
+            if (onEditSectionSubmit && selectedCategory) {
               // Simplemente llamar al callback con la sección seleccionada
-              onEditSectionSubmit(selectedSection);
+              onEditSectionSubmit(selectedCategory);
             }
             return true;
           }}
         />
       )}
 
-      {isDeleteSectionModalOpen && selectedSection && (
-        <DeleteModal
+      {isDeleteSectionModalOpen && selectedCategory && (
+        <DeleteConfirmationModal
           isOpen={isDeleteSectionModalOpen}
           onClose={() => setIsDeleteSectionModalOpen(false)}
-          entityType="section"
-          entityId={selectedSection.section_id}
-          entityName={selectedSection.name}
-          onConfirm={async () => {
+          itemType="Sección"
+          onConfirm={() => {
             setIsDeleteSectionModalOpen(false);
-            onDeleteSectionSubmit(selectedSection.section_id);
+            onDeleteSectionSubmit(selectedCategory.section_id);
           }}
         />
       )}
 
-      {isAddProductModalOpen && selectedSectionIdForProduct !== null && (
+      {isAddProductModalOpen && selectedCategory && (
         <NewProductModal
           isOpen={isAddProductModalOpen}
           onClose={() => setIsAddProductModalOpen(false)}
-          sectionId={selectedSectionIdForProduct}
+          sectionId={selectedCategory.category_id}
           setProducts={(products: any) => {
-            if (onAddProductSubmit && selectedSectionIdForProduct) {
+            if (onAddProductSubmit && selectedCategory) {
               // Extraer el último producto añadido
-              const sectionId = selectedSectionIdForProduct.toString();
+              const sectionId = selectedCategory.category_id.toString();
               const productList = products[sectionId] || [];
               const lastProduct = productList.length > 0 ? productList[productList.length - 1] : null;
               if (lastProduct) {
                 onAddProductSubmit({
                   ...lastProduct,
-                  section_id: selectedSectionIdForProduct
+                  section_id: selectedCategory.category_id
                 });
               }
             }

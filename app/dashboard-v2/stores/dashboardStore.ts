@@ -7,6 +7,7 @@
 import { create } from 'zustand';
 import { Category, Section, Product, Client } from '../types';
 import { toast } from 'react-hot-toast';
+import { getCategoryDisplayMode, isCategorySimpleMode } from '../utils/categoryUtils';
 
 // --- INTERFACES ---
 
@@ -39,6 +40,8 @@ export interface DashboardActions {
     fetchCategories: (clientId: number) => Promise<void>;
     fetchSectionsByCategory: (categoryId: number) => Promise<void>;
     fetchProductsBySection: (sectionId: number) => Promise<void>;
+    fetchProductsByCategory: (categoryId: number) => Promise<void>;
+    fetchDataForCategory: (categoryId: number) => Promise<void>;
     createCategory: (data: Partial<Category>, imageFile?: File | null) => Promise<void>;
     updateCategory: (id: number, data: Partial<Category>, imageFile?: File | null) => Promise<void>;
     deleteCategory: (id: number) => Promise<void>;
@@ -133,6 +136,67 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
             set(state => ({ products: { ...state.products, [sectionId]: productsData } }));
         } catch (e) {
             set({ error: e instanceof Error ? e.message : 'Error' });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    fetchProductsByCategory: async (categoryId) => {
+        // 🧭 MIGA DE PAN: Esta función carga productos directamente desde una categoría
+        // para categorías "simples" (que tienen 1 sola sección). Se conecta con:
+        // - getCategoryDisplayMode() para auto-detectar si la categoría es simple
+        // - CategoryGridView.tsx cuando renderiza productos directos 
+        // - MobileView.tsx para navegación directa categoría → productos
+        //
+        // 💡 Diferencia clave con fetchProductsBySection:
+        // - fetchProductsBySection: usa section_id (jerarquía completa)
+        // - fetchProductsByCategory: usa category_id (jerarquía simplificada)
+        set({ isLoading: true });
+        try {
+            const res = await fetch(`/api/products?category_id=${categoryId}`);
+            if (!res.ok) throw new Error('Error al cargar productos');
+            const productsData = await res.json();
+            // Usamos categoryId como key en lugar de sectionId para diferenciarlo
+            set(state => ({ products: { ...state.products, [`cat-${categoryId}`]: productsData } }));
+        } catch (e) {
+            set({ error: e instanceof Error ? e.message : 'Error' });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    fetchDataForCategory: async (categoryId) => {
+        // 🧭 MIGA DE PAN: Esta es la función MAESTRA de auto-detección inteligente (T32.1)
+        // Decide automáticamente si una categoría debe usar jerarquía simple o completa:
+        // 
+        // 🔍 FLUJO DE AUTO-DETECCIÓN:
+        // 1. Carga las secciones de la categoría
+        // 2. Usa getCategoryDisplayMode() para determinar el modo
+        // 3. Si es "simple" → carga productos directos (fetchProductsByCategory)
+        // 4. Si es "sections" → mantiene secciones para navegación posterior
+        //
+        // 🎯 Se conecta con:
+        // - DashboardView.tsx para renderizar UI adaptada al modo detectado
+        // - MobileView.tsx para adaptar la navegación móvil
+        // - CategoryGridView.tsx para mostrar productos o secciones según el modo
+        set({ isLoading: true });
+        try {
+            // Paso 1: Siempre cargar secciones primero para auto-detectar
+            await get().fetchSectionsByCategory(categoryId);
+
+            // Paso 2: Obtener las secciones cargadas y determinar el modo
+            const sections = get().sections[categoryId] || [];
+            const displayMode = getCategoryDisplayMode(sections);
+
+            // Paso 3: Si es modo simple, cargar productos directos automáticamente  
+            if (displayMode === 'simple') {
+                await get().fetchProductsByCategory(categoryId);
+            }
+
+            // Si es modo "sections", las secciones ya están cargadas para navegación posterior
+
+        } catch (e) {
+            set({ error: e instanceof Error ? e.message : 'Error al cargar datos de categoría' });
         } finally {
             set({ isLoading: false });
         }
@@ -421,11 +485,21 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
             }
             toast.success('Visibilidad actualizada', { id: toastId });
 
-            // Recargar secciones de la categoría correcta (escritorio usa selectedCategoryId, móvil usa activeCategoryId)
-            const { activeCategoryId, selectedCategoryId } = get();
+            // 🧭 MIGA DE PAN CONTEXTUAL: CRÍTICO - Actualizar tanto secciones como categorías
+            // PROBLEMA RESUELTO: Los contadores de visibilidad en categorías no se actualizaban
+            // PORQUÉ NECESARIO: Las categorías muestran "X/Y secciones visibles" y necesitan refrescarse
+            // CONEXIÓN: CategoryList.tsx línea ~52 muestra visible_sections_count/sections_count
+            const { activeCategoryId, selectedCategoryId, client } = get();
             const targetCategoryId = selectedCategoryId || activeCategoryId;
+
             if (targetCategoryId) {
+                // Recargar secciones de la categoría para actualizar la lista
                 await get().fetchSectionsByCategory(targetCategoryId);
+            }
+
+            // CRÍTICO: Recargar categorías para actualizar contadores de visibilidad
+            if (client?.id) {
+                await get().fetchCategories(client.id);
             }
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Error desconocido', { id: toastId });
@@ -573,12 +647,28 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
             }
             toast.success('Visibilidad actualizada', { id: toastId });
 
-            // Recargar productos para reflejar cambios
-            // 🧭 MIGA DE PAN: En escritorio usamos selectedSectionId, en móvil activeSectionId
-            const { activeSectionId, selectedSectionId } = get();
+            // 🧭 MIGA DE PAN CONTEXTUAL: Refresco inteligente según contexto de navegación
+            // PROBLEMA RESUELTO: Para categorías simples, debe usar fetchProductsByCategory
+            // CONEXIÓN: useCategoryDisplayMode determina si es categoría simple o compleja
+            const { activeCategoryId, selectedCategoryId, activeSectionId, selectedSectionId } = get();
+            const targetCategoryId = selectedCategoryId || activeCategoryId;
             const targetSectionId = selectedSectionId || activeSectionId;
-            if (targetSectionId) {
-                await get().fetchProductsBySection(targetSectionId);
+
+            // Para categorías simples, refrescar productos de categoría
+            if (targetCategoryId) {
+                const sections = get().sections[targetCategoryId];
+                const displayMode = getCategoryDisplayMode(sections || []);
+
+                if (displayMode === 'simple') {
+                    await get().fetchProductsByCategory(targetCategoryId);
+                } else if (targetSectionId) {
+                    await get().fetchProductsBySection(targetSectionId);
+                }
+
+                // CRÍTICO: Actualizar secciones para refrescar contadores de productos visibles
+                // PORQUÉ NECESARIO: Las secciones muestran "X/Y productos visibles" y necesitan refrescarse
+                // CONEXIÓN: SectionGridView.tsx y SectionListView.tsx muestran visible_products_count
+                await get().fetchSectionsByCategory(targetCategoryId);
             }
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Error desconocido', { id: toastId });
@@ -587,18 +677,47 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
         }
     },
 
-    setSelectedCategoryId: (id) => set({ selectedCategoryId: id, selectedSectionId: null }),
+    setSelectedCategoryId: (id) => {
+        set({ selectedCategoryId: id, selectedSectionId: null });
+        // 🧭 MIGA DE PAN CONTEXTUAL: Esta función es el punto de entrada para navegación en ESCRITORIO
+        // PORQUÉ: Se decidió separar la navegación móvil (handleCategorySelect) de la de escritorio (setSelectedCategoryId)
+        // porque tienen flujos diferentes - escritorio usa master-detail, móvil usa drill-down
+        // CONEXIONES: Se conecta con DashboardView.tsx línea ~45 en CategoryGridView.onCategorySelect
+        // DECISIÓN ARQUITECTÓNICA: Siempre limpia selectedSectionId para forzar re-selección de sección
+        // FLUJO: DashboardView → CategoryGridView → onClick → setSelectedCategoryId → fetchSectionsByCategory → SectionGridView
+        if (id) {
+            get().fetchSectionsByCategory(id);
+        }
+    },
     setSelectedSectionId: (id) => set({ selectedSectionId: id }),
 
     handleCategorySelect: (id) => {
+        // 🧭 MIGA DE PAN CONTEXTUAL: Función EXCLUSIVA para navegación móvil en MobileView.tsx
+        // PORQUÉ DE LA DECISIÓN: Se eliminó la auto-detección inteligente que causaba bugs de navegación
+        // donde algunas categorías saltaban directamente a productos sin mostrar secciones
+        // PROBLEMA RESUELTO: Antes usaba getCategoryDisplayMode() que clasificaba incorrectamente categorías
+        // CONEXIONES CRÍTICAS:
+        // - MobileView.tsx línea ~75: handleCategorySelectWithAutoDetection → handleCategorySelect
+        // - CategoryList.tsx: onCategoryClick prop que recibe esta función
+        // - Historial: Se conecta con handleBack() para navegación coherente
+        // FLUJO GARANTIZADO: categories → sections → products (sin saltos)
+        // ARQUITECTURA: Mantiene separación clara entre navegación móvil/escritorio
+
+        // Guardar estado actual en historial para navegación coherente con handleBack()
         set(state => ({
-            activeView: 'sections',
             activeCategoryId: id,
             history: [...state.history, { view: state.activeView, id: state.activeCategoryId }]
         }));
+
+        // DECISIÓN: Siempre cargar secciones y ir a vista sections (navegación tradicional)
         get().fetchSectionsByCategory(id);
+        set({ activeView: 'sections' });
     },
     handleSectionSelect: (id) => {
+        // 🧭 MIGA DE PAN CONTEXTUAL: Navegación de secciones a productos en vista móvil
+        // CONEXIONES: MobileView.tsx → SectionListView.tsx → onSectionClick → handleSectionSelect
+        // PORQUÉ: Guarda el estado en historial para que handleBack() funcione correctamente
+        // FLUJO: sections view → products view + carga productos de la sección específica
         set(state => ({
             activeView: 'products',
             activeSectionId: id,
@@ -607,15 +726,88 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
         get().fetchProductsBySection(id);
     },
     handleBack: () => set(state => {
-        const last = state.history.pop();
-        if (!last) return { activeView: 'categories', activeCategoryId: null, activeSectionId: null };
-        return {
-            history: state.history,
-            activeView: last.view,
-            activeCategoryId: last.view === 'sections' ? last.id : state.activeCategoryId,
-            activeSectionId: last.view === 'products' ? last.id : null
-        };
+        // 🧭 MIGA DE PAN CONTEXTUAL: Navegación hacia atrás en vista móvil
+        // PROBLEMA IDENTIFICADO: Lógica de navegación incorrecta causaba "página vacía"
+        // FLUJO CORRECTO: products → sections → categories
+        // CONEXIONES: MobileView.tsx línea ~240 en botón ArrowLeftIcon onClick
+
+        // Si estamos en products, ir a sections (mantener categoría activa)
+        if (state.activeView === 'products') {
+            return {
+                ...state,
+                activeView: 'sections',
+                activeSectionId: null // Limpiar sección pero mantener categoría
+            };
+        }
+
+        // Si estamos en sections, ir a categories (limpiar todo)
+        if (state.activeView === 'sections') {
+            return {
+                ...state,
+                activeView: 'categories',
+                activeCategoryId: null,
+                activeSectionId: null
+            };
+        }
+
+        // Si estamos en categories, no hacer nada (ya estamos en el nivel superior)
+        return state;
     }),
 
-
 }));
+
+// --- FUNCIONES HELPER PARA AUTO-DETECCIÓN ---
+
+/**
+ * 🔍 Hook para obtener el modo de visualización de una categoría
+ * 
+ * @param categoryId - ID de la categoría
+ * @returns 'simple' | 'sections' | 'loading' | 'error'
+ * 
+ * 🧭 MIGA DE PAN: Esta función helper se conecta con:
+ * - CategoryGridView.tsx para renderizar UI condicional
+ * - MobileView.tsx para adaptar navegación
+ * - DashboardView.tsx para mostrar diferentes vistas
+ */
+export const useCategoryDisplayMode = (categoryId: number | null) => {
+    const sections = useDashboardStore(state =>
+        categoryId ? state.sections[categoryId] : undefined
+    );
+    const isLoading = useDashboardStore(state => state.isLoading);
+    const error = useDashboardStore(state => state.error);
+
+    if (error) return 'error';
+    if (isLoading || !sections) return 'loading';
+
+    return getCategoryDisplayMode(sections);
+};
+
+/**
+ * 🔍 Hook para obtener productos de una categoría (tanto simple como compleja)
+ * 
+ * @param categoryId - ID de la categoría
+ * @returns productos según el modo de la categoría
+ * 
+ * 🧭 MIGA DE PAN: Esta función helper unifica el acceso a productos:
+ * - Para categorías simples: obtiene de products[`cat-${categoryId}`]
+ * - Para categorías complejas: requiere sectionId adicional
+ * - Se conecta con ProductGridView.tsx y listas de productos
+ */
+export const useCategoryProducts = (categoryId: number | null, sectionId?: number | null) => {
+    const products = useDashboardStore(state => state.products);
+    const displayMode = useCategoryDisplayMode(categoryId);
+
+    if (!categoryId) return [];
+
+    // Para categorías simples, usar la key especial
+    if (displayMode === 'simple') {
+        return products[`cat-${categoryId}`] || [];
+    }
+
+    // Para categorías complejas, usar sectionId tradicional
+    if (displayMode === 'sections' && sectionId) {
+        return products[sectionId] || [];
+    }
+
+    return [];
+};

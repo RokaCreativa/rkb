@@ -6,55 +6,71 @@
  * @lastUpdated 2024-03-27
  */
 
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL: Modal genérico para formularios con estructura unificada
+ * 
+ * PORQUÉ EXISTE: Proporciona wrapper consistente para formularios en modales
+ * PROBLEMA RESUELTO: Evita duplicar estructura de modal en cada formulario específico
+ * 
+ * CONEXIONES CRÍTICAS:
+ * - BaseModal: Sistema unificado de modales (ui/Modal/BaseModal.tsx)
+ * - EditModals.tsx: Usa este componente para formularios de edición
+ * - Todos los modales de creación legacy (pendientes de refactorización)
+ * 
+ * DECISIÓN ARQUITECTÓNICA: Wrapper que separa lógica de formulario de presentación de modal
+ * MANDAMIENTOS: #6 (Separación responsabilidades), #8 (Consistencia visual)
+ */
+'use client';
+
 import React from 'react';
-import BaseModal from './BaseModal';
+import { BaseModal } from '@/app/dashboard-v2/components/ui/Modal/BaseModal';
 
 interface FormModalProps {
   /**
    * Título del modal
    */
   title: string;
-  
+
   /**
    * Indica si el modal está abierto
    */
   isOpen: boolean;
-  
+
   /**
    * Función para cerrar el modal
    */
   onClose: () => void;
-  
+
   /**
    * Contenido del formulario
    */
   children: React.ReactNode;
-  
+
   /**
    * Función que se ejecuta al enviar el formulario
    */
   onSubmit: (e: React.FormEvent) => void;
-  
+
   /**
    * Texto del botón de guardar
    */
   submitText?: string;
-  
+
   /**
    * Texto del botón de cancelar
    */
   cancelText?: string;
-  
+
   /**
    * Indica si el formulario está procesando el envío
    */
   isSubmitting?: boolean;
-  
+
   /**
    * Indica si el botón de guardar debe estar deshabilitado
    */
   isSubmitDisabled?: boolean;
-  
+
   /**
    * Tamaño del modal (small, medium, large, xlarge)
    */
@@ -88,7 +104,7 @@ const FormModal: React.FC<FormModalProps> = ({
     e.preventDefault();
     onSubmit(e);
   };
-  
+
   // Renderizar botones de acción para el modal
   const actionButtons = (
     <>
@@ -110,12 +126,12 @@ const FormModal: React.FC<FormModalProps> = ({
       </button>
     </>
   );
-  
+
   return (
     <BaseModal
       title={title}
       isOpen={isOpen}
-      onClose={isSubmitting ? () => {} : onClose} // Prevenir cierre durante envío
+      onClose={isSubmitting ? () => { } : onClose} // Prevenir cierre durante envío
       showCloseButton={!isSubmitting}
       actions={actionButtons}
       size={size}

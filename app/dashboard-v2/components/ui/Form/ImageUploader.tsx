@@ -1,6 +1,15 @@
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL: Componente de carga de imágenes reutilizable
+ * PROBLEMA RESUELTO: useState no se actualizaba cuando cambiaba initialImageUrl
+ * CONEXIONES CRÍTICAS:
+ * - CategoryForm.tsx: Usa este componente para cargar imágenes de categorías
+ * - SectionForm.tsx: Usa este componente para cargar imágenes de secciones  
+ * - ProductForm.tsx: Usa este componente para cargar imágenes de productos
+ * DECISIÓN ARQUITECTÓNICA: useEffect para sincronizar con prop initialImageUrl
+ */
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { CameraIcon } from '@heroicons/react/24/solid';
 
@@ -20,6 +29,22 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     const [preview, setPreview] = useState<string | null>(initialImageUrl || null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    /**
+     * 🧭 MIGA DE PAN CONTEXTUAL: Sincronizar preview con initialImageUrl
+     * PROBLEMA RESUELTO: En edición, la imagen no se cargaba porque useState solo se inicializa una vez
+     * PORQUÉ NECESARIO: Cuando se abre modal de edición, initialImageUrl cambia pero preview no se actualizaba
+     * CONEXIÓN: CategoryForm y SectionForm pasan initialImageUrl que debe reflejarse inmediatamente
+     */
+    useEffect(() => {
+        console.log('🖼️ ImageUploader useEffect:', { initialImageUrl, preview });
+        setPreview(initialImageUrl || null);
+    }, [initialImageUrl]);
+
+    /**
+     * 🧭 MIGA DE PAN CONTEXTUAL: Manejo de selección de archivo
+     * FLUJO: Usuario selecciona archivo → FileReader crea preview → onImageChange notifica al padre
+     * CONEXIÓN: onImageChange se conecta con setImageFile en CategoryForm/SectionForm
+     */
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {

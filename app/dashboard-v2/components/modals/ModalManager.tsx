@@ -1,36 +1,60 @@
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL: Despachador central de modales UNIFICADO para todo el sistema dashboard
+ * 
+ * PORQUÉ CRÍTICO: Implementa patrón Dispatcher para centralizar la lógica de renderizado de modales
+ * PROBLEMA RESUELTO: Sin este componente, cada vista tendría que manejar 9+ modales diferentes
+ * 
+ * ✅ REFACTORIZACIÓN COMPLETA: Todos los modales de eliminación ahora usan DeleteConfirmationModal
+ * - Eliminados: DeleteCategoryConfirmation, DeleteSectionConfirmation, DeleteProductConfirmation
+ * - Unificado: Un solo modal con colores consistentes y lógica centralizada
+ * 
+ * CONEXIONES CRÍTICAS:
+ * - MobileView.tsx línea ~130: <ModalManager onSuccess={handleModalSuccess} />
+ * - useModalStore.tsx: Estado global que determina qué modal renderizar
+ * - EditModals.tsx: Sistema unificado para modales de edición
+ * - DeleteConfirmationModal.tsx: Modal unificado para eliminaciones
+ * 
+ * FLUJO DE DATOS: useModalStore → ModalManager → Modal específico → API → store → UI refresh
+ */
 'use client';
 
 import React from 'react';
 import { useModalStore } from '@/app/dashboard-v2/hooks/ui/state/useModalStore';
 import { useSession } from 'next-auth/react';
 
-// Importar todos los modales
-import NewCategoryModal from './NewCategoryModal';
-import EditCategoryModal from './EditCategoryModal';
-import DeleteCategoryConfirmation from './DeleteCategoryConfirmation';
-import NewSectionModal from './NewSectionModal';
-import EditSectionModal from './EditSectionModal';
-import DeleteSectionConfirmation from './DeleteSectionConfirmation';
-import NewProductModal from './NewProductModal';
-import EditProductModal from './EditProductModal';
-import DeleteProductConfirmation from './DeleteProductConfirmation';
-import { Category, Section, Product } from '@/app/dashboard-v2/types';
+// ✅ SISTEMA UNIFICADO: Modales refactorizados
+import { EditCategoryModal, EditSectionModal, EditProductModal } from './EditModals';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 
-// Props que los componentes de gestión (como MobileView) necesitarán pasar
+// ⚠️ DEUDA TÉCNICA: Modales legacy que necesitan refactorización
+import NewCategoryModal from './NewCategoryModal';
+import NewSectionModal from './NewSectionModal';
+import NewProductModal from './NewProductModal';
+import { Category, Section, Product } from '@/app/dashboard-v2/types';
+import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
+
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL: Props que recibe ModalManager desde las vistas
+ * PORQUÉ COMPLEJAS: Diferentes modales necesitan diferentes callbacks y datos de contexto
+ * CONEXIÓN: MobileView pasa estas props, DashboardView usa useModalState directamente
+ */
 export interface ModalManagerProps {
-    // TODO: Unificar los tipos de los `setters` y eliminar los `as any`
     setCategories: React.Dispatch<React.SetStateAction<any[]>>;
     setSections: React.Dispatch<React.SetStateAction<any>>;
     setProducts: React.Dispatch<React.SetStateAction<any>>;
-    onSuccess: () => void;
+    onSuccess: () => void; // Callback crítico para refrescar datos tras operaciones CRUD
+    onSectionDeleted?: (sectionId: number) => void; // Callback específico para navegación tras eliminar
 
+    // Contexto de navegación móvil
     activeCategoryId?: number;
     activeSectionId?: number;
 }
 
 /**
- * Componente despachador que renderiza el modal activo según el estado de useModalStore.
- * Centraliza la lógica de renderizado de modales para mantener otros componentes limpios.
+ * 🧭 MIGA DE PAN CONTEXTUAL: Componente despachador que renderiza el modal activo
+ * PATRÓN: Switch statement que mapea modalType → componente específico
+ * ESTADO: Lee de useModalStore (estado global) para saber qué modal mostrar
+ * LIMPIEZA: Si modalType es null, no renderiza nada (modal cerrado)
  */
 export const ModalManager: React.FC<ModalManagerProps> = (props) => {
     const { data: session } = useSession();
@@ -38,23 +62,29 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
 
     if (!modalType) return null;
 
-    // Los modales de edición/eliminación que restauramos desde Git esperan props con nombres
-    // diferentes a los que había intentado estandarizar. Aquí usamos los nombres correctos
-    // que esperan los componentes originales.
+    /**
+     * 🧭 MIGA DE PAN CONTEXTUAL: Extracción de datos del modal desde modalProps
+     * PORQUÉ NECESARIO: Diferentes modales esperan diferentes tipos de datos
+     * TIPADO: Cast explícito porque modalProps es genérico en useModalStore
+     * CONEXIÓN: Estos datos vienen de openModal() calls en las vistas
+     */
     const categoryToEdit = modalProps.category as Category | null;
     const sectionToEdit = modalProps.section as Section | null;
     const productToEdit = modalProps.product as Product | null;
 
-    // Necesitamos la sesión y el cliente para algunos modales
+    // Datos de sesión necesarios para autenticación en APIs
     const client = session?.user?.client || null;
     const clientId = session?.user?.client_id || null;
 
+    /**
+     * 🧭 MIGA DE PAN CONTEXTUAL: Switch dispatcher - corazón del sistema de modales
+     * PATRÓN: Cada case mapea un modalType a su componente correspondiente
+     * ✅ ARQUITECTURA UNIFICADA: Todos los modales de eliminación usan DeleteConfirmationModal
+     */
     switch (modalType) {
-        // ========== DEUDA TÉCNICA: Se usa 'as any' para evitar conflictos de tipos ==========
-        // La solución a largo plazo es unificar los tipos en todos los modales.
-
-        // Casos de Categoría
+        // ========== CATEGORÍAS ==========
         case 'newCategory':
+            // ⚠️ LEGACY: NewCategoryModal usa props específicas
             return <NewCategoryModal
                 isOpen={true}
                 onClose={closeModal}
@@ -63,26 +93,30 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
                 client={client}
             />;
         case 'editCategory':
+            // ✅ UNIFICADO: EditCategoryModal del sistema refactorizado
             return <EditCategoryModal
                 isOpen={true}
                 onClose={closeModal}
-                categoryToEdit={categoryToEdit as any}
-                setCategories={props.setCategories as any}
-                onSuccess={props.onSuccess}
-                client={client}
+                category={categoryToEdit}
+                clientId={clientId ?? undefined}
             />;
         case 'deleteCategory':
-            return <DeleteCategoryConfirmation
+            // ✅ UNIFICADO: Usando DeleteConfirmationModal con colores consistentes
+            return <DeleteConfirmationModal
                 isOpen={true}
                 onClose={closeModal}
-                categoryId={categoryToEdit!.category_id}
-                categoryName={categoryToEdit!.name}
-                onDeleted={props.onSuccess as any}
-                clientId={clientId}
+                itemType="Categoría"
+                onConfirm={() => {
+                    if (categoryToEdit) {
+                        useDashboardStore.getState().deleteCategory(categoryToEdit.category_id);
+                        props.onSuccess();
+                    }
+                }}
             />;
 
-        // Casos de Sección
+        // ========== SECCIONES ==========
         case 'newSection':
+            // ⚠️ LEGACY: Requiere activeCategoryId del contexto de navegación
             return <NewSectionModal
                 isOpen={true}
                 onClose={closeModal}
@@ -91,51 +125,72 @@ export const ModalManager: React.FC<ModalManagerProps> = (props) => {
                 onSuccess={props.onSuccess}
             />;
         case 'editSection':
-            // El modal restaurado espera 'section', no 'sectionToEdit'
+            // ✅ UNIFICADO: EditSectionModal del sistema refactorizado
             return <EditSectionModal
                 isOpen={true}
                 onClose={closeModal}
-                section={sectionToEdit as any}
-                onSuccess={props.onSuccess}
+                section={sectionToEdit}
+                categoryId={props.activeCategoryId}
             />;
         case 'deleteSection':
-            return <DeleteSectionConfirmation
+            // ✅ UNIFICADO: Usando DeleteConfirmationModal con colores consistentes
+            return <DeleteConfirmationModal
                 isOpen={true}
                 onClose={closeModal}
-                sectionId={sectionToEdit!.section_id}
-                sectionName={sectionToEdit!.name}
-                onDeleted={props.onSuccess as any}
-                categoryId={props.activeCategoryId!}
+                itemType="Sección"
+                onConfirm={() => {
+                    if (sectionToEdit) {
+                        useDashboardStore.getState().deleteSection(sectionToEdit.section_id);
+                        props.onSuccess();
+                        // Callback específico para navegación tras eliminar sección
+                        if (props.onSectionDeleted) {
+                            props.onSectionDeleted(sectionToEdit.section_id);
+                        }
+                    }
+                }}
             />;
 
-        // Casos de Producto
+        // ========== PRODUCTOS ==========
         case 'newProduct':
+            /**
+             * 🧭 MIGA DE PAN CONTEXTUAL: Modal de productos con lógica adaptativa
+             * COMPLEJIDAD: Maneja tanto categorías simples como complejas
+             * CATEGORÍAS SIMPLES: Usan categoryId directamente (sin sección intermedia)
+             * CATEGORÍAS COMPLEJAS: Usan sectionId tradicionalmente
+             * CONEXIÓN: modalProps viene de FAB clicks en MobileView.renderFab()
+             */
+            const categoryId = modalProps.categoryId as number | undefined;
+            const sectionFromProps = modalProps.section as Section | undefined;
+
             return <NewProductModal
                 isOpen={true}
                 onClose={closeModal}
-                sectionId={props.activeSectionId!}
+                sectionId={sectionFromProps?.section_id || props.activeSectionId}
+                categoryId={categoryId} // Nueva prop para categorías simples
                 setProducts={props.setProducts as any}
                 onSuccess={props.onSuccess}
-                selectedSection={sectionToEdit} // El modal original lo necesita
+                selectedSection={sectionFromProps} // Solo si hay sección
             />;
         case 'editProduct':
-            // El modal restaurado espera 'product', no 'productToEdit'
+            // ✅ UNIFICADO: EditProductModal del sistema refactorizado
             return <EditProductModal
                 isOpen={true}
                 onClose={closeModal}
-                product={productToEdit as any}
-                setProducts={props.setProducts as any}
-                onSuccess={props.onSuccess}
-                client={client}
-                selectedSection={sectionToEdit} // El modal original lo necesita
+                product={productToEdit}
+                sectionId={props.activeSectionId}
             />;
         case 'deleteProduct':
-            return <DeleteProductConfirmation
+            // ✅ UNIFICADO: Usando DeleteConfirmationModal con colores consistentes
+            return <DeleteConfirmationModal
                 isOpen={true}
                 onClose={closeModal}
-                productId={productToEdit!.product_id}
-                productName={productToEdit!.name}
-                onDeleted={props.onSuccess as any}
+                itemType="Producto"
+                onConfirm={() => {
+                    if (productToEdit) {
+                        useDashboardStore.getState().deleteProduct(productToEdit.product_id);
+                        props.onSuccess();
+                    }
+                }}
             />;
 
         default:

@@ -1,25 +1,23 @@
 "use client";
 
 /**
- * @fileoverview Componente modal para la creación de nuevos productos en el menú
- * @author RokaMenu Team
- * @version 1.0.0
- * @updated 2024-06-13
+ * @fileoverview Componente modal para la creación de nuevos productos en el menú (T32 FIXED)
+ * @author RokaMenu Team  
+ * @version 2.0.0 - T32 Jerarquía Híbrida
+ * @updated 2024-12-26
  * 
- * Este componente proporciona una interfaz de usuario para crear nuevos productos
- * dentro de una sección seleccionada en el sistema de gestión de menús.
- * Permite configurar nombre, precio, descripción e imagen del producto.
+ * 🎯 T32 FIX: Este componente ahora soporta crear productos tanto en:
+ * - Categorías simples (usando categoryId directamente)
+ * - Categorías complejas (usando sectionId tradicionalmente)
  */
 
 import React, { Fragment, useState, useRef } from 'react';
 import Image from 'next/image';
 import { Dialog, Transition } from '@headlessui/react';
-import { PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
 import { Section, Product } from '@/app/dashboard-v2/types';
 import { PrismaClient } from '@prisma/client';
 import eventBus, { Events } from '@/app/lib/eventBus';
-
 
 /**
  * Props para el componente NewProductModal
@@ -30,6 +28,7 @@ import eventBus, { Events } from '@/app/lib/eventBus';
  * @property {Section | null} selectedSection - Sección seleccionada donde se añadirá el nuevo producto
  * @property {Function} setProducts - Función para actualizar el estado global de productos después de la creación
  * @property {number} sectionId - Identificador de la sección seleccionada
+ * @property {number} categoryId - Identificador de la categoría seleccionada
  * @property {Function} onSuccess - Callback opcional que se ejecuta después de crear un producto con éxito
  */
 interface NewProductModalProps {
@@ -38,7 +37,8 @@ interface NewProductModalProps {
   client?: PrismaClient;
   selectedSection?: Section | null;
   setProducts?: React.Dispatch<React.SetStateAction<Record<string, Product[]>>>;
-  sectionId: number;
+  sectionId?: number;
+  categoryId?: number;
   onSuccess?: () => void;
 }
 
@@ -68,6 +68,7 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
   selectedSection,
   setProducts,
   sectionId,
+  categoryId,
   onSuccess
 }) => {
   /**
@@ -162,13 +163,28 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
       return;
     }
 
+    // 🎯 VALIDACIÓN ADAPTATIVA: Verificar que tenemos categoryId O sectionId
+    if (!categoryId && !sectionId) {
+      toast.error('Error: No se puede determinar dónde crear el producto');
+      return;
+    }
+
     setIsCreating(true);
 
     const formData = new FormData();
     formData.append('name', productName);
     formData.append('price', productPrice);
     formData.append('description', productDescription || '');
-    formData.append('section_id', sectionId.toString());
+    formData.append('status', '1'); // 🎯 FIX: Crear productos habilitados por defecto
+
+    // 🎯 LÓGICA ADAPTATIVA: Enviar category_id O section_id según el caso
+    if (categoryId) {
+      // Para categorías simples - nueva funcionalidad T32
+      formData.append('category_id', categoryId.toString());
+    } else if (sectionId) {
+      // Para categorías complejas - funcionalidad tradicional
+      formData.append('section_id', sectionId.toString());
+    }
 
     if (productImage) {
       formData.append('image', productImage);
@@ -202,14 +218,21 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
           // Crear copia del estado para modificarlo
           const updated = { ...prev };
 
-          // Si no existe la sección, inicializarla como array vacío
-          if (!updated[sectionId]) {
-            updated[sectionId] = [];
+          // Para categorías simples, usar key especial cat-{categoryId}
+          if (categoryId) {
+            const key = `cat-${categoryId}`;
+            if (!updated[key]) {
+              updated[key] = [];
+            }
+            updated[key] = [...updated[key], normalizedProduct as Product];
           }
-
-          // Añadir el nuevo producto a la sección correspondiente
-          // @ts-ignore - Sabemos que la estructura es correcta
-          updated[sectionId] = [...updated[sectionId], normalizedProduct as Product];
+          // Para categorías complejas, usar sectionId tradicional
+          else if (sectionId) {
+            if (!updated[sectionId]) {
+              updated[sectionId] = [];
+            }
+            updated[sectionId] = [...updated[sectionId], normalizedProduct as Product];
+          }
 
           return updated;
         });
@@ -218,6 +241,7 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
       // Emisión de evento para notificar que se creó un producto
       eventBus.emit(Events.PRODUCT_CREATED, {
         product: normalizedProduct as Product,
+        categoryId: categoryId,
         sectionId: sectionId
       });
 
@@ -293,11 +317,14 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
             <Dialog.Panel className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <div>
                 <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900">
-                  Crear nuevo producto en {selectedSection?.name}
+                  {/* 🎯 T32 FIX - TÍTULO ADAPTATIVO */}
+                  {categoryId ?
+                    `Crear nuevo producto` :
+                    `Crear nuevo producto en ${selectedSection?.name}`
+                  }
                 </Dialog.Title>
 
-                <form onSubmit={handleSubmit} className="mt-4">
-                  {/* Campo de nombre de producto */}
+                <div className="mt-4">
                   <div className="mb-4">
                     <label htmlFor="product-name" className="block text-sm font-medium text-gray-700">
                       Nombre del producto
@@ -305,7 +332,6 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                     <input
                       type="text"
                       id="product-name"
-                      name="product-name"
                       value={productName}
                       onChange={(e) => setProductName(e.target.value)}
                       className="mt-1 focus:ring-indigo-500 focus:border-indigo-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
@@ -314,7 +340,6 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                     />
                   </div>
 
-                  {/* Campo de precio del producto */}
                   <div className="mb-4">
                     <label htmlFor="product-price" className="block text-sm font-medium text-gray-700">
                       Precio (€)
@@ -326,20 +351,12 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                       <input
                         type="text"
                         id="product-price"
-                        name="product-price"
                         value={productPrice}
                         onChange={(e) => {
-                          // Permitir solo números y un punto decimal
                           const value = e.target.value.replace(/[^0-9.]/g, '');
-                          // Asegurar que solo haya un punto decimal
                           const parts = value.split('.');
-                          if (parts.length > 2) {
-                            return;
-                          }
-                          // Limitar a 2 decimales
-                          if (parts[1] && parts[1].length > 2) {
-                            return;
-                          }
+                          if (parts.length > 2) return;
+                          if (parts[1] && parts[1].length > 2) return;
                           setProductPrice(value);
                         }}
                         className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
@@ -349,14 +366,12 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Campo de descripción del producto */}
                   <div className="mb-4">
                     <label htmlFor="product-description" className="block text-sm font-medium text-gray-700">
                       Descripción (opcional)
                     </label>
                     <textarea
                       id="product-description"
-                      name="product-description"
                       value={productDescription}
                       onChange={(e) => setProductDescription(e.target.value)}
                       rows={3}
@@ -365,16 +380,13 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                     />
                   </div>
 
-                  {/* Campo de imagen del producto */}
                   <div className="mb-4">
-                    <label htmlFor="product-image" className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700">
                       Imagen del producto (opcional)
                     </label>
 
                     <input
                       type="file"
-                      id="product-image"
-                      name="product-image"
                       ref={fileInputRef}
                       onChange={handleProductImageChange}
                       className="hidden"
@@ -410,7 +422,6 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                               stroke="currentColor"
                               fill="none"
                               viewBox="0 0 48 48"
-                              aria-hidden="true"
                             >
                               <path
                                 d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
@@ -423,7 +434,7 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                               <button
                                 type="button"
                                 onClick={triggerFileInput}
-                                className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                                className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500"
                               >
                                 Subir una imagen
                               </button>
@@ -436,10 +447,10 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Botones de acción */}
                   <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
                     <button
-                      type="submit"
+                      type="button"
+                      onClick={handleSubmit}
                       className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:col-start-2 sm:text-sm ${isCreating ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                       disabled={isCreating}
@@ -465,7 +476,7 @@ const NewProductModal: React.FC<NewProductModalProps> = ({
                       Cancelar
                     </button>
                   </div>
-                </form>
+                </div>
               </div>
             </Dialog.Panel>
           </Transition.Child>

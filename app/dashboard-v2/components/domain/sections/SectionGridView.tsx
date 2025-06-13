@@ -66,6 +66,15 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
             }
         },
         {
+            key: 'products',
+            header: 'Productos',
+            render: (section) => (
+                <span className="text-sm text-gray-600">
+                    {section.visible_products_count || 0} / {section.products_count || 0} visibles
+                </span>
+            ),
+        },
+        {
             key: 'display_order',
             header: 'Orden',
         },

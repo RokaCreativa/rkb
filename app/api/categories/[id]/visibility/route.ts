@@ -36,10 +36,10 @@ import prisma from '@/prisma/prisma';
  */
 export async function PATCH(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
         const { status } = await request.json();
 
         if (typeof status !== 'boolean' || !id) {

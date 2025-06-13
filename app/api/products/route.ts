@@ -85,6 +85,7 @@ export async function GET(req: NextRequest) {
     // Obtener los parámetros de la URL
     const url = new URL(req.url);
     const sectionId = url.searchParams.get('sectionId') || url.searchParams.get('section_id');
+    const categoryId = url.searchParams.get('categoryId') || url.searchParams.get('category_id');
 
     // Parámetros de paginación (opcionales)
     const page = parseInt(url.searchParams.get('page') || '1');
@@ -94,6 +95,52 @@ export async function GET(req: NextRequest) {
     const validPage = page < 1 ? 1 : page;
     const validLimit = limit < 0 ? 0 : limit;
     const isPaginated = validLimit > 0;
+
+    // 🎯 JERARQUÍA FLEXIBLE: Soporte para category_id (modo simple)
+    // Si se especifica category_id, buscar productos directamente por categoría
+    if (categoryId && !sectionId) {
+      const categoryIdInt = parseInt(categoryId);
+
+      // Obtener productos por categoría usando la tabla products_sections
+      const productsInCategory = await prisma.products_sections.findMany({
+        where: {
+          sections: {
+            category_id: categoryIdInt,
+            client_id: clientId
+          }
+        },
+        include: {
+          products: {
+            where: {
+              deleted: false
+            }
+          }
+        }
+      });
+
+      // Extraer productos únicos (evitar duplicados si un producto está en múltiples secciones)
+      const uniqueProducts = new Map();
+      productsInCategory.forEach(relation => {
+        if (relation.products && !uniqueProducts.has(relation.products.product_id)) {
+          uniqueProducts.set(relation.products.product_id, {
+            ...relation.products,
+            image: relation.products.image || null,
+            status: relation.products.status ? 1 : 0
+          });
+        }
+      });
+
+      const processedProducts = Array.from(uniqueProducts.values()).sort((a, b) => {
+        // Ordenar por status (activos primero) y luego por display_order
+        if (a.status !== b.status) return b.status - a.status;
+        return a.display_order - b.display_order;
+      });
+
+      return new Response(JSON.stringify(processedProducts), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
     // Si no se especifica una sección, devolver todos los productos del cliente
     if (!sectionId) {
@@ -277,12 +324,18 @@ export async function POST(request: Request) {
     // Convertir a booleano (true para activo, false para inactivo)
     const status = formData.get('status') === '1';
 
-    // Obtener secciones a las que pertenece este producto
+    // 🎯 T32 FIX - JERARQUÍA HÍBRIDA: Manejar category_id Y section_id
+    const categoryId = formData.get('category_id') as string;
+    const sectionIdDirect = formData.get('section_id') as string;
+
+    // Obtener secciones a las que pertenece este producto (modo tradicional)
     const sectionsJson = formData.get('sections') as string;
     let sectionIds: number[] = [];
 
     try {
-      sectionIds = JSON.parse(sectionsJson);
+      if (sectionsJson) {
+        sectionIds = JSON.parse(sectionsJson);
+      }
     } catch (e) {
       console.error('Error al parsear secciones:', e);
     }
@@ -295,21 +348,53 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El precio es requerido y debe ser un número' }, { status: 400 });
     }
 
-    if (sectionIds.length === 0) {
+    // 🎯 LÓGICA ADAPTATIVA: Determinar sección según el modo
+    let primarySectionId: number | null = null;
+
+    if (categoryId && !sectionIdDirect) {
+      // MODO SIMPLE: Crear producto en la primera sección de la categoría
+      const categoryIdInt = parseInt(categoryId);
+
+      // Buscar la primera sección de esta categoría
+      const firstSection = await prisma.sections.findFirst({
+        where: {
+          category_id: categoryIdInt,
+          client_id: user.client_id,
+          deleted: 0 as any
+        },
+        orderBy: {
+          display_order: 'asc'
+        }
+      });
+
+      if (!firstSection) {
+        return NextResponse.json({ error: 'No se encontraron secciones en esta categoría' }, { status: 400 });
+      }
+
+      primarySectionId = firstSection.section_id;
+    } else if (sectionIdDirect) {
+      // MODO DIRECTO: Usar section_id específico
+      primarySectionId = parseInt(sectionIdDirect);
+    } else if (sectionIds.length > 0) {
+      // MODO TRADICIONAL: Usar primera sección del array
+      primarySectionId = sectionIds[0];
+    }
+
+    if (!primarySectionId) {
       return NextResponse.json({ error: 'El producto debe pertenecer al menos a una sección' }, { status: 400 });
     }
 
-    // 4. Verificar que las secciones existen y pertenecen al cliente
-    const sectionsCount = await prisma.sections.count({
+    // 4. Verificar que la sección existe y pertenece al cliente
+    const sectionExists = await prisma.sections.findFirst({
       where: {
-        section_id: { in: sectionIds },
+        section_id: primarySectionId,
         client_id: user.client_id,
         deleted: 0 as any
       },
     });
 
-    if (sectionsCount !== sectionIds.length) {
-      return NextResponse.json({ error: 'Una o más secciones seleccionadas no son válidas' }, { status: 400 });
+    if (!sectionExists) {
+      return NextResponse.json({ error: 'La sección seleccionada no es válida' }, { status: 400 });
     }
 
     // 5. Determinar el próximo valor de display_order
@@ -343,8 +428,6 @@ export async function POST(request: Request) {
 
     // 7. Usamos el primer section_id como sección principal para el producto
     // En el nuevo modelo de datos, un producto solo puede estar en una sección a la vez
-    const primarySectionId = sectionIds.length > 0 ? sectionIds[0] : null;
-
     if (!primarySectionId) {
       return NextResponse.json({ error: 'Se requiere al menos una sección' }, { status: 400 });
     }

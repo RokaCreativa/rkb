@@ -1,61 +1,70 @@
 /**
- * @file ConfirmationModal.tsx
- * @description Componente modal para confirmar acciones peligrosas
- * @author TuNombre
- * @version 1.0.0
- * @lastUpdated 2024-03-27
+ * 🧭 MIGA DE PAN CONTEXTUAL: Modal de confirmación para acciones críticas
+ * 
+ * PORQUÉ CRÍTICO: Previene eliminaciones accidentales y acciones destructivas
+ * PROBLEMA RESUELTO: Interfaz consistente para todas las confirmaciones del sistema
+ * 
+ * CONEXIONES CRÍTICAS:
+ * - BaseModal: Sistema unificado de modales (ui/Modal/BaseModal.tsx)
+ * - DeleteConfirmationModal.tsx: Versión especializada para eliminaciones
+ * - ModalManager.tsx: Puede usar este modal para confirmaciones genéricas
+ * 
+ * DECISIÓN ARQUITECTÓNICA: Modal genérico vs específico (DeleteConfirmationModal más usado)
+ * MANDAMIENTOS: #8 (Consistencia visual), #7 (UX clara para acciones peligrosas)
+ * 
+ * ⚠️ ESTADO: Componente legacy, DeleteConfirmationModal es el preferido para eliminaciones
  */
 
 import React from 'react';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import BaseModal from './BaseModal';
+import { BaseModal } from '@/app/dashboard-v2/components/ui/Modal/BaseModal';
 
 interface ConfirmationModalProps {
   /**
    * Título del modal
    */
   title: string;
-  
+
   /**
    * Mensaje de confirmación
    */
   message: string;
-  
+
   /**
    * Elemento a confirmar (nombre del ítem a eliminar, etc.)
    */
   itemName?: string;
-  
+
   /**
    * Indica si el modal está abierto
    */
   isOpen: boolean;
-  
+
   /**
    * Función para cerrar el modal
    */
   onClose: () => void;
-  
+
   /**
    * Función que se ejecuta al confirmar la acción
    */
   onConfirm: () => void;
-  
+
   /**
    * Texto del botón de confirmar
    */
   confirmText?: string;
-  
+
   /**
    * Texto del botón de cancelar
    */
   cancelText?: string;
-  
+
   /**
    * Variante del modal (determina colores y icono)
    */
   variant?: 'danger' | 'warning' | 'info';
-  
+
   /**
    * Indica si se está procesando la acción
    */
@@ -63,10 +72,11 @@ interface ConfirmationModalProps {
 }
 
 /**
- * Componente modal para confirmar acciones peligrosas
+ * 🧭 MIGA DE PAN CONTEXTUAL: Modal de confirmación genérico con variantes visuales
  * 
- * Utiliza BaseModal para proporcionar una interfaz de confirmación para acciones
- * que pueden tener consecuencias importantes, como eliminación de elementos.
+ * PATRÓN: Configuración por variante para mantener consistencia visual
+ * CONEXIÓN: Usa BaseModal unificado para estructura y comportamiento
+ * UX: Iconos y colores diferenciados según criticidad de la acción
  */
 const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   title,
@@ -80,7 +90,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   variant = 'danger',
   isProcessing = false
 }) => {
-  // Configuración según la variante
+  // 🧭 MIGA DE PAN: Configuración visual por variante (Mandamiento #8: Consistencia)
   const variantConfig = {
     danger: {
       icon: ExclamationTriangleIcon,
@@ -101,18 +111,25 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       confirmText: confirmText || 'Aceptar'
     }
   };
-  
+
   const { icon: Icon, iconClass, buttonClass, confirmText: variantConfirmText } = variantConfig[variant];
   const finalConfirmText = confirmText || variantConfirmText;
-  
-  // Renderizar botones de acción para el modal
-  const actionButtons = (
+
+  // 🧭 MIGA DE PAN: Footer con botones Mobile-First (Mandamiento #5)
+  const footer = (
     <>
       <button
         type="button"
         disabled={isProcessing}
         onClick={onConfirm}
-        className={`inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 ${buttonClass} text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+        className={`
+          inline-flex justify-center rounded-md border border-transparent 
+          shadow-sm px-4 py-2 ${buttonClass} text-base font-medium text-white 
+          focus:outline-none focus:ring-2 focus:ring-offset-2 
+          sm:ml-3 sm:w-auto sm:text-sm 
+          disabled:opacity-50 disabled:cursor-not-allowed
+          min-h-[44px] flex items-center
+        `}
       >
         {isProcessing ? 'Procesando...' : finalConfirmText}
       </button>
@@ -120,22 +137,30 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         type="button"
         disabled={isProcessing}
         onClick={onClose}
-        className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        className="
+          mt-3 w-full inline-flex justify-center rounded-md border 
+          border-gray-300 shadow-sm px-4 py-2 bg-white text-base 
+          font-medium text-gray-700 hover:bg-gray-50 
+          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
+          sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm 
+          disabled:opacity-50 disabled:cursor-not-allowed
+          min-h-[44px] flex items-center
+        "
       >
         {cancelText}
       </button>
     </>
   );
-  
+
   return (
     <BaseModal
       title={title}
       isOpen={isOpen}
-      onClose={isProcessing ? () => {} : onClose}
-      showCloseButton={!isProcessing}
-      actions={actionButtons}
-      size="small"
+      onClose={isProcessing ? () => { } : onClose}
+      footer={footer}
+      size="sm"
     >
+      {/* 🧭 MIGA DE PAN: Layout Mobile-First con icono y mensaje */}
       <div className="sm:flex sm:items-start">
         <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
           <Icon className={`h-6 w-6 ${iconClass}`} aria-hidden="true" />

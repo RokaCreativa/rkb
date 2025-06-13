@@ -41,7 +41,7 @@ import dynamic from 'next/dynamic';
 import { TopNavbar } from './TopNavbar';
 import { Loader } from '../ui/Loader';
 import { useMediaQuery } from 'react-responsive';
-import { DashboardView } from './DashboardView';
+import { DashboardViewWrapper } from './DashboardViewWrapper';
 import { MobileView } from '../../views/MobileView';
 import AuthDebugLayout from '../../AuthDebugLayout';
 import { Toaster } from 'react-hot-toast';
@@ -94,7 +94,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = () => {
         }
 
         if (isDesktop) {
-            return <DashboardView />;
+            return <DashboardViewWrapper />;
         } else {
             return <MobileView />;
         }

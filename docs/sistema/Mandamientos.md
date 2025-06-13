@@ -30,6 +30,14 @@
 
 - Claridad y consenso antes que iniciativa no solicitada.
 
+### 1️⃣2️⃣ **MANDAMIENTO DEL MAPA ESTRUCTURAL**
+
+**"Mantendrás actualizado el archivo `EstructuraRokaMenu.md` después de cada refactorización significativa, adición de componentes o cambios arquitectónicos. Este documento es el mapa maestro del proyecto."**
+
+- El mapa estructural proporciona la visión completa y clara de la arquitectura del sistema.
+- Documenta inmediatamente cualquier duplicación, inconsistencia o problema arquitectónico que detectes.
+- Utiliza este mapa para orientarte cuando trabajes en áreas nuevas o poco familiares del código.
+
 ---
 
 ## 📋 MANDAMIENTOS DE PROCESO Y CALIDAD
@@ -51,6 +59,16 @@
 **"Escribirás código auto-explicativo con nombres claros. Documentarás con comentarios el 'porqué' del código complejo, no el 'qué'."**
 
 - El próximo desarrollador (que podríamos ser nosotros) te lo agradecerá.
+
+**📋 Reglas Específicas de Implementación:**
+
+- **🧠 Planificación Obligatoria:** Antes de escribir código, describe tu plan paso a paso en pseudocódigo detallado y explícito
+- **✅ Código Completo:** NUNCA dejes TODOs, placeholders o partes incompletas en el código final
+- **🔄 Retornos Tempranos:** Usa early returns para mejorar legibilidad y reducir anidamiento excesivo
+- **🎯 Nombres Descriptivos:** Variables y funciones con nombres que expliquen su propósito sin ambigüedad
+- **📞 Funciones de Eventos:** Prefijo `handle` para event handlers (`handleClick`, `handleKeyDown`, `handleSubmit`)
+- **📦 Imports Completos:** Incluye todos los imports necesarios y nombra correctamente los componentes clave
+- **⚖️ Balance Rendimiento-Legibilidad:** Prioriza código legible pero mantén optimizaciones críticas (Mandamiento #9)
 
 ### 8️⃣ **MANDAMIENTO DE CONSISTENCIA VISUAL Y ESTRUCTURAL**
 
@@ -82,4 +100,6 @@
 
 ---
 
-_Este documento evoluciona. Cualquier cambio se debe acordar y registrar en la bitácora._
+\_Este documento evoluciona. Cualquier cambio se debe acordar y registrar en la bitácora.
+
+\_
