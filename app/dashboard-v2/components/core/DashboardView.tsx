@@ -29,12 +29,13 @@ import { SectionGridView } from '../domain/sections/SectionGridView';
 import { ProductGridView } from '../domain/products/ProductGridView';
 import { EditCategoryModal, EditSectionModal, EditProductModal } from '../modals/EditModals';
 import { DeleteConfirmationModal } from '../modals/DeleteConfirmationModal';
+import { MoveItemModal } from '../modals/MoveItemModal';
 import { Category, Section, Product } from '@/app/dashboard-v2/types';
 
 export const DashboardView: React.FC = () => {
   const store = useDashboardStore();
 
-  const { modalState, openModal, closeModal, handleDeleteItem, handleConfirmDelete } = useModalState();
+  const { modalState, openModal, closeModal, handleDeleteItem, handleMoveItem, handleConfirmDelete } = useModalState();
 
   /**
    * 🧭 MIGA DE PAN CONTEXTUAL: Effect para cargar datos cuando se selecciona categoría
@@ -119,6 +120,7 @@ export const DashboardView: React.FC = () => {
               onToggleVisibility={(section: Section) => store.toggleSectionVisibility(section.section_id, section.status)}
               onEdit={(section: Section) => openModal('editSection', section)}
               onDelete={(section: Section) => handleDeleteItem(section, 'section')}
+              onMove={(section: Section) => handleMoveItem(section, 'section')}
               onAddNew={() => {
                 if (store.selectedCategoryId) {
                   openModal('editSection', null);
@@ -136,6 +138,7 @@ export const DashboardView: React.FC = () => {
               onToggleVisibility={(product: Product) => store.toggleProductVisibility(product.product_id, product.status)}
               onEdit={(product: Product) => openModal('editProduct', product)}
               onDelete={(product: Product) => handleDeleteItem(product, 'product')}
+              onMove={(product: Product) => handleMoveItem(product, 'product')}
               onAddNew={() => {
                 if (store.selectedCategoryId) {
                   openModal('editProductDirect', null);
@@ -155,6 +158,7 @@ export const DashboardView: React.FC = () => {
               onToggleVisibility={(product: Product) => store.toggleProductVisibility(product.product_id, product.status)}
               onEdit={(product: Product) => openModal('editProduct', product)}
               onDelete={(product: Product) => handleDeleteItem(product, 'product')}
+              onMove={(product: Product) => handleMoveItem(product, 'product')}
               onAddNew={() => {
                 if (store.selectedSectionId) {
                   openModal('editProduct', null);
@@ -191,6 +195,12 @@ export const DashboardView: React.FC = () => {
         onClose={closeModal}
         onConfirm={handleConfirmDelete}
         itemType={modalState.itemType || ''}
+      />
+      <MoveItemModal
+        isOpen={modalState.type === 'move'}
+        onClose={closeModal}
+        item={modalState.data}
+        itemType={modalState.itemType || 'product'}
       />
     </div>
   );

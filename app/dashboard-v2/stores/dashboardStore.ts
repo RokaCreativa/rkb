@@ -5,6 +5,7 @@
  * y se ha corregido la lógica CRUD para que sea robusta y segura en tipos.
  */
 import { create } from 'zustand';
+import React from 'react';
 import { Category, Section, Product, Client } from '../types';
 import { toast } from 'react-hot-toast';
 import { getCategoryDisplayMode, isCategorySimpleMode } from '../utils/categoryUtils';
@@ -287,13 +288,109 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
     },
 
     deleteCategory: async (id) => {
-        // 🧭 MIGA DE PAN: Esta función elimina categorías usando el endpoint DELETE.
-        // Se conecta con DeleteConfirmationModal.tsx que es invocado desde ambas vistas.
-        // Al eliminar una categoría, también se resetea la selección en escritorio.
+        /**
+         * 🧭 MIGA DE PAN CONTEXTUAL: Eliminación de categoría con edge cases críticos (FASE 4)
+         * 
+         * PORQUÉ CRÍTICO: Implementa patrón v0.dev de optimistic update + rollback completo
+         * PROBLEMA RESUELTO: Antes no manejaba eliminación en cascada ni rollback en caso de error
+         * 
+         * EDGE CASES MANEJADOS:
+         * 1. Eliminación en cascada: Limpia secciones y productos hijos automáticamente
+         * 2. Reseteo de selecciones: Evita estados inconsistentes en UI
+         * 3. Rollback completo: Restaura estado previo si falla la operación
+         * 4. Navegación coherente: Redirige a vista segura tras eliminación
+         * 
+         * CONEXIONES CRÍTICAS:
+         * - DeleteConfirmationModal.tsx: Modal que invoca esta función
+         * - CategoryGridView.tsx: Botón de eliminar que abre el modal
+         * - DashboardView.tsx: Se actualiza automáticamente tras eliminación
+         * - MobileView.tsx: Navegación se resetea si elimina categoría activa
+         * 
+         * PATRÓN v0.dev: Optimistic update → API call → Rollback si falla
+         * ARQUITECTURA: Mantiene consistencia de estado en todo momento
+         */
         const toastId = `delete-category-${id}`;
         set({ isUpdating: true });
         toast.loading('Eliminando categoría...', { id: toastId });
+        
+        // 🧭 MIGA DE PAN: Guardar estado completo para rollback (EDGE CASE CRÍTICO)
+        // PORQUÉ NECESARIO: Si falla la eliminación, debemos restaurar TODO el estado previo
+        // CONEXIÓN: Este snapshot se usa en el catch para rollback completo
+        const prevState = {
+            categories: [...get().categories],
+            sections: { ...get().sections },
+            products: { ...get().products },
+            selectedCategoryId: get().selectedCategoryId,
+            selectedSectionId: get().selectedSectionId,
+            activeCategoryId: get().activeCategoryId,
+            activeSectionId: get().activeSectionId,
+            activeView: get().activeView,
+            history: [...get().history]
+        };
+        
         try {
+            // 🧭 MIGA DE PAN: OPTIMISTIC UPDATE - Actualizar UI inmediatamente
+            // PATRÓN v0.dev: Usuario ve cambios instantáneos, rollback si falla
+            set(state => {
+                // Eliminar categoría del array
+                const newCategories = state.categories.filter(cat => cat.category_id !== id);
+                
+                // 🎯 EDGE CASE: Eliminación en cascada de secciones hijas
+                // PORQUÉ CRÍTICO: Evita secciones huérfanas en el estado
+                const newSections = { ...state.sections };
+                delete newSections[id]; // Eliminar todas las secciones de esta categoría
+                
+                // 🎯 EDGE CASE: Eliminación en cascada de productos hijos
+                // PROBLEMA RESUELTO: Productos directos (cat-${id}) y productos de secciones
+                const newProducts = { ...state.products };
+                delete newProducts[`cat-${id}`]; // Eliminar productos directos
+                
+                // Eliminar productos de secciones que pertenecían a esta categoría
+                const sectionsToDelete = prevState.sections[id] || [];
+                sectionsToDelete.forEach(section => {
+                    delete newProducts[section.section_id];
+                });
+                
+                // 🎯 EDGE CASE: Reseteo inteligente de selecciones
+                // CONEXIÓN: Evita que DashboardView muestre contenido de categoría eliminada
+                let newSelectedCategoryId = state.selectedCategoryId;
+                let newSelectedSectionId = state.selectedSectionId;
+                let newActiveCategoryId = state.activeCategoryId;
+                let newActiveSectionId = state.activeSectionId;
+                let newActiveView = state.activeView;
+                let newHistory = state.history;
+                
+                // Resetear selecciones de escritorio si se eliminó la categoría activa
+                if (state.selectedCategoryId === id) {
+                    newSelectedCategoryId = null;
+                    newSelectedSectionId = null;
+                }
+                
+                // 🎯 EDGE CASE: Navegación móvil coherente tras eliminación
+                // PROBLEMA RESUELTO: Usuario queda en vista vacía si elimina categoría activa
+                if (state.activeCategoryId === id) {
+                    newActiveView = 'categories';
+                    newActiveCategoryId = null;
+                    newActiveSectionId = null;
+                    newHistory = []; // Limpiar historial para evitar navegación a categoría eliminada
+                }
+                
+                return {
+                    ...state,
+                    categories: newCategories,
+                    sections: newSections,
+                    products: newProducts,
+                    selectedCategoryId: newSelectedCategoryId,
+                    selectedSectionId: newSelectedSectionId,
+                    activeCategoryId: newActiveCategoryId,
+                    activeSectionId: newActiveSectionId,
+                    activeView: newActiveView,
+                    history: newHistory
+                };
+            });
+
+            // 🧭 MIGA DE PAN: Llamada a API tras optimistic update
+            // CONEXIÓN: /api/categories/[id]/route.ts maneja eliminación en cascada en servidor
             const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
 
             if (!res.ok) {
@@ -303,19 +400,16 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
 
             toast.success('Categoría eliminada', { id: toastId });
 
-            // Resetear selecciones si se eliminó la categoría activa
-            const state = get();
-            if (state.selectedCategoryId === id) {
-                set({ selectedCategoryId: null, selectedSectionId: null });
-            }
-            if (state.activeCategoryId === id) {
-                set({ activeView: 'categories', activeCategoryId: null, activeSectionId: null, history: [] });
-            }
-
-            // Recargar categorías
+            // 🧭 MIGA DE PAN: Recargar datos para sincronizar con servidor
+            // PORQUÉ NECESARIO: Asegurar que contadores y relaciones estén actualizados
             const clientId = get().client?.id;
             if (clientId) await get().fetchCategories(clientId);
+            
         } catch (e) {
+            // 🎯 EDGE CASE CRÍTICO: Rollback completo del estado
+            // PATRÓN v0.dev: Restaurar estado exacto previo a la operación fallida
+            // CONEXIÓN: prevState capturado al inicio se restaura completamente
+            set(prevState);
             toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
         } finally {
             set({ isUpdating: false });
@@ -446,13 +540,88 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
     },
 
     deleteSection: async (id) => {
-        // 🧭 MIGA DE PAN: Elimina secciones usando DELETE en endpoint específico por ID.
-        // Se conecta con DeleteConfirmationModal.tsx desde ambas vistas.
-        // Al eliminar una sección, resetea la selección si era la sección activa.
+        /**
+         * 🧭 MIGA DE PAN CONTEXTUAL: Eliminación de sección con edge cases críticos (FASE 4)
+         * 
+         * PORQUÉ CRÍTICO: Implementa patrón v0.dev con eliminación en cascada de productos hijos
+         * PROBLEMA RESUELTO: Antes no limpiaba productos huérfanos ni manejaba rollback
+         * 
+         * EDGE CASES MANEJADOS:
+         * 1. Eliminación en cascada: Limpia productos hijos automáticamente
+         * 2. Reseteo de selecciones: Evita mostrar contenido de sección eliminada
+         * 3. Rollback completo: Restaura estado si falla la operación
+         * 4. Navegación coherente: Redirige a vista de secciones tras eliminación
+         * 
+         * CONEXIONES CRÍTICAS:
+         * - DeleteConfirmationModal.tsx: Modal que invoca esta función
+         * - SectionGridView.tsx: Botón de eliminar que abre el modal
+         * - DashboardView.tsx: Columna de productos se oculta tras eliminación
+         * - MobileView.tsx: Navegación se resetea si elimina sección activa
+         * 
+         * PATRÓN v0.dev: Optimistic update → API call → Rollback si falla
+         */
         const toastId = `delete-section-${id}`;
         set({ isUpdating: true });
         toast.loading('Eliminando sección...', { id: toastId });
+        
+        // 🧭 MIGA DE PAN: Snapshot completo para rollback (EDGE CASE CRÍTICO)
+        const prevState = {
+            sections: { ...get().sections },
+            products: { ...get().products },
+            selectedSectionId: get().selectedSectionId,
+            activeSectionId: get().activeSectionId,
+            activeView: get().activeView,
+            history: [...get().history]
+        };
+        
         try {
+            // 🧭 MIGA DE PAN: OPTIMISTIC UPDATE con eliminación en cascada
+            set(state => {
+                const newSections = { ...state.sections };
+                const newProducts = { ...state.products };
+                
+                // 🎯 EDGE CASE: Eliminar sección de todas las categorías
+                // PORQUÉ NECESARIO: sections es un Record<categoryId, Section[]>
+                Object.keys(newSections).forEach(categoryId => {
+                    newSections[categoryId] = newSections[categoryId].filter(
+                        section => section.section_id !== id
+                    );
+                });
+                
+                // 🎯 EDGE CASE: Eliminación en cascada de productos hijos
+                // PROBLEMA RESUELTO: Productos quedan huérfanos si no se eliminan
+                delete newProducts[id]; // Eliminar todos los productos de esta sección
+                
+                // 🎯 EDGE CASE: Reseteo inteligente de selecciones
+                let newSelectedSectionId = state.selectedSectionId;
+                let newActiveSectionId = state.activeSectionId;
+                let newActiveView = state.activeView;
+                let newHistory = state.history;
+                
+                // Resetear selecciones de escritorio
+                if (state.selectedSectionId === id) {
+                    newSelectedSectionId = null;
+                }
+                
+                // 🎯 EDGE CASE: Navegación móvil coherente tras eliminación
+                if (state.activeSectionId === id) {
+                    newActiveView = 'sections';
+                    newActiveSectionId = null;
+                    // Mantener historial para permitir navegación hacia atrás
+                }
+                
+                return {
+                    ...state,
+                    sections: newSections,
+                    products: newProducts,
+                    selectedSectionId: newSelectedSectionId,
+                    activeSectionId: newActiveSectionId,
+                    activeView: newActiveView,
+                    history: newHistory
+                };
+            });
+
+            // 🧭 MIGA DE PAN: Llamada a API tras optimistic update
             const res = await fetch(`/api/sections/${id}`, { method: 'DELETE' });
 
             if (!res.ok) {
@@ -462,20 +631,14 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
 
             toast.success('Sección eliminada', { id: toastId });
 
-            // Resetear selecciones si se eliminó la sección activa
-            const state = get();
-            if (state.selectedSectionId === id) {
-                set({ selectedSectionId: null });
-            }
-            if (state.activeSectionId === id) {
-                set({ activeView: 'sections', activeSectionId: null });
-            }
-
-            // Recargar secciones de la categoría activa
+            // 🧭 MIGA DE PAN: Recargar datos para sincronizar contadores
             const { activeCategoryId, selectedCategoryId } = get();
             const targetCategoryId = activeCategoryId || selectedCategoryId;
             if (targetCategoryId) await get().fetchSectionsByCategory(targetCategoryId);
+            
         } catch (e) {
+            // 🎯 EDGE CASE CRÍTICO: Rollback completo del estado
+            set(prevState);
             toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
         } finally {
             set({ isUpdating: false });
@@ -681,13 +844,53 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
     },
 
     deleteProduct: async (id) => {
-        // 🧭 MIGA DE PAN: Elimina productos usando DELETE en endpoint específico por ID.
-        // Se conecta con DeleteConfirmationModal.tsx desde ambas vistas.
-        // Al ser el nivel más profundo de la jerarquía, solo necesita recargar la lista de productos.
+        /**
+         * 🧭 MIGA DE PAN CONTEXTUAL: Eliminación de producto con edge cases críticos (FASE 4)
+         * 
+         * PORQUÉ CRÍTICO: Maneja tanto productos tradicionales como productos directos (T31)
+         * PROBLEMA RESUELTO: Antes no diferenciaba entre productos de sección vs productos directos
+         * 
+         * EDGE CASES MANEJADOS:
+         * 1. Detección automática: Identifica si es producto tradicional o directo
+         * 2. Recarga inteligente: Usa fetchProductsBySection o fetchProductsByCategory según tipo
+         * 3. Rollback completo: Restaura estado si falla la operación
+         * 4. Actualización de contadores: Refresca contadores de sección/categoría padre
+         * 
+         * CONEXIONES CRÍTICAS:
+         * - DeleteConfirmationModal.tsx: Modal que invoca esta función
+         * - ProductGridView.tsx: Botón de eliminar que abre el modal
+         * - CategoryGridView.tsx: Contadores se actualizan tras eliminación
+         * - SectionGridView.tsx: Contadores de productos se actualizan
+         * 
+         * PATRÓN v0.dev: Optimistic update → API call → Rollback si falla
+         * ARQUITECTURA T31: Maneja jerarquía híbrida (tradicional + directa)
+         */
         const toastId = `delete-product-${id}`;
         set({ isUpdating: true });
         toast.loading('Eliminando producto...', { id: toastId });
+        
+        // 🧭 MIGA DE PAN: Snapshot para rollback (productos son hojas, snapshot mínimo)
+        const prevProducts = { ...get().products };
+        
         try {
+            // 🧭 MIGA DE PAN: OPTIMISTIC UPDATE - Eliminar producto inmediatamente
+            set(state => {
+                const newProducts = { ...state.products };
+                
+                // 🎯 EDGE CASE: Eliminar de todas las listas (secciones + categorías directas)
+                // PORQUÉ NECESARIO: Producto puede estar en products[sectionId] o products[`cat-${categoryId}`]
+                Object.keys(newProducts).forEach(key => {
+                    if (Array.isArray(newProducts[key])) {
+                        newProducts[key] = newProducts[key].filter(
+                            (product: Product) => product.product_id !== id
+                        );
+                    }
+                });
+                
+                return { ...state, products: newProducts };
+            });
+
+            // 🧭 MIGA DE PAN: Llamada a API
             const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
 
             if (!res.ok) {
@@ -697,11 +900,32 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
 
             toast.success('Producto eliminado', { id: toastId });
 
-            // Recargar productos de la sección activa
-            const { activeSectionId, selectedSectionId } = get();
-            const targetSectionId = activeSectionId || selectedSectionId;
-            if (targetSectionId) await get().fetchProductsBySection(targetSectionId);
+            // 🎯 EDGE CASE: Recarga inteligente según contexto (T31 híbrido)
+            // PROBLEMA RESUELTO: Debe detectar si recargar productos de sección o categoría
+            const { activeCategoryId, selectedCategoryId, activeSectionId, selectedSectionId } = get();
+            const targetCategoryId = selectedCategoryId || activeCategoryId;
+            const targetSectionId = selectedSectionId || activeSectionId;
+
+            if (targetCategoryId) {
+                const sections = get().sections[targetCategoryId];
+                const displayMode = getCategoryDisplayMode(sections || []);
+
+                if (displayMode === 'simple') {
+                    // 🧭 MIGA DE PAN: Producto directo eliminado, recargar productos de categoría
+                    await get().fetchProductsByCategory(targetCategoryId);
+                } else if (targetSectionId) {
+                    // 🧭 MIGA DE PAN: Producto tradicional eliminado, recargar productos de sección
+                    await get().fetchProductsBySection(targetSectionId);
+                }
+
+                // 🎯 EDGE CASE CRÍTICO: Actualizar contadores de sección/categoría padre
+                // PORQUÉ NECESARIO: SectionGridView y CategoryGridView muestran contadores
+                await get().fetchSectionsByCategory(targetCategoryId);
+            }
+            
         } catch (e) {
+            // 🎯 EDGE CASE: Rollback de productos
+            set(state => ({ ...state, products: prevProducts }));
             toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
         } finally {
             set({ isUpdating: false });
@@ -890,4 +1114,108 @@ export const useCategoryProducts = (categoryId: number | null, sectionId?: numbe
     }
 
     return [];
+};
+
+// --- 🎯 T31.5 FASE 2: COMPUTED VALUES REACTIVOS (CONTADORES HÍBRIDOS) ---
+
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL: Hook para contadores híbridos inteligentes de categorías
+ * 
+ * PORQUÉ CRÍTICO: Implementa el patrón de v0.dev para mostrar "Comidas (3 secciones, 2 directos)"
+ * PROBLEMA RESUELTO: Antes solo mostraba contadores de secciones, ahora muestra información completa
+ * 
+ * ARQUITECTURA REACTIVA: Usa selectores derivados que se actualizan automáticamente cuando:
+ * - Se crean/eliminan secciones en la categoría
+ * - Se crean/eliminan productos directos en la categoría  
+ * - Se cambia la visibilidad de secciones/productos
+ * 
+ * CONEXIONES CRÍTICAS:
+ * - CategoryGridView.tsx: Renderizará estos contadores en lugar de solo secciones
+ * - dashboardStore.sections[categoryId]: Fuente de datos para secciones
+ * - dashboardStore.products[`cat-${categoryId}`]: Fuente de datos para productos directos
+ * - getCategoryDisplayMode(): Determina si mostrar contadores híbridos o tradicionales
+ * 
+ * PATRÓN v0.dev: Computed values que se recalculan automáticamente sin re-renders innecesarios
+ * OPTIMIZACIÓN: useMemo interno evita recálculos cuando los datos no cambian
+ * 
+ * @param categoryId - ID de la categoría para calcular contadores
+ * @returns Objeto con contadores detallados y modo de visualización
+ */
+export const useCategoryWithCounts = (categoryId: number | null) => {
+    const sections = useDashboardStore(state => 
+        categoryId ? state.sections[categoryId] : undefined
+    );
+    const directProducts = useDashboardStore(state => 
+        categoryId ? state.products[`cat-${categoryId}`] : undefined
+    );
+    const isLoading = useDashboardStore(state => state.isLoading);
+
+    return React.useMemo(() => {
+        if (!categoryId || isLoading) {
+            return {
+                displayMode: 'loading' as const,
+                sectionsCount: 0,
+                visibleSectionsCount: 0,
+                directProductsCount: 0,
+                visibleDirectProductsCount: 0,
+                totalProductsCount: 0,
+                visibleProductsCount: 0,
+                displayText: 'Cargando...'
+            };
+        }
+
+        // 🧭 MIGA DE PAN: Cálculos de secciones (jerarquía tradicional)
+        const sectionsArray = sections || [];
+        const sectionsCount = sectionsArray.length;
+        const visibleSectionsCount = sectionsArray.filter(s => s.status === 1).length;
+
+        // 🧭 MIGA DE PAN: Cálculos de productos directos (T31 - jerarquía híbrida)
+        const directProductsArray = directProducts || [];
+        const directProductsCount = directProductsArray.length;
+        const visibleDirectProductsCount = directProductsArray.filter(p => p.status === 1).length;
+
+        // 🧭 MIGA DE PAN: Determinar modo de visualización usando lógica existente
+        const displayMode = getCategoryDisplayMode(sectionsArray);
+
+        // 🧭 MIGA DE PAN: Calcular totales híbridos (secciones + productos directos)
+        // CONEXIÓN: Estos totales se mostrarán en CategoryGridView como información contextual
+        const totalProductsCount = sectionsArray.reduce((acc, section) => 
+            acc + (section.products_count || 0), 0
+        ) + directProductsCount;
+
+        const visibleProductsCount = sectionsArray.reduce((acc, section) => 
+            acc + (section.visible_products_count || 0), 0
+        ) + visibleDirectProductsCount;
+
+        // 🧭 MIGA DE PAN: Generar texto descriptivo inteligente según el modo
+        // PATRÓN v0.dev: Texto contextual que ayuda al usuario a entender la estructura
+        let displayText = '';
+        
+        if (displayMode === 'simple' && directProductsCount > 0) {
+            // Categoría simple con productos directos: "5 productos directos"
+            displayText = `${directProductsCount} producto${directProductsCount !== 1 ? 's' : ''} directo${directProductsCount !== 1 ? 's' : ''}`;
+        } else if (displayMode === 'sections' && sectionsCount > 0) {
+            if (directProductsCount > 0) {
+                // Categoría híbrida: "3 secciones, 2 directos"
+                displayText = `${sectionsCount} sección${sectionsCount !== 1 ? 'es' : ''}, ${directProductsCount} directo${directProductsCount !== 1 ? 's' : ''}`;
+            } else {
+                // Categoría tradicional: "3 secciones"
+                displayText = `${sectionsCount} sección${sectionsCount !== 1 ? 'es' : ''}`;
+            }
+        } else {
+            // Categoría vacía
+            displayText = 'Sin contenido';
+        }
+
+        return {
+            displayMode,
+            sectionsCount,
+            visibleSectionsCount,
+            directProductsCount,
+            visibleDirectProductsCount,
+            totalProductsCount,
+            visibleProductsCount,
+            displayText
+        };
+    }, [categoryId, sections, directProducts, isLoading]);
 };

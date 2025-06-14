@@ -20,7 +20,7 @@ import React from 'react';
 import { Section } from '@/app/dashboard-v2/types';
 import { GenericTable, Column } from '@/app/dashboard-v2/components/ui/Table/GenericTable';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
-import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, PencilIcon, TrashIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 
 // --- TIPOS DE PROPS ---
@@ -30,6 +30,7 @@ interface SectionGridViewProps {
     onToggleVisibility: (section: Section) => void;
     onEdit: (section: Section) => void;
     onDelete: (section: Section) => void;
+    onMove?: (section: Section) => void; // 🎯 T31.5 FASE 3: Función para mover secciones
     onAddNew: () => void;
 }
 
@@ -39,6 +40,7 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
     onToggleVisibility,
     onEdit,
     onDelete,
+    onMove,
     onAddNew,
 }) => {
     // 🧭 MIGA DE PAN: Calcular contador de visibilidad siguiendo el patrón de ProductGridView
@@ -89,6 +91,12 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(section); }}>
                         <PencilIcon className="h-5 w-5" />
                     </Button>
+                    {/* 🎯 T31.5 FASE 3: Botón de mover (solo si se proporciona la función) */}
+                    {onMove && (
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onMove(section); }}>
+                            <ArrowsRightLeftIcon className="h-5 w-5 text-blue-500" />
+                        </Button>
+                    )}
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onDelete(section); }}>
                         <TrashIcon className="h-5 w-5 text-red-500" />
                     </Button>

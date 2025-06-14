@@ -24,6 +24,7 @@ import { GenericTable, Column } from '@/app/dashboard-v2/components/ui/Table/Gen
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
 import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
+import { useCategoryWithCounts } from '@/app/dashboard-v2/stores/dashboardStore';
 
 // --- TIPOS DE PROPS ---
 interface CategoryGridViewProps {
@@ -34,6 +35,50 @@ interface CategoryGridViewProps {
     onDelete: (category: Category) => void;
     onAddNew: () => void;
 }
+
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL: Componente para mostrar contadores híbridos inteligentes
+ * 
+ * PORQUÉ SEPARADO: Cada fila necesita sus propios contadores reactivos sin afectar otras filas
+ * PROBLEMA RESUELTO: Antes mostraba solo "X/Y secciones", ahora muestra información completa
+ * 
+ * ARQUITECTURA REACTIVA: Usa useCategoryWithCounts que se actualiza automáticamente cuando:
+ * - Se crean/eliminan secciones o productos directos
+ * - Se cambia la visibilidad de elementos
+ * - Se detecta cambio en el modo de la categoría
+ * 
+ * CONEXIONES CRÍTICAS:
+ * - useCategoryWithCounts(): Hook que calcula contadores en tiempo real
+ * - CategoryGridView columna 'content': Renderiza este componente por cada categoría
+ * - dashboardStore: Fuente de datos reactiva que dispara actualizaciones
+ * 
+ * PATRÓN v0.dev: Componente pequeño y enfocado que maneja un aspecto específico de la UI
+ * OPTIMIZACIÓN: Solo se re-renderiza cuando cambian los datos de SU categoría específica
+ */
+const CategoryContentDisplay: React.FC<{ categoryId: number }> = ({ categoryId }) => {
+    const counts = useCategoryWithCounts(categoryId);
+    
+    // 🧭 MIGA DE PAN: Mostrar información contextual según el estado de carga
+    if (counts.displayMode === 'loading') {
+        return <span className="text-sm text-gray-400">Cargando...</span>;
+    }
+    
+    // 🧭 MIGA DE PAN: Texto principal con información híbrida
+    // CONEXIÓN: counts.displayText generado por useCategoryWithCounts con lógica inteligente
+    return (
+        <div className="flex flex-col">
+            <span className="text-sm text-gray-600 font-medium">
+                {counts.displayText}
+            </span>
+            {/* 🧭 MIGA DE PAN: Información adicional de visibilidad para contexto completo */}
+            {counts.totalProductsCount > 0 && (
+                <span className="text-xs text-gray-400">
+                    {counts.visibleProductsCount} / {counts.totalProductsCount} productos visibles
+                </span>
+            )}
+        </div>
+    );
+};
 
 export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
     categories,
@@ -86,12 +131,10 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
             ),
         },
         {
-            key: 'sections',
-            header: 'Secciones',
+            key: 'content',
+            header: 'Contenido',
             render: (category) => (
-                <span className="text-sm text-gray-600">
-                    {category.visible_sections_count || 0} / {category.sections_count || 0} visibles
-                </span>
+                <CategoryContentDisplay categoryId={category.category_id} />
             ),
         },
         {

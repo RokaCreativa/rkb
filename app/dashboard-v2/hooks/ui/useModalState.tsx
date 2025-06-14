@@ -27,7 +27,7 @@ import { useState } from 'react';
 import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
 import { Category, Section, Product } from '@/app/dashboard-v2/types';
 
-type ModalType = 'editCategory' | 'editSection' | 'editProduct' | 'editProductDirect' | 'delete' | null;
+type ModalType = 'editCategory' | 'editSection' | 'editProduct' | 'editProductDirect' | 'move' | 'delete' | null;
 type ModalData = Category | Section | Product | null;
 type ItemType = 'category' | 'section' | 'product';
 
@@ -82,6 +82,17 @@ export const useModalState = () => {
     };
 
     /**
+     * 🧭 MIGA DE PAN CONTEXTUAL: Preparación para modal de movimiento inteligente
+     * PORQUÉ NECESARIO: Modal de movimiento requiere tanto el item como su tipo para validaciones
+     * CONEXIÓN: GridView.onMove → handleMoveItem → modal movimiento → MoveItemModal
+     * PATRÓN: Similar a handleDeleteItem pero para funcionalidad de movimiento
+     */
+    const handleMoveItem = (item: ModalData, itemType: ItemType) => {
+        openModal('move', item);
+        setModalState(prev => ({ ...prev, itemType }));
+    };
+
+    /**
      * 🧭 MIGA DE PAN CONTEXTUAL: Ejecuta eliminación tras confirmación del usuario
      * PORQUÉ SWITCH: Diferentes entidades requieren diferentes funciones del store
      * CONEXIÓN: DeleteConfirmationModal.onConfirm → handleConfirmDelete
@@ -113,6 +124,7 @@ export const useModalState = () => {
         openModal,
         closeModal,
         handleDeleteItem,
+        handleMoveItem,
         handleConfirmDelete,
     };
 };

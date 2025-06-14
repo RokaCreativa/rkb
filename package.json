@@ -29,7 +29,7 @@
     "clsx": "^2.1.1",
     "cookies-next": "^5.1.0",
     "date-fns": "^4.1.0",
-    "framer-motion": "^12.6.2",
+    "framer-motion": "^12.18.1",
     "glob": "^11.0.3",
     "i18next": "^24.2.3",
     "i18next-browser-languagedetector": "^8.0.4",
@@ -54,6 +54,8 @@
   },
   "devDependencies": {
     "@heroicons/react": "^2.2.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
     "@types/bcrypt": "^5.0.2",
     "@types/next-auth": "^3.15.0",
     "@types/node": "^20",
@@ -62,6 +64,7 @@
     "autoprefixer": "^10.4.21",
     "eslint": "9.23.0",
     "eslint-config-next": "15.2.4",
+    "jest-environment-jsdom": "^30.0.0",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.10",
     "typescript": "^5"

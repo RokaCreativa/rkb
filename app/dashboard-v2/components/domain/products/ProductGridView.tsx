@@ -18,7 +18,7 @@ import React from 'react';
 import { Product } from '@/app/dashboard-v2/types';
 import { GenericTable, Column } from '@/app/dashboard-v2/components/ui/Table/GenericTable';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
-import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, PencilIcon, TrashIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 
 // --- TIPOS DE PROPS ---
@@ -27,7 +27,10 @@ interface ProductGridViewProps {
     onToggleVisibility: (product: Product) => void;
     onEdit: (product: Product) => void;
     onDelete: (product: Product) => void;
+    onMove?: (product: Product) => void; // 🎯 T31.5 FASE 3: Función para mover productos
     onAddNew: () => void;
+    title?: string; // Para distinguir productos directos vs tradicionales
+    subtitle?: string;
 }
 
 export const ProductGridView: React.FC<ProductGridViewProps> = ({
@@ -35,7 +38,10 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
     onToggleVisibility,
     onEdit,
     onDelete,
+    onMove,
     onAddNew,
+    title = "Gestionar Productos",
+    subtitle,
 }) => {
     // 🧭 MIGA DE PAN: Calcular contador de visibilidad siguiendo el patrón de SectionListView
     const visibleProducts = products.filter(product => product.status);
@@ -88,6 +94,12 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(product); }}>
                         <PencilIcon className="h-5 w-5" />
                     </Button>
+                    {/* 🎯 T31.5 FASE 3: Botón de mover (solo si se proporciona la función) */}
+                    {onMove && (
+                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onMove(product); }}>
+                            <ArrowsRightLeftIcon className="h-5 w-5 text-blue-500" />
+                        </Button>
+                    )}
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onDelete(product); }}>
                         <TrashIcon className="h-5 w-5 text-red-500" />
                     </Button>
@@ -100,7 +112,8 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
         <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
                 <div className="flex flex-col">
-                    <h2 className="text-xl font-semibold">Gestionar Productos</h2>
+                    <h2 className="text-xl font-semibold">{title}</h2>
+                    {subtitle && <p className="text-sm text-blue-600 font-medium">{subtitle}</p>}
                     {/* 🧭 MIGA DE PAN: Contador de visibilidad siguiendo el patrón de SectionListView */}
                     <p className="text-sm text-gray-500">
                         {visibleProducts.length} / {totalProducts} productos visibles
