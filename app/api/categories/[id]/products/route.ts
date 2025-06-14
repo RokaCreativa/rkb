@@ -55,7 +55,7 @@ export async function GET(
     const sections = await prisma.sections.findMany({
       where: {
         category_id: categoryId,
-        deleted: 0  // 🧭 MIGA DE PAN: sections.deleted es Int (0/1), no Boolean
+        deleted: 0 as any  // 🧭 MIGA DE PAN: sections.deleted es Int (0/1), no Boolean
       }
     });
     

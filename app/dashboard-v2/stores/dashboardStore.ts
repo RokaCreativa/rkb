@@ -967,36 +967,47 @@ export const useCategoryProducts = (categoryId: number | null, sectionId?: numbe
     );
 };
 
-// 🚨 HOOK SIMPLIFICADO PARA EVITAR BUCLES INFINITOS
 export const useCategoryWithCounts = (categoryId: number | null) => {
-    // Enfoque ultra-simple: solo obtener datos básicos sin cálculos complejos
-    const categories = useDashboardStore(state => state.categories);
-    const sections = useDashboardStore(state => state.sections);
-    const products = useDashboardStore(state => state.products);
-    
-    // Usar useMemo para cachear el resultado y evitar recálculos
-    return React.useMemo(() => {
-        if (!categoryId) return null;
-        
-        const category = categories.find(c => c.category_id === categoryId);
-        if (!category) return null;
-        
-        const categorySections = sections[categoryId] || [];
-        const categoryProducts = products[`cat-${categoryId}`] || [];
-        
-        return {
-            category_id: category.category_id,
-            name: category.name,
-            status: category.status,
-            image: category.image,
-            display_order: category.display_order,
-            client_id: category.client_id,
-            sectionsCount: categorySections.length,
-            visibleSectionsCount: categorySections.filter(s => s.status).length,
-            productsCount: categoryProducts.length,
-            visibleProductsCount: categoryProducts.filter(p => p.status).length,
-        };
-    }, [categoryId, categories, sections, products]);
+    return useDashboardStore(
+        (state) => {
+            if (!categoryId) return null;
+            
+            const category = state.categories.find(c => c.category_id === categoryId);
+            if (!category) return null;
+            
+            const sections = state.sections[categoryId] || [];
+            const products = state.products[`cat-${categoryId}`] || [];
+            
+            // Devolver un objeto con estructura fija para evitar nuevas referencias
+            return {
+                category_id: category.category_id,
+                name: category.name,
+                status: category.status,
+                image: category.image,
+                display_order: category.display_order,
+                client_id: category.client_id,
+                sectionsCount: sections.length,
+                visibleSectionsCount: sections.filter(s => s.status).length,
+                productsCount: products.length,
+                visibleProductsCount: products.filter(p => p.status).length,
+            };
+        },
+        // Comparación profunda pero eficiente
+        (a, b) => {
+            if (!a && !b) return true;
+            if (!a || !b) return false;
+            
+            return (
+                a.category_id === b.category_id &&
+                a.name === b.name &&
+                a.status === b.status &&
+                a.sectionsCount === b.sectionsCount &&
+                a.visibleSectionsCount === b.visibleSectionsCount &&
+                a.productsCount === b.productsCount &&
+                a.visibleProductsCount === b.visibleProductsCount
+            );
+        }
+    );
 };
 
 // 🧭 MIGA DE PAN CONTEXTUAL: Selector para Lista Mixta T31 (FASE 1.2) - CORREGIDO BUCLE INFINITO
