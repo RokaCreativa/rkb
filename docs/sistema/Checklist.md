@@ -98,10 +98,6 @@
   - [x] **#T20 - Migración de Estado a Zustand:** Se migró la lógica de estado de la **vista móvil** a un store central de Zustand para resolver bucles de renderizado y simplificar la arquitectura. (Completado el 18/06).
   - [x] **#T28 - Corrección Masiva de Errores TypeScript:** Se corrigieron sistemáticamente todos los errores de compilación TypeScript que quedaron tras las refactorizaciones, incluyendo problemas en APIs, tipos de funciones, navegación móvil y declaraciones de módulos. (Completado el 20/12).
   - [x] **#T29 - Implementación Completa de Funciones CRUD:** Se implementaron todas las funciones CRUD faltantes (crear, actualizar, eliminar) para categorías, secciones y productos en el `dashboardStore`, eliminando los errores "Función no implementada" y completando la funcionalidad del sistema de gestión. (Completado el 23/12).
-  - [x] **#T30 - Corrección Integral de UX - Sistema de Toasts, Contadores y Modal:** Se solucionaron problemas críticos de user experience: eliminación de toasts duplicados, implementación de contadores de visibilidad en todas las vistas, corrección de función toggleProductVisibility, imágenes funcionando en modales de edición y diseño responsivo de modales. (Completado el 24/12).
-  - [x] **#T31 - Correcciones Críticas de UX - Secciones, Errores 500 y Navegación:** Se corrigieron problemas críticos reportados por usuario: secciones creadas deshabilitadas en móvil, error 500 editando secciones, y categorías vacías que no mostraban vista de secciones. Incluye corrección de campos FormData, lógica de auto-detección y radio buttons de visibilidad. (Completado el 26/12).
-  - [x] **#T32 - Correcciones Avanzadas de UX - Delays, Navegación y Carga de Imágenes:** Se eliminaron delays innecesarios en modales de eliminación (2.3s → <100ms), se corrigió navegación tras eliminar secciones en móvil con callback específico, y se solucionó carga de imágenes en EditCategoryModal. Incluye eliminación de window.location.reload() y mejora de callbacks contextuales. (Completado el 26/12).
-  - [x] **#T33 - Correcciones Críticas de Navegación y Visualización de Secciones:** Se corrigieron problemas críticos reportados por usuario: modal nueva categoría con radio buttons en lugar de combo, verificación de carga de imágenes en edición, y el problema más grave - secciones que no aparecían después de ser creadas en categorías vacías. Incluye corrección de handleModalSuccess para refrescar datos completos y actualizar modo de visualización dinámicamente. (Completado el 26/12).
 
 ### **Fase 5: Arquitectura Flexible y Personalización Avanzada**
 
@@ -124,52 +120,40 @@
 - **Objetivo:** Implementar funcionalidades obligatorias para restaurantes profesionales que actualmente faltan en v2.
 - **Tareas:**
 
-  - [x] **#T32 - Jerarquía Híbrida por Categoría:**
-
-    - **Objetivo:** Permitir que EN EL MISMO MENÚ, algunas categorías vayan directo a productos (ej: "SNACKS") y otras usen secciones (ej: "HAMBURGUESAS" → "Tipos" → Productos).
-    - **Estrategia Decidida:** Auto-detección inteligente basada en la estructura existente, sin necesidad de campos adicionales en la DB.
-    - **Justificación:** Casos reales como Palm Beach necesitan ambos modos en el mismo menú. La auto-detección es más elegante y funciona inmediatamente con data legacy.
-    - **✅ COMPLETADO:** T32.1-T32.4 implementados exitosamente. Sistema híbrido funcionando en escritorio y móvil.
-    - **Tareas Detalladas:**
-      - [x] **#T32.1 - Implementar Auto-Detección Inteligente:** Crear función que detecte automáticamente si una categoría debe usar modo "simple" (1 sección) o "sections" (múltiples secciones) basado en la estructura existente.
-      - [x] **#T32.2 - UI Adaptativa en DashboardView:** Renderizar `ProductGridView` O `SectionGridView` condicionalmente según el resultado de la auto-detección en vista de escritorio.
-      - [x] **#T32.3 - Actualizar MobileView:** Integrar la auto-detección en MobileView para unificar el comportamiento entre escritorio y móvil.
-      - [x] **#T32.4 - Navegación Móvil Adaptativa:** Adaptar `MobileView` para manejar categorías simples saltando la vista de secciones automáticamente.
-
-  - [ ] **#T33 - Sistema de Alergenos (OBLIGATORIO para Restaurantes):**
+  - [ ] **#T32 - Sistema de Alergenos (OBLIGATORIO para Restaurantes):**
 
     - **Objetivo:** Implementar gestión completa de alergenos con iconos visuales según normativas europeas.
     - **Justificación:** Es obligatorio por ley en establecimientos de restauración mostrar alergenos.
     - **Ubicación Iconos:** `public/images/allergensIcons/`
     - **Tareas Detalladas:**
-      - [ ] **#T33.1 - Auditar Tablas Existentes:** Revisar y limpiar tablas `allergens` y `allergens_product` en el schema.
-      - [ ] **#T33.2 - Componente Selector de Alergenos:** Crear selector visual con iconos para formularios de productos.
-      - [ ] **#T33.3 - Display de Alergenos:** Mostrar iconos de alergenos en las vistas de productos (móvil y escritorio).
-      - [ ] **#T33.4 - Gestión de Alergenos:** CRUD completo para gestionar lista de alergenos disponibles.
-      - [ ] **#T33.5 - Integración con Menú Público:** Asegurar que alergenos se muestren correctamente en el menú del cliente final.
+      - [ ] **#T32.1 - Auditar Tablas Existentes:** Revisar y limpiar tablas `allergens` y `allergens_product` en el schema.
+      - [ ] **#T32.2 - Componente Selector de Alergenos:** Crear selector visual con iconos para formularios de productos.
+      - [ ] **#T32.3 - Display de Alergenos:** Mostrar iconos de alergenos en las vistas de productos (móvil y escritorio).
+      - [ ] **#T32.4 - Gestión de Alergenos:** CRUD completo para gestionar lista de alergenos disponibles.
+      - [ ] **#T32.5 - Integración con Menú Público:** Asegurar que alergenos se muestren correctamente en el menú del cliente final.
 
-  - [ ] **#T34 - Precios Múltiples por Producto:**
+  - [ ] **#T33 - Precios Múltiples por Producto:**
 
     - **Objetivo:** Permitir productos con múltiples variantes de precio (ej: Bocadillo Grande/Mediano/Pequeño).
     - **Problema Actual:** Campo `multiple_prices` usa "S"/"N" en lugar de boolean estándar.
     - **Justificación:** Muchos productos necesitan variantes de tamaño/precio.
     - **Tareas Detalladas:**
-      - [ ] **#T34.1 - Estandarizar Campo Boolean:** Migrar `multiple_prices` de VARCHAR("S"/"N") a BOOLEAN(true/false).
-      - [ ] **#T34.2 - Componente Precios Múltiples:** Crear formulario para gestionar hasta 4 precios con labels personalizables.
-      - [ ] **#T34.3 - Display Precios Múltiples:** Mostrar variantes de precio en vistas de productos y menú público.
-      - [ ] **#T34.4 - Validación de Precios:** Asegurar que al menos price1 esté definido cuando multiple_prices es true.
+      - [ ] **#T33.1 - Estandarizar Campo Boolean:** Migrar `multiple_prices` de VARCHAR("S"/"N") a BOOLEAN(true/false).
+      - [ ] **#T33.2 - Componente Precios Múltiples:** Crear formulario para gestionar hasta 4 precios con labels personalizables.
+      - [ ] **#T33.3 - Display Precios Múltiples:** Mostrar variantes de precio en vistas de productos y menú público.
+      - [ ] **#T33.4 - Validación de Precios:** Asegurar que al menos price1 esté definido cuando multiple_prices es true.
 
-  - [ ] **#T35 - Sistema Multiidioma Avanzado:**
+  - [ ] **#T34 - Sistema Multiidioma Avanzado:**
     - **Objetivo:** Implementar sistema completo de traducciones con capacidad de auto-traducción y override manual.
     - **Justificación:** Clientes internacionales necesitan menús en múltiples idiomas.
     - **Tablas Existentes:** `languages`, `translations`, `client_languages`
     - **Tareas Detalladas:**
-      - [ ] **#T35.1 - Auditar Sistema Actual:** Revisar y documentar funcionamiento de tablas de traducción existentes.
-      - [ ] **#T35.2 - Auto-Traducción:** Integrar servicio de traducción automática (Google Translate API o similar).
-      - [ ] **#T35.3 - Override Manual:** Permitir que clientes modifiquen traducciones automáticas específicas.
-      - [ ] **#T35.4 - UI de Gestión:** Crear interfaz para gestionar idiomas activos y traducciones por cliente.
-      - [ ] **#T35.5 - Selector de Idioma:** Implementar selector en menú público para cambiar idioma dinámicamente.
-      - [ ] **#T35.6 - Fallback Inteligente:** Si traducción no existe, mostrar idioma principal del cliente.
+      - [ ] **#T34.1 - Auditar Sistema Actual:** Revisar y documentar funcionamiento de tablas de traducción existentes.
+      - [ ] **#T34.2 - Auto-Traducción:** Integrar servicio de traducción automática (Google Translate API o similar).
+      - [ ] **#T34.3 - Override Manual:** Permitir que clientes modifiquen traducciones automáticas específicas.
+      - [ ] **#T34.4 - UI de Gestión:** Crear interfaz para gestionar idiomas activos y traducciones por cliente.
+      - [ ] **#T34.5 - Selector de Idioma:** Implementar selector en menú público para cambiar idioma dinámicamente.
+      - [ ] **#T34.6 - Fallback Inteligente:** Si traducción no existe, mostrar idioma principal del cliente.
 
 ### **Fase 7: Refactorización de Modales y Unificación de Componentes**
 
