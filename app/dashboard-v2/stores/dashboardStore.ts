@@ -144,21 +144,35 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
     },
 
     fetchProductsByCategory: async (categoryId) => {
-        // 🧭 MIGA DE PAN: Esta función carga productos directamente desde una categoría
-        // para categorías "simples" (que tienen 1 sola sección). Se conecta con:
-        // - getCategoryDisplayMode() para auto-detectar si la categoría es simple
-        // - CategoryGridView.tsx cuando renderiza productos directos 
-        // - MobileView.tsx para navegación directa categoría → productos
+        // 🧭 MIGA DE PAN CONTEXTUAL: T31 - FUNCIÓN CLAVE PARA PRODUCTOS HÍBRIDOS
+        // PORQUÉ MODIFICADA: Ahora carga productos HÍBRIDOS (tradicionales + directos) de una categoría
+        // PROBLEMA RESUELTO: Antes solo cargaba productos de categorías "simples", ahora soporta T31
+        // ARQUITECTURA: Usa API híbrida que combina productos de secciones + productos directos
+        // CONEXIONES CRÍTICAS:
+        // - /api/categories/[id]/products/route.ts: API modificada que obtiene productos híbridos
+        // - createProductDirect() línea 620: Recarga usando esta función tras crear producto directo
+        // - CategoryGridView.tsx: Renderizará productos directos + secciones usando esta data
+        // - useCategoryProducts() línea 862: Hook que consume esta data para UI
+        //
+        // 🎯 T31: FLUJO HÍBRIDO
+        // 1. API consulta productos tradicionales (via secciones) + productos directos (via category_id)
+        // 2. Elimina duplicados y ordena por display_order
+        // 3. Retorna array unificado para mostrar en UI
         //
         // 💡 Diferencia clave con fetchProductsBySection:
-        // - fetchProductsBySection: usa section_id (jerarquía completa)
-        // - fetchProductsByCategory: usa category_id (jerarquía simplificada)
+        // - fetchProductsBySection: usa section_id (jerarquía completa tradicional)
+        // - fetchProductsByCategory: usa category_id (jerarquía híbrida T31)
         set({ isLoading: true });
         try {
-            const res = await fetch(`/api/products?category_id=${categoryId}`);
-            if (!res.ok) throw new Error('Error al cargar productos');
+            // T31: Usar API híbrida que obtiene productos tradicionales + directos
+            // CONEXIÓN: /api/categories/[id]/products/route.ts líneas 15-45
+            const res = await fetch(`/api/categories/${categoryId}/products`);
+            if (!res.ok) throw new Error('Error al cargar productos híbridos');
             const productsData = await res.json();
-            // Usamos categoryId como key en lugar de sectionId para diferenciarlo
+            
+            // T31: Key especial para productos híbridos de categoría (diferente de secciones)
+            // PORQUÉ: Permite distinguir productos de categoría vs productos de sección en el store
+            // CONEXIÓN: useCategoryProducts() línea 862 usa esta key para acceder a los datos
             set(state => ({ products: { ...state.products, [`cat-${categoryId}`]: productsData } }));
         } catch (e) {
             set({ error: e instanceof Error ? e.message : 'Error' });
@@ -563,6 +577,15 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
     // PORQUÉ: Implementa la propuesta de "relaciones opcionales" de Gemini
     // CONEXIÓN: CategoryGridView → FAB "Añadir Producto" → esta función → API modificada
     // FLUJO: Producto se crea directamente en categoría sin sección intermedia
+    // 🧭 MIGA DE PAN CONTEXTUAL: T31 - FUNCIÓN CLAVE PARA PRODUCTOS DIRECTOS EN CATEGORÍAS
+    // PORQUÉ EXISTE: Permite crear productos directamente en categorías sin secciones intermedias
+    // PROBLEMA RESUELTO: Categorías simples como "BEBIDAS" no necesitan estructura "Refrescos > Coca Cola"
+    // ARQUITECTURA: Implementa jerarquía flexible Category → Product (vs tradicional Category → Section → Product)
+    // CONEXIONES CRÍTICAS:
+    // - CategoryGridView.tsx: FAB contextual llamará esta función cuando detecte categoría simple
+    // - /api/products/route.ts líneas 328-340: API modificada detecta category_id sin sections
+    // - prisma/schema.prisma líneas 60-63: Nueva relación direct_products en categories
+    // - fetchProductsByCategory() línea 280: Recarga productos híbridos tras creación
     // CASOS DE USO: Categorías simples como "BEBIDAS" → "Coca Cola" (sin sección)
     createProductDirect: async (categoryId: number, data: Partial<Product>, imageFile?: File | null) => {
         const toastId = 'crud-product-direct';
@@ -572,11 +595,13 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
             const formData = new FormData();
 
             // 🎯 T31: MODO DIRECTO - Enviar category_id en lugar de sections
-            // PORQUÉ: La API modificada detecta category_id sin sections para crear producto directo
-            // REGLA DE NEGOCIO: category_id y sections son mutuamente excluyentes
+            // PORQUÉ: La API modificada en /api/products/route.ts línea 328 detecta category_id sin sections
+            // REGLA DE NEGOCIO: category_id y sections son mutuamente excluyentes en T31
+            // FLUJO: FormData → API → Prisma.create({ category_id, section_id: null })
             formData.append('category_id', String(categoryId));
 
-            // Añadir todos los campos del producto
+            // FILTRADO CRÍTICO: Excluir section_id y category_id para evitar conflictos
+            // PORQUÉ: section_id debe ser null para productos directos, category_id ya se añadió arriba
             Object.entries(data).forEach(([key, value]) => {
                 if (value !== null && key !== 'section_id' && key !== 'category_id') {
                     formData.append(key, String(value));
@@ -587,6 +612,8 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
                 formData.append('image', imageFile);
             }
 
+            // ENDPOINT REUTILIZADO: Usa misma API que createProduct() pero con lógica adaptativa
+            // CONEXIÓN: /api/products/route.ts línea 436 - FLUJO comentado para diferenciar modos
             const res = await fetch('/api/products', { method: 'POST', body: formData });
 
             if (!res.ok) {
@@ -598,8 +625,10 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
             toast.success('Producto directo creado', { id: toastId });
 
             // 🎯 T31: RECARGAR PRODUCTOS HÍBRIDOS - Tradicionales + Directos
-            // PORQUÉ: La categoría ahora puede tener productos directos que deben mostrarse
-            // CONEXIÓN: fetchProductsByCategory() usa la API modificada que obtiene productos híbridos
+            // PORQUÉ CRÍTICO: La categoría ahora puede tener productos directos que deben mostrarse
+            // CONEXIÓN: fetchProductsByCategory() línea 280 usa API híbrida /api/categories/[id]/products
+            // FLUJO: Creación → Recarga → CategoryGridView muestra productos directos + secciones
+            // ARQUITECTURA: Mantiene consistencia con patrón de recarga tras CRUD
             await get().fetchProductsByCategory(categoryId);
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });

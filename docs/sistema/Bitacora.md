@@ -1922,3 +1922,59 @@ createProductDirect() → /api/products (con category_id)
 **Próximos Pasos:** Implementar UI para T31 (tareas T31.5 y T31.6) ahora que el backend está completamente funcional y la base de datos restaurada.
 
 ---
+
+### **#30 | Aplicación de Comentarios Contextuales "Migas de Pan" para T31**
+
+- **Fecha:** 14 de junio de 2025
+- **Responsable:** Claude (Asistente IA)
+- **Checklist:** Seguimiento de comentarios.md
+- **Mandamientos Involucrados:** #7 (Código documentado), #1 (Contexto), #2 (Actualización)
+
+**Descripción:**
+
+> Aplicación sistemática del estándar de "migas de pan contextuales" definido en `comentarios.md` a todo el código modificado para T31. Los comentarios van más allá de explicar 'qué' hace una línea para convertirse en verdaderos recuperadores de memoria que explican el 'porqué' de cada decisión técnica y 'cómo' se relaciona con otros archivos del sistema.
+
+**Archivos Comentados:**
+
+- `app/dashboard-v2/stores/dashboardStore.ts`:
+
+  - `createProductDirect()` líneas 567-620: Función clave de T31 con conexiones a API, schema y UI
+  - `fetchProductsByCategory()` líneas 145-175: Función híbrida modificada para productos tradicionales + directos
+  - Comentarios existentes mejorados con referencias específicas a líneas de código y flujos de datos
+
+- `app/api/products/route.ts`:
+
+  - Sección T31 líneas 328-340: Lógica adaptativa para detectar productos directos vs tradicionales
+  - Comentarios sobre reglas de negocio y conexiones con dashboardStore
+
+- `app/api/categories/[id]/products/route.ts`:
+  - API híbrida completa líneas 1-108: Documentación exhaustiva del flujo de productos híbridos
+  - Casos de uso reales y conexiones con componentes UI
+
+**Estándar Aplicado:**
+
+Cada comentario incluye:
+
+1. **PORQUÉ** de la decisión técnica
+2. **CONEXIONES** específicas con archivos y líneas de código
+3. **PROBLEMAS RESUELTOS** documentados
+4. **FLUJOS DE DATOS** explicados
+5. **CASOS DE USO** reales del sistema
+
+**Ejemplos de Comentarios Contextuales:**
+
+```typescript
+// 🧭 MIGA DE PAN CONTEXTUAL: T31 - FUNCIÓN CLAVE PARA PRODUCTOS DIRECTOS EN CATEGORÍAS
+// PORQUÉ EXISTE: Permite crear productos directamente en categorías sin secciones intermedias
+// PROBLEMA RESUELTO: Categorías simples como "BEBIDAS" no necesitan estructura "Refrescos > Coca Cola"
+// ARQUITECTURA: Implementa jerarquía flexible Category → Product (vs tradicional Category → Section → Product)
+// CONEXIONES CRÍTICAS:
+// - CategoryGridView.tsx: FAB contextual llamará esta función cuando detecte categoría simple
+// - /api/products/route.ts líneas 328-340: API modificada detecta category_id sin sections
+// - prisma/schema.prisma líneas 60-63: Nueva relación direct_products en categories
+// - fetchProductsByCategory() línea 280: Recarga productos híbridos tras creación
+```
+
+**Conclusión:** El código de T31 ahora cuenta con comentarios que sirven como verdaderos recuperadores de memoria, facilitando la comprensión del contexto y las decisiones arquitectónicas para futuras sesiones de desarrollo. Cada función crítica está documentada con sus conexiones específicas dentro del ecosistema RokaMenu.
+
+---

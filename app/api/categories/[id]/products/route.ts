@@ -2,16 +2,29 @@ import { NextResponse } from 'next/server';
 import prisma from '@/prisma/prisma';
 
 /**
- * 🎯 T31: API MODIFICADA - Productos por Categoría (Tradicionales + Directos)
+ * 🧭 MIGA DE PAN CONTEXTUAL: T31 - API HÍBRIDA PARA PRODUCTOS DIRECTOS EN CATEGORÍAS
  * 
- * PORQUÉ MODIFICADA: Implementación de productos directos en categorías sin secciones intermedias
- * CONEXIÓN: dashboardStore.fetchProductsByCategory() → esta API → productos híbridos
- * FLUJO: Obtiene productos tradicionales (vía secciones) + productos directos (vía category_id)
+ * PORQUÉ MODIFICADA: Implementación completa de productos directos en categorías sin secciones intermedias
+ * PROBLEMA RESUELTO: Antes solo se podían obtener productos vía secciones, ahora soporta jerarquía flexible
+ * ARQUITECTURA: Combina productos tradicionales (Category → Section → Product) + directos (Category → Product)
  * 
- * CASOS DE USO:
- * - Categoría tradicional: "HAMBURGUESAS" → Secciones → Productos
- * - Categoría directa: "BEBIDAS" → Productos directos (sin secciones)
- * - Categoría híbrida: Ambos tipos de productos
+ * CONEXIONES CRÍTICAS:
+ * - dashboardStore.fetchProductsByCategory() línea 280 → esta API → productos híbridos
+ * - CategoryGridView.tsx: Renderizará productos directos + secciones usando esta data
+ * - createProductDirect() línea 620: Tras crear producto directo, recarga usando esta API
+ * - prisma/schema.prisma líneas 60-63: Nueva relación direct_products en categories
+ * 
+ * 🎯 T31: FLUJO HÍBRIDO COMPLETO
+ * 1. Consulta productos tradicionales (products_sections → products)
+ * 2. Consulta productos directos (products.category_id = categoryId)
+ * 3. Elimina duplicados por product_id
+ * 4. Ordena por display_order
+ * 5. Retorna array unificado para UI
+ * 
+ * CASOS DE USO REALES:
+ * - Categoría tradicional: "HAMBURGUESAS" → Secciones ("Clásicas", "Gourmet") → Productos
+ * - Categoría directa: "BEBIDAS" → Productos directos ("Coca Cola", "Cerveza")
+ * - Categoría híbrida: Ambos tipos coexistiendo en misma categoría
  */
 export async function GET(
   request: Request,
