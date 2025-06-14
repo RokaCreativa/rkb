@@ -50,19 +50,30 @@ model business_type {
 }
 
 model categories {
-    category_id   Int        @id @default(autoincrement())
-    name          String?    @db.VarChar(50)
-    image         String?    @db.VarChar(45)
-    status        Boolean?   @default(true)
+    category_id   Int       @id @default(autoincrement())
+    name          String?   @db.VarChar(50)
+    image         String?   @db.VarChar(45)
+    status        Boolean?  @default(true)
     display_order Int?
     client_id     Int?
-    registered_at DateTime?  @db.DateTime(0)
-    deleted       Int?       @default(0) @db.TinyInt
-    deleted_at    String?    @db.VarChar(20)
-    deleted_by    String?    @db.VarChar(50)
-    deleted_ip    String?    @db.VarChar(20)
-    clients       clients?   @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_category_client")
-    sections      sections[]
+    registered_at DateTime? @db.DateTime(0)
+    deleted       Int?      @default(0) @db.TinyInt
+    deleted_at    String?   @db.VarChar(20)
+    deleted_by    String?   @db.VarChar(50)
+    deleted_ip    String?   @db.VarChar(20)
+
+    // 🎯 SOLUCIÓN v0.dev: CATEGORÍAS VIRTUALES PARA PRODUCTOS "HUÉRFANOS"
+    // PORQUÉ CRÍTICO: Permite productos que aparecen en vista raíz del cliente sin categoría visible
+    // PROBLEMA RESUELTO: Productos "especiales del día" o promociones sin estructura jerárquica
+    // COMPORTAMIENTO DUAL:
+    // - Admin: Ve "Promociones" como categoría normal (organización interna)
+    // - Cliente: Ve productos elevados al nivel raíz (UX limpia)
+    // CONEXIÓN: API cliente aplicará lógica de elevación basada en este flag
+    // CASOS DE USO: "Especial del Día", "Promociones", "Sugerencias del Chef"
+    is_virtual_category Boolean @default(false)
+
+    clients  clients?   @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_category_client")
+    sections sections[]
 
     // 🎯 T31: NUEVA RELACIÓN INVERSA CON PRODUCTOS DIRECTOS
     // PORQUÉ: Permite que una categoría tenga productos directos sin secciones intermedias

@@ -38,6 +38,10 @@ export const CategoryForm = forwardRef<CategoryFormRef, CategoryFormProps>(({ ca
     // 🧭 MIGA DE PAN: Status por defecto TRUE (activo) según feedback del usuario
     // Se conecta con toggleCategoryVisibility en dashboardStore.ts y contadores de visibilidad
     const [status, setStatus] = useState<boolean>(true);
+    // 🎯 SOLUCIÓN v0.dev: Estado para categoría virtual
+    // PORQUÉ: Permite crear categorías cuyos productos aparecen en vista raíz del cliente
+    // CONEXIÓN: CategoryGridView mostrará badge VIRTUAL para estas categorías
+    const [isVirtualCategory, setIsVirtualCategory] = useState<boolean>(false);
     const [imageFile, setImageFile] = useState<File | null>(null);
 
     useEffect(() => {
@@ -47,11 +51,13 @@ export const CategoryForm = forwardRef<CategoryFormRef, CategoryFormProps>(({ ca
             console.log('🔍 CategoryForm - category.image:', category.image);
             setName(category.name || '');
             setStatus(Boolean(category.status)); // Normalizar boolean
+            setIsVirtualCategory(Boolean(category.is_virtual_category)); // 🎯 SOLUCIÓN v0.dev
             setImageFile(null); // Reset para evitar conflictos con imagen existente
         } else {
             // 🧭 MIGA DE PAN: Al crear, valores por defecto optimizados según Mandamiento #8
             setName('');
             setStatus(true); // ✅ CORRECCIÓN: Por defecto ACTIVO según feedback
+            setIsVirtualCategory(false); // 🎯 Por defecto categoría normal
             setImageFile(null);
         }
     }, [category]);
@@ -64,6 +70,7 @@ export const CategoryForm = forwardRef<CategoryFormRef, CategoryFormProps>(({ ca
                 data: {
                     name,
                     status: status ? 1 : 0, // Convertir a formato esperado por API
+                    is_virtual_category: isVirtualCategory, // 🎯 SOLUCIÓN v0.dev
                 },
                 imageFile,
             };
@@ -108,6 +115,34 @@ export const CategoryForm = forwardRef<CategoryFormRef, CategoryFormProps>(({ ca
                         <span className="text-sm text-gray-700">Inactivo (Oculto)</span>
                     </label>
                 </div>
+            </div>
+
+            {/* 🎯 SOLUCIÓN v0.dev: Checkbox para categoría virtual */}
+            <div className="space-y-2">
+                <label className="flex items-center space-x-3">
+                    <input
+                        type="checkbox"
+                        checked={isVirtualCategory}
+                        onChange={(e) => setIsVirtualCategory(e.target.checked)}
+                        className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                    />
+                    <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-700">
+                            Categoría Virtual
+                        </span>
+                        <span className="text-xs text-gray-500">
+                            Los productos aparecerán directamente en la vista principal del cliente, sin mostrar el nombre de la categoría
+                        </span>
+                    </div>
+                </label>
+                {/* 🧭 MIGA DE PAN: Advertencia para categorías virtuales */}
+                {isVirtualCategory && (
+                    <div className="p-3 bg-purple-50 border border-purple-200 rounded-md">
+                        <p className="text-sm text-purple-700">
+                            <strong>💡 Tip:</strong> Las categorías virtuales son ideales para "Especiales del Día", "Promociones" o productos que no encajan en la estructura normal del menú.
+                        </p>
+                    </div>
+                )}
             </div>
 
             <ImageUploader

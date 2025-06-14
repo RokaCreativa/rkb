@@ -26,6 +26,8 @@ import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
 import { Category, Section, Product } from '@/app/dashboard-v2/types';
 import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
 import { ArrowRightIcon, FolderIcon, DocumentIcon, CubeIcon } from '@heroicons/react/24/outline';
+import { usePermissions, useMoveValidations } from '../../hooks/core/usePermissions';
+import { toast } from 'react-hot-toast';
 
 // --- TIPOS ---
 type MoveableItem = Category | Section | Product;
@@ -66,6 +68,8 @@ interface MoveItemModalProps {
 const useValidDestinations = (item: MoveableItem | null, itemType: ItemType): MoveDestination[] => {
     const categories = useDashboardStore(state => state.categories);
     const sections = useDashboardStore(state => state.sections);
+    const { canMove, hasPermission } = usePermissions();
+    const { isValidDestination, canMoveToCategory, canMoveToSection } = useMoveValidations();
     
     return useMemo(() => {
         if (!item) return [];
@@ -136,7 +140,7 @@ const useValidDestinations = (item: MoveableItem | null, itemType: ItemType): Mo
             }
             return a.name.localeCompare(b.name);
         });
-    }, [item, itemType, categories, sections]);
+    }, [item, itemType, categories, sections, canMove, hasPermission, canMoveToCategory, canMoveToSection]);
 };
 
 export const MoveItemModal: React.FC<MoveItemModalProps> = ({
@@ -152,6 +156,13 @@ export const MoveItemModal: React.FC<MoveItemModalProps> = ({
     
     // 🧭 MIGA DE PAN: Funciones del store para ejecutar movimientos
     const { updateProduct, updateSection } = useDashboardStore();
+    
+    // 🎯 HOOKS DE VALIDACIÓN
+    // PORQUÉ: Centralizan todas las validaciones de permisos y movimiento
+    // CONEXIÓN: usePermissions() → validar si puede mover
+    // CONEXIÓN: useMoveValidations() → validar destinos válidos
+    const { canMove: globalCanMove, hasPermission: globalHasPermission } = usePermissions();
+    const { isValidDestination: globalIsValidDestination, canMoveToCategory: globalCanMoveToCategory, canMoveToSection: globalCanMoveToSection } = useMoveValidations();
     
     if (!isOpen || !item) return null;
     
@@ -172,6 +183,13 @@ export const MoveItemModal: React.FC<MoveItemModalProps> = ({
     const handleMove = async () => {
         if (!selectedDestination || !item) return;
         
+        // 🔒 VALIDACIÓN FINAL DE PERMISOS
+        // PORQUÉ: Doble validación antes de ejecutar (cliente + servidor)
+        if (!globalCanMove(item.product_id, selectedDestination.id)) {
+            toast.error('No tienes permisos para mover este elemento');
+            return;
+        }
+
         setIsMoving(true);
         try {
             switch (itemType) {
@@ -200,10 +218,14 @@ export const MoveItemModal: React.FC<MoveItemModalProps> = ({
                     break;
             }
             
+            // ✅ ÉXITO: Cerrar modal y mostrar confirmación
+            toast.success(`Producto movido a ${selectedDestination.name}`);
             onClose();
         } catch (error) {
-            console.error('❌ Error al mover elemento:', error);
-            // El toast de error ya se muestra desde el store
+            // ❌ ERROR: El rollback ya se maneja en updateProduct()
+            // CONEXIÓN: dashboardStore → rollback automático en catch
+            toast.error('Error al mover el producto. Inténtalo de nuevo.');
+            console.error('Error moving product:', error);
         } finally {
             setIsMoving(false);
         }
@@ -265,9 +287,15 @@ export const MoveItemModal: React.FC<MoveItemModalProps> = ({
                     <h4 className="font-medium text-gray-900">Seleccionar destino:</h4>
                     
                     {validDestinations.length === 0 ? (
-                        <p className="text-sm text-gray-500 text-center py-4">
-                            No hay destinos válidos disponibles
-                        </p>
+                        <div className="text-center py-8 text-gray-500">
+                            <p>No hay destinos válidos disponibles</p>
+                            <p className="text-sm mt-1">
+                                {!globalHasPermission('products.move') 
+                                    ? 'No tienes permisos para mover productos'
+                                    : 'Todos los destinos están ocupados o inactivos'
+                                }
+                            </p>
+                        </div>
                     ) : (
                         <div className="max-h-60 overflow-y-auto space-y-1">
                             {validDestinations.map((destination) => (

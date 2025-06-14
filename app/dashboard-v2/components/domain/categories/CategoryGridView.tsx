@@ -34,6 +34,12 @@ interface CategoryGridViewProps {
     onEdit: (category: Category) => void;
     onDelete: (category: Category) => void;
     onAddNew: () => void;
+    // 🎯 SOLUCIÓN v0.dev: Nueva prop para crear productos directos en categorías
+    // PORQUÉ: Simetría con MixedContentView que ya tiene esta funcionalidad
+    // CONEXIÓN: DashboardViewWrapper pasará openModal('editProductDirect', null)
+    onAddProductDirect?: () => void;
+    // 🧭 MIGA DE PAN: Categoría seleccionada para habilitar/deshabilitar botón
+    selectedCategoryId?: number | null;
 }
 
 /**
@@ -55,30 +61,34 @@ interface CategoryGridViewProps {
  * PATRÓN v0.dev: Componente pequeño y enfocado que maneja un aspecto específico de la UI
  * OPTIMIZACIÓN: Solo se re-renderiza cuando cambian los datos de SU categoría específica
  */
-const CategoryContentDisplay: React.FC<{ categoryId: number }> = ({ categoryId }) => {
-    const counts = useCategoryWithCounts(categoryId);
+const CategoryContentDisplay = React.memo(({ categoryId }: { categoryId: number }) => {
+    const categoryData = useCategoryWithCounts(categoryId);
     
-    // 🧭 MIGA DE PAN: Mostrar información contextual según el estado de carga
-    if (counts.displayMode === 'loading') {
-        return <span className="text-sm text-gray-400">Cargando...</span>;
+    if (!categoryData) {
+        return (
+            <span className="text-sm text-gray-400">Cargando...</span>
+        );
     }
     
-    // 🧭 MIGA DE PAN: Texto principal con información híbrida
-    // CONEXIÓN: counts.displayText generado por useCategoryWithCounts con lógica inteligente
+    const displayText = categoryData.sectionsCount > 0 
+        ? `${categoryData.sectionsCount} secciones` 
+        : `${categoryData.productsCount} productos directos`;
+    
     return (
         <div className="flex flex-col">
             <span className="text-sm text-gray-600 font-medium">
-                {counts.displayText}
+                {displayText}
             </span>
-            {/* 🧭 MIGA DE PAN: Información adicional de visibilidad para contexto completo */}
-            {counts.totalProductsCount > 0 && (
+            {categoryData.productsCount > 0 && (
                 <span className="text-xs text-gray-400">
-                    {counts.visibleProductsCount} / {counts.totalProductsCount} productos visibles
+                    {categoryData.visibleProductsCount} / {categoryData.productsCount} productos visibles
                 </span>
             )}
         </div>
     );
-};
+});
+
+CategoryContentDisplay.displayName = 'CategoryContentDisplay';
 
 export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
     categories,
@@ -87,6 +97,8 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
     onEdit,
     onDelete,
     onAddNew,
+    onAddProductDirect,
+    selectedCategoryId,
 }) => {
     /**
      * 🧭 MIGA DE PAN CONTEXTUAL: Contador de visibilidad para feedback inmediato al usuario
@@ -126,7 +138,26 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
                         height={40}
                         className="rounded-md object-cover mr-4"
                     />
-                    <span className="font-medium">{category.name}</span>
+                    <div className="flex flex-col">
+                        <div className="flex items-center space-x-2">
+                            <span className="font-medium">{category.name}</span>
+                            {/* 🎯 SOLUCIÓN v0.dev: Badge VIRTUAL para categorías virtuales */}
+                            {/* PORQUÉ: Identificación visual inmediata para admin */}
+                            {/* COMPORTAMIENTO: Solo visible para categorías con is_virtual_category = true */}
+                            {/* CONEXIÓN: EditCategoryModal permitirá cambiar este estado */}
+                            {category.is_virtual_category && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    VIRTUAL
+                                </span>
+                            )}
+                        </div>
+                        {/* 🧭 MIGA DE PAN: Tooltip explicativo para categorías virtuales */}
+                        {category.is_virtual_category && (
+                            <span className="text-xs text-purple-600">
+                                Productos aparecen en vista raíz del cliente
+                            </span>
+                        )}
+                    </div>
                 </div>
             ),
         },
@@ -171,10 +202,28 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
                         {visibleCategories.length} / {totalCategories} categorías visibles
                     </p>
                 </div>
-                {/* CONEXIÓN: onAddNew → useModalState.openModal('editCategory', null) */}
-                <Button onClick={onAddNew}>
-                    Añadir Categoría
-                </Button>
+                {/* 🎯 SOLUCIÓN v0.dev: Botones de acción para categorías Y productos directos */}
+                <div className="flex space-x-2">
+                    {/* CONEXIÓN: onAddNew → useModalState.openModal('editCategory', null) */}
+                    <Button onClick={onAddNew}>
+                        Añadir Categoría
+                    </Button>
+                    {/* 🎯 NUEVO: Botón para productos directos en categorías */}
+                    {/* PORQUÉ: Simetría con vista de secciones que tiene botón similar */}
+                    {/* COMPORTAMIENTO: Deshabilitado si no hay categoría seleccionada */}
+                    {/* CONEXIÓN: onAddProductDirect → openModal('editProductDirect', null) */}
+                    {onAddProductDirect && (
+                        <Button 
+                            onClick={onAddProductDirect}
+                            disabled={!selectedCategoryId}
+                            variant="outline"
+                            className="flex items-center space-x-2"
+                        >
+                            <span>📦</span>
+                            <span>Producto Directo</span>
+                        </Button>
+                    )}
+                </div>
             </div>
             {/* 
                 🧭 MIGA DE PAN CONTEXTUAL: GenericTable maneja toda la lógica de renderizado

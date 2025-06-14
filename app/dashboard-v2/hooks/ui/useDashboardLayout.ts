@@ -10,10 +10,16 @@
 'use client';
 
 import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
+import { useCategoryDisplayMode } from '@/app/dashboard-v2/stores/dashboardStore';
 
 export const useDashboardLayout = () => {
     const selectedCategoryId = useDashboardStore(state => state.selectedCategoryId);
     const selectedSectionId = useDashboardStore(state => state.selectedSectionId);
+    
+    // 🧭 MIGA DE PAN: Auto-detección T31 para determinar modo de categoría
+    // PORQUÉ: Necesario para decidir si mostrar productos directos o secciones
+    // CONEXIÓN: useCategoryDisplayMode → getCategoryDisplayMode → auto-detección
+    const categoryDisplayMode = useCategoryDisplayMode(selectedCategoryId);
 
     /**
      * 🧭 MIGA DE PAN: Lógica de CSS Grid corregida para evitar saltos visuales
@@ -49,11 +55,21 @@ export const useDashboardLayout = () => {
     };
 
     /**
-     * 🧭 MIGA DE PAN: Determinar si mostrar columna de productos
-     * DECISIÓN: Solo cuando hay sección seleccionada (flujo tradicional)
+     * 🧭 MIGA DE PAN: Determinar si mostrar columna de productos (T31 HÍBRIDO)
+     * DECISIÓN ACTUALIZADA: Mostrar productos en dos casos:
+     * 1. Flujo tradicional: Cuando hay sección seleccionada
+     * 2. Flujo T31: Cuando categoría es "simple" (productos directos)
+     * CONEXIÓN: categoryDisplayMode determina si es simple o sections
+     * PROBLEMA RESUELTO: Antes solo mostraba productos con sección, ahora también con categoría simple
      */
     const shouldShowProducts = () => {
-        return !!selectedSectionId;
+        // Caso 1: Flujo tradicional - sección seleccionada
+        if (selectedSectionId) return true;
+        
+        // Caso 2: Flujo T31 - categoría simple con productos directos
+        if (selectedCategoryId && categoryDisplayMode === 'simple') return true;
+        
+        return false;
     };
 
     return {

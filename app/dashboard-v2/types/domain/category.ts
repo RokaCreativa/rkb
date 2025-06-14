@@ -47,6 +47,13 @@ export interface Category {
   updated_at?: string;
   sections_count?: number;
   visible_sections_count?: number;
+  
+  // 🎯 SOLUCIÓN v0.dev: CATEGORÍAS VIRTUALES
+  // PORQUÉ: Permite productos "huérfanos" que aparecen en vista raíz del cliente
+  // COMPORTAMIENTO: false = categoría normal, true = categoría virtual (productos elevados)
+  // CONEXIÓN: CategoryGridView mostrará badge "VIRTUAL" para estas categorías
+  // CASOS DE USO: "Especial del Día", "Promociones", "Sugerencias del Chef"
+  is_virtual_category?: boolean;
 }
 
 /**

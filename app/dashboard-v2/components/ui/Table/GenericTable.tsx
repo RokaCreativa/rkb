@@ -15,14 +15,14 @@ interface GenericTableProps<T> {
   className?: string;
 }
 
-export function GenericTable<T>({
+export const GenericTable = React.memo(<T,>({
   data,
   columns,
   onRowClick,
   isLoading = false,
   emptyMessage = 'No hay datos disponibles',
   className = '',
-}: GenericTableProps<T>) {
+}: GenericTableProps<T>) => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -78,4 +78,6 @@ export function GenericTable<T>({
       </table>
     </div>
   );
-} 
+});
+
+GenericTable.displayName = 'GenericTable'; 

@@ -28,10 +28,15 @@ import prisma from '@/prisma/prisma';
  */
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const categoryId = parseInt(params.id);
+    // 🧭 MIGA DE PAN: Corrección Next.js 15 - params debe ser awaited
+    // PORQUÉ: Next.js 15 cambió params a Promise para mejor performance
+    const { id } = await params;
+    const categoryId = parseInt(id);
+    
+    console.log('🎯 T31: Obteniendo productos híbridos para categoría:', categoryId);
 
     if (isNaN(categoryId)) {
       return NextResponse.json(
@@ -50,20 +55,24 @@ export async function GET(
     const sections = await prisma.sections.findMany({
       where: {
         category_id: categoryId,
-        deleted: 0 as any
+        deleted: 0  // 🧭 MIGA DE PAN: sections.deleted es Int (0/1), no Boolean
       }
     });
+    
+    console.log('🎯 T31: Secciones encontradas:', sections.length);
 
     if (sections.length > 0) {
       // Extraer los IDs de las secciones
       const sectionIds = sections.map(section => section.section_id);
 
       // Consulta para obtener productos por sección (modo tradicional)
+      // 🧭 MIGA DE PAN: Solo productos tradicionales vía products_sections
+      // PROBLEMA RESUELTO: Esta consulta ya es exclusiva para productos tradicionales
       const traditionalProducts = await prisma.products_sections.findMany({
         where: {
           section_id: { in: sectionIds },
           products: {
-            deleted: 0 as any,
+            deleted: false,
           }
         },
         include: {
@@ -71,6 +80,8 @@ export async function GET(
           products: true
         }
       });
+      
+      console.log('🎯 T31: Productos tradicionales encontrados:', traditionalProducts.length);
 
       // Procesar productos tradicionales
       const processedTraditional = Array.from(
@@ -80,6 +91,7 @@ export async function GET(
         return productSection?.products;
       }).filter((product): product is NonNullable<typeof product> => product !== null && product !== undefined);
 
+      console.log('🎯 T31: IDs productos tradicionales únicos:', processedTraditional.map(p => p.product_id));
       allProducts.push(...processedTraditional);
     }
 
@@ -87,13 +99,18 @@ export async function GET(
     // PORQUÉ: Implementa la propuesta de "relaciones opcionales" de Gemini
     // CONEXIÓN: products.category_id → categories.category_id (nueva relación)
     // CASOS DE USO: Categorías simples como "BEBIDAS" con productos directos
+    // 🧭 MIGA DE PAN: EXCLUSIÓN MUTUA - Solo productos directos SIN section_id
+    // PROBLEMA RESUELTO: Evita duplicados cuando un producto tiene tanto category_id como section_id
     const directProducts = await prisma.products.findMany({
       where: {
         category_id: categoryId,
+        section_id: null,  // 🎯 CLAVE: Solo productos directos, no tradicionales
         deleted: false,
       }
     });
-
+    
+    console.log('🎯 T31: Productos directos encontrados:', directProducts.length);
+    console.log('🎯 T31: IDs productos directos:', directProducts.map(p => p.product_id));
     allProducts.push(...directProducts);
 
     // 3. ELIMINAR DUPLICADOS Y ORDENAR
@@ -110,6 +127,7 @@ export async function GET(
         return orderA - orderB;
       });
 
+    console.log('🎯 T31: Productos únicos finales:', uniqueProducts.length);
     return NextResponse.json(uniqueProducts);
   } catch (error) {
     console.error('🎯 T31: Error al obtener productos híbridos:', error);

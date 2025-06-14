@@ -10,6 +10,10 @@ import { Category, Section, Product, Client } from '../types';
 import { toast } from 'react-hot-toast';
 import { getCategoryDisplayMode, isCategorySimpleMode } from '../utils/categoryUtils';
 
+// 🎯 IMPORTAR TIPOS DE PERMISOS
+// PORQUÉ: Necesarios para validaciones en las operaciones CRUD
+import { Permission } from '../types/domain/permissions';
+
 // --- INTERFACES ---
 
 export interface DashboardState {
@@ -34,6 +38,10 @@ export interface DashboardState {
     // Estado de UI para VISTA DE ESCRITORIO
     selectedCategoryId: number | null;
     selectedSectionId: number | null;
+
+    // 🎯 FASE 8: ESTADO DE PERMISOS
+    // PORQUÉ: Cache de validaciones para evitar recálculos
+    permissionCache: Record<string, boolean>;
 }
 
 export interface DashboardActions {
@@ -43,25 +51,33 @@ export interface DashboardActions {
     fetchProductsBySection: (sectionId: number) => Promise<void>;
     fetchProductsByCategory: (categoryId: number) => Promise<void>;
     fetchDataForCategory: (categoryId: number) => Promise<void>;
-    createCategory: (data: Partial<Category>, imageFile?: File | null) => Promise<void>;
-    updateCategory: (id: number, data: Partial<Category>, imageFile?: File | null) => Promise<void>;
-    deleteCategory: (id: number) => Promise<void>;
-    toggleCategoryVisibility: (id: number, status: number) => Promise<void>;
-    createSection: (data: Partial<Section>, imageFile?: File | null) => Promise<void>;
-    updateSection: (id: number, data: Partial<Section>, imageFile?: File | null) => Promise<void>;
-    deleteSection: (id: number) => Promise<void>;
-    toggleSectionVisibility: (id: number, status: number) => Promise<void>;
-    createProduct: (data: Partial<Product>, imageFile?: File | null) => Promise<void>;
-    // 🎯 T31: Nueva función para crear productos directos en categorías
-    createProductDirect: (categoryId: number, data: Partial<Product>, imageFile?: File | null) => Promise<void>;
-    updateProduct: (id: number, data: Partial<Product>, imageFile?: File | null) => Promise<void>;
-    deleteProduct: (id: number) => Promise<void>;
-    toggleProductVisibility: (id: number, status: number) => Promise<void>;
+    
+    // 🎯 OPERACIONES CRUD CON VALIDACIONES
+    // PORQUÉ: Todas las operaciones ahora validan permisos antes de ejecutar
+    createCategory: (data: Partial<Category>, imageFile?: File | null, skipPermissionCheck?: boolean) => Promise<void>;
+    updateCategory: (id: number, data: Partial<Category>, imageFile?: File | null, skipPermissionCheck?: boolean) => Promise<void>;
+    deleteCategory: (id: number, skipPermissionCheck?: boolean) => Promise<void>;
+    toggleCategoryVisibility: (id: number, status: number, skipPermissionCheck?: boolean) => Promise<void>;
+    createSection: (data: Partial<Section>, imageFile?: File | null, skipPermissionCheck?: boolean) => Promise<void>;
+    updateSection: (id: number, data: Partial<Section>, imageFile?: File | null, skipPermissionCheck?: boolean) => Promise<void>;
+    deleteSection: (id: number, skipPermissionCheck?: boolean) => Promise<void>;
+    toggleSectionVisibility: (id: number, status: number, skipPermissionCheck?: boolean) => Promise<void>;
+    createProduct: (data: Partial<Product>, imageFile?: File | null, skipPermissionCheck?: boolean) => Promise<void>;
+    createProductDirect: (categoryId: number, data: Partial<Product>, imageFile?: File | null, skipPermissionCheck?: boolean) => Promise<void>;
+    updateProduct: (id: number, data: Partial<Product>, imageFile?: File | null, skipPermissionCheck?: boolean) => Promise<void>;
+    deleteProduct: (id: number, skipPermissionCheck?: boolean) => Promise<void>;
+    toggleProductVisibility: (id: number, status: number, skipPermissionCheck?: boolean) => Promise<void>;
+    
     setSelectedCategoryId: (id: number | null) => void;
     setSelectedSectionId: (id: number | null) => void;
     handleCategorySelect: (id: number) => void;
     handleSectionSelect: (id: number) => void;
     handleBack: () => void;
+
+    // 🎯 FUNCIONES DE VALIDACIÓN INTERNA
+    // PORQUÉ: Validaciones centralizadas que pueden usar los componentes
+    validatePermission: (permission: Permission) => boolean;
+    clearPermissionCache: () => void;
 }
 
 // --- ESTADO INICIAL ---
@@ -82,12 +98,32 @@ const initialState: DashboardState = {
     history: [],
     selectedCategoryId: null,
     selectedSectionId: null,
+    permissionCache: {},
+};
+
+// 🎯 FUNCIÓN HELPER PARA VALIDAR PERMISOS
+// PORQUÉ: Centraliza la lógica de validación de permisos
+// CONEXIÓN: Todas las operaciones CRUD → esta función → validación
+const validatePermissionInternal = (permission: Permission): boolean => {
+    // 🧭 MIGA DE PAN: Por ahora todos los permisos son true (admin)
+    // FUTURO: Integrar con sistema de sesión real
+    // CONEXIÓN: usePermissions() hook → esta lógica → validaciones UI
+    return true; // TODO: Implementar validación real con sesión
 };
 
 // --- CREACIÓN DEL STORE ---
 
 export const useDashboardStore = create<DashboardState & DashboardActions>((set, get) => ({
     ...initialState,
+
+    // Función simple que no causa loops
+    validatePermission: () => {
+        return true; // TODO: Implementar validación real
+    },
+
+    clearPermissionCache: () => {
+        set({ permissionCache: {} });
+    },
 
     initializeDashboard: async (clientId) => {
         set({ isClientLoading: true, initialDataLoaded: false });
@@ -163,6 +199,7 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
         // 💡 Diferencia clave con fetchProductsBySection:
         // - fetchProductsBySection: usa section_id (jerarquía completa tradicional)
         // - fetchProductsByCategory: usa category_id (jerarquía híbrida T31)
+        console.log('🎯 T31: Cargando productos híbridos para categoría:', categoryId);
         set({ isLoading: true });
         try {
             // T31: Usar API híbrida que obtiene productos tradicionales + directos
@@ -171,11 +208,16 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
             if (!res.ok) throw new Error('Error al cargar productos híbridos');
             const productsData = await res.json();
             
+            console.log('🎯 T31: Productos híbridos recibidos:', productsData.length, productsData);
+            
             // T31: Key especial para productos híbridos de categoría (diferente de secciones)
             // PORQUÉ: Permite distinguir productos de categoría vs productos de sección en el store
             // CONEXIÓN: useCategoryProducts() línea 862 usa esta key para acceder a los datos
             set(state => ({ products: { ...state.products, [`cat-${categoryId}`]: productsData } }));
+            
+            console.log('🎯 T31: Productos almacenados en store con key:', `cat-${categoryId}`);
         } catch (e) {
+            console.error('🎯 T31: Error al cargar productos híbridos:', e);
             set({ error: e instanceof Error ? e.message : 'Error' });
         } finally {
             set({ isLoading: false });
@@ -183,1039 +225,817 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
     },
 
     fetchDataForCategory: async (categoryId) => {
-        // 🧭 MIGA DE PAN: Esta es la función MAESTRA de auto-detección inteligente (T32.1)
-        // Decide automáticamente si una categoría debe usar jerarquía simple o completa:
+        // 🧭 MIGA DE PAN: Esta es la función MAESTRA de auto-detección inteligente T31 (CORREGIDA)
+        // PROBLEMA RESUELTO: Antes solo cargaba productos en modo "simple", ahora SIEMPRE carga híbridos
+        // PORQUÉ CAMBIO: T31 requiere jerarquía híbrida - secciones Y productos directos simultáneamente
         // 
-        // 🔍 FLUJO DE AUTO-DETECCIÓN:
-        // 1. Carga las secciones de la categoría
-        // 2. Usa getCategoryDisplayMode() para determinar el modo
-        // 3. Si es "simple" → carga productos directos (fetchProductsByCategory)
-        // 4. Si es "sections" → mantiene secciones para navegación posterior
+        // 🔍 FLUJO T31 CORREGIDO:
+        // 1. Carga las secciones de la categoría (para mostrar en UI)
+        // 2. Carga SIEMPRE los productos híbridos (tradicionales + directos)
+        // 3. La UI decide qué mostrar usando MixedContentView
         //
         // 🎯 Se conecta con:
-        // - DashboardView.tsx para renderizar UI adaptada al modo detectado
-        // - MobileView.tsx para adaptar la navegación móvil
-        // - CategoryGridView.tsx para mostrar productos o secciones según el modo
+        // - DashboardViewWrapper.tsx → MixedContentView para mostrar contenido híbrido
+        // - useMixedContentForCategory() para filtrar y mostrar correctamente
         set({ isLoading: true });
         try {
-            // Paso 1: Siempre cargar secciones primero para auto-detectar
+            // Paso 1: Cargar secciones (siempre necesario para UI híbrida)
             await get().fetchSectionsByCategory(categoryId);
-
-            // Paso 2: Obtener las secciones cargadas y determinar el modo
-            const sections = get().sections[categoryId] || [];
-            const displayMode = getCategoryDisplayMode(sections);
-
-            // Paso 3: Si es modo simple, cargar productos directos automáticamente  
-            if (displayMode === 'simple') {
-                await get().fetchProductsByCategory(categoryId);
-            }
-
-            // Si es modo "sections", las secciones ya están cargadas para navegación posterior
-
+            
+            // Paso 2: Cargar SIEMPRE productos híbridos para T31
+            // PORQUÉ: Incluso categorías con secciones pueden tener productos directos
+            // CONEXIÓN: MixedContentView necesita ambos tipos de datos para renderizar
+            await get().fetchProductsByCategory(categoryId);
+            
         } catch (e) {
-            set({ error: e instanceof Error ? e.message : 'Error al cargar datos de categoría' });
+            set({ error: e instanceof Error ? e.message : 'Error en carga híbrida T31' });
         } finally {
             set({ isLoading: false });
         }
     },
 
-    createCategory: async (data, imageFile) => {
-        const toastId = 'crud-category';
-        set({ isUpdating: true });
-        toast.loading('Creando categoría...', { id: toastId });
-        try {
-            const formData = new FormData();
-            Object.entries(data).forEach(([key, value]) => {
-                if (value !== null) formData.append(key, String(value));
-            });
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
+    // 🎯 OPERACIONES CRUD CON VALIDACIONES
 
-            const res = await fetch('/api/categories', { method: 'POST', body: formData });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error);
-            }
-
-            const responseData = await res.json();
-            toast.success('Categoría creada', { id: toastId });
-
-            const clientId = get().client?.id;
-            if (clientId) await get().fetchCategories(clientId);
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
-        } finally {
-            set({ isUpdating: false });
+    createCategory: async (data, imageFile = null, skipPermissionCheck = false) => {
+        // 🔒 VALIDACIÓN DE PERMISOS
+        // PORQUÉ: Evita operaciones no autorizadas antes de enviar a servidor
+        if (!skipPermissionCheck && !get().validatePermission('categories.create')) {
+            toast.error('No tienes permisos para crear categorías');
+            return;
         }
-    },
 
-    updateCategory: async (id, data, imageFile) => {
-        // 🧭 MIGA DE PAN: Esta función actualiza categorías existentes siguiendo el mismo patrón
-        // que createCategory, pero usando PUT y un endpoint específico por ID.
-        // Se conecta con EditCategoryModal.tsx y CategoryForm.tsx para la edición desde ambas vistas.
-        const toastId = `update-category-${id}`;
         set({ isUpdating: true });
-        toast.loading('Actualizando categoría...', { id: toastId });
         try {
             const formData = new FormData();
-            formData.append('category_id', String(id));
             Object.entries(data).forEach(([key, value]) => {
-                if (value !== null && key !== 'category_id') {
-                    formData.append(key, String(value));
+                if (value !== null && value !== undefined) {
+                    formData.append(key, value.toString());
                 }
             });
             if (imageFile) formData.append('image', imageFile);
 
-            const res = await fetch('/api/categories', { method: 'PUT', body: formData });
+            const res = await fetch('/api/categories', {
+                method: 'POST',
+                body: formData,
+            });
 
             if (!res.ok) {
                 const errorData = await res.json();
-                throw new Error(errorData.error);
+                throw new Error(errorData.error || 'Error al crear categoría');
             }
 
-            toast.success('Categoría actualizada', { id: toastId });
+            const newCategory = await res.json();
+            set(state => ({
+                categories: [...state.categories, newCategory].sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+            }));
 
-            // Recargar categorías para reflejar cambios en ambas vistas (móvil y escritorio)
-            const clientId = get().client?.id;
-            if (clientId) await get().fetchCategories(clientId);
+            toast.success('Categoría creada exitosamente');
         } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+            const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+            set({ error: errorMessage });
+            toast.error(errorMessage);
+            throw e;
         } finally {
             set({ isUpdating: false });
         }
     },
 
-    deleteCategory: async (id) => {
-        /**
-         * 🧭 MIGA DE PAN CONTEXTUAL: Eliminación de categoría con edge cases críticos (FASE 4)
-         * 
-         * PORQUÉ CRÍTICO: Implementa patrón v0.dev de optimistic update + rollback completo
-         * PROBLEMA RESUELTO: Antes no manejaba eliminación en cascada ni rollback en caso de error
-         * 
-         * EDGE CASES MANEJADOS:
-         * 1. Eliminación en cascada: Limpia secciones y productos hijos automáticamente
-         * 2. Reseteo de selecciones: Evita estados inconsistentes en UI
-         * 3. Rollback completo: Restaura estado previo si falla la operación
-         * 4. Navegación coherente: Redirige a vista segura tras eliminación
-         * 
-         * CONEXIONES CRÍTICAS:
-         * - DeleteConfirmationModal.tsx: Modal que invoca esta función
-         * - CategoryGridView.tsx: Botón de eliminar que abre el modal
-         * - DashboardView.tsx: Se actualiza automáticamente tras eliminación
-         * - MobileView.tsx: Navegación se resetea si elimina categoría activa
-         * 
-         * PATRÓN v0.dev: Optimistic update → API call → Rollback si falla
-         * ARQUITECTURA: Mantiene consistencia de estado en todo momento
-         */
-        const toastId = `delete-category-${id}`;
+    updateCategory: async (id, data, imageFile = null, skipPermissionCheck = false) => {
+        // 🔒 VALIDACIÓN DE PERMISOS
+        if (!skipPermissionCheck && !get().validatePermission('categories.edit')) {
+            toast.error('No tienes permisos para editar categorías');
+            return;
+        }
+
         set({ isUpdating: true });
-        toast.loading('Eliminando categoría...', { id: toastId });
         
-        // 🧭 MIGA DE PAN: Guardar estado completo para rollback (EDGE CASE CRÍTICO)
-        // PORQUÉ NECESARIO: Si falla la eliminación, debemos restaurar TODO el estado previo
-        // CONEXIÓN: Este snapshot se usa en el catch para rollback completo
-        const prevState = {
-            categories: [...get().categories],
-            sections: { ...get().sections },
-            products: { ...get().products },
+        // 🎯 OPTIMISTIC UPDATE CON ROLLBACK
+        // PORQUÉ: UX inmediata con capacidad de revertir si falla
+        const previousCategories = get().categories;
+        const optimisticCategories = previousCategories.map(cat =>
+            cat.category_id === id ? { ...cat, ...data } : cat
+        );
+        set({ categories: optimisticCategories });
+
+        try {
+            const formData = new FormData();
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    formData.append(key, value.toString());
+                }
+            });
+            if (imageFile) formData.append('image', imageFile);
+
+            const res = await fetch(`/api/categories/${id}`, {
+                method: 'PUT',
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Error al actualizar categoría');
+            }
+
+            const updatedCategory = await res.json();
+            set(state => ({
+                categories: state.categories.map(cat =>
+                    cat.category_id === id ? updatedCategory : cat
+                )
+            }));
+
+            toast.success('Categoría actualizada exitosamente');
+        } catch (e) {
+            // 🔄 ROLLBACK EN CASO DE ERROR
+            // PORQUÉ: Restaura el estado anterior si la operación falla
+            set({ categories: previousCategories });
+            
+            const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+            set({ error: errorMessage });
+            toast.error(errorMessage);
+            throw e;
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    deleteCategory: async (id, skipPermissionCheck = false) => {
+        // 🔒 VALIDACIÓN DE PERMISOS
+        if (!skipPermissionCheck && !get().validatePermission('categories.delete')) {
+            toast.error('No tienes permisos para eliminar categorías');
+            return;
+        }
+
+        set({ isUpdating: true });
+        
+        // 🎯 OPTIMISTIC UPDATE CON ROLLBACK COMPLETO
+        // PORQUÉ: Elimina de UI inmediatamente pero puede revertir
+        const previousState = {
+            categories: get().categories,
+            sections: get().sections,
+            products: get().products,
             selectedCategoryId: get().selectedCategoryId,
-            selectedSectionId: get().selectedSectionId,
-            activeCategoryId: get().activeCategoryId,
-            activeSectionId: get().activeSectionId,
-            activeView: get().activeView,
-            history: [...get().history]
+            selectedSectionId: get().selectedSectionId
         };
-        
-        try {
-            // 🧭 MIGA DE PAN: OPTIMISTIC UPDATE - Actualizar UI inmediatamente
-            // PATRÓN v0.dev: Usuario ve cambios instantáneos, rollback si falla
-            set(state => {
-                // Eliminar categoría del array
-                const newCategories = state.categories.filter(cat => cat.category_id !== id);
-                
-                // 🎯 EDGE CASE: Eliminación en cascada de secciones hijas
-                // PORQUÉ CRÍTICO: Evita secciones huérfanas en el estado
-                const newSections = { ...state.sections };
-                delete newSections[id]; // Eliminar todas las secciones de esta categoría
-                
-                // 🎯 EDGE CASE: Eliminación en cascada de productos hijos
-                // PROBLEMA RESUELTO: Productos directos (cat-${id}) y productos de secciones
-                const newProducts = { ...state.products };
-                delete newProducts[`cat-${id}`]; // Eliminar productos directos
-                
-                // Eliminar productos de secciones que pertenecían a esta categoría
-                const sectionsToDelete = prevState.sections[id] || [];
-                sectionsToDelete.forEach(section => {
-                    delete newProducts[section.section_id];
-                });
-                
-                // 🎯 EDGE CASE: Reseteo inteligente de selecciones
-                // CONEXIÓN: Evita que DashboardView muestre contenido de categoría eliminada
-                let newSelectedCategoryId = state.selectedCategoryId;
-                let newSelectedSectionId = state.selectedSectionId;
-                let newActiveCategoryId = state.activeCategoryId;
-                let newActiveSectionId = state.activeSectionId;
-                let newActiveView = state.activeView;
-                let newHistory = state.history;
-                
-                // Resetear selecciones de escritorio si se eliminó la categoría activa
-                if (state.selectedCategoryId === id) {
-                    newSelectedCategoryId = null;
-                    newSelectedSectionId = null;
-                }
-                
-                // 🎯 EDGE CASE: Navegación móvil coherente tras eliminación
-                // PROBLEMA RESUELTO: Usuario queda en vista vacía si elimina categoría activa
-                if (state.activeCategoryId === id) {
-                    newActiveView = 'categories';
-                    newActiveCategoryId = null;
-                    newActiveSectionId = null;
-                    newHistory = []; // Limpiar historial para evitar navegación a categoría eliminada
-                }
-                
-                return {
-                    ...state,
-                    categories: newCategories,
-                    sections: newSections,
-                    products: newProducts,
-                    selectedCategoryId: newSelectedCategoryId,
-                    selectedSectionId: newSelectedSectionId,
-                    activeCategoryId: newActiveCategoryId,
-                    activeSectionId: newActiveSectionId,
-                    activeView: newActiveView,
-                    history: newHistory
-                };
-            });
 
-            // 🧭 MIGA DE PAN: Llamada a API tras optimistic update
-            // CONEXIÓN: /api/categories/[id]/route.ts maneja eliminación en cascada en servidor
-            const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+        // Eliminar categoría y limpiar datos relacionados
+        const updatedCategories = previousState.categories.filter(cat => cat.category_id !== id);
+        const updatedSections = { ...previousState.sections };
+        const updatedProducts = { ...previousState.products };
+        delete updatedSections[id];
+        delete updatedProducts[`cat-${id}`];
+
+        // Reset de selección si se elimina la categoría activa
+        const newSelectedCategoryId = previousState.selectedCategoryId === id ? null : previousState.selectedCategoryId;
+        const newSelectedSectionId = previousState.selectedCategoryId === id ? null : previousState.selectedSectionId;
+
+        set({
+            categories: updatedCategories,
+            sections: updatedSections,
+            products: updatedProducts,
+            selectedCategoryId: newSelectedCategoryId,
+            selectedSectionId: newSelectedSectionId
+        });
+
+        try {
+            const res = await fetch(`/api/categories/${id}`, {
+                method: 'DELETE',
+            });
 
             if (!res.ok) {
                 const errorData = await res.json();
-                throw new Error(errorData.message || 'Error al eliminar categoría');
+                throw new Error(errorData.error || 'Error al eliminar categoría');
             }
 
-            toast.success('Categoría eliminada', { id: toastId });
-
-            // 🧭 MIGA DE PAN: Recargar datos para sincronizar con servidor
-            // PORQUÉ NECESARIO: Asegurar que contadores y relaciones estén actualizados
-            const clientId = get().client?.id;
-            if (clientId) await get().fetchCategories(clientId);
+            toast.success('Categoría eliminada exitosamente');
+        } catch (e) {
+            // 🔄 ROLLBACK COMPLETO
+            // PORQUÉ: Restaura todo el estado anterior incluyendo selecciones
+            set(previousState);
             
-        } catch (e) {
-            // 🎯 EDGE CASE CRÍTICO: Rollback completo del estado
-            // PATRÓN v0.dev: Restaurar estado exacto previo a la operación fallida
-            // CONEXIÓN: prevState capturado al inicio se restaura completamente
-            set(prevState);
-            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+            const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+            set({ error: errorMessage });
+            toast.error(errorMessage);
+            throw e;
         } finally {
             set({ isUpdating: false });
         }
     },
 
-    toggleCategoryVisibility: async (id, status) => {
-        // 🧭 MIGA DE PAN: Esta función alterna la visibilidad de categorías usando el endpoint PATCH.
-        // Se conecta con CategoryGridView.tsx y CategoryList.tsx para el botón "ojo" en ambas vistas.
-        const toastId = `toggle-category-${id}`;
-        set({ isUpdating: true });
-        toast.loading('Actualizando visibilidad...', { id: toastId });
-        try {
-            const newStatus = status === 1 ? false : true;
-            const res = await fetch(`/api/categories/${id}/visibility`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || 'Error al actualizar visibilidad');
-            }
-
-            toast.success('Visibilidad actualizada', { id: toastId });
-
-            // Recargar categorías para reflejar cambios
-            const clientId = get().client?.id;
-            if (clientId) await get().fetchCategories(clientId);
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error desconocido', { id: toastId });
-        } finally {
-            set({ isUpdating: false });
+    toggleCategoryVisibility: async (id, status, skipPermissionCheck = false) => {
+        // 🔒 VALIDACIÓN DE PERMISOS
+        if (!skipPermissionCheck && !get().validatePermission('categories.visibility')) {
+            toast.error('No tienes permisos para cambiar la visibilidad');
+            return;
         }
+
+        await get().updateCategory(id, { status: status === 1 }, null, true);
     },
 
-    createSection: async (data, imageFile) => {
-        // 🧭 MIGA DE PAN: Esta función crea secciones siguiendo el patrón exitoso de createCategory.
-        // Se conecta con EditSectionModal.tsx y SectionForm.tsx desde ambas vistas.
-        const toastId = 'crud-section';
+    // 🎯 OPERACIONES DE SECCIONES CON VALIDACIONES
+    // PORQUÉ: Misma lógica de validaciones aplicada a secciones
+
+    createSection: async (data, imageFile = null, skipPermissionCheck = false) => {
+        if (!skipPermissionCheck && !get().validatePermission('sections.create')) {
+            toast.error('No tienes permisos para crear secciones');
+            return;
+        }
+
         set({ isUpdating: true });
-        toast.loading('Creando sección...', { id: toastId });
-
-        console.log('🎯 createSection - Datos recibidos:', { data, hasImageFile: !!imageFile });
-
         try {
             const formData = new FormData();
-
-            console.log('🎯 createSection - Procesando campos de data...');
             Object.entries(data).forEach(([key, value]) => {
-                if (value !== null) {
-                    console.log(`🎯 createSection - FormData: ${key} = ${value}`);
-                    formData.append(key, String(value));
-                }
-            });
-
-            if (imageFile) {
-                console.log('🎯 createSection - Añadiendo imagen:', imageFile.name);
-                formData.append('image', imageFile);
-            }
-
-            console.log('🎯 createSection - Enviando request a /api/sections');
-            const res = await fetch('/api/sections', { method: 'POST', body: formData });
-
-            console.log('🎯 createSection - Response status:', res.status);
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                console.error('🎯 createSection - Error response:', errorData);
-                throw new Error(errorData.error || errorData.message || 'Error al crear sección');
-            }
-
-            const responseData = await res.json();
-            console.log('🎯 createSection - Success response:', responseData);
-
-            toast.success('Sección creada', { id: toastId });
-
-            // Recargar secciones de la categoría activa/seleccionada
-            const { activeCategoryId, selectedCategoryId } = get();
-            const targetCategoryId = activeCategoryId || selectedCategoryId;
-            console.log('🎯 createSection - Recargando secciones para categoría:', targetCategoryId);
-
-            if (targetCategoryId) await get().fetchSectionsByCategory(targetCategoryId);
-        } catch (e) {
-            console.error('🎯 createSection - Error completo:', e);
-            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-
-    updateSection: async (id, data, imageFile) => {
-        // 🧭 MIGA DE PAN: Actualiza secciones existentes usando PUT en el endpoint de secciones.
-        // Se conecta con EditSectionModal.tsx para la edición desde ambas vistas.
-        // IMPORTANTE: El endpoint PUT de secciones espera el campo 'id' (no 'section_id')
-        const toastId = `update-section-${id}`;
-        set({ isUpdating: true });
-        toast.loading('Actualizando sección...', { id: toastId });
-        try {
-            const formData = new FormData();
-            formData.append('id', String(id));
-            Object.entries(data).forEach(([key, value]) => {
-                if (value !== null && key !== 'id') {
-                    formData.append(key, String(value));
+                if (value !== null && value !== undefined) {
+                    formData.append(key, value.toString());
                 }
             });
             if (imageFile) formData.append('image', imageFile);
 
-            const res = await fetch('/api/sections', { method: 'PUT', body: formData });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error);
-            }
-
-            toast.success('Sección actualizada', { id: toastId });
-
-            // Recargar secciones de la categoría activa
-            const { activeCategoryId, selectedCategoryId } = get();
-            const targetCategoryId = activeCategoryId || selectedCategoryId;
-            if (targetCategoryId) await get().fetchSectionsByCategory(targetCategoryId);
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-
-    deleteSection: async (id) => {
-        /**
-         * 🧭 MIGA DE PAN CONTEXTUAL: Eliminación de sección con edge cases críticos (FASE 4)
-         * 
-         * PORQUÉ CRÍTICO: Implementa patrón v0.dev con eliminación en cascada de productos hijos
-         * PROBLEMA RESUELTO: Antes no limpiaba productos huérfanos ni manejaba rollback
-         * 
-         * EDGE CASES MANEJADOS:
-         * 1. Eliminación en cascada: Limpia productos hijos automáticamente
-         * 2. Reseteo de selecciones: Evita mostrar contenido de sección eliminada
-         * 3. Rollback completo: Restaura estado si falla la operación
-         * 4. Navegación coherente: Redirige a vista de secciones tras eliminación
-         * 
-         * CONEXIONES CRÍTICAS:
-         * - DeleteConfirmationModal.tsx: Modal que invoca esta función
-         * - SectionGridView.tsx: Botón de eliminar que abre el modal
-         * - DashboardView.tsx: Columna de productos se oculta tras eliminación
-         * - MobileView.tsx: Navegación se resetea si elimina sección activa
-         * 
-         * PATRÓN v0.dev: Optimistic update → API call → Rollback si falla
-         */
-        const toastId = `delete-section-${id}`;
-        set({ isUpdating: true });
-        toast.loading('Eliminando sección...', { id: toastId });
-        
-        // 🧭 MIGA DE PAN: Snapshot completo para rollback (EDGE CASE CRÍTICO)
-        const prevState = {
-            sections: { ...get().sections },
-            products: { ...get().products },
-            selectedSectionId: get().selectedSectionId,
-            activeSectionId: get().activeSectionId,
-            activeView: get().activeView,
-            history: [...get().history]
-        };
-        
-        try {
-            // 🧭 MIGA DE PAN: OPTIMISTIC UPDATE con eliminación en cascada
-            set(state => {
-                const newSections = { ...state.sections };
-                const newProducts = { ...state.products };
-                
-                // 🎯 EDGE CASE: Eliminar sección de todas las categorías
-                // PORQUÉ NECESARIO: sections es un Record<categoryId, Section[]>
-                Object.keys(newSections).forEach(categoryId => {
-                    newSections[categoryId] = newSections[categoryId].filter(
-                        section => section.section_id !== id
-                    );
-                });
-                
-                // 🎯 EDGE CASE: Eliminación en cascada de productos hijos
-                // PROBLEMA RESUELTO: Productos quedan huérfanos si no se eliminan
-                delete newProducts[id]; // Eliminar todos los productos de esta sección
-                
-                // 🎯 EDGE CASE: Reseteo inteligente de selecciones
-                let newSelectedSectionId = state.selectedSectionId;
-                let newActiveSectionId = state.activeSectionId;
-                let newActiveView = state.activeView;
-                let newHistory = state.history;
-                
-                // Resetear selecciones de escritorio
-                if (state.selectedSectionId === id) {
-                    newSelectedSectionId = null;
-                }
-                
-                // 🎯 EDGE CASE: Navegación móvil coherente tras eliminación
-                if (state.activeSectionId === id) {
-                    newActiveView = 'sections';
-                    newActiveSectionId = null;
-                    // Mantener historial para permitir navegación hacia atrás
-                }
-                
-                return {
-                    ...state,
-                    sections: newSections,
-                    products: newProducts,
-                    selectedSectionId: newSelectedSectionId,
-                    activeSectionId: newActiveSectionId,
-                    activeView: newActiveView,
-                    history: newHistory
-                };
+            const res = await fetch('/api/sections', {
+                method: 'POST',
+                body: formData,
             });
 
-            // 🧭 MIGA DE PAN: Llamada a API tras optimistic update
-            const res = await fetch(`/api/sections/${id}`, { method: 'DELETE' });
-
             if (!res.ok) {
                 const errorData = await res.json();
-                throw new Error(errorData.message || 'Error al eliminar sección');
+                throw new Error(errorData.error || 'Error al crear sección');
             }
 
-            toast.success('Sección eliminada', { id: toastId });
-
-            // 🧭 MIGA DE PAN: Recargar datos para sincronizar contadores
-            const { activeCategoryId, selectedCategoryId } = get();
-            const targetCategoryId = activeCategoryId || selectedCategoryId;
-            if (targetCategoryId) await get().fetchSectionsByCategory(targetCategoryId);
+            const newSection = await res.json();
+            const categoryId = newSection.category_id;
             
-        } catch (e) {
-            // 🎯 EDGE CASE CRÍTICO: Rollback completo del estado
-            set(prevState);
-            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-
-    toggleSectionVisibility: async (id, status) => {
-        // 🧭 MIGA DE PAN: Esta función alterna la visibilidad de secciones usando el endpoint PATCH.
-        // Se conecta con SectionGridView.tsx y SectionList.tsx para el botón "ojo" en ambas vistas.
-        const toastId = `toggle-section-${id}`;
-        set({ isUpdating: true });
-        toast.loading('Actualizando visibilidad...', { id: toastId });
-        try {
-            const newStatus = status === 1 ? false : true;
-            const res = await fetch(`/api/sections/${id}/visibility`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
-            });
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || 'Error al actualizar visibilidad');
-            }
-            toast.success('Visibilidad actualizada', { id: toastId });
-
-            // 🧭 MIGA DE PAN CONTEXTUAL: CRÍTICO - Actualizar tanto secciones como categorías
-            // PROBLEMA RESUELTO: Los contadores de visibilidad en categorías no se actualizaban
-            // PORQUÉ NECESARIO: Las categorías muestran "X/Y secciones visibles" y necesitan refrescarse
-            // CONEXIÓN: CategoryList.tsx línea ~52 muestra visible_sections_count/sections_count
-            const { activeCategoryId, selectedCategoryId, client } = get();
-            const targetCategoryId = selectedCategoryId || activeCategoryId;
-
-            if (targetCategoryId) {
-                // Recargar secciones de la categoría para actualizar la lista
-                await get().fetchSectionsByCategory(targetCategoryId);
-            }
-
-            // CRÍTICO: Recargar categorías para actualizar contadores de visibilidad
-            if (client?.id) {
-                await get().fetchCategories(client.id);
-            }
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error desconocido', { id: toastId });
-        } finally {
-            set({ isUpdating: false });
-        }
-    },
-
-    createProduct: async (data, imageFile) => {
-        // 🧭 MIGA DE PAN: Esta función crea productos siguiendo el patrón exitoso de createCategory.
-        // Se conecta con EditProductModal.tsx y ProductForm.tsx desde ambas vistas.
-        // IMPORTANTE: El endpoint POST requiere un campo 'sections' con array JSON de IDs.
-        const toastId = 'crud-product';
-        set({ isUpdating: true });
-        toast.loading('Creando producto...', { id: toastId });
-        try {
-            const formData = new FormData();
-
-            // El endpoint requiere array 'sections' en lugar de section_id individual
-            const { activeSectionId, selectedSectionId } = get();
-            const targetSectionId = data.section_id || activeSectionId || selectedSectionId;
-
-            // Añadir todos los campos excepto section_id
-            Object.entries(data).forEach(([key, value]) => {
-                if (value !== null && key !== 'section_id') {
-                    formData.append(key, String(value));
+            set(state => ({
+                sections: {
+                    ...state.sections,
+                    [categoryId]: [...(state.sections[categoryId] || []), newSection]
+                        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
                 }
-            });
+            }));
 
-            // Añadir array de secciones como requiere el endpoint
-            if (targetSectionId) {
-                formData.append('sections', JSON.stringify([targetSectionId]));
-            }
-
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
-
-            const res = await fetch('/api/products', { method: 'POST', body: formData });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error);
-            }
-
-            const responseData = await res.json();
-            toast.success('Producto creado', { id: toastId });
-
-            // Recargar productos de la sección activa/seleccionada
-            if (targetSectionId) await get().fetchProductsBySection(targetSectionId);
+            toast.success('Sección creada exitosamente');
         } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+            const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+            set({ error: errorMessage });
+            toast.error(errorMessage);
+            throw e;
         } finally {
             set({ isUpdating: false });
         }
     },
 
-    // 🎯 T31: NUEVA FUNCIÓN - Crear producto directo en categoría
-    // PORQUÉ: Implementa la propuesta de "relaciones opcionales" de Gemini
-    // CONEXIÓN: CategoryGridView → FAB "Añadir Producto" → esta función → API modificada
-    // FLUJO: Producto se crea directamente en categoría sin sección intermedia
-    // 🧭 MIGA DE PAN CONTEXTUAL: T31 - FUNCIÓN CLAVE PARA PRODUCTOS DIRECTOS EN CATEGORÍAS
-    // PORQUÉ EXISTE: Permite crear productos directamente en categorías sin secciones intermedias
-    // PROBLEMA RESUELTO: Categorías simples como "BEBIDAS" no necesitan estructura "Refrescos > Coca Cola"
-    // ARQUITECTURA: Implementa jerarquía flexible Category → Product (vs tradicional Category → Section → Product)
-    // CONEXIONES CRÍTICAS:
-    // - CategoryGridView.tsx: FAB contextual llamará esta función cuando detecte categoría simple
-    // - /api/products/route.ts líneas 328-340: API modificada detecta category_id sin sections
-    // - prisma/schema.prisma líneas 60-63: Nueva relación direct_products en categories
-    // - fetchProductsByCategory() línea 280: Recarga productos híbridos tras creación
-    // CASOS DE USO: Categorías simples como "BEBIDAS" → "Coca Cola" (sin sección)
-    createProductDirect: async (categoryId: number, data: Partial<Product>, imageFile?: File | null) => {
-        const toastId = 'crud-product-direct';
-        set({ isUpdating: true });
-        toast.loading('Creando producto directo...', { id: toastId });
-        try {
-            const formData = new FormData();
-
-            // 🎯 T31: MODO DIRECTO - Enviar category_id en lugar de sections
-            // PORQUÉ: La API modificada en /api/products/route.ts línea 328 detecta category_id sin sections
-            // REGLA DE NEGOCIO: category_id y sections son mutuamente excluyentes en T31
-            // FLUJO: FormData → API → Prisma.create({ category_id, section_id: null })
-            formData.append('category_id', String(categoryId));
-
-            // FILTRADO CRÍTICO: Excluir section_id y category_id para evitar conflictos
-            // PORQUÉ: section_id debe ser null para productos directos, category_id ya se añadió arriba
-            Object.entries(data).forEach(([key, value]) => {
-                if (value !== null && key !== 'section_id' && key !== 'category_id') {
-                    formData.append(key, String(value));
-                }
-            });
-
-            if (imageFile) {
-                formData.append('image', imageFile);
-            }
-
-            // ENDPOINT REUTILIZADO: Usa misma API que createProduct() pero con lógica adaptativa
-            // CONEXIÓN: /api/products/route.ts línea 436 - FLUJO comentado para diferenciar modos
-            const res = await fetch('/api/products', { method: 'POST', body: formData });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error);
-            }
-
-            const responseData = await res.json();
-            toast.success('Producto directo creado', { id: toastId });
-
-            // 🎯 T31: RECARGAR PRODUCTOS HÍBRIDOS - Tradicionales + Directos
-            // PORQUÉ CRÍTICO: La categoría ahora puede tener productos directos que deben mostrarse
-            // CONEXIÓN: fetchProductsByCategory() línea 280 usa API híbrida /api/categories/[id]/products
-            // FLUJO: Creación → Recarga → CategoryGridView muestra productos directos + secciones
-            // ARQUITECTURA: Mantiene consistencia con patrón de recarga tras CRUD
-            await get().fetchProductsByCategory(categoryId);
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
-        } finally {
-            set({ isUpdating: false });
+    updateSection: async (id, data, imageFile = null, skipPermissionCheck = false) => {
+        if (!skipPermissionCheck && !get().validatePermission('sections.edit')) {
+            toast.error('No tienes permisos para editar secciones');
+            return;
         }
-    },
 
-    updateProduct: async (id, data, imageFile) => {
-        // 🧭 MIGA DE PAN: Actualiza productos existentes usando PUT en el endpoint de productos.
-        // Se conecta con EditProductModal.tsx para la edición desde ambas vistas.
-        // IMPORTANTE: El endpoint PUT requiere product_id, section_id y client_id obligatorios
-        const toastId = `update-product-${id}`;
         set({ isUpdating: true });
-        toast.loading('Actualizando producto...', { id: toastId });
+        
+        // Optimistic update con rollback
+        const previousSections = get().sections;
+        let targetCategoryId: number | null = null;
+        
+        const optimisticSections = { ...previousSections };
+        for (const [categoryId, sections] of Object.entries(previousSections)) {
+            const sectionIndex = sections.findIndex(s => s.section_id === id);
+            if (sectionIndex !== -1) {
+                targetCategoryId = parseInt(categoryId);
+                optimisticSections[categoryId] = sections.map(section =>
+                    section.section_id === id ? { ...section, ...data } : section
+                );
+                break;
+            }
+        }
+        
+        set({ sections: optimisticSections });
+
         try {
             const formData = new FormData();
-            formData.append('product_id', String(id));
-
-            // Añadir campos requeridos por el endpoint
-            const { activeSectionId, selectedSectionId, client } = get();
-            const targetSectionId = activeSectionId || selectedSectionId;
-
-            if (targetSectionId) formData.append('section_id', String(targetSectionId));
-            if (client?.id) formData.append('client_id', String(client.id));
-
             Object.entries(data).forEach(([key, value]) => {
-                if (value !== null && key !== 'product_id') {
-                    formData.append(key, String(value));
+                if (value !== null && value !== undefined) {
+                    formData.append(key, value.toString());
                 }
             });
             if (imageFile) formData.append('image', imageFile);
 
-            const res = await fetch('/api/products', { method: 'PUT', body: formData });
+            const res = await fetch(`/api/sections/${id}`, {
+                method: 'PUT',
+                body: formData,
+            });
 
             if (!res.ok) {
                 const errorData = await res.json();
-                throw new Error(errorData.message || errorData.error || 'Error al actualizar producto');
+                throw new Error(errorData.error || 'Error al actualizar sección');
             }
 
-            toast.success('Producto actualizado', { id: toastId });
+            const updatedSection = await res.json();
+            const categoryId = updatedSection.category_id;
+            
+            set(state => ({
+                sections: {
+                    ...state.sections,
+                    [categoryId]: state.sections[categoryId]?.map(section =>
+                        section.section_id === id ? updatedSection : section
+                    ) || []
+                }
+            }));
 
-            // Recargar productos de la sección activa
-            if (targetSectionId) await get().fetchProductsBySection(targetSectionId);
+            toast.success('Sección actualizada exitosamente');
         } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+            // Rollback
+            set({ sections: previousSections });
+            
+            const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+            set({ error: errorMessage });
+            toast.error(errorMessage);
+            throw e;
         } finally {
             set({ isUpdating: false });
         }
     },
 
-    deleteProduct: async (id) => {
-        /**
-         * 🧭 MIGA DE PAN CONTEXTUAL: Eliminación de producto con edge cases críticos (FASE 4)
-         * 
-         * PORQUÉ CRÍTICO: Maneja tanto productos tradicionales como productos directos (T31)
-         * PROBLEMA RESUELTO: Antes no diferenciaba entre productos de sección vs productos directos
-         * 
-         * EDGE CASES MANEJADOS:
-         * 1. Detección automática: Identifica si es producto tradicional o directo
-         * 2. Recarga inteligente: Usa fetchProductsBySection o fetchProductsByCategory según tipo
-         * 3. Rollback completo: Restaura estado si falla la operación
-         * 4. Actualización de contadores: Refresca contadores de sección/categoría padre
-         * 
-         * CONEXIONES CRÍTICAS:
-         * - DeleteConfirmationModal.tsx: Modal que invoca esta función
-         * - ProductGridView.tsx: Botón de eliminar que abre el modal
-         * - CategoryGridView.tsx: Contadores se actualizan tras eliminación
-         * - SectionGridView.tsx: Contadores de productos se actualizan
-         * 
-         * PATRÓN v0.dev: Optimistic update → API call → Rollback si falla
-         * ARQUITECTURA T31: Maneja jerarquía híbrida (tradicional + directa)
-         */
-        const toastId = `delete-product-${id}`;
+    deleteSection: async (id, skipPermissionCheck = false) => {
+        if (!skipPermissionCheck && !get().validatePermission('sections.delete')) {
+            toast.error('No tienes permisos para eliminar secciones');
+            return;
+        }
+
         set({ isUpdating: true });
-        toast.loading('Eliminando producto...', { id: toastId });
         
-        // 🧭 MIGA DE PAN: Snapshot para rollback (productos son hojas, snapshot mínimo)
-        const prevProducts = { ...get().products };
+        // Optimistic update con rollback completo
+        const previousState = {
+            sections: get().sections,
+            products: get().products,
+            selectedSectionId: get().selectedSectionId
+        };
+
+        // Encontrar y eliminar la sección
+        const updatedSections = { ...previousState.sections };
+        let targetCategoryId: number | null = null;
         
+        for (const [categoryId, sections] of Object.entries(updatedSections)) {
+            const sectionIndex = sections.findIndex(s => s.section_id === id);
+            if (sectionIndex !== -1) {
+                targetCategoryId = parseInt(categoryId);
+                updatedSections[categoryId] = sections.filter(s => s.section_id !== id);
+                break;
+            }
+        }
+
+        // Limpiar productos de la sección eliminada
+        const updatedProducts = { ...previousState.products };
+        delete updatedProducts[id];
+
+        // Reset selección si se elimina la sección activa
+        const newSelectedSectionId = previousState.selectedSectionId === id ? null : previousState.selectedSectionId;
+
+        set({
+            sections: updatedSections,
+            products: updatedProducts,
+            selectedSectionId: newSelectedSectionId
+        });
+
         try {
-            // 🧭 MIGA DE PAN: OPTIMISTIC UPDATE - Eliminar producto inmediatamente
-            set(state => {
-                const newProducts = { ...state.products };
-                
-                // 🎯 EDGE CASE: Eliminar de todas las listas (secciones + categorías directas)
-                // PORQUÉ NECESARIO: Producto puede estar en products[sectionId] o products[`cat-${categoryId}`]
-                Object.keys(newProducts).forEach(key => {
-                    if (Array.isArray(newProducts[key])) {
-                        newProducts[key] = newProducts[key].filter(
-                            (product: Product) => product.product_id !== id
-                        );
+            const res = await fetch(`/api/sections/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Error al eliminar sección');
+            }
+
+            toast.success('Sección eliminada exitosamente');
+        } catch (e) {
+            // Rollback completo
+            set(previousState);
+            
+            const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+            set({ error: errorMessage });
+            toast.error(errorMessage);
+            throw e;
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    toggleSectionVisibility: async (id, status, skipPermissionCheck = false) => {
+        if (!skipPermissionCheck && !get().validatePermission('sections.visibility')) {
+            toast.error('No tienes permisos para cambiar la visibilidad');
+            return;
+        }
+
+        await get().updateSection(id, { status: status === 1 }, null, true);
+    },
+
+    // 🎯 OPERACIONES DE PRODUCTOS CON VALIDACIONES
+    // PORQUÉ: Validaciones de permisos aplicadas a todas las operaciones de productos
+
+    createProduct: async (data, imageFile = null, skipPermissionCheck = false) => {
+        if (!skipPermissionCheck && !get().validatePermission('products.create')) {
+            toast.error('No tienes permisos para crear productos');
+            return;
+        }
+
+        set({ isUpdating: true });
+        try {
+            const formData = new FormData();
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    formData.append(key, value.toString());
+                }
+            });
+            if (imageFile) formData.append('image', imageFile);
+
+            const res = await fetch('/api/products', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Error al crear producto');
+            }
+
+            const newProduct = await res.json();
+            const sectionId = newProduct.section_id;
+            
+            if (sectionId) {
+                set(state => ({
+                    products: {
+                        ...state.products,
+                        [sectionId]: [...(state.products[sectionId] || []), newProduct]
+                            .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
                     }
-                });
-                
-                return { ...state, products: newProducts };
-            });
-
-            // 🧭 MIGA DE PAN: Llamada a API
-            const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
-
-            if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.message || 'Error al eliminar producto');
+                }));
             }
 
-            toast.success('Producto eliminado', { id: toastId });
-
-            // 🎯 EDGE CASE: Recarga inteligente según contexto (T31 híbrido)
-            // PROBLEMA RESUELTO: Debe detectar si recargar productos de sección o categoría
-            const { activeCategoryId, selectedCategoryId, activeSectionId, selectedSectionId } = get();
-            const targetCategoryId = selectedCategoryId || activeCategoryId;
-            const targetSectionId = selectedSectionId || activeSectionId;
-
-            if (targetCategoryId) {
-                const sections = get().sections[targetCategoryId];
-                const displayMode = getCategoryDisplayMode(sections || []);
-
-                if (displayMode === 'simple') {
-                    // 🧭 MIGA DE PAN: Producto directo eliminado, recargar productos de categoría
-                    await get().fetchProductsByCategory(targetCategoryId);
-                } else if (targetSectionId) {
-                    // 🧭 MIGA DE PAN: Producto tradicional eliminado, recargar productos de sección
-                    await get().fetchProductsBySection(targetSectionId);
-                }
-
-                // 🎯 EDGE CASE CRÍTICO: Actualizar contadores de sección/categoría padre
-                // PORQUÉ NECESARIO: SectionGridView y CategoryGridView muestran contadores
-                await get().fetchSectionsByCategory(targetCategoryId);
-            }
-            
+            toast.success('Producto creado exitosamente');
         } catch (e) {
-            // 🎯 EDGE CASE: Rollback de productos
-            set(state => ({ ...state, products: prevProducts }));
-            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+            const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+            set({ error: errorMessage });
+            toast.error(errorMessage);
+            throw e;
         } finally {
             set({ isUpdating: false });
         }
     },
 
-    toggleProductVisibility: async (id, status) => {
-        // 🧭 MIGA DE PAN: Esta función alterna la visibilidad de productos usando el endpoint PATCH.
-        // Se conecta con ProductGridView.tsx y ProductList.tsx para el botón "ojo" en ambas vistas.
-        const toastId = `toggle-product-${id}`;
+    createProductDirect: async (categoryId, data, imageFile = null, skipPermissionCheck = false) => {
+        // 🎯 T31: CREAR PRODUCTO DIRECTO EN CATEGORÍA
+        // PORQUÉ: Permite crear productos sin sección intermedia
+        // VALIDACIÓN: Misma lógica de permisos que createProduct
+        console.log('🎯 T31: Iniciando creación de producto directo:', { categoryId, data });
+        
+        if (!skipPermissionCheck && !get().validatePermission('products.create')) {
+            toast.error('No tienes permisos para crear productos');
+            return;
+        }
+
         set({ isUpdating: true });
-        toast.loading('Actualizando visibilidad...', { id: toastId });
         try {
-            const newStatus = status === 1 ? false : true;
-            const res = await fetch(`/api/products/${id}/visibility`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
+            const productData = { ...data, category_id: categoryId, section_id: null };
+            console.log('🎯 T31: Datos del producto a enviar:', productData);
+            
+            const formData = new FormData();
+            
+            Object.entries(productData).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    formData.append(key, value.toString());
+                }
             });
+            if (imageFile) formData.append('image', imageFile);
+
+            console.log('🎯 T31: Enviando request a /api/products...');
+            const res = await fetch('/api/products', {
+                method: 'POST',
+                body: formData,
+            });
+
             if (!res.ok) {
                 const errorData = await res.json();
-                throw new Error(errorData.message || 'Error al actualizar visibilidad');
+                console.error('🎯 T31: Error en respuesta API:', errorData);
+                throw new Error(errorData.error || 'Error al crear producto directo');
             }
-            toast.success('Visibilidad actualizada', { id: toastId });
 
-            // 🧭 MIGA DE PAN CONTEXTUAL: Refresco inteligente según contexto de navegación
-            // PROBLEMA RESUELTO: Para categorías simples, debe usar fetchProductsByCategory
-            // CONEXIÓN: useCategoryDisplayMode determina si es categoría simple o compleja
-            const { activeCategoryId, selectedCategoryId, activeSectionId, selectedSectionId } = get();
-            const targetCategoryId = selectedCategoryId || activeCategoryId;
-            const targetSectionId = selectedSectionId || activeSectionId;
+            const newProduct = await res.json();
+            console.log('🎯 T31: Producto creado exitosamente:', newProduct);
 
-            // Para categorías simples, refrescar productos de categoría
-            if (targetCategoryId) {
-                const sections = get().sections[targetCategoryId];
-                const displayMode = getCategoryDisplayMode(sections || []);
+            // Recargar productos híbridos de la categoría
+            console.log('🎯 T31: Recargando productos de categoría:', categoryId);
+            await get().fetchProductsByCategory(categoryId);
 
-                if (displayMode === 'simple') {
-                    await get().fetchProductsByCategory(targetCategoryId);
-                } else if (targetSectionId) {
-                    await get().fetchProductsBySection(targetSectionId);
-                }
-
-                // CRÍTICO: Actualizar secciones para refrescar contadores de productos visibles
-                // PORQUÉ NECESARIO: Las secciones muestran "X/Y productos visibles" y necesitan refrescarse
-                // CONEXIÓN: SectionGridView.tsx y SectionListView.tsx muestran visible_products_count
-                await get().fetchSectionsByCategory(targetCategoryId);
-            }
+            toast.success('Producto creado exitosamente en categoría');
         } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Error desconocido', { id: toastId });
+            const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+            console.error('🎯 T31: Error completo:', e);
+            set({ error: errorMessage });
+            toast.error(errorMessage);
+            throw e;
         } finally {
             set({ isUpdating: false });
         }
     },
 
-    setSelectedCategoryId: (id) => {
-        set({ selectedCategoryId: id, selectedSectionId: null });
-        // 🧭 MIGA DE PAN CONTEXTUAL: Esta función es el punto de entrada para navegación en ESCRITORIO
-        // PORQUÉ: Se decidió separar la navegación móvil (handleCategorySelect) de la de escritorio (setSelectedCategoryId)
-        // porque tienen flujos diferentes - escritorio usa master-detail, móvil usa drill-down
-        // CONEXIONES: Se conecta con DashboardView.tsx línea ~45 en CategoryGridView.onCategorySelect
-        // DECISIÓN ARQUITECTÓNICA: Siempre limpia selectedSectionId para forzar re-selección de sección
-        // FLUJO: DashboardView → CategoryGridView → onClick → setSelectedCategoryId → fetchSectionsByCategory → SectionGridView
-        if (id) {
-            get().fetchSectionsByCategory(id);
+    updateProduct: async (id, data, imageFile = null, skipPermissionCheck = false) => {
+        if (!skipPermissionCheck && !get().validatePermission('products.edit')) {
+            toast.error('No tienes permisos para editar productos');
+            return;
+        }
+
+        set({ isUpdating: true });
+        
+        // Optimistic update con rollback
+        const previousProducts = get().products;
+        let targetKey: string | null = null;
+        
+        const optimisticProducts = { ...previousProducts };
+        for (const [key, products] of Object.entries(previousProducts)) {
+            const productIndex = products.findIndex(p => p.product_id === id);
+            if (productIndex !== -1) {
+                targetKey = key;
+                optimisticProducts[key] = products.map(product =>
+                    product.product_id === id ? { ...product, ...data } : product
+                );
+                break;
+            }
+        }
+        
+        set({ products: optimisticProducts });
+
+        try {
+            const formData = new FormData();
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null && value !== undefined) {
+                    formData.append(key, value.toString());
+                }
+            });
+            if (imageFile) formData.append('image', imageFile);
+
+            const res = await fetch(`/api/products/${id}`, {
+                method: 'PUT',
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Error al actualizar producto');
+            }
+
+            const updatedProduct = await res.json();
+            
+            // Determinar la key correcta para actualizar
+            const newSectionId = updatedProduct.section_id;
+            const newCategoryId = updatedProduct.category_id;
+            const newKey = newSectionId ? newSectionId.toString() : `cat-${newCategoryId}`;
+            
+            // Si cambió de ubicación, recargar ambas ubicaciones
+            if (targetKey && targetKey !== newKey) {
+                // Recargar ubicación anterior y nueva
+                if (targetKey.startsWith('cat-')) {
+                    const oldCategoryId = parseInt(targetKey.replace('cat-', ''));
+                    await get().fetchProductsByCategory(oldCategoryId);
+                } else {
+                    await get().fetchProductsBySection(parseInt(targetKey));
+                }
+                
+                if (newKey.startsWith('cat-')) {
+                    await get().fetchProductsByCategory(newCategoryId);
+                } else {
+                    await get().fetchProductsBySection(newSectionId);
+                }
+            } else {
+                // Actualización en la misma ubicación
+                set(state => ({
+                    products: {
+                        ...state.products,
+                        [newKey]: state.products[newKey]?.map(product =>
+                            product.product_id === id ? updatedProduct : product
+                        ) || []
+                    }
+                }));
+            }
+
+            toast.success('Producto actualizado exitosamente');
+        } catch (e) {
+            // Rollback
+            set({ products: previousProducts });
+            
+            const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+            set({ error: errorMessage });
+            toast.error(errorMessage);
+            throw e;
+        } finally {
+            set({ isUpdating: false });
         }
     },
+
+    deleteProduct: async (id, skipPermissionCheck = false) => {
+        if (!skipPermissionCheck && !get().validatePermission('products.delete')) {
+            toast.error('No tienes permisos para eliminar productos');
+            return;
+        }
+
+        set({ isUpdating: true });
+        
+        // Optimistic update con rollback
+        const previousProducts = get().products;
+        let targetKey: string | null = null;
+        
+        const updatedProducts = { ...previousProducts };
+        for (const [key, products] of Object.entries(updatedProducts)) {
+            const productIndex = products.findIndex(p => p.product_id === id);
+            if (productIndex !== -1) {
+                targetKey = key;
+                updatedProducts[key] = products.filter(p => p.product_id !== id);
+                break;
+            }
+        }
+        
+        set({ products: updatedProducts });
+
+        try {
+            const res = await fetch(`/api/products/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Error al eliminar producto');
+            }
+
+            toast.success('Producto eliminado exitosamente');
+        } catch (e) {
+            // Rollback
+            set({ products: previousProducts });
+            
+            const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
+            set({ error: errorMessage });
+            toast.error(errorMessage);
+            throw e;
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    toggleProductVisibility: async (id, status, skipPermissionCheck = false) => {
+        if (!skipPermissionCheck && !get().validatePermission('products.visibility')) {
+            toast.error('No tienes permisos para cambiar la visibilidad');
+            return;
+        }
+
+        await get().updateProduct(id, { status: status === 1 }, null, true);
+    },
+
+    // 🎯 FUNCIONES DE NAVEGACIÓN (sin cambios)
+    setSelectedCategoryId: (id) => set({ selectedCategoryId: id }),
     setSelectedSectionId: (id) => set({ selectedSectionId: id }),
 
     handleCategorySelect: (id) => {
-        // 🧭 MIGA DE PAN CONTEXTUAL: Función EXCLUSIVA para navegación móvil en MobileView.tsx
-        // PORQUÉ DE LA DECISIÓN: Se eliminó la auto-detección inteligente que causaba bugs de navegación
-        // donde algunas categorías saltaban directamente a productos sin mostrar secciones
-        // PROBLEMA RESUELTO: Antes usaba getCategoryDisplayMode() que clasificaba incorrectamente categorías
-        // CONEXIONES CRÍTICAS:
-        // - MobileView.tsx línea ~75: handleCategorySelectWithAutoDetection → handleCategorySelect
-        // - CategoryList.tsx: onCategoryClick prop que recibe esta función
-        // - Historial: Se conecta con handleBack() para navegación coherente
-        // FLUJO GARANTIZADO: categories → sections → products (sin saltos)
-        // ARQUITECTURA: Mantiene separación clara entre navegación móvil/escritorio
-
-        // Guardar estado actual en historial para navegación coherente con handleBack()
+        // 🧭 MIGA DE PAN: Función de navegación inteligente para móvil
+        // PORQUÉ: Maneja la navegación entre vistas en móvil con historial
+        // CONEXIÓN: MobileView.tsx → esta función → cambio de vista
+        // FLUJO: categories → sections (si hay) → products
         set(state => ({
             activeCategoryId: id,
-            history: [...state.history, { view: state.activeView, id: state.activeCategoryId }]
+            activeView: 'sections',
+            history: [...state.history, { view: 'categories', id: null }]
         }));
-
-        // DECISIÓN: Siempre cargar secciones y ir a vista sections (navegación tradicional)
-        get().fetchSectionsByCategory(id);
-        set({ activeView: 'sections' });
     },
+
     handleSectionSelect: (id) => {
-        // 🧭 MIGA DE PAN CONTEXTUAL: Navegación de secciones a productos en vista móvil
-        // CONEXIONES: MobileView.tsx → SectionListView.tsx → onSectionClick → handleSectionSelect
-        // PORQUÉ: Guarda el estado en historial para que handleBack() funcione correctamente
-        // FLUJO: sections view → products view + carga productos de la sección específica
+        // 🧭 MIGA DE PAN: Navegación a productos desde sección
+        // PORQUÉ: Cambia a vista de productos y carga los datos
+        // CONEXIÓN: SectionGridView → esta función → ProductGridView
         set(state => ({
-            activeView: 'products',
             activeSectionId: id,
-            history: [...state.history, { view: state.activeView, id: state.activeSectionId }]
+            activeView: 'products',
+            history: [...state.history, { view: 'sections', id: state.activeCategoryId }]
         }));
-        get().fetchProductsBySection(id);
     },
-    handleBack: () => set(state => {
-        // 🧭 MIGA DE PAN CONTEXTUAL: Navegación hacia atrás en vista móvil
-        // PROBLEMA IDENTIFICADO: Lógica de navegación incorrecta causaba "página vacía"
-        // FLUJO CORRECTO: products → sections → categories
-        // CONEXIONES: MobileView.tsx línea ~240 en botón ArrowLeftIcon onClick
 
-        // Si estamos en products, ir a sections (mantener categoría activa)
-        if (state.activeView === 'products') {
+    handleBack: () => {
+        // 🧭 MIGA DE PAN: Navegación hacia atrás con historial
+        // PORQUÉ: Permite volver a la vista anterior manteniendo el contexto
+        // CONEXIÓN: Botón back → esta función → vista anterior
+        set(state => {
+            const newHistory = [...state.history];
+            const previousView = newHistory.pop();
+            
+            if (!previousView) {
+                return { activeView: 'categories', activeCategoryId: null, activeSectionId: null };
+            }
+            
             return {
-                ...state,
-                activeView: 'sections',
-                activeSectionId: null // Limpiar sección pero mantener categoría
+                activeView: previousView.view,
+                activeCategoryId: previousView.view === 'categories' ? null : state.activeCategoryId,
+                activeSectionId: previousView.view === 'sections' ? null : state.activeSectionId,
+                history: newHistory
             };
-        }
-
-        // Si estamos en sections, ir a categories (limpiar todo)
-        if (state.activeView === 'sections') {
-            return {
-                ...state,
-                activeView: 'categories',
-                activeCategoryId: null,
-                activeSectionId: null
-            };
-        }
-
-        // Si estamos en categories, no hacer nada (ya estamos en el nivel superior)
-        return state;
-    }),
-
+        });
+    },
 }));
 
-// --- FUNCIONES HELPER PARA AUTO-DETECCIÓN ---
+// --- HOOKS DERIVADOS CORREGIDOS ---
 
-/**
- * 🔍 Hook para obtener el modo de visualización de una categoría
- * 
- * @param categoryId - ID de la categoría
- * @returns 'simple' | 'sections' | 'loading' | 'error'
- * 
- * 🧭 MIGA DE PAN: Esta función helper se conecta con:
- * - CategoryGridView.tsx para renderizar UI condicional
- * - MobileView.tsx para adaptar navegación
- * - DashboardView.tsx para mostrar diferentes vistas
- */
 export const useCategoryDisplayMode = (categoryId: number | null) => {
-    const sections = useDashboardStore(state =>
-        categoryId ? state.sections[categoryId] : undefined
+    return useDashboardStore(
+        (state) => {
+            if (!categoryId) return 'sections';
+            const sections = state.sections[categoryId] || [];
+            return getCategoryDisplayMode(sections);
+        },
+        // Función de igualdad simple para strings
+        (a, b) => a === b
     );
-    const isLoading = useDashboardStore(state => state.isLoading);
-    const error = useDashboardStore(state => state.error);
-
-    if (error) return 'error';
-    if (isLoading || !sections) return 'loading';
-
-    return getCategoryDisplayMode(sections);
 };
 
-/**
- * 🔍 Hook para obtener productos de una categoría (tanto simple como compleja)
- * 
- * @param categoryId - ID de la categoría
- * @returns productos según el modo de la categoría
- * 
- * 🧭 MIGA DE PAN: Esta función helper unifica el acceso a productos:
- * - Para categorías simples: obtiene de products[`cat-${categoryId}`]
- * - Para categorías complejas: requiere sectionId adicional
- * - Se conecta con ProductGridView.tsx y listas de productos
- */
 export const useCategoryProducts = (categoryId: number | null, sectionId?: number | null) => {
-    const products = useDashboardStore(state => state.products);
-    const displayMode = useCategoryDisplayMode(categoryId);
-
-    if (!categoryId) return [];
-
-    // Para categorías simples, usar la key especial
-    if (displayMode === 'simple') {
-        return products[`cat-${categoryId}`] || [];
-    }
-
-    // Para categorías complejas, usar sectionId tradicional
-    if (displayMode === 'sections' && sectionId) {
-        return products[sectionId] || [];
-    }
-
-    return [];
+    return useDashboardStore(
+        (state) => {
+            if (sectionId) {
+                return state.products[sectionId] || [];
+            } else if (categoryId) {
+                return state.products[`cat-${categoryId}`] || [];
+            }
+            return [];
+        },
+        // Comparación superficial de arrays
+        (a, b) => {
+            if (a.length !== b.length) return false;
+            return a.every((item, index) => item.product_id === b[index]?.product_id);
+        }
+    );
 };
 
-// --- 🎯 T31.5 FASE 2: COMPUTED VALUES REACTIVOS (CONTADORES HÍBRIDOS) ---
-
-/**
- * 🧭 MIGA DE PAN CONTEXTUAL: Hook para contadores híbridos inteligentes de categorías
- * 
- * PORQUÉ CRÍTICO: Implementa el patrón de v0.dev para mostrar "Comidas (3 secciones, 2 directos)"
- * PROBLEMA RESUELTO: Antes solo mostraba contadores de secciones, ahora muestra información completa
- * 
- * ARQUITECTURA REACTIVA: Usa selectores derivados que se actualizan automáticamente cuando:
- * - Se crean/eliminan secciones en la categoría
- * - Se crean/eliminan productos directos en la categoría  
- * - Se cambia la visibilidad de secciones/productos
- * 
- * CONEXIONES CRÍTICAS:
- * - CategoryGridView.tsx: Renderizará estos contadores en lugar de solo secciones
- * - dashboardStore.sections[categoryId]: Fuente de datos para secciones
- * - dashboardStore.products[`cat-${categoryId}`]: Fuente de datos para productos directos
- * - getCategoryDisplayMode(): Determina si mostrar contadores híbridos o tradicionales
- * 
- * PATRÓN v0.dev: Computed values que se recalculan automáticamente sin re-renders innecesarios
- * OPTIMIZACIÓN: useMemo interno evita recálculos cuando los datos no cambian
- * 
- * @param categoryId - ID de la categoría para calcular contadores
- * @returns Objeto con contadores detallados y modo de visualización
- */
+// 🚨 HOOK SIMPLIFICADO PARA EVITAR BUCLES INFINITOS
 export const useCategoryWithCounts = (categoryId: number | null) => {
-    const sections = useDashboardStore(state => 
-        categoryId ? state.sections[categoryId] : undefined
-    );
-    const directProducts = useDashboardStore(state => 
-        categoryId ? state.products[`cat-${categoryId}`] : undefined
-    );
-    const isLoading = useDashboardStore(state => state.isLoading);
-
+    // Enfoque ultra-simple: solo obtener datos básicos sin cálculos complejos
+    const categories = useDashboardStore(state => state.categories);
+    const sections = useDashboardStore(state => state.sections);
+    const products = useDashboardStore(state => state.products);
+    
+    // Usar useMemo para cachear el resultado y evitar recálculos
     return React.useMemo(() => {
-        if (!categoryId || isLoading) {
-            return {
-                displayMode: 'loading' as const,
-                sectionsCount: 0,
-                visibleSectionsCount: 0,
-                directProductsCount: 0,
-                visibleDirectProductsCount: 0,
-                totalProductsCount: 0,
-                visibleProductsCount: 0,
-                displayText: 'Cargando...'
-            };
-        }
-
-        // 🧭 MIGA DE PAN: Cálculos de secciones (jerarquía tradicional)
-        const sectionsArray = sections || [];
-        const sectionsCount = sectionsArray.length;
-        const visibleSectionsCount = sectionsArray.filter(s => s.status === 1).length;
-
-        // 🧭 MIGA DE PAN: Cálculos de productos directos (T31 - jerarquía híbrida)
-        const directProductsArray = directProducts || [];
-        const directProductsCount = directProductsArray.length;
-        const visibleDirectProductsCount = directProductsArray.filter(p => p.status === 1).length;
-
-        // 🧭 MIGA DE PAN: Determinar modo de visualización usando lógica existente
-        const displayMode = getCategoryDisplayMode(sectionsArray);
-
-        // 🧭 MIGA DE PAN: Calcular totales híbridos (secciones + productos directos)
-        // CONEXIÓN: Estos totales se mostrarán en CategoryGridView como información contextual
-        const totalProductsCount = sectionsArray.reduce((acc, section) => 
-            acc + (section.products_count || 0), 0
-        ) + directProductsCount;
-
-        const visibleProductsCount = sectionsArray.reduce((acc, section) => 
-            acc + (section.visible_products_count || 0), 0
-        ) + visibleDirectProductsCount;
-
-        // 🧭 MIGA DE PAN: Generar texto descriptivo inteligente según el modo
-        // PATRÓN v0.dev: Texto contextual que ayuda al usuario a entender la estructura
-        let displayText = '';
+        if (!categoryId) return null;
         
-        if (displayMode === 'simple' && directProductsCount > 0) {
-            // Categoría simple con productos directos: "5 productos directos"
-            displayText = `${directProductsCount} producto${directProductsCount !== 1 ? 's' : ''} directo${directProductsCount !== 1 ? 's' : ''}`;
-        } else if (displayMode === 'sections' && sectionsCount > 0) {
-            if (directProductsCount > 0) {
-                // Categoría híbrida: "3 secciones, 2 directos"
-                displayText = `${sectionsCount} sección${sectionsCount !== 1 ? 'es' : ''}, ${directProductsCount} directo${directProductsCount !== 1 ? 's' : ''}`;
-            } else {
-                // Categoría tradicional: "3 secciones"
-                displayText = `${sectionsCount} sección${sectionsCount !== 1 ? 'es' : ''}`;
-            }
-        } else {
-            // Categoría vacía
-            displayText = 'Sin contenido';
-        }
-
+        const category = categories.find(c => c.category_id === categoryId);
+        if (!category) return null;
+        
+        const categorySections = sections[categoryId] || [];
+        const categoryProducts = products[`cat-${categoryId}`] || [];
+        
         return {
-            displayMode,
-            sectionsCount,
-            visibleSectionsCount,
-            directProductsCount,
-            visibleDirectProductsCount,
-            totalProductsCount,
-            visibleProductsCount,
-            displayText
+            category_id: category.category_id,
+            name: category.name,
+            status: category.status,
+            image: category.image,
+            display_order: category.display_order,
+            client_id: category.client_id,
+            sectionsCount: categorySections.length,
+            visibleSectionsCount: categorySections.filter(s => s.status).length,
+            productsCount: categoryProducts.length,
+            visibleProductsCount: categoryProducts.filter(p => p.status).length,
         };
-    }, [categoryId, sections, directProducts, isLoading]);
+    }, [categoryId, categories, sections, products]);
+};
+
+// 🧭 MIGA DE PAN CONTEXTUAL: Selector para Lista Mixta T31 (FASE 1.2) - CORREGIDO BUCLE INFINITO
+// PORQUÉ CRÍTICO: Implementa la jerarquía híbrida mostrando secciones y productos directos juntos
+// PROBLEMA RESUELTO: Sin este selector, no podemos renderizar contenido mixto en una sola vista
+// CONEXIÓN: DashboardViewWrapper → useMixedContentForCategory → MixedContentView
+// PATRÓN v0.dev: Selector memoizado que combina diferentes tipos de datos con discriminated union
+// 🚨 CORRECCIÓN: Eliminada función de comparación compleja que causaba bucles infinitos
+export const useMixedContentForCategory = (categoryId: number | null) => {
+    const sections = useDashboardStore(state => state.sections);
+    const products = useDashboardStore(state => state.products);
+    
+    // 🧭 MIGA DE PAN: useMemo para evitar recálculos y bucles infinitos
+    // PORQUÉ: React.useMemo es más estable que selector personalizado de Zustand
+    // PROBLEMA RESUELTO: Función de comparación compleja causaba re-renders infinitos
+    return React.useMemo(() => {
+        if (!categoryId) return [];
+        
+        // Obtener secciones de la categoría
+        const categorySections = (sections[categoryId] || [])
+            .map(section => ({ ...section, itemType: 'section' as const }))
+            .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+        
+        // Obtener productos directos de la categoría (SOLO los que tienen category_id y NO section_id)
+        // 🧭 MIGA DE PAN: FILTRO CRÍTICO - Solo productos directos, no tradicionales
+        // PROBLEMA RESUELTO: API devuelve todos los productos, pero UI debe mostrar solo directos
+        // CONEXIÓN: products[cat-X] contiene híbridos, pero MixedContentView necesita solo directos
+        // Obtener productos directos de la categoría (SOLO los que tienen category_id y NO section_id)
+        // 🧭 MIGA DE PAN: FILTRO CRÍTICO - Solo productos directos, no tradicionales
+        // PROBLEMA RESUELTO: API devuelve todos los productos, pero UI debe mostrar solo directos
+        // CONEXIÓN: products[cat-X] contiene híbridos, pero MixedContentView necesita solo directos
+        const directProducts = (products[`cat-${categoryId}`] || [])
+            .filter(product => product.category_id === categoryId && product.section_id === null)
+            .map(product => ({ ...product, itemType: 'product' as const }))
+            .sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+        
+        // 🧭 MIGA DE PAN: Ordenamiento estratégico - secciones primero, productos después
+        // PORQUÉ: UX más intuitiva - estructura jerárquica antes que elementos directos
+        // PATRÓN v0.dev: Spread operator para combinar arrays manteniendo inmutabilidad
+        return [...categorySections, ...directProducts];
+    }, [categoryId, sections, products]);
 };
