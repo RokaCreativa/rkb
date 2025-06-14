@@ -42,15 +42,17 @@ interface EditModalProps<T extends ItemWithId> {
     clientId?: number;
     categoryId?: number;
     sectionId?: number;
+    // 🎯 T31.5 - Soporte para productos directos
+    isDirect?: boolean;
 }
 
 // --- COMPONENTE DE MODAL GENÉRICO ---
-const EditModal = <T extends ItemWithId>({ isOpen, onClose, item, itemType, clientId, categoryId, sectionId }: EditModalProps<T>) => {
+const EditModal = <T extends ItemWithId>({ isOpen, onClose, item, itemType, clientId, categoryId, sectionId, isDirect }: EditModalProps<T>) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const formRef = useRef<CategoryFormRef | SectionFormRef | ProductFormRef>(null);
 
     // Acciones del store
-    const { createCategory, updateCategory, createSection, updateSection, createProduct, updateProduct } = useDashboardStore();
+    const { createCategory, updateCategory, createSection, updateSection, createProduct, updateProduct, createProductDirect } = useDashboardStore();
 
     if (!isOpen) return null;
 
@@ -84,7 +86,11 @@ const EditModal = <T extends ItemWithId>({ isOpen, onClose, item, itemType, clie
                 case 'Producto':
                     if (item) {
                         await updateProduct((item as Product).product_id, data as Partial<Product>, imageFile);
+                    } else if (isDirect && categoryId) {
+                        // 🎯 T31.5 - Crear producto directo en categoría
+                        await createProductDirect(categoryId, data as Partial<Product>, imageFile);
                     } else if (sectionId) {
+                        // Crear producto tradicional en sección
                         await createProduct({ ...data, section_id: sectionId } as Partial<Product>, imageFile);
                     }
                     break;
@@ -139,7 +145,21 @@ export const EditSectionModal: React.FC<{ isOpen: boolean; onClose: () => void; 
         <EditModal isOpen={isOpen} onClose={onClose} item={section} itemType="Sección" categoryId={categoryId} />
     );
 
-export const EditProductModal: React.FC<{ isOpen: boolean; onClose: () => void; product: Product | null; sectionId: number | undefined; }> =
-    ({ isOpen, onClose, product, sectionId }) => (
-        <EditModal isOpen={isOpen} onClose={onClose} item={product} itemType="Producto" sectionId={sectionId} />
-    );
+export const EditProductModal: React.FC<{ 
+    isOpen: boolean; 
+    onClose: () => void; 
+    product: Product | null; 
+    sectionId?: number | undefined;
+    categoryId?: number | undefined;
+    isDirect?: boolean;
+}> = ({ isOpen, onClose, product, sectionId, categoryId, isDirect }) => (
+    <EditModal 
+        isOpen={isOpen} 
+        onClose={onClose} 
+        item={product} 
+        itemType="Producto" 
+        sectionId={sectionId}
+        categoryId={categoryId}
+        isDirect={isDirect}
+    />
+);

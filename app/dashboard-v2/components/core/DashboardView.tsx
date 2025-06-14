@@ -37,17 +37,17 @@ export const DashboardView: React.FC = () => {
   const { modalState, openModal, closeModal, handleDeleteItem, handleConfirmDelete } = useModalState();
 
   /**
-   * 🧭 MIGA DE PAN CONTEXTUAL: Effect para cargar secciones cuando se selecciona categoría
-   * PORQUÉ NECESARIO: Vista escritorio usa master-detail, necesita cargar secciones automáticamente
+   * 🧭 MIGA DE PAN CONTEXTUAL: Effect para cargar datos cuando se selecciona categoría
+   * PORQUÉ NECESARIO: Vista escritorio usa master-detail, necesita cargar datos automáticamente
    * CONEXIÓN: store.setSelectedCategoryId() en CategoryGridView.onCategorySelect dispara este effect
-   * DECISIÓN: Se cambió de fetchDataForCategory a fetchSectionsByCategory para navegación tradicional
-   * PROBLEMA RESUELTO: Auto-detección causaba comportamiento inconsistente en escritorio
+   * T31.5: Ahora usa fetchDataForCategory para auto-detección y carga híbrida
+   * FLUJO: fetchDataForCategory → detecta si es simple/compleja → carga secciones y/o productos
    */
   useEffect(() => {
     if (store.selectedCategoryId) {
-      store.fetchSectionsByCategory(store.selectedCategoryId);
+      store.fetchDataForCategory(store.selectedCategoryId);
     }
-  }, [store.selectedCategoryId, store.fetchSectionsByCategory]);
+  }, [store.selectedCategoryId, store.fetchDataForCategory]);
 
   /**
    * 🧭 MIGA DE PAN CONTEXTUAL: Effect para cargar productos cuando se selecciona sección
@@ -110,7 +110,7 @@ export const DashboardView: React.FC = () => {
           />
         </div>
 
-        {/* 🎯 T32.2 - RENDERIZADO ADAPTATIVO: Mostrar Secciones SIEMPRE para permitir gestión */}
+        {/* 🎯 T31.5 - RENDERIZADO ADAPTATIVO: Mostrar Secciones SIEMPRE para permitir gestión */}
         {store.selectedCategoryId && (
           <div className={!store.selectedSectionId && store.selectedCategoryId ? 'lg:col-span-1' : ''}>
             <SectionGridView
@@ -128,8 +128,8 @@ export const DashboardView: React.FC = () => {
           </div>
         )}
 
-        {/* 🎯 T32.2 - PRODUCTOS DIRECTOS: Para categorías simples, mostrar productos cuando hay sección seleccionada */}
-        {store.selectedCategoryId && isSimpleCategory && store.selectedSectionId && (
+        {/* 🎯 T31.5 - PRODUCTOS DIRECTOS: Para categorías simples, mostrar productos directamente */}
+        {store.selectedCategoryId && isSimpleCategory && (
           <div className="min-w-0 flex-1">
             <ProductGridView
               products={categoryProducts}
@@ -138,14 +138,16 @@ export const DashboardView: React.FC = () => {
               onDelete={(product: Product) => handleDeleteItem(product, 'product')}
               onAddNew={() => {
                 if (store.selectedCategoryId) {
-                  openModal('editProduct', null);
+                  openModal('editProductDirect', null);
                 }
               }}
+              title="Productos Directos"
+              subtitle="Productos sin secciones intermedias"
             />
           </div>
         )}
 
-        {/* 🎯 T32.2 - PRODUCTOS TRADICIONALES: Para categorías complejas con sección seleccionada */}
+        {/* 🎯 T31.5 - PRODUCTOS TRADICIONALES: Para categorías complejas con sección seleccionada */}
         {store.selectedSectionId && isSectionsCategory && (
           <div className="min-w-0 flex-1">
             <ProductGridView
@@ -177,10 +179,12 @@ export const DashboardView: React.FC = () => {
         categoryId={store.selectedCategoryId ?? undefined}
       />
       <EditProductModal
-        isOpen={modalState.type === 'editProduct'}
+        isOpen={modalState.type === 'editProduct' || modalState.type === 'editProductDirect'}
         onClose={closeModal}
         product={modalState.data as Product | null}
         sectionId={store.selectedSectionId ?? undefined}
+        categoryId={store.selectedCategoryId ?? undefined}
+        isDirect={modalState.type === 'editProductDirect'}
       />
       <DeleteConfirmationModal
         isOpen={modalState.type === 'delete'}

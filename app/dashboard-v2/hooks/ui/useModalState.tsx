@@ -27,7 +27,7 @@ import { useState } from 'react';
 import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
 import { Category, Section, Product } from '@/app/dashboard-v2/types';
 
-type ModalType = 'editCategory' | 'editSection' | 'editProduct' | 'delete' | null;
+type ModalType = 'editCategory' | 'editSection' | 'editProduct' | 'editProductDirect' | 'delete' | null;
 type ModalData = Category | Section | Product | null;
 type ItemType = 'category' | 'section' | 'product';
 
