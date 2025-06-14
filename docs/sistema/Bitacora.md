@@ -243,7 +243,7 @@
 >
 > - **Script automático**: Migró 39 archivos con clases obsoletas
 > - `outline-none` → `outline-0` (nueva sintaxis Tailwind 4)
-> - `flex-shrink-0` → `shrink-0` (sintaxis simplificada)
+> - `shrink-0` → `shrink-0` (sintaxis simplificada)
 > - Eliminadas clases obsoletas: `transform`, `filter`, `backdrop-filter`
 >
 > **MEJORAS VISUALES MANUALES:**

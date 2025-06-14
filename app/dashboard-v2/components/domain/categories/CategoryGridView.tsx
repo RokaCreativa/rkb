@@ -49,7 +49,7 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
      * PATRÓN CONSISTENTE: Mismo cálculo que ProductGridView y SectionGridView
      * CONEXIÓN: Se actualiza automáticamente cuando store.toggleCategoryVisibility cambia el estado
      */
-    const visibleCategories = categories.(category => category.status);
+    const visibleCategories = categories.filter(category => category.status);
     const totalCategories = categories.length;
 
     /**
