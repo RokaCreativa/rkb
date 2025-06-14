@@ -286,7 +286,7 @@ const CategoryView: React.FC<CategoryViewProps> = ({
         </div>
       </div>
 
-      <div className="flex-grow rounded-lg overflow-hidden">
+      <div className="grow rounded-lg overflow-hidden">
         <CategoryTable
           categories={categories}
           expandedCategories={expandedCategories}

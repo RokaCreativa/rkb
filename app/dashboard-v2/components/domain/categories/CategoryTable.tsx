@@ -172,7 +172,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
               alt={category.name || ''}
               width={40}
               height={40}
-              className="category-image !object-cover !w-full !h-full"
+              className="category-image object-cover! w-full! h-full!"
               onError={handleImageError}
             />
           </div>
@@ -336,7 +336,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                         alt={category.name || ''}
                         width={40}
                         height={40}
-                        className="category-image !object-cover !w-full !h-full"
+                        className="category-image object-cover! w-full! h-full!"
                         onError={handleImageError}
                       />
                     </div>
@@ -476,7 +476,7 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
                       alt={category.name || ''}
                       width={40}
                       height={40}
-                      className="category-image !object-cover !w-full !h-full opacity-50 grayscale"
+                      className="category-image object-cover! w-full! h-full! opacity-50 grayscale"
                       onError={handleImageError}
                     />
                   </div>

@@ -4905,7 +4905,7 @@ export function CategoryList({ categories, onCategoryClick, expandedCategories, 
               >
                 <div className="p-4 flex items-center gap-4">
                   {/* 🧭 MIGA DE PAN: Imagen de categoría con fallback automático */}
-                  <div className="flex-shrink-0 h-14 w-14 relative">
+                  <div className="shrink-0 h-14 w-14 relative">
                     <Image
                       src={getImagePath(category.image || null, 'categories')}
                       alt={category.name}
@@ -4916,7 +4916,7 @@ export function CategoryList({ categories, onCategoryClick, expandedCategories, 
                   </div>
 
                   {/* 🧭 MIGA DE PAN: Área clickeable para navegación */}
-                  <div className="flex-grow cursor-pointer" onClick={() => onCategoryClick(category)}>
+                  <div className="grow cursor-pointer" onClick={() => onCategoryClick(category)}>
                     <h3 className="font-bold text-lg text-gray-800">{category.name}</h3>
                     <span className="text-sm text-gray-500">
                       {category.visible_sections_count} / {category.sections_count} Secciones Visibles
@@ -4924,7 +4924,7 @@ export function CategoryList({ categories, onCategoryClick, expandedCategories, 
                   </div>
 
                   {/* 🧭 MIGA DE PAN: Controles de acción con stopPropagation para evitar navegación accidental */}
-                  <div className="flex-shrink-0 flex items-center gap-2">
+                  <div className="shrink-0 flex items-center gap-2">
                     {onToggleVisibility && (
                       <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(category); }} className="p-2 rounded-full hover:bg-gray-200">
                         {category.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
@@ -7989,7 +7989,7 @@ export const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = (
     return (
         <BaseModal isOpen={isOpen} onClose={onClose} title={title} footer={footer} size="sm">
             <div className="flex items-start">
-                <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                <div className="mx-auto shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
                     <ExclamationTriangleIcon className="h-6 w-6 text-red-600" aria-hidden="true" />
                 </div>
                 <div className="ml-4 text-left">
@@ -9253,7 +9253,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     >
       {/* 🧭 MIGA DE PAN: Layout Mobile-First con icono y mensaje */}
       <div className="sm:flex sm:items-start">
-        <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+        <div className="mx-auto shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
           <Icon className={`h-6 w-6 ${iconClass}`} aria-hidden="true" />
         </div>
         <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">

@@ -257,7 +257,7 @@ export default function FloatingPhonePreview({
                   className="bg-white rounded-lg overflow-hidden shadow-sm flex"
                 >
                   {product.image ? (
-                    <div className="relative h-20 w-20 bg-gray-100 flex-shrink-0">
+                    <div className="relative h-20 w-20 bg-gray-100 shrink-0">
                       <Image
                         src={product.image}
                         alt={product.name}
@@ -270,7 +270,7 @@ export default function FloatingPhonePreview({
                       />
                     </div>
                   ) : (
-                    <div className="h-20 w-20 flex-shrink-0 flex items-center justify-center bg-gray-200">
+                    <div className="h-20 w-20 shrink-0 flex items-center justify-center bg-gray-200">
                       <span className="text-xs text-gray-500">Sin imagen</span>
                     </div>
                   )}

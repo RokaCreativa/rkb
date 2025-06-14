@@ -68,7 +68,7 @@ export default function Breadcrumbs({
         {currentView !== "CATEGORIES" && selectedCategory && (
           <li className="flex items-center">
             <ChevronRightIcon
-              className="h-4 w-4 flex-shrink-0 text-gray-400"
+              className="h-4 w-4 shrink-0 text-gray-400"
               aria-hidden="true"
             />
             <div className={`ml-2 md:ml-4 ${currentView === "SECTIONS" ? "breadcrumb-current-item" : "breadcrumb-item"}`}>
@@ -91,7 +91,7 @@ export default function Breadcrumbs({
         {currentView === "PRODUCTS" && selectedSection && (
           <li className="flex items-center">
             <ChevronRightIcon
-              className="h-4 w-4 flex-shrink-0 text-gray-400"
+              className="h-4 w-4 shrink-0 text-gray-400"
               aria-hidden="true"
             />
             <div className="ml-2 md:ml-4 breadcrumb-current-item">

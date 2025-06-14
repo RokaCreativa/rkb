@@ -130,7 +130,7 @@ Cada fila de sección ahora sigue el mismo patrón que `CategoryTable`:
   {/* Columna de nombre */}
   <td className="px-3 py-2 cursor-pointer" onClick={() => onSectionClick(section.section_id)}>
     <div className="flex items-center">
-      <Bars3Icon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+      <Bars3Icon className="h-5 w-5 text-gray-400 shrink-0" />
       <span className="text-sm font-medium">{section.name}</span>
       <span className="text-xs text-gray-500 ml-2">
         ({section.visible_products_count || 0}/{section.products_count || 0} productos visibles)

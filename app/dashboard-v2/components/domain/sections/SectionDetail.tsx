@@ -41,7 +41,7 @@ export default function SectionDetail({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             {/* Imagen de la sección */}
-            <div className="flex-shrink-0 h-12 w-12 relative rounded-md overflow-hidden bg-gray-100">
+            <div className="shrink-0 h-12 w-12 relative rounded-md overflow-hidden bg-gray-100">
               {section.image_url ? (
                 <Image
                   src={section.image_url}

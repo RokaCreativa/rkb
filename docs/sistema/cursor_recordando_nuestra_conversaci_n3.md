@@ -8026,7 +8026,7 @@ export function CategoryList({ categories, onCategoryClick, expandedCategories, 
               >
                 <div className="p-4 flex items-center gap-4">
                   {/* Imagen de la Categoría */}
-                  <div className="flex-shrink-0 h-14 w-14 relative">
+                  <div className="shrink-0 h-14 w-14 relative">
                     <Image
                       src={getImagePath(category.image, 'categories')}
                       alt={category.name}
@@ -8037,13 +8037,13 @@ export function CategoryList({ categories, onCategoryClick, expandedCategories, 
                   </div>
 
                   {/* Nombre y contador */}
-                  <div className="flex-grow cursor-pointer" onClick={() => onCategoryClick(category)}>
+                  <div className="grow cursor-pointer" onClick={() => onCategoryClick(category)}>
                     <h3 className="font-bold text-lg text-gray-800">{category.name}</h3>
                     <span className="text-sm text-gray-500">X/Y Secciones Visibles</span>
                   </div>
 
                   {/* Acciones */}
-                  <div className="flex-shrink-0 flex items-center gap-2">
+                  <div className="shrink-0 flex items-center gap-2">
                     {onToggleVisibility && (
                        <button onClick={() => onToggleVisibility(category)} className="p-2 rounded-full hover:bg-gray-200">
                          {category.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
@@ -8108,8 +8108,8 @@ Procedo a modificar `MobileView.tsx`.
                             className="p-4 border rounded-lg flex justify-between items-center cursor-pointer hover:bg-gray-100"
 
                         >
-                            <span onClick={() => onSectionClick(section)} className="flex-grow">{section.name}</span>
-                            <div className="flex-shrink-0 flex items-center gap-2">
+                            <span onClick={() => onSectionClick(section)} className="grow">{section.name}</span>
+                            <div className="shrink-0 flex items-center gap-2">
                                 <button onClick={() => console.log('ojito')} className="p-2 rounded-full hover:bg-gray-200">
                                     <EyeIcon className="h-6 w-6 text-gray-600" />
                                 </button>
@@ -8132,8 +8132,8 @@ Procedo a modificar `MobileView.tsx`.
                             key={product.product_id}
                             className="p-4 border rounded-lg flex justify-between items-center"
                         >
-                            <span className="flex-grow">{product.name} - ${product.price}</span>
-                            <div className="flex-shrink-0 flex items-center gap-2">
+                            <span className="grow">{product.name} - ${product.price}</span>
+                            <div className="shrink-0 flex items-center gap-2">
                                 <button onClick={() => console.log('ojito')} className="p-2 rounded-full hover:bg-gray-200">
                                     <EyeIcon className="h-6 w-6 text-gray-600" />
                                 </button>
@@ -8242,7 +8242,7 @@ interface SectionListViewProps {
                             className={`bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 ${section.status === 0 ? 'opacity-60' : ''}`}
                         >
                             <div className="p-4 flex items-center gap-4">
-                                <div className="flex-shrink-0 h-14 w-14 relative">
+                                <div className="shrink-0 h-14 w-14 relative">
                                     <Image
                                         src={getImagePath(section.image, 'sections')}
                                         alt={section.name}
@@ -8251,11 +8251,11 @@ interface SectionListViewProps {
                                         onError={handleImageError}
                                     />
                                 </div>
-                                <div className="flex-grow cursor-pointer" onClick={() => onSectionClick(section)}>
+                                <div className="grow cursor-pointer" onClick={() => onSectionClick(section)}>
                                     <h3 className="font-bold text-lg text-gray-800">{section.name}</h3>
                                     <span className="text-sm text-gray-500">X/Y Productos Visibles</span>
                                 </div>
-                                <div className="flex-shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); handleToggleVisibility(section); }} className="p-2 rounded-full hover:bg-gray-200">
                                         {section.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                     </button>
@@ -8275,7 +8275,7 @@ interface SectionListViewProps {
                             className={`bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 ${product.status === 0 ? 'opacity-60' : ''}`}
                         >
                              <div className="p-4 flex items-center gap-4">
-                                <div className="flex-shrink-0 h-14 w-14 relative">
+                                <div className="shrink-0 h-14 w-14 relative">
                                     <Image
                                         src={getImagePath(product.image, 'products')}
                                         alt={product.name}
@@ -8284,11 +8284,11 @@ interface SectionListViewProps {
                                         onError={handleImageError}
                                     />
                                 </div>
-                                <div className="flex-grow">
+                                <div className="grow">
                                     <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
                                     <span className="text-sm text-gray-500">${product.price}</span>
                                 </div>
-                                <div className="flex-shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); handleToggleVisibility(product); }} className="p-2 rounded-full hover:bg-gray-200">
                                         {product.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                     </button>
@@ -8312,7 +8312,7 @@ Es una solución sencilla: solo tengo que asegurarme de pasar `null` a la funci�
 ```typescriptreact
 // ... existing code ...
                             <div className="p-4 flex items-center gap-4">
-                                <div className="flex-shrink-0 h-14 w-14 relative">
+                                <div className="shrink-0 h-14 w-14 relative">
                                     <Image
                                         src={getImagePath(section.image || null, 'sections')}
                                         alt={section.name}
@@ -8321,7 +8321,7 @@ Es una solución sencilla: solo tengo que asegurarme de pasar `null` a la funci�
 // ... existing code ...
 // ... existing code ...
                              <div className="p-4 flex items-center gap-4">
-                                <div className="flex-shrink-0 h-14 w-14 relative">
+                                <div className="shrink-0 h-14 w-14 relative">
                                     <Image
                                         src={getImagePath(product.image || null, 'products')}
                                         alt={product.name}
@@ -8407,7 +8407,7 @@ Voy a modificar `CategoryList.tsx` para que muestre los números reales.
 ```typescriptreact
 // ... existing code ...
                   {/* Nombre y contador */}
-                  <div className="flex-grow cursor-pointer" onClick={() => onCategoryClick(category)}>
+                  <div className="grow cursor-pointer" onClick={() => onCategoryClick(category)}>
                     <h3 className="font-bold text-lg text-gray-800">{category.name}</h3>
                     <span className="text-sm text-gray-500">
                       {category.visible_sections_count} / {category.sections_count} Secciones Visibles
@@ -8510,13 +8510,13 @@ Hook corregido. Ahora, el último paso es usar estos datos en `MobileView.tsx` p
 // ... existing code ...
                                     />
                                 </div>
-                                <div className="flex-grow cursor-pointer" onClick={() => onSectionClick(section)}>
+                                <div className="grow cursor-pointer" onClick={() => onSectionClick(section)}>
                                     <h3 className="font-bold text-lg text-gray-800">{section.name}</h3>
                                     <span className="text-sm text-gray-500">
                                         {section.visible_products_count} / {section.products_count} Productos Visibles
                                     </span>
                                 </div>
-                                <div className="flex-shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); handleToggleVisibility(section); }} className="p-2 rounded-full hover:bg-gray-200">
 // ... existing code ...
 
@@ -8630,7 +8630,7 @@ const SectionListView: React.FC<SectionListViewProps> = ({ categoryId, categoryN
 // ... existing code ...
 // ... existing code ...
 // ... existing code ...
-                                <div className="flex-shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(section); }} className="p-2 rounded-full hover:bg-gray-200">
                                         {section.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                     </button>
@@ -8652,7 +8652,7 @@ const ProductListView: React.FC<ProductListViewProps> = ({ sectionId, sectionNam
 // ... existing code ...
 // ... existing code ...
 // ... existing code ...
-                                <div className="flex-shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(product); }} className="p-2 rounded-full hover:bg-gray-200">
                                         {product.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                     </button>
@@ -8754,12 +8754,12 @@ const SectionListView: React.FC<SectionListViewProps> = ({ categoryId, categoryN
                     return (
                         <li key={section.section_id} className={`bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 ${section.status === 0 ? 'opacity-60' : ''}`}>
                             <div className="p-4 flex items-center gap-4">
-                                <div className="flex-shrink-0 h-14 w-14 relative"><Image src={getImagePath(section.image || null, 'sections')} alt={section.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
-                                <div className="flex-grow cursor-pointer" onClick={() => onSectionClick(section)}>
+                                <div className="shrink-0 h-14 w-14 relative"><Image src={getImagePath(section.image || null, 'sections')} alt={section.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
+                                <div className="grow cursor-pointer" onClick={() => onSectionClick(section)}>
                                     <h3 className="font-bold text-lg text-gray-800">{section.name}</h3>
                                     <span className="text-sm text-gray-500">{section.visible_products_count} / {section.products_count} Productos Visibles</span>
                                 </div>
-                                <div className="flex-shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(section); }} className="p-2 rounded-full hover:bg-gray-200">
                                         {section.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                     </button>
@@ -8806,12 +8806,12 @@ const ProductListView: React.FC<ProductListViewProps> = ({ sectionId, sectionNam
                     return (
                         <li key={product.product_id} className={`bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 ${product.status === 0 ? 'opacity-60' : ''}`}>
                              <div className="p-4 flex items-center gap-4">
-                                <div className="flex-shrink-0 h-14 w-14 relative"><Image src={getImagePath(product.image || null, 'products')} alt={product.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
-                                <div className="flex-grow">
+                                <div className="shrink-0 h-14 w-14 relative"><Image src={getImagePath(product.image || null, 'products')} alt={product.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
+                                <div className="grow">
                                     <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
                                     <span className="text-sm text-gray-500">${product.price}</span>
                                 </div>
-                                <div className="flex-shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(product); }} className="p-2 rounded-full hover:bg-gray-200">
                                         {product.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                     </button>
@@ -9036,7 +9036,7 @@ Lo solucionaré rápidamente y luego procederé a leer los hooks de `section` y 
 
 ```typescriptreact
 // ... existing code ...
-                  <div className="flex-shrink-0 h-14 w-14 relative">
+                  <div className="shrink-0 h-14 w-14 relative">
                     <Image
                       src={getImagePath(category.image || null, 'categories')}
                       alt={category.name}
@@ -10792,7 +10792,7 @@ Procedo a aplicar los cambios en `DashboardView.tsx`. Dada la delicadeza del arc
   // Estados para selección y expansión
   const [selectedCategory, setSelectedCategory] = useState<DashboardCategory | null>(null);
 // ... existing code ...
-        <div className="flex-grow p-4 md:p-6 lg:p-8 overflow-y-auto">
+        <div className="grow p-4 md:p-6 lg:p-8 overflow-y-auto">
           {isDataLoading && <Loader />}
           {error && <p className="text-red-500">{error}</p>}
 
@@ -13806,7 +13806,7 @@ Procedo a aplicar el cambio.
                 className={`bg-white rounded-lg shadow-md transition-all duration-300 ${category.status === 0 ? 'opacity-60' : ''}`}
               >
                 <div className="p-4 flex items-center gap-4">
-                  <div className="flex-shrink-0 h-14 w-14 relative">
+                  <div className="shrink-0 h-14 w-14 relative">
                     <Image
 // ... existing code ...
 
@@ -13824,7 +13824,7 @@ No te preocupes, insisto en la corrección. Este es un problema claro y la soluc
                 className={`bg-white rounded-lg shadow-md transition-all duration-300 ${category.status === 0 ? 'opacity-60' : ''}`}
               >
                 <div className="p-4 flex items-center gap-4">
-                  <div className="flex-shrink-0 h-14 w-14 relative">
+                  <div className="shrink-0 h-14 w-14 relative">
 // ... existing code ...
 
 ```
@@ -14051,12 +14051,12 @@ const SectionListView: React.FC<SectionListViewProps> = ({ categoryId, categoryN
                     return (
                         <li key={section.section_id} className={`bg-white rounded-lg shadow-md transition-all duration-300 ${section.status === 0 ? 'opacity-60' : ''}`}>
                             <div className="p-4 flex items-center gap-4">
-                                <div className="flex-shrink-0 h-14 w-14 relative"><Image src={getImagePath(section.image || null, 'sections')} alt={section.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
-                                <div className="flex-grow cursor-pointer" onClick={() => onSectionClick(section)}>
+                                <div className="shrink-0 h-14 w-14 relative"><Image src={getImagePath(section.image || null, 'sections')} alt={section.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
+                                <div className="grow cursor-pointer" onClick={() => onSectionClick(section)}>
                                     <h3 className="font-bold text-lg text-gray-800">{section.name}</h3>
                                     <span className="text-sm text-gray-500">{section.visible_products_count} / {section.products_count} Productos Visibles</span>
                                 </div>
-                                <div className="flex-shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(section); }} className="p-2 rounded-full hover:bg-gray-200">
                                         {section.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                     </button>
@@ -14101,12 +14101,12 @@ const ProductListView: React.FC<ProductListViewProps> = ({ sectionId, sectionNam
                     return (
                         <li key={product.product_id} className={`bg-white rounded-lg shadow-md transition-all duration-300 ${product.status === 0 ? 'opacity-60' : ''}`}>
                             <div className="p-4 flex items-center gap-4">
-                                <div className="flex-shrink-0 h-14 w-14 relative"><Image src={getImagePath(product.image || null, 'products')} alt={product.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
-                                <div className="flex-grow">
+                                <div className="shrink-0 h-14 w-14 relative"><Image src={getImagePath(product.image || null, 'products')} alt={product.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
+                                <div className="grow">
                                     <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
                                     <span className="text-sm text-gray-500">${product.price}</span>
                                 </div>
-                                <div className="flex-shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(product); }} className="p-2 rounded-full hover:bg-gray-200">
                                         {product.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                     </button>
@@ -14442,12 +14442,12 @@ const SectionListView: React.FC<SectionListViewProps> = ({ categoryId, categoryN
                     return (
                         <li key={section.section_id} className={`bg-white rounded-lg shadow-md transition-all duration-300 ${section.status === 0 ? 'opacity-60' : ''}`}>
                             <div className="p-4 flex items-center gap-4">
-                                <div className="flex-shrink-0 h-14 w-14 relative"><Image src={getImagePath(section.image || null, 'sections')} alt={section.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
-                                <div className="flex-grow cursor-pointer" onClick={() => onSectionClick(section)}>
+                                <div className="shrink-0 h-14 w-14 relative"><Image src={getImagePath(section.image || null, 'sections')} alt={section.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
+                                <div className="grow cursor-pointer" onClick={() => onSectionClick(section)}>
                                     <h3 className="font-bold text-lg text-gray-800">{section.name}</h3>
                                     <span className="text-sm text-gray-500">{section.visible_products_count} / {section.products_count} Productos Visibles</span>
                                 </div>
-                                <div className="flex-shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(section); }} className="p-2 rounded-full hover:bg-gray-200">
                                         {section.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                     </button>
@@ -14492,12 +14492,12 @@ const ProductListView: React.FC<ProductListViewProps> = ({ sectionId, sectionNam
                     return (
                         <li key={product.product_id} className={`bg-white rounded-lg shadow-md transition-all duration-300 ${product.status === 0 ? 'opacity-60' : ''}`}>
                             <div className="p-4 flex items-center gap-4">
-                                <div className="flex-shrink-0 h-14 w-14 relative"><Image src={getImagePath(product.image || null, 'products')} alt={product.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
-                                <div className="flex-grow">
+                                <div className="shrink-0 h-14 w-14 relative"><Image src={getImagePath(product.image || null, 'products')} alt={product.name} fill className="object-cover rounded-md" onError={handleImageError} /></div>
+                                <div className="grow">
                                     <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
                                     <span className="text-sm text-gray-500">${product.price}</span>
                                 </div>
-                                <div className="flex-shrink-0 flex items-center gap-2">
+                                <div className="shrink-0 flex items-center gap-2">
                                     <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(product); }} className="p-2 rounded-full hover:bg-gray-200">
                                         {product.status === 1 ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                     </button>
@@ -17091,7 +17091,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({ products, onTo
                 return (
                     <li key={product.product_id} className={`bg-white rounded-lg shadow-md transition-all duration-300 ${!product.status ? 'opacity-60' : ''}`}>
                         <div className="p-4 flex items-center gap-4">
-                            <div className="flex-shrink-0 h-14 w-14 relative">
+                            <div className="shrink-0 h-14 w-14 relative">
                                 <Image
                                     src={getImagePath(product.image, 'products')}
                                     alt={product.name}
@@ -17100,11 +17100,11 @@ export const ProductListView: React.FC<ProductListViewProps> = ({ products, onTo
                                     onError={handleImageError}
                                 />
                             </div>
-                            <div className="flex-grow">
+                            <div className="grow">
                                 <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
                                 <span className="text-sm text-gray-500">${product.price}</span>
                             </div>
-                            <div className="flex-shrink-0 flex items-center gap-2">
+                            <div className="shrink-0 flex items-center gap-2">
                                 <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(product.product_id); }} className="p-2 rounded-full hover:bg-gray-200">
                                     {product.status ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                 </button>
@@ -17142,7 +17142,7 @@ interface ProductListViewProps {
                 return (
                     <li key={product.product_id} className={`bg-white rounded-lg shadow-md transition-all duration-300 ${!product.status ? 'opacity-60' : ''}`}>
                         <div className="p-4 flex items-center gap-4">
-                            <div className="flex-shrink-0 h-14 w-14 relative">
+                            <div className="shrink-0 h-14 w-14 relative">
                                 <Image
                                     src={getImagePath(product.image || null, 'products')}
                                     alt={product.name}
@@ -22554,7 +22554,7 @@ export const SectionListView: React.FC<SectionListViewProps> = ({
             section.status === 0 ? 'opacity-60' : ''
           }`}
         >
-          <div className="flex-grow" onClick={() => onSectionClick(section)}>
+          <div className="grow" onClick={() => onSectionClick(section)}>
             <p className="font-semibold text-gray-800">{section.name}</p>
             <p className="text-sm text-gray-500">
               {section.visible_products_count} / {section.products_count} productos visibles

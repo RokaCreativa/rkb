@@ -29,7 +29,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({ products, onTo
                 return (
                     <li key={product.product_id} className={`bg-white rounded-lg shadow-md transition-all duration-300 ${!product.status ? 'opacity-60' : ''}`}>
                         <div className="p-4 flex items-center gap-4">
-                            <div className="flex-shrink-0 h-14 w-14 relative">
+                            <div className="shrink-0 h-14 w-14 relative">
                                 <Image
                                     src={getImagePath(product.image || null, 'products')}
                                     alt={product.name}
@@ -38,7 +38,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({ products, onTo
                                     onError={handleImageError}
                                 />
                             </div>
-                            <div className="flex-grow">
+                            <div className="grow">
                                 <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
                                 <span className="text-sm text-gray-500">${product.price}</span>
                                 {product.description && (
@@ -47,7 +47,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({ products, onTo
                                     </p>
                                 )}
                             </div>
-                            <div className="flex-shrink-0 flex items-center gap-2">
+                            <div className="shrink-0 flex items-center gap-2">
                                 <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(product); }} className="p-2 rounded-full hover:bg-gray-200">
                                     {product.status ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                 </button>

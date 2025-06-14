@@ -126,7 +126,7 @@ export function TopNavbar({
           <div className="flex justify-between h-16">
             {/* Logo y menú izquierdo */}
             <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
+              <div className="shrink-0 flex items-center">
                 <img className="h-8 w-auto" src="/images/logo_rokamenu.png" alt="RokaMenu" />
                 {clientName && (
                   <div className="ml-4 px-3 py-1 border-l border-gray-200 hidden sm:block">

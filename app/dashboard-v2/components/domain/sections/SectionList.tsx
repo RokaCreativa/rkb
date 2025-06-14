@@ -317,7 +317,7 @@ const SectionList: React.FC<SectionListProps> = ({
                               alt={section.name || ''}
                               width={40}
                               height={40}
-                              className="section-image !object-cover !w-full !h-full"
+                              className="section-image object-cover! w-full! h-full!"
                               onError={handleImageError}
                             />
                           ) : (
@@ -447,7 +447,7 @@ const SectionList: React.FC<SectionListProps> = ({
                             alt={section.name || ''}
                             width={40}
                             height={40}
-                            className="section-image !object-cover !w-full !h-full"
+                            className="section-image object-cover! w-full! h-full!"
                             onError={handleImageError}
                           />
                         ) : (

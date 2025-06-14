@@ -5718,7 +5718,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({ products, onTo
                 return (
                     <li key={product.product_id} className={`bg-white rounded-lg shadow-md transition-all duration-300 ${!product.status ? 'opacity-60' : ''}`}>
                         <div className="p-4 flex items-center gap-4">
-                            <div className="flex-shrink-0 h-14 w-14 relative">
+                            <div className="shrink-0 h-14 w-14 relative">
                                 <Image
                                     src={getImagePath(product.image || null, 'products')}
                                     alt={product.name}
@@ -5727,7 +5727,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({ products, onTo
                                     onError={handleImageError}
                                 />
                             </div>
-                            <div className="flex-grow">
+                            <div className="grow">
                                 <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
                                 <span className="text-sm text-gray-500">${product.price}</span>
                                 {/* 🧭 MIGA DE PAN: Agregamos descripción siguiendo el patrón de SectionListView con visible_products_count */}
@@ -5737,7 +5737,7 @@ export const ProductListView: React.FC<ProductListViewProps> = ({ products, onTo
                                     </p>
                                 )}
                             </div>
-                            <div className="flex-shrink-0 flex items-center gap-2">
+                            <div className="shrink-0 flex items-center gap-2">
                                 <button onClick={(e) => { e.stopPropagation(); onToggleVisibility(product); }} className="p-2 rounded-full hover:bg-gray-200">
                                     {product.status ? <EyeIcon className="h-6 w-6 text-gray-600" /> : <EyeSlashIcon className="h-6 w-6 text-gray-500" />}
                                 </button>
@@ -5753,14 +5753,14 @@ export const ProductListView: React.FC<ProductListViewProps> = ({ products, onTo
 ```
 
 ```typescriptreact
-                            <div className="flex-grow">
+                            <div className="grow">
                                 <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
                                 <span className="text-sm text-gray-500">${product.price}</span>
                             </div>
 
 ->
 
-                            <div className="flex-grow">
+                            <div className="grow">
                                 <h3 className="font-bold text-lg text-gray-800">{product.name}</h3>
                                 <span className="text-sm text-gray-500">${product.price}</span>
                                 {/* 🧭 MIGA DE PAN: Agregamos descripción siguiendo el patrón de SectionListView con visible_products_count */}
@@ -6145,7 +6145,7 @@ export const SectionListView: React.FC<SectionListViewProps> = ({
                         onClick={() => onSectionClick(section)}
                         className={`flex items-center p-3 rounded-lg cursor-pointer transition-all shadow-sm ${section.status ? 'bg-white hover:bg-gray-50' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
                     >
-                        <div className="relative w-16 h-16 mr-4 rounded-md overflow-hidden flex-shrink-0">
+                        <div className="relative w-16 h-16 mr-4 rounded-md overflow-hidden shrink-0">
                             <Image
                                 src={getImagePath(section.image, 'sections')}
                                 alt={section.name || 'Imagen de sección'}
@@ -6156,7 +6156,7 @@ export const SectionListView: React.FC<SectionListViewProps> = ({
                             />
                         </div>
 
-                        <div className="flex-grow">
+                        <div className="grow">
                             <h3 className="font-semibold text-base">{section.name}</h3>
                             <p className="text-sm text-gray-500">
                                 {section.visible_products_count ?? 0} / {section.products_count ?? 0} productos visibles
@@ -6362,7 +6362,7 @@ export const SectionListView: React.FC<SectionListViewProps> = ({
                         onClick={() => onSectionClick(section)}
                         className={`flex items-center p-3 rounded-lg cursor-pointer transition-all shadow-sm ${section.status ? 'bg-white hover:bg-gray-50' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
                     >
-                        <div className="relative w-16 h-16 mr-4 rounded-md overflow-hidden flex-shrink-0">
+                        <div className="relative w-16 h-16 mr-4 rounded-md overflow-hidden shrink-0">
                             <Image
                                 src={getImagePath(section.image, 'sections')}
                                 alt={section.name || 'Imagen de sección'}
@@ -6373,7 +6373,7 @@ export const SectionListView: React.FC<SectionListViewProps> = ({
                             />
                         </div>
 
-                        <div className="flex-grow">
+                        <div className="grow">
                             <h3 className="font-semibold text-base">{section.name}</h3>
                             <p className="text-sm text-gray-500">
                                 {section.visible_products_count ?? 0} / {section.products_count ?? 0} productos visibles
@@ -14804,7 +14804,7 @@ Veo que aún hay referencias a `successMessage` que no están definidas. Vamos a
           >
             <Dialog.Panel className="relative inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
               <div className="flex items-start">
-                <div className="flex-shrink-0 text-amber-500">
+                <div className="shrink-0 text-amber-500">
                   <ExclamationTriangleIcon className="h-6 w-6" aria-hidden="true" />
                 </div>
                 <div className="ml-3">
@@ -19328,7 +19328,7 @@ export function BaseModal({
             <button
               type="button"
               className="
-                flex-shrink-0 rounded-md bg-white text-gray-400 
+                shrink-0 rounded-md bg-white text-gray-400 
                 hover:text-gray-500 focus:outline-none focus:ring-2 
                 focus:ring-blue-500 focus:ring-offset-2
                 p-2 -m-2 min-w-[44px] min-h-[44px] 

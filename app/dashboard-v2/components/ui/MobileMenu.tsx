@@ -333,7 +333,7 @@ export default function MobileMenu({
                                 }`}
                               >
                                 {/* Icono del elemento de menú */}
-                                <span className="mr-4 flex-shrink-0">
+                                <span className="mr-4 shrink-0">
                                   {item.icon || <div className="w-6 h-6" />}
                                 </span>
                                 

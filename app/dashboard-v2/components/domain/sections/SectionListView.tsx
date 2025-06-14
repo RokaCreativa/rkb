@@ -62,7 +62,7 @@ export const SectionListView: React.FC<SectionListViewProps> = ({
                         onClick={() => onSectionClick(section)}
                         className={`flex items-center p-3 rounded-lg cursor-pointer transition-all shadow-sm ${section.status ? 'bg-white hover:bg-gray-50' : 'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}
                     >
-                        <div className="relative w-16 h-16 mr-4 rounded-md overflow-hidden flex-shrink-0">
+                        <div className="relative w-16 h-16 mr-4 rounded-md overflow-hidden shrink-0">
                             <Image
                                 src={getImagePath(section.image || null, 'sections')}
                                 alt={section.name || 'Imagen de sección'}
@@ -73,7 +73,7 @@ export const SectionListView: React.FC<SectionListViewProps> = ({
                             />
                         </div>
 
-                        <div className="flex-grow">
+                        <div className="grow">
                             <h3 className="font-semibold text-base">{section.name}</h3>
                             <p className="text-sm text-gray-500">
                                 {section.visible_products_count ?? 0} / {section.products_count ?? 0} productos visibles

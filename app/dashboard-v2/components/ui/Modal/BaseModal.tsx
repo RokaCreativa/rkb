@@ -89,7 +89,7 @@ export function BaseModal({
             <button
               type="button"
               className="
-                flex-shrink-0 rounded-md bg-white text-gray-400 
+                shrink-0 rounded-md bg-white text-gray-400 
                 hover:text-gray-500 focus:outline-none focus:ring-2 
                 focus:ring-blue-500 focus:ring-offset-2
                 p-2 -m-2 min-w-[44px] min-h-[44px] 
