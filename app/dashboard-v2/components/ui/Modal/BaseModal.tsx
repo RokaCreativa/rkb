@@ -74,7 +74,7 @@ export function BaseModal({
         <div
           className={`
             relative inline-block align-bottom bg-white rounded-lg text-left 
-            overflow-hidden shadow-xl transform transition-all 
+            overflow-hidden shadow-xl transition-all 
             sm:my-8 sm:align-middle ${sizeClasses[size]}
             ${className}
           `}
@@ -90,7 +90,7 @@ export function BaseModal({
               type="button"
               className="
                 shrink-0 rounded-md bg-white text-gray-400 
-                hover:text-gray-500 focus:outline-none focus:ring-2 
+                hover:text-gray-500 focus:outline-0 focus:ring-2 
                 focus:ring-blue-500 focus:ring-offset-2
                 p-2 -m-2 min-w-[44px] min-h-[44px] 
                 flex items-center justify-center

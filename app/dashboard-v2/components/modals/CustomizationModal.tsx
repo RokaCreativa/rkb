@@ -204,7 +204,7 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, onClose
               className="flex flex-col items-center"
             >
               <div 
-                className="h-6 w-6 rounded border cursor-pointer hover:scale-110 transition-transform"
+                className="h-6 w-6 rounded border cursor-pointer hover:scale-110 transition-"
                 style={{ backgroundColor: color }}
                 title={`${selectedColorFamily}-${tailwindShades[index]}: ${color}`}
                 onClick={() => applyTailwindColor(selectedColorFamily, index)}
@@ -324,7 +324,7 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, onClose
                   {tailwindColors[selectedColorFamily as keyof typeof tailwindColors].map((color, index) => (
                     <button
                       key={index}
-                      className="h-5 w-5 rounded border hover:scale-110 transition-transform"
+                      className="h-5 w-5 rounded border hover:scale-110 transition-"
                       style={{ backgroundColor: color }}
                       title={`${selectedColorFamily}-${tailwindShades[index]}: ${color}`}
                       onClick={() => handleColorChange(color)}
@@ -368,7 +368,7 @@ const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, onClose
         <div 
           ref={nodeRef}
           className={`absolute bg-white rounded-lg shadow-xl ${expanded ? 'w-full max-w-4xl' : 'w-full max-w-md'} 
-            overflow-hidden top-16 left-1/2 transform -translate-x-1/2`}
+            overflow-hidden top-16 left-1/2 -translate-x-1/2`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex justify-between items-center p-3 border-b modal-handle cursor-move">

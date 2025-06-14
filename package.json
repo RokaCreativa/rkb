@@ -29,6 +29,7 @@
     "cookies-next": "^5.1.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.6.2",
+    "glob": "^11.0.3",
     "i18next": "^24.2.3",
     "i18next-browser-languagedetector": "^8.0.4",
     "i18next-http-backend": "^3.0.2",

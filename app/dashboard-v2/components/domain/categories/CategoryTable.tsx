@@ -73,8 +73,8 @@ const CategoryTable: React.FC<CategoryTableProps> = ({
 
   const [showHiddenCategories, setShowHiddenCategories] = useState(true);
 
-  const visibleCategories = categories.filter(cat => cat.status === 1);
-  const hiddenCategories = categories.filter(cat => cat.status !== 1);
+  const visibleCategories = categories.(cat => cat.status === 1);
+  const hiddenCategories = categories.(cat => cat.status !== 1);
 
   const visibleCategoriesCount = visibleCategories.length;
   const totalCategories = categories.length;

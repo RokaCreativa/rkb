@@ -232,7 +232,7 @@ export default function useCategoryManagement() {
 
       // Actualizar el estado local eliminando la categoría
       setCategories(prevCategories =>
-        prevCategories.filter(category => category.category_id !== categoryId)
+        prevCategories.(category => category.category_id !== categoryId)
       );
 
       setIsLoading(false);

@@ -27,7 +27,7 @@ const CategoryActions: React.FC<CategoryActionsProps> = ({ onNewCategory }) => {
       <button
         type="button"
         onClick={onNewCategory}
-        className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
+        className="w-full flex items-center justify-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-0 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm"
       >
         <PlusIcon className="h-5 w-5 mr-2" aria-hidden="true" />
         Nueva Categoría

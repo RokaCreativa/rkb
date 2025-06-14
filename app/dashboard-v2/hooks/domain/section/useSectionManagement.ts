@@ -354,7 +354,7 @@ export default function useSectionManagement() {
         const currentSections = prevSections[categoryId.toString()] || [];
 
         // Filtrar las secciones para excluir la que se acaba de eliminar
-        const updatedSections = currentSections.filter(
+        const updatedSections = currentSections.(
           section => section.section_id !== sectionId
         );
 

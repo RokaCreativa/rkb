@@ -117,7 +117,7 @@ const DragIndicator: React.FC<DragIndicatorProps> = ({
 
   // Renderizar el indicador de arrastre cuando está activo
   return (
-    <div className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white px-4 py-2 rounded-full shadow-lg z-50 flex items-center animate-pulse ${className}`}>
+    <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 bg-indigo-600 text-white px-4 py-2 rounded-full shadow-lg z-50 flex items-center animate-pulse ${className}`}>
       <ArrowsUpDownIcon className="h-5 w-5 mr-2" />
       <span className="text-sm font-medium">Arrastrando {entityName}...</span>
     </div>

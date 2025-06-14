@@ -64,8 +64,7 @@ function VirtualizedList<T>({
             top: 0,
             left: 0,
             width: '100%',
-            height: `${itemHeight}px`,
-            transform: `translateY(${index * itemHeight}px)`
+            height: `${itemHeight}px`,: `translateY(${index * itemHeight}px)`
           };
           
           return (

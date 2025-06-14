@@ -142,7 +142,7 @@ export function TopNavbar({
               <div className="sm:hidden">
                 <button
                   type="button"
-                  className="inline-flex items-center justify-center p-3 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 touch-action-manipulation"
+                  className="inline-flex items-center justify-center p-3 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-0 focus:ring-2 focus:ring-inset focus:ring-indigo-500 touch-action-manipulation"
                   onClick={() => setIsMobileMenuOpen(true)}
                   aria-expanded={isMobileMenuOpen}
                   aria-label={t('navigation.openMenu')}
@@ -168,7 +168,7 @@ export function TopNavbar({
                 <button
                   type="button"
                   onClick={handleTogglePreview}
-                  className="inline-flex items-center px-3 py-2 border border-indigo-100 shadow-sm text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="inline-flex items-center px-3 py-2 border border-indigo-100 shadow-sm text-sm font-medium rounded-md text-indigo-700 bg-indigo-50 hover:bg-indigo-100 focus:outline-0 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   <PhoneIcon className="h-5 w-5 mr-2 text-indigo-500" />
                   {t('dashboard.preview')}
@@ -178,7 +178,7 @@ export function TopNavbar({
                 <button
                   type="button"
                   onClick={() => setIsCustomizationModalOpen(true)}
-                  className="ml-3 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="ml-3 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-0 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   <PaintBrushIcon className="h-5 w-5 mr-2 text-gray-500" />
                   {t('dashboard.customize')}
@@ -193,7 +193,7 @@ export function TopNavbar({
                       isReorderModeActive 
                         ? 'bg-red-100 border-red-300 text-red-700' 
                         : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                    } text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                    } text-sm font-medium rounded-md shadow-sm focus:outline-0 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
                   >
                     <ArrowPathIcon 
                       className={`h-5 w-5 mr-2 ${isReorderModeActive ? 'text-red-500' : 'text-gray-500'}`} 

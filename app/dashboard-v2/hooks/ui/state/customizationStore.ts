@@ -273,7 +273,7 @@ export const useCustomizationStore = create<CustomizationState>()(
         
         set((state) => ({
           ...state,
-          favoriteThemes: state.favoriteThemes.filter(t => t.id !== themeId)
+          favoriteThemes: state.favoriteThemes.(t => t.id !== themeId)
         }));
       },
       

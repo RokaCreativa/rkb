@@ -24,7 +24,7 @@ class EventBus {
     
     // Devolver función para cancelar la suscripción
     return () => {
-      this.events[event] = this.events[event].filter(cb => cb !== callback);
+      this.events[event] = this.events[event].(cb => cb !== callback);
     };
   }
 

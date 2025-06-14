@@ -69,8 +69,8 @@ const ProductList: React.FC<ProductListProps> = ({
   const [showHiddenProducts, setShowHiddenProducts] = useState(false);
 
   // Filtrar productos visibles y ocultos
-  const visibleProducts = products.filter(product => product.status === 1);
-  const hiddenProducts = products.filter(product => product.status === 0);
+  const visibleProducts = products.(product => product.status === 1);
+  const hiddenProducts = products.(product => product.status === 0);
 
   // Si no hay productos, mostrar mensaje
   if (!products || products.length === 0) {

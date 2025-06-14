@@ -107,8 +107,8 @@ const SectionList: React.FC<SectionListProps> = ({
   const [showHiddenProducts, setShowHiddenProducts] = useState(true);
 
   // Separar secciones visibles y ocultas
-  const visibleSections = sections.filter(s => s.status === 1);
-  const hiddenSections = sections.filter(s => s.status !== 1);
+  const visibleSections = sections.(s => s.status === 1);
+  const hiddenSections = sections.(s => s.status !== 1);
 
   // Verificar si el drag and drop debe estar habilitado (necesitamos onSectionsReorder y categoryId)
   const isDragEnabled = !!onSectionsReorder && !!categoryId;

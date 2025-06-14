@@ -308,7 +308,7 @@ export default function FloatingPhonePreview({
       {/* Botón flotante fijo en la esquina inferior derecha */}
       <button
         onClick={() => setIsPreviewOpen(true)}
-        className="fixed bottom-6 right-6 flex items-center justify-center w-14 h-14 rounded-full bg-indigo-600 text-white shadow-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 z-50"
+        className="fixed bottom-6 right-6 flex items-center justify-center w-14 h-14 rounded-full bg-indigo-600 text-white shadow-xl hover:bg-indigo-700 focus:outline-0 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 z-50"
         aria-label="Ver previsualización"
       >
         <PhoneIcon className="h-6 w-6" />
@@ -345,7 +345,7 @@ export default function FloatingPhonePreview({
                 {/* Marcos del teléfono */}
                 <div className="relative w-full h-[450px] mx-auto bg-white">
                   {/* Notch superior */}
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-1/3 h-[18px] bg-black rounded-b-xl z-30 flex justify-center items-end pb-1">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-[18px] bg-black rounded-b-xl z-30 flex justify-center items-end pb-1">
                     <div className="w-10 h-1 rounded-full bg-gray-700"></div>
                   </div>
                   

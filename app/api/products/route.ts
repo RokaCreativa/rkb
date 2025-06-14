@@ -239,7 +239,7 @@ export async function GET(req: NextRequest) {
       });
 
       // Filtramos por section_id manualmente para obtener el conteo real
-      totalProducts = allProducts.filter(product => {
+      totalProducts = allProducts.(product => {
         // @ts-ignore - El campo section_id existe en la DB pero no en el tipo
         return product.section_id === sectionIdInt;
       }).length;
@@ -266,7 +266,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Filtrar manualmente por section_id
-    const products = allClientProducts.filter(product => {
+    const products = allClientProducts.(product => {
       // @ts-ignore - El campo section_id existe en la DB pero no en el tipo
       return product.section_id === sectionIdInt;
     });

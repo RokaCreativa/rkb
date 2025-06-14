@@ -81,7 +81,7 @@ export default function LanguageSwitcher({
         <select
           value={currentLanguage}
           onChange={(e) => handleLanguageChange(e.target.value)}
-          className={`appearance-none rounded-md border border-gray-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 ${sizeClasses[size]}`}
+          className={`appearance-none rounded-md border border-gray-300 px-3 py-2 bg-white focus:outline-0 focus:ring-2 focus:ring-blue-500 ${sizeClasses[size]}`}
           aria-label="Cambiar idioma"
         >
           {availableLanguages.map((lang) => (

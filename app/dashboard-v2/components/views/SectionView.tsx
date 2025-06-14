@@ -91,7 +91,7 @@ const SectionView: React.FC<SectionViewProps> = ({
       setExpandedSectionsRecord(expandedSections);
       setExpandedSectionIds(
         Object.entries(expandedSections)
-          .filter(([, expanded]) => expanded)
+          .(([, expanded]) => expanded)
           .map(([id]) => parseInt(id))
       );
     }
@@ -120,7 +120,7 @@ const SectionView: React.FC<SectionViewProps> = ({
           <h1 className="text-2xl font-bold text-gray-900">{categoryName || "Comidas"}</h1>
           <button
             onClick={() => onAddSection(category?.category_id || selectedCategory.category_id)}
-            className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 flex items-center"
+            className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 focus:outline-0 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 flex items-center"
           >
             <PlusIcon className="h-5 w-5 mr-1" /> Añadir sección
           </button>
@@ -131,7 +131,7 @@ const SectionView: React.FC<SectionViewProps> = ({
           <p className="text-gray-500 mb-4">Esta categoría no tiene secciones aún</p>
           <button
             onClick={() => onAddSection(category?.category_id || selectedCategory.category_id)}
-            className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
+            className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 focus:outline-0 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2"
           >
             <PlusIcon className="h-5 w-5 inline mr-1" /> Añadir sección
           </button>
@@ -166,7 +166,7 @@ const SectionView: React.FC<SectionViewProps> = ({
         <h1 className="text-2xl font-bold text-gray-900">{categoryName || "Comidas"}</h1>
         <button
           onClick={() => onAddSection(category?.category_id || selectedCategory.category_id)}
-          className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 flex items-center"
+          className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 focus:outline-0 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 flex items-center"
         >
           <PlusIcon className="h-5 w-5 mr-1" /> Añadir sección
         </button>

@@ -28,7 +28,7 @@ export const DeleteCategoryButton: React.FC<DeleteButtonProps> = ({
   return (
     <button
       type="button"
-      className={`${sizeClasses[size]} bg-red-50 text-red-600 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 flex items-center`}
+      className={`${sizeClasses[size]} bg-red-50 text-red-600 hover:bg-red-100 focus:outline-0 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 flex items-center`}
       onClick={onClick}
       disabled={disabled || isLoading}
     >

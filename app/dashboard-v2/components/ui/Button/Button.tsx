@@ -106,11 +106,11 @@ export const Button: React.FC<ButtonProps> = ({
    * - items-center: Alinea verticalmente el contenido
    * - justify-center: Centra horizontalmente el contenido
    * - font-medium: Hace que el texto sea semibold
-   * - focus:outline-none: Elimina el borde de enfoque predeterminado
+   * - focus:outline-0: Elimina el borde de enfoque predeterminado
    * - focus:ring-2: Añade un anillo al enfocar
    * - transition-colors: Anima los cambios de color
    */
-  const baseClasses = "flex items-center justify-center font-medium focus:outline-none focus:ring-2 transition-colors";
+  const baseClasses = "flex items-center justify-center font-medium focus:outline-0 focus:ring-2 transition-colors";
 
   /**
    * Clases para cada variante visual del botón

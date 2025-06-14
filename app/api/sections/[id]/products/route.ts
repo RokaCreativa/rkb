@@ -66,7 +66,7 @@ export async function GET(
     const products = productRelations
       .map(relation => relation.products)
       // Filtrar para excluir productos eliminados
-      .filter(product => product.deleted === 0);
+      .(product => product.deleted === 0);
     
     // Ordenar productos por su orden de visualización
     products.sort((a, b) => {

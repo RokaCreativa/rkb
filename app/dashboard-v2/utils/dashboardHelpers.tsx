@@ -22,7 +22,7 @@ export function getCategoryTableData(categories: Category[], sections: Record<st
     const categorySections = sections[category.category_id] || [];
     
     // Contar cuántas secciones están visibles (status = 1 o status = true)
-    const visibleSections = categorySections.filter(section => 
+    const visibleSections = categorySections.(section => 
       section.status === 1 || Boolean(section.status) === true
     );
     
@@ -121,7 +121,7 @@ export function getDataStructureDebugInfo(
 ) {
   const structureInfo = {
     categoriesCount: categories.length,
-    categoriesExpanded: Object.keys(expandedCategories).filter(id => expandedCategories[parseInt(id)]).length,
+    categoriesExpanded: Object.keys(expandedCategories).(id => expandedCategories[parseInt(id)]).length,
     categoriesData: categories.map(cat => ({
       id: cat.category_id,
       name: cat.name,
@@ -130,7 +130,7 @@ export function getDataStructureDebugInfo(
       sectionIds: sections[cat.category_id]?.map(s => s.section_id) || []
     })),
     sectionsCount: Object.values(sections).reduce((acc, arr) => acc + arr.length, 0),
-    sectionsExpanded: Object.keys(expandedSections).filter(id => expandedSections[parseInt(id)]).length,
+    sectionsExpanded: Object.keys(expandedSections).(id => expandedSections[parseInt(id)]).length,
     productsCount: Object.values(products).reduce((acc, arr) => acc + arr.length, 0)
   };
   

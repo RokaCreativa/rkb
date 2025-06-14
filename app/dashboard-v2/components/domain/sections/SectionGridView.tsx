@@ -42,7 +42,7 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
     onAddNew,
 }) => {
     // 🧭 MIGA DE PAN: Calcular contador de visibilidad siguiendo el patrón de ProductGridView
-    const visibleSections = sections.filter(section => section.status);
+    const visibleSections = sections.(section => section.status);
     const totalSections = sections.length;
 
     const columns: Column<Section>[] = [

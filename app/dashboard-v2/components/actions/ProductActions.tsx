@@ -31,7 +31,7 @@ const ProductActions: React.FC<ProductActionsProps> = ({ sectionName, onNewProdu
     <div className="mb-4">
       <button
         onClick={onNewProduct}
-        className="w-full flex items-center justify-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 shadow-sm"
+        className="w-full flex items-center justify-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-md text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-0 focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 shadow-sm"
       >
         <PlusIcon className="h-5 w-5 mr-2" />
         {sectionName ? `Añadir nuevo producto a ${sectionName}` : 'Nuevo Producto'}

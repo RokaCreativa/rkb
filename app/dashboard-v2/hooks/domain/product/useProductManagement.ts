@@ -145,7 +145,7 @@ export default function useProductManagement() {
         if (originalSectionId !== newSectionId) {
           // Eliminar de la sección original
           const originalSectionProducts = prev[originalSectionId!] || [];
-          const filteredOriginalProducts = originalSectionProducts.filter(
+          const filteredOriginalProducts = originalSectionProducts.(
             product => product.product_id !== productId
           );
 
@@ -217,7 +217,7 @@ export default function useProductManagement() {
       // Actualizamos el estado local eliminando el producto
       setProducts(prev => {
         const sectionProducts = prev[sectionId!] || [];
-        const updatedProducts = sectionProducts.filter(
+        const updatedProducts = sectionProducts.(
           product => product.product_id !== productId
         );
 

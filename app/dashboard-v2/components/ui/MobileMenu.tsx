@@ -250,10 +250,10 @@ export default function MobileMenu({
               {/* Animación de deslizamiento del panel */}
               <Transition.Child
                 as={Fragment}
-                enter="transform transition ease-in-out duration-300"
+                enter="transition ease-in-out duration-300"
                 enterFrom={position === 'right' ? 'translate-x-full' : '-translate-x-full'}
                 enterTo="translate-x-0"
-                leave="transform transition ease-in-out duration-200"
+                leave="transition ease-in-out duration-200"
                 leaveFrom="translate-x-0"
                 leaveTo={position === 'right' ? 'translate-x-full' : '-translate-x-full'}
               >
@@ -294,7 +294,7 @@ export default function MobileMenu({
                         <div className="ml-3 flex h-12 w-12 items-center justify-center rounded-full touch-action-manipulation">
                           <button
                             type="button"
-                            className="rounded-full p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="rounded-full p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-0 focus:ring-2 focus:ring-indigo-500"
                             onClick={onClose}
                           >
                             <span className="sr-only">{t('common.close')}</span>
@@ -316,7 +316,7 @@ export default function MobileMenu({
                             <div key={item.id} className="relative">
                               {/* Indicador visual para el elemento activo */}
                               {showActiveIndicator && item.isActive && (
-                                <div className="absolute left-0 top-1/2 w-1 h-8 bg-indigo-600 rounded-r-full transform -translate-y-1/2" />
+                                <div className="absolute left-0 top-1/2 w-1 h-8 bg-indigo-600 rounded-r-full -translate-y-1/2" />
                               )}
                               {/* Botón del elemento de menú */}
                               <button

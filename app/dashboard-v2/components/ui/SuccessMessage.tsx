@@ -135,7 +135,7 @@ export default function SuccessMessage({
                     setIsVisible(false);
                     setTimeout(() => onClose?.(), 300);
                   }}
-                  className={`${currentStyle.text} hover:opacity-70 focus:outline-none`}
+                  className={`${currentStyle.text} hover:opacity-70 focus:outline-0`}
                 >
                   <XMarkIcon className="h-5 w-5" />
                 </button>
