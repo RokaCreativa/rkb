@@ -17,7 +17,7 @@
 
 /* Base común para todas las tablas */
 .grid-table {
-  @apply min-w-full divide-y;
+  @apply min-w-full divide-y divide-gray-200;
   /* Eliminamos la restricción de selección */
 }
 
@@ -26,7 +26,7 @@
 table.product-table th,
 table.section-table th,
 table.category-table th {
-  @apply font-medium;
+  @apply font-medium text-xs text-gray-500 uppercase tracking-wider bg-gray-50 px-3 py-3;
   display: table-cell !important;
   visibility: visible !important;
   opacity: 1 !important;
@@ -116,34 +116,34 @@ th.column-header span {
 }
 
 .grid-container {
-  @apply border rounded-lg shadow-sm mb-4 overflow-hidden;
+  @apply border border-gray-200 rounded-lg shadow-sm mb-4 overflow-hidden bg-white;
   max-width: 100% !important; /* MEJORA MÓVIL: Evitar desbordamiento horizontal */
 }
 
 .grid-header {
-  @apply flex justify-between items-center p-4 border-b;
+  @apply flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50;
   flex-wrap: wrap !important; /* MEJORA MÓVIL: Permitir ajuste de contenido */
 }
 
 .grid-title {
-  @apply text-sm font-medium;
+  @apply text-sm font-medium text-gray-900;
 }
 
 .grid-subtitle {
-  @apply text-xs;
+  @apply text-xs text-gray-500;
 }
 
 /* Celdas de la tabla */
 .grid-cell {
-  @apply px-3 py-2 whitespace-nowrap;
+  @apply px-3 py-2 whitespace-nowrap text-sm text-gray-900;
 }
 
 .grid-cell-center {
-  @apply px-3 py-2 whitespace-nowrap text-center;
+  @apply px-3 py-2 whitespace-nowrap text-center text-sm text-gray-900;
 }
 
 .grid-cell-right {
-  @apply px-3 py-2 whitespace-nowrap text-right;
+  @apply px-3 py-2 whitespace-nowrap text-right text-sm text-gray-900;
 }
 
 /* Estilos para precios en productos - Alineación a la derecha */
