@@ -242,7 +242,12 @@ div.flex-col,
 }
 
 .action-button-edit {
-  @apply action-button;
+  @apply p-1.5 rounded-full;
+  min-width: 36px !important; /* MEJORA MÓVIL: Área táctil mínima */
+  min-height: 36px !important; /* MEJORA MÓVIL: Área táctil mínima */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .action-button-delete {
@@ -252,7 +257,12 @@ div.flex-col,
 }
 
 .action-button-toggle {
-  @apply action-button;
+  @apply p-1.5 rounded-full;
+  min-width: 36px !important; /* MEJORA MÓVIL: Área táctil mínima */
+  min-height: 36px !important; /* MEJORA MÓVIL: Área táctil mínima */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Transiciones */
@@ -598,11 +608,21 @@ body.is-dragging .drag-indicator {
 
 /* Acciones específicas para categorías */
 .category-action-edit {
-  @apply action-button-edit text-indigo-600 hover:bg-indigo-50;
+  @apply p-1.5 rounded-full text-indigo-600 hover:bg-indigo-50;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .category-action-delete {
-  @apply action-button text-indigo-600 hover:bg-indigo-50;
+  @apply p-1.5 rounded-full text-indigo-600 hover:bg-indigo-50;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Estilos para tablas de categorías */
@@ -706,11 +726,21 @@ table.grid-table.category-border tbody {
 
 /* Acciones específicas para secciones */
 .section-action-edit {
-  @apply action-button-edit text-teal-600 hover:bg-teal-50;
+  @apply p-1.5 rounded-full text-teal-600 hover:bg-teal-50;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .section-action-delete {
-  @apply action-button text-teal-600 hover:bg-teal-50;
+  @apply p-1.5 rounded-full text-teal-600 hover:bg-teal-50;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 /* Estilos para tablas de secciones */
@@ -825,11 +855,21 @@ table.grid-table.section-border tbody {
 
 /* Acciones específicas para productos */
 .product-action-edit {
-  @apply action-button-edit text-amber-600 hover:bg-amber-50;
+  @apply p-1.5 rounded-full text-amber-600 hover:bg-amber-50;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .product-action-delete {
-  @apply action-button text-amber-600 hover:bg-amber-50;
+  @apply p-1.5 rounded-full text-amber-600 hover:bg-amber-50;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   color: #ef4444; /* red-500 */
   cursor: pointer;
   border-radius: 4px;
