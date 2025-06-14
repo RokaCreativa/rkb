@@ -103,17 +103,18 @@
 
 - **Objetivo:** Permitir diferentes tipos de jerarquía de menú según las necesidades del cliente manteniendo la arquitectura actual.
 - **Tareas:**
-  - [ ] **#T31 - Implementación de Jerarquía Flexible "Smart Sections":**
-    - **Objetivo:** Permitir a los clientes elegir entre estructura completa (Categorías → Secciones → Productos) o simplificada (Categorías → Productos) sin cambios en DB o APIs.
-    - **Propuesta:** Sistema "Smart Sections" con secciones auto-creadas invisibles al usuario en modo simple.
-    - **Justificación:** 90% de clientes usan estructura completa, pero 10% necesita simplicidad. No podemos joder al 90% por el 10%.
+  - [x] **#T31 - Productos Directos en Categorías (Backend Completado):**
+    - **Objetivo:** Permitir crear productos directamente en categorías sin secciones intermedias usando "relaciones opcionales".
+    - **Propuesta:** Implementar `category_id` opcional en productos para jerarquía flexible (Categoría → Producto directo).
+    - **Justificación:** Categorías simples como "BEBIDAS" no necesitan secciones intermedias, pero debe coexistir con modo tradicional.
+    - **✅ BACKEND COMPLETADO (14/06/2025):** Schema, APIs y Store implementados exitosamente.
     - **Tareas Detalladas:**
-      - [ ] **#T31.1 - Extender Schema de Cliente:** Añadir `client_settings.ui_mode` ("full" | "simple") y `custom_names` para personalización de labels.
-      - [ ] **#T31.2 - Sistema de Secciones Auto:** Implementar flag `is_auto` en secciones para auto-crear secciones invisibles en modo simple.
-      - [ ] **#T31.3 - Adaptar DashboardStore:** Modificar lógica de fetching para manejar ambos modos transparentemente.
-      - [ ] **#T31.4 - UI Condicional:** Adaptar vistas para mostrar/ocultar secciones según ui_mode.
-      - [ ] **#T31.5 - Nombres Personalizables:** Implementar sistema para que clientes personalicen labels ("Categorías" → "Tipos", etc.).
-      - [ ] **#T31.6 - Configuración de Cliente:** Crear interfaz para que clientes cambien entre modos y personalicen nombres.
+      - [x] **#T31.1 - Modificar Schema:** Añadido `category_id` opcional a products con relación directa a categories.
+      - [x] **#T31.2 - Migración de BD:** Aplicada migración `20250614015912_add_products_direct_to_categories_t31`.
+      - [x] **#T31.3 - APIs Híbridas:** Modificadas para soportar productos tradicionales + directos simultáneamente.
+      - [x] **#T31.4 - Extender Store:** Añadida función `createProductDirect()` al dashboardStore.
+      - [ ] **#T31.5 - UI CategoryGridView:** Modificar para mostrar productos directos y FAB contextual.
+      - [ ] **#T31.6 - Testing Integral:** Validar funcionalidad completa en móvil y escritorio.
 
 ### **Fase 6: Features Críticos del Sistema de Menús**
 

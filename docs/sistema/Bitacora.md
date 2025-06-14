@@ -1656,3 +1656,213 @@ npm run build
 **ConclusiÃ³n:** La unificaciÃ³n crÃ­tica estÃ¡ completada. El sistema es estable, funcional y bien documentado. Las duplicaciones mÃ¡s problemÃ¡ticas han sido eliminadas, y la deuda tÃ©cnica restante estÃ¡ claramente identificada para futuras sesiones.
 
 ---
+
+### **#28 | Implementación Completa de T31: Productos Directos en Categorías**
+
+- **Fecha:** 14 de junio de 2025
+- **Responsable:** Claude (Asistente IA)
+- **Checklist:** #T31 (Jerarquía Flexible "Smart Sections")
+- **Mandamientos Involucrados:** #1 (Contexto), #2 (Actualización), #3 (No reinventar), #6 (Separación responsabilidades), #7 (Código documentado), #9 (Optimización)
+
+**Descripción:**
+
+> Implementación completa de la funcionalidad T31 que permite crear productos directamente en categorías sin necesidad de secciones intermedias, siguiendo la propuesta de "relaciones opcionales" de Gemini. Esta funcionalidad implementa una jerarquía flexible que soporta tanto el modo tradicional (Categoría → Sección → Producto) como el modo directo (Categoría → Producto).
+
+**Arquitectura Implementada:**
+
+### **🎯 1. MODIFICACIONES DE SCHEMA Y BASE DE DATOS**
+
+**Cambios en Prisma Schema:**
+
+- **Añadido campo `category_id` opcional** al modelo `products`
+- **Nueva relación directa:** `products.category_id → categories.category_id`
+- **Relación inversa:** `categories.direct_products[]` usando `@relation("CategoryToProducts")`
+- **Índice optimizado:** `@@index([category_id])` para queries rápidas
+
+**Migración de Base de Datos:**
+
+- **Migración creada:** `20250614015912_add_products_direct_to_categories_t31`
+- **Campo añadido:** `category_id INT NULL` en tabla `products`
+- **Foreign key:** `products_category_id_fkey` con `ON DELETE CASCADE`
+- **Base de datos sincronizada** y validada correctamente
+
+### **🎯 2. MODIFICACIONES DE APIs**
+
+**API de Productos (`/api/products/route.ts`):**
+
+- **Lógica adaptativa:** Detecta `category_id` sin `sections` para crear productos directos
+- **Validación híbrida:** Soporta tanto `section_id` como `category_id` (mutuamente excluyentes)
+- **Respuesta adaptada:** Productos directos no tienen secciones asociadas en la respuesta
+
+**API de Productos por Categoría (`/api/categories/[id]/products/route.ts`):**
+
+- **Productos híbridos:** Obtiene productos tradicionales (vía secciones) + productos directos (vía category_id)
+- **Eliminación de duplicados:** Usa Set para evitar productos duplicados
+- **Ordenamiento:** Mantiene `display_order` para ambos tipos de productos
+
+### **🎯 3. EXTENSIÓN DEL DASHBOARD STORE**
+
+**Nueva función `createProductDirect`:**
+
+- **Propósito:** Crear productos directamente en categorías sin sección intermedia
+- **Parámetros:** `categoryId`, `data`, `imageFile` opcional
+- **Flujo:** Envía `category_id` a la API sin `sections` array
+- **Recarga:** Usa `fetchProductsByCategory()` para obtener productos híbridos
+
+**Interfaz actualizada:**
+
+- **Añadida función** a `DashboardActions` interface
+- **Tipado completo** con TypeScript
+- **Comentarios contextuales** explicando conexiones y flujos
+
+### **🎯 4. CASOS DE USO IMPLEMENTADOS**
+
+**Modo Tradicional (Existente):**
+
+```
+HAMBURGUESAS (Categoría)
+├── Clásicas (Sección)
+│   ├── Big Mac (Producto)
+│   └── Whopper (Producto)
+└── Gourmet (Sección)
+    ├── Angus (Producto)
+    └── Veggie (Producto)
+```
+
+**Modo Directo (Nuevo - T31):**
+
+```
+BEBIDAS (Categoría)
+├── Coca Cola (Producto directo)
+├── Pepsi (Producto directo)
+└── Agua (Producto directo)
+```
+
+**Modo Híbrido (Soportado):**
+
+```
+POSTRES (Categoría)
+├── Helados (Sección)
+│   ├── Vainilla (Producto)
+│   └── Chocolate (Producto)
+├── Flan (Producto directo)
+└── Brownie (Producto directo)
+```
+
+### **🎯 5. REGLAS DE NEGOCIO IMPLEMENTADAS**
+
+1. **Exclusividad mutua:** Un producto puede estar en `section_id` O `category_id`, pero no en ambos
+2. **Validación de existencia:** Se verifica que la categoría existe y pertenece al cliente
+3. **Productos híbridos:** Una categoría puede tener productos tradicionales Y directos simultáneamente
+4. **Ordenamiento unificado:** Todos los productos se ordenan por `display_order` independientemente del tipo
+5. **Eliminación en cascada:** Si se elimina una categoría, se eliminan sus productos directos
+
+### **🎯 6. COMENTARIOS CONTEXTUALES APLICADOS**
+
+**Estándar de "Migas de Pan":**
+
+- **PORQUÉ:** Explicación de cada decisión técnica
+- **CONEXIÓN:** Referencias específicas a archivos y líneas de código
+- **FLUJO:** Descripción de cómo los datos fluyen entre componentes
+- **CASOS DE USO:** Ejemplos concretos de implementación
+- **PROBLEMAS RESUELTOS:** Documentación de decisiones arquitectónicas
+
+**Archivos con comentarios contextuales:**
+
+- `prisma/schema.prisma` (relaciones y campos)
+- `app/api/products/route.ts` (lógica adaptativa)
+- `app/api/categories/[id]/products/route.ts` (productos híbridos)
+- `app/dashboard-v2/stores/dashboardStore.ts` (nueva función)
+
+### **🎯 7. VALIDACIÓN TÉCNICA COMPLETA**
+
+**Schema de Prisma:**
+
+```bash
+npx prisma validate
+# ✅ The schema at prisma\schema.prisma is valid 🚀
+```
+
+**Migración de Base de Datos:**
+
+```bash
+npx prisma migrate dev
+# ✅ Migration applied successfully
+# ✅ Database is now in sync with your schema
+```
+
+**Generación de Cliente:**
+
+```bash
+npx prisma generate
+# ✅ Generated Prisma Client successfully
+```
+
+### **🎯 8. ARQUITECTURA FINAL**
+
+**Relaciones de Base de Datos:**
+
+```sql
+-- Modo Tradicional (Existente)
+categories → sections → products (via section_id)
+
+-- Modo Directo (Nuevo - T31)
+categories → products (via category_id)
+
+-- Ambos modos coexisten sin conflictos
+```
+
+**Flujo de APIs:**
+
+```
+CategoryGridView → fetchProductsByCategory() → /api/categories/[id]/products
+                                            ↓
+                                    Productos Híbridos
+                                    (Tradicionales + Directos)
+```
+
+**Flujo de Creación:**
+
+```
+// Tradicional
+createProduct() → /api/products (con sections array)
+
+// Directo (T31)
+createProductDirect() → /api/products (con category_id)
+```
+
+### **Archivos Modificados/Creados:**
+
+**Schema y Migración:**
+
+- `prisma/schema.prisma` (Modificado - añadido category_id y relaciones)
+- `prisma/migrations/20250614015912_add_products_direct_to_categories_t31/migration.sql` (Creado)
+
+**APIs:**
+
+- `app/api/products/route.ts` (Modificado - lógica adaptativa para productos directos)
+- `app/api/categories/[id]/products/route.ts` (Modificado - productos híbridos)
+
+**Store:**
+
+- `app/dashboard-v2/stores/dashboardStore.ts` (Modificado - añadida createProductDirect)
+
+### **Estado del Proyecto:**
+
+**✅ Backend Completado:**
+
+- Schema actualizado y validado
+- Migración aplicada exitosamente
+- APIs modificadas para soportar productos híbridos
+- Store extendido con nueva funcionalidad
+
+**⏳ Pendiente para Próxima Sesión:**
+
+- Modificar CategoryGridView para mostrar productos directos
+- Añadir FAB contextual para crear productos directos
+- Implementar UI para gestionar productos sin secciones
+- Testing integral de la funcionalidad completa
+
+**Conclusión:** La implementación de backend para T31 está completada exitosamente. La arquitectura de "relaciones opcionales" permite una jerarquía flexible que soporta tanto productos tradicionales como directos, manteniendo la compatibilidad total con el sistema existente. El próximo paso es implementar la interfaz de usuario para aprovechar esta nueva funcionalidad.
+
+---
