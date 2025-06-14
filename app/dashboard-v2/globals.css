@@ -9,9 +9,7 @@
  */
 
 /* Importar variables de tailwind */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* Estilos para el dashboard */
 .dashboard-container {
@@ -39,4 +37,4 @@
 }
 
 /* Nota: Los estilos específicos para categorías, secciones y productos 
-   ahora se encuentran en styles/grids.css */ 
+   ahora se encuentran en styles/grids.css */

@@ -381,7 +381,7 @@ export default function FloatingPhonePreview({
                     {/* Header del menú */}
                     <div className="relative h-28 w-full bg-white shadow-sm">
                       {clientMainLogo && !mainLogoError ? (
-                        <div className="absolute inset-0 bg-gradient-to-b from-gray-900/20 to-gray-900/5 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-linear-to-b from-gray-900/20 to-gray-900/5 flex items-center justify-center">
                           <Image
                             src={clientMainLogo}
                             alt={`Logo principal de ${clientName}`}
@@ -392,7 +392,7 @@ export default function FloatingPhonePreview({
                           />
                         </div>
                       ) : (
-                        <div className="absolute inset-0 bg-gradient-to-b from-indigo-600/20 to-indigo-600/5 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-linear-to-b from-indigo-600/20 to-indigo-600/5 flex items-center justify-center">
                           <h2 className="text-2xl font-bold text-indigo-900">{clientName}</h2>
                         </div>
                       )}
