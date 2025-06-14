@@ -78,7 +78,7 @@ export async function GET(
       ).map(productId => {
         const productSection = traditionalProducts.find(ps => ps.product_id === productId);
         return productSection?.products;
-      }).((product): product is NonNullable<typeof product> => product !== null && product !== undefined);
+      }).filter((product): product is NonNullable<typeof product> => product !== null && product !== undefined);
 
       allProducts.push(...processedTraditional);
     }
@@ -103,7 +103,7 @@ export async function GET(
       new Set(allProducts.map(product => product.product_id))
     ).map(productId => {
       return allProducts.find(product => product.product_id === productId);
-    }).((product): product is NonNullable<typeof product> => product !== null && product !== undefined)
+    }).filter((product): product is NonNullable<typeof product> => product !== null && product !== undefined)
       .sort((a, b) => {
         const orderA = a.display_order || 0;
         const orderB = b.display_order || 0;

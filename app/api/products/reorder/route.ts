@@ -45,7 +45,7 @@ export async function POST(request: Request) {
     console.log('👉 Reordenando productos:', products);
 
     // Validar que cada producto tenga los campos requeridos
-    const invalidProducts = products.(p =>
+    const invalidProducts = products.filter(p =>
       !p.product_id || typeof p.product_id !== 'number' ||
       p.display_order === undefined || typeof p.display_order !== 'number'
     );
