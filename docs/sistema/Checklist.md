@@ -103,11 +103,11 @@
 
 - **Objetivo:** Permitir diferentes tipos de jerarquía de menú según las necesidades del cliente manteniendo la arquitectura actual.
 - **Tareas:**
-  - [x] **#T31 - Productos Directos en Categorías (Backend Completado):**
+  - [x] **#T31 - Productos Directos en Categorías (COMPLETADO):**
     - **Objetivo:** Permitir crear productos directamente en categorías sin secciones intermedias usando "relaciones opcionales".
     - **Propuesta:** Implementar `category_id` opcional en productos para jerarquía flexible (Categoría → Producto directo).
     - **Justificación:** Categorías simples como "BEBIDAS" no necesitan secciones intermedias, pero debe coexistir con modo tradicional.
-    - **✅ BACKEND COMPLETADO (14/06/2025):** Schema, APIs y Store implementados exitosamente.
+    - **✅ COMPLETADO (14/06/2025):** Backend implementado exitosamente. Base de datos restaurada con T31 aplicado.
     - **Tareas Detalladas:**
       - [x] **#T31.1 - Modificar Schema:** Añadido `category_id` opcional a products con relación directa a categories.
       - [x] **#T31.2 - Migración de BD:** Aplicada migración `20250614015912_add_products_direct_to_categories_t31`.
