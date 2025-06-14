@@ -51,6 +51,8 @@ export interface DashboardActions {
     deleteSection: (id: number) => Promise<void>;
     toggleSectionVisibility: (id: number, status: number) => Promise<void>;
     createProduct: (data: Partial<Product>, imageFile?: File | null) => Promise<void>;
+    // 🎯 T31: Nueva función para crear productos directos en categorías
+    createProductDirect: (categoryId: number, data: Partial<Product>, imageFile?: File | null) => Promise<void>;
     updateProduct: (id: number, data: Partial<Product>, imageFile?: File | null) => Promise<void>;
     deleteProduct: (id: number) => Promise<void>;
     toggleProductVisibility: (id: number, status: number) => Promise<void>;
@@ -550,6 +552,55 @@ export const useDashboardStore = create<DashboardState & DashboardActions>((set,
 
             // Recargar productos de la sección activa/seleccionada
             if (targetSectionId) await get().fetchProductsBySection(targetSectionId);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
+        } finally {
+            set({ isUpdating: false });
+        }
+    },
+
+    // 🎯 T31: NUEVA FUNCIÓN - Crear producto directo en categoría
+    // PORQUÉ: Implementa la propuesta de "relaciones opcionales" de Gemini
+    // CONEXIÓN: CategoryGridView → FAB "Añadir Producto" → esta función → API modificada
+    // FLUJO: Producto se crea directamente en categoría sin sección intermedia
+    // CASOS DE USO: Categorías simples como "BEBIDAS" → "Coca Cola" (sin sección)
+    createProductDirect: async (categoryId: number, data: Partial<Product>, imageFile?: File | null) => {
+        const toastId = 'crud-product-direct';
+        set({ isUpdating: true });
+        toast.loading('Creando producto directo...', { id: toastId });
+        try {
+            const formData = new FormData();
+
+            // 🎯 T31: MODO DIRECTO - Enviar category_id en lugar de sections
+            // PORQUÉ: La API modificada detecta category_id sin sections para crear producto directo
+            // REGLA DE NEGOCIO: category_id y sections son mutuamente excluyentes
+            formData.append('category_id', String(categoryId));
+
+            // Añadir todos los campos del producto
+            Object.entries(data).forEach(([key, value]) => {
+                if (value !== null && key !== 'section_id' && key !== 'category_id') {
+                    formData.append(key, String(value));
+                }
+            });
+
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            const res = await fetch('/api/products', { method: 'POST', body: formData });
+
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error);
+            }
+
+            const responseData = await res.json();
+            toast.success('Producto directo creado', { id: toastId });
+
+            // 🎯 T31: RECARGAR PRODUCTOS HÍBRIDOS - Tradicionales + Directos
+            // PORQUÉ: La categoría ahora puede tener productos directos que deben mostrarse
+            // CONEXIÓN: fetchProductsByCategory() usa la API modificada que obtiene productos híbridos
+            await get().fetchProductsByCategory(categoryId);
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Error', { id: toastId });
         } finally {

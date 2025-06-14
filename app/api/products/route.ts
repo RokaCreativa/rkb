@@ -324,8 +324,12 @@ export async function POST(request: Request) {
     // Convertir a booleano (true para activo, false para inactivo)
     const status = formData.get('status') === '1';
 
-    // 🎯 T32 FIX - JERARQUÍA HÍBRIDA: Manejar category_id Y section_id
-    const categoryId = formData.get('category_id') as string;
+    // 🎯 T31: PRODUCTOS DIRECTOS EN CATEGORÍAS - Manejar category_id Y section_id
+    // PORQUÉ: Implementa la propuesta de "relaciones opcionales" de Gemini
+    // CONEXIÓN: dashboardStore.createProductDirect() → esta API → productos sin sección
+    // FLUJO: Producto puede estar en sección (tradicional) O en categoría (directo)
+    // CASOS DE USO: Categorías simples como "BEBIDAS" → "Coca Cola" (sin sección intermedia)
+    const categoryIdDirect = formData.get('category_id') as string;
     const sectionIdDirect = formData.get('section_id') as string;
 
     // Obtener secciones a las que pertenece este producto (modo tradicional)
@@ -348,53 +352,54 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El precio es requerido y debe ser un número' }, { status: 400 });
     }
 
-    // 🎯 LÓGICA ADAPTATIVA: Determinar sección según el modo
+    // 🎯 T31: LÓGICA ADAPTATIVA - Determinar modo de creación
+    // PORQUÉ: Soporta tanto productos tradicionales (con sección) como directos (sin sección)
+    // REGLA DE NEGOCIO: category_id y section_id son mutuamente excluyentes
     let primarySectionId: number | null = null;
+    let primaryCategoryId: number | null = null;
 
-    if (categoryId && !sectionIdDirect) {
-      // MODO SIMPLE: Crear producto en la primera sección de la categoría
-      const categoryIdInt = parseInt(categoryId);
+    if (categoryIdDirect && !sectionIdDirect && !sectionIds.length) {
+      // 🎯 T31: MODO DIRECTO - Producto directo en categoría sin sección
+      primaryCategoryId = parseInt(categoryIdDirect);
 
-      // Buscar la primera sección de esta categoría
-      const firstSection = await prisma.sections.findFirst({
+      // Verificar que la categoría existe y pertenece al cliente
+      const categoryExists = await prisma.categories.findFirst({
         where: {
-          category_id: categoryIdInt,
+          category_id: primaryCategoryId,
           client_id: user.client_id,
           deleted: 0 as any
         },
-        orderBy: {
-          display_order: 'asc'
-        }
       });
 
-      if (!firstSection) {
-        return NextResponse.json({ error: 'No se encontraron secciones en esta categoría' }, { status: 400 });
+      if (!categoryExists) {
+        return NextResponse.json({ error: 'La categoría seleccionada no es válida' }, { status: 400 });
       }
-
-      primarySectionId = firstSection.section_id;
     } else if (sectionIdDirect) {
-      // MODO DIRECTO: Usar section_id específico
+      // MODO DIRECTO: Usar section_id específico (tradicional)
       primarySectionId = parseInt(sectionIdDirect);
     } else if (sectionIds.length > 0) {
       // MODO TRADICIONAL: Usar primera sección del array
       primarySectionId = sectionIds[0];
     }
 
-    if (!primarySectionId) {
-      return NextResponse.json({ error: 'El producto debe pertenecer al menos a una sección' }, { status: 400 });
+    // Validar que se especificó al menos una ubicación
+    if (!primarySectionId && !primaryCategoryId) {
+      return NextResponse.json({ error: 'El producto debe pertenecer a una sección o categoría' }, { status: 400 });
     }
 
-    // 4. Verificar que la sección existe y pertenece al cliente
-    const sectionExists = await prisma.sections.findFirst({
-      where: {
-        section_id: primarySectionId,
-        client_id: user.client_id,
-        deleted: 0 as any
-      },
-    });
+    // 4. Verificar que la sección existe y pertenece al cliente (solo si es modo tradicional)
+    if (primarySectionId) {
+      const sectionExists = await prisma.sections.findFirst({
+        where: {
+          section_id: primarySectionId,
+          client_id: user.client_id,
+          deleted: 0 as any
+        },
+      });
 
-    if (!sectionExists) {
-      return NextResponse.json({ error: 'La sección seleccionada no es válida' }, { status: 400 });
+      if (!sectionExists) {
+        return NextResponse.json({ error: 'La sección seleccionada no es válida' }, { status: 400 });
+      }
     }
 
     // 5. Determinar el próximo valor de display_order
@@ -426,26 +431,34 @@ export async function POST(request: Request) {
       imageUrl = uniqueFileName;
     }
 
-    // 7. Usamos el primer section_id como sección principal para el producto
-    // En el nuevo modelo de datos, un producto solo puede estar en una sección a la vez
-    if (!primarySectionId) {
-      return NextResponse.json({ error: 'Se requiere al menos una sección' }, { status: 400 });
+    // 🎯 T31: CREAR PRODUCTO - Modo tradicional (con sección) o directo (con categoría)
+    // PORQUÉ: Implementa la propuesta de "relaciones opcionales" de Gemini
+    // CONEXIÓN: Producto puede estar en sección O en categoría, pero no en ambos
+    // FLUJO: dashboardStore.createProduct() (tradicional) vs createProductDirect() (directo)
+
+    const productData: any = {
+      name,
+      price,
+      description,
+      image: imageUrl,
+      status: status as any,
+      display_order: maxOrder + 1,
+      client_id: user.client_id,
+      deleted: false as any,
+    };
+
+    // Añadir section_id O category_id según el modo
+    if (primarySectionId) {
+      // MODO TRADICIONAL: Producto en sección
+      productData.section_id = primarySectionId;
+    } else if (primaryCategoryId) {
+      // 🎯 T31: MODO DIRECTO - Producto directo en categoría
+      productData.category_id = primaryCategoryId;
     }
 
-    // Crear el nuevo producto con el section_id directamente
+    // Crear el nuevo producto
     const newProduct = await prisma.products.create({
-      data: {
-        name,
-        price,
-        description,
-        image: imageUrl,
-        status: status as any,
-        display_order: maxOrder + 1,
-        client_id: user.client_id,
-        deleted: false as any,
-        // @ts-ignore - Usamos el section_id directamente ahora
-        section_id: primarySectionId,
-      },
+      data: productData,
     });
 
     // NOTA: Ya no es necesario usar la tabla products_sections
@@ -454,11 +467,27 @@ export async function POST(request: Request) {
       console.warn(`⚠️ Se seleccionaron ${sectionIds.length} secciones, pero solo se asignó la primera (ID: ${primarySectionId})`);
     }
 
-    // Obtener nombre de la sección para la respuesta
-    const section = await prisma.sections.findUnique({
-      where: { section_id: primarySectionId },
-      select: { name: true }
-    });
+    // 🎯 T31: PREPARAR RESPUESTA - Modo tradicional o directo
+    // PORQUÉ: La respuesta debe reflejar si el producto está en sección o categoría
+    // CONEXIÓN: CategoryGridView y SectionGridView necesitan esta información
+    let sections: { section_id: number; name: string; }[] = [];
+
+    if (primarySectionId) {
+      // MODO TRADICIONAL: Obtener nombre de la sección
+      const section = await prisma.sections.findUnique({
+        where: { section_id: primarySectionId },
+        select: { name: true }
+      });
+
+      sections = [{
+        section_id: primarySectionId,
+        name: section?.name || 'Sección sin nombre',
+      }];
+    } else if (primaryCategoryId) {
+      // 🎯 T31: MODO DIRECTO - Producto directo en categoría (sin sección)
+      // La respuesta indica que no hay secciones asociadas
+      sections = [];
+    }
 
     // 10. Preparar la respuesta
     const processedProduct: ProcessedProduct = {
@@ -470,10 +499,7 @@ export async function POST(request: Request) {
       client_id: newProduct.client_id || 0,
       price: parseFloat(newProduct.price?.toString() || '0'),
       description: newProduct.description,
-      sections: [{
-        section_id: primarySectionId,
-        name: section?.name || 'Sección sin nombre',
-      }],
+      sections: sections,
     };
 
     return NextResponse.json(processedProduct);
