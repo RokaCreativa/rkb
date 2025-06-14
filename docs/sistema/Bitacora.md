@@ -199,6 +199,41 @@
 > 2.  **Mejora de las Listas:** Se acordÃ³ enriquecer las listas con imÃ¡genes en miniatura, contadores de visibilidad (ej: "5/8 visibles") y un botÃ³n de "ojo" para cambiar el estado. Los Ã­tems ocultos se mostrarÃ¡n con opacidad reducida.
 > 3.  **VisiÃ³n a Futuro:** Se ratifica que la arquitectura actual es flexible y escalable para adaptarse a otros tipos de negocio (peluquerÃ­as, inmobiliarias, etc.) sin necesidad de cambios estructurales, solo ajustes en las etiquetas de la UI.
 
+---
+
+### **#31 | 🚀 MODERNIZACIÓN COMPLETA: Stack Tecnológico Actualizado para T31**
+
+- **Fecha:** 2025-06-14
+- **Responsable:** Claude Sonnet 4
+- **Checklist:** Preparación para T31
+- **Mandamientos Involucrados:** #9 (Optimización), #8 (Consistencia)
+
+**Descripción:**
+
+> Se ha ejecutado una modernización completa del stack tecnológico para preparar el proyecto para la implementación de T31 (Productos Directos en Categorías). Esta actualización asegura que el proyecto utilice las herramientas más modernas y eficientes disponibles.
+
+**Actualizaciones Realizadas:**
+
+- **Tailwind CSS:** 3.4.17 → 4.1.10 (última versión con mejoras de performance)
+- **Prisma:** 6.5.0 → 6.9.0 (mejor performance y nuevas características)
+- **Lucide React:** Actualizado a 0.515.0 (más iconos disponibles)
+
+**Nuevas Librerías Esenciales Añadidas:**
+
+- `@radix-ui/react-dialog@1.1.14` - Modales modernos y accesibles
+- `@radix-ui/react-dropdown-menu@2.1.15` - Menús contextuales profesionales
+- `@radix-ui/colors@3.0.0` - Paletas de colores profesionales
+- `@use-gesture/react@10.3.1` - Gestos táctiles para móvil
+
+**Archivos Modificados/Creados:**
+
+- `package.json` (Dependencias actualizadas)
+- `docs/sistema/ui.md` (Actualizado con estado de modernización)
+
+**Impacto:**
+
+> El proyecto ahora cuenta con un stack completamente moderno y está listo para implementar T31 con las mejores herramientas disponibles. Se ha eliminado la deuda técnica y se ha preparado el terreno para una UI de vanguardia.
+
 **Archivos Modificados/Creados:**
 
 - `docs/sistema/Checklist.md` (Nueva tarea #T9 aÃ±adida)
