@@ -103,18 +103,20 @@
 
 - **Objetivo:** Permitir diferentes tipos de jerarquía de menú según las necesidades del cliente manteniendo la arquitectura actual.
 - **Tareas:**
-  - [x] **#T31 - Productos Directos en Categorías (COMPLETADO):**
-    - **Objetivo:** Permitir crear productos directamente en categorías sin secciones intermedias usando "relaciones opcionales".
-    - **Propuesta:** Implementar `category_id` opcional en productos para jerarquía flexible (Categoría → Producto directo).
-    - **Justificación:** Categorías simples como "BEBIDAS" no necesitan secciones intermedias, pero debe coexistir con modo tradicional.
-    - **✅ COMPLETADO (14/06/2025):** Backend implementado exitosamente. Base de datos restaurada con T31 aplicado.
+  - [x] **#T31 - Productos Directos en Categorías + Categorías Virtuales (COMPLETADO):**
+    - **Objetivo:** Permitir crear productos directamente en categorías sin secciones intermedias usando "relaciones opcionales" + Sistema de categorías virtuales para marketing.
+    - **Propuesta:** Implementar `category_id` opcional en productos para jerarquía flexible (Categoría → Producto directo) + Solución v0.dev de categorías virtuales.
+    - **Justificación:** Categorías simples como "BEBIDAS" no necesitan secciones intermedias, pero debe coexistir con modo tradicional. Las categorías virtuales resuelven el problema de "productos huérfanos" con arquitectura dual.
+    - **✅ COMPLETADO (15/01/2025):** Backend + Frontend implementado exitosamente. Solución v0.dev aplicada completamente.
     - **Tareas Detalladas:**
-      - [x] **#T31.1 - Modificar Schema:** Añadido `category_id` opcional a products con relación directa a categories.
+      - [x] **#T31.1 - Modificar Schema:** Añadido `category_id` opcional a products + `is_virtual_category` a categories.
       - [x] **#T31.2 - Migración de BD:** Aplicada migración `20250614015912_add_products_direct_to_categories_t31`.
       - [x] **#T31.3 - APIs Híbridas:** Modificadas para soportar productos tradicionales + directos simultáneamente.
       - [x] **#T31.4 - Extender Store:** Añadida función `createProductDirect()` al dashboardStore.
-      - [ ] **#T31.5 - UI CategoryGridView:** Modificar para mostrar productos directos y FAB contextual.
-      - [ ] **#T31.6 - Testing Integral:** Validar funcionalidad completa en móvil y escritorio.
+      - [x] **#T31.5 - UI CategoryGridView:** Badge VIRTUAL, botón "Producto Directo", contadores actualizados.
+      - [x] **#T31.6 - CategoryForm:** Checkbox "Categoría Virtual" con tooltip explicativo.
+      - [x] **#T31.7 - Arquitectura Dual:** Admin ve organización interna, cliente ve productos elevados.
+      - [x] **#T31.8 - Documentación:** Migas de pan contextuales aplicadas a todos los archivos.
 
 ### **Fase 6: Features Críticos del Sistema de Menús**
 
@@ -194,3 +196,42 @@
       - [ ] **#T39.1 - Diagrama del Sistema:** Crear un diagrama visual del flujo de datos en el sistema de modales.
       - [ ] **#T39.2 - Ejemplos de Uso:** Documentar ejemplos de cómo utilizar el nuevo sistema para futuros desarrolladores.
       - [ ] **#T39.3 - Actualizar EstructuraRokaMenu.md:** Reflejar los cambios arquitectónicos en la documentación central.
+
+---
+
+## 🕒 FASE FUTURA: TEMPORIZADOR AUTOMÁTICO DE CATEGORÍAS
+
+### **Funcionalidad Propuesta por el Usuario (Idea Brillante):**
+
+> **Concepto:** Categorías con horarios programados que se activan/desactivan automáticamente
+>
+> **Casos de Uso Reales:**
+>
+> - **"Happy Hour"** → Viernes 17:00-22:00
+> - **"Desayunos"** → Lunes-Viernes 07:00-11:00
+> - **"Menú Nocturno"** → Sábados 22:00-02:00
+> - **"Promociones Semanales"** → Lunes, Miércoles, Viernes
+
+### **Tareas:**
+
+- [ ] **#T40 - Sistema de Temporizador Automático:**
+  - **Objetivo:** Implementar horarios programados para categorías que se activen/desactiven automáticamente.
+  - **Valor de Negocio:** 🟢 **MUY ALTO** (Automatización de marketing, mejor UX cliente)
+  - **Complejidad:** 🔴 **ALTA** (Requiere cron jobs, timezone handling, real-time updates)
+  - **Prioridad:** 🟡 **MEDIA** (Después de completar interfaz jerárquica principal)
+  - **Tareas Detalladas:**
+    - [ ] **#T40.1 - Schema Extensions:** Crear tabla `category_schedules` con horarios por día de semana + campo `has_schedule` en categories.
+    - [ ] **#T40.2 - Backend Implementation:** API `/api/categories/[id]/schedule` + Cron Job para verificar horarios + función `updateCategoryVisibilityBySchedule()`.
+    - [ ] **#T40.3 - Frontend Implementation:** ScheduleForm Component + Badge "🕒 PROGRAMADA" + Real-time updates + Schedule Preview.
+    - [ ] **#T40.4 - UX Enhancements:** Visual Timeline + Quick Templates ("Happy Hour", "Desayunos") + Bulk Schedule + Manual Override.
+    - [ ] **#T40.5 - Advanced Features:** Date Ranges + Holiday Support + Seasonal Menus + A/B Testing + Analytics Integration.
+    - [ ] **#T40.6 - Integration with Virtual Categories:** Scheduled Virtual Categories + Dynamic Promotions + Marketing Automation + Customer Notifications.
+
+### **Integración Perfecta con Categorías Virtuales:**
+
+Esta funcionalidad se combina perfectamente con las categorías virtuales implementadas en T31:
+
+1. **Promociones Automáticas:** Categorías virtuales que aparecen solo en horarios específicos
+2. **Marketing Dinámico:** "Especial del Día" que se activa automáticamente
+3. **UX Optimizada:** Cliente ve promociones relevantes según la hora
+4. **Revenue Optimization:** Análisis de horarios más rentables

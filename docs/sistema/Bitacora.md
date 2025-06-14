@@ -198,6 +198,56 @@
 > **ACTUALIZACIONES APLICADAS:**
 >
 > - **Tailwind CSS**: 3.4.17 → 4.1.10 (última versión con mejor performance)
+
+---
+
+### **#33 | IMPLEMENTACIÓN COMPLETA: CATEGORÍAS VIRTUALES (Solución v0.dev)**
+
+- **Fecha:** 2025-01-15
+- **Responsable:** Claude & Usuario
+- **Checklist:** T31 + Solución v0.dev
+- **Mandamientos Involucrados:** #1 (Consulta), #2 (Actualización), #5 (Mobile-First), #6 (Separación), #7 (Legibilidad)
+
+**Descripción:**
+
+> Se implementó la solución completa de **Categorías Virtuales** propuesta por v0.dev, que resuelve elegantemente el problema de "productos huérfanos" en T31. Esta solución proporciona una arquitectura dual donde las categorías virtuales se comportan diferente en vista admin vs cliente.
+>
+> **FUNCIONALIDAD IMPLEMENTADA:**
+>
+> - **Arquitectura Dual**: Admin ve organización interna, cliente ve productos "elevados" sin mostrar categoría
+> - **Casos de Uso**: "Especial del Día", "Promociones", "Sugerencias del Chef"
+> - **Flexibilidad**: Sistema perfecto para marketing y elementos especiales
+> - **UX Limpia**: Interfaz cliente sin categorías confusas
+>
+> **COMPONENTES TÉCNICOS:**
+>
+> - **Schema DB**: Campo `is_virtual_category Boolean @default(false)` agregado
+> - **Tipos TypeScript**: Interface Category actualizada con documentación contextual
+> - **CategoryForm**: Checkbox con tooltip explicativo para configurar categorías virtuales
+> - **CategoryGridView**: Badge púrpura "VIRTUAL" para identificación visual
+> - **Botón Producto Directo**: Simetría con vista de secciones
+> - **DashboardViewWrapper**: Conexiones completas para nueva funcionalidad
+>
+> **CALIDAD DE CÓDIGO:**
+>
+> - **Migas de Pan Contextuales**: Comentarios que explican PORQUÉ, CONEXIONES y PROBLEMAS RESUELTOS
+> - **Documentación Viva**: Cada archivo modificado incluye contexto de relaciones
+> - **Patrones Consistentes**: Siguiendo arquitectura establecida del proyecto
+> - **Separación de Responsabilidades**: Lógica separada de presentación
+
+**Archivos Modificados/Creados:**
+
+- `prisma/schema.prisma` (Campo is_virtual_category agregado)
+- `app/dashboard-v2/types/domain/category.ts` (Interface actualizada)
+- `app/dashboard-v2/components/domain/categories/CategoryForm.tsx` (Checkbox virtual)
+- `app/dashboard-v2/components/domain/categories/CategoryGridView.tsx` (Badge VIRTUAL)
+- `app/dashboard-v2/components/core/DashboardViewWrapper.tsx` (Props conectadas)
+- `app/dashboard-v2/stores/dashboardStore.ts` (Funciones actualizadas)
+
+**Propuesta Futura del Usuario:**
+
+> **TEMPORIZADOR AUTOMÁTICO**: El usuario propuso una funcionalidad brillante de horarios programados para categorías (ej: "Happy Hour" Viernes 17:00-22:00). Esta funcionalidad se registró en el ULTRA-MEGA-CHECKLIST como Fase 12 para implementación futura, combinando perfectamente con las categorías virtuales para crear un sistema de marketing automático.
+>
 > - **Prisma**: 6.5.0 → 6.9.0 (mejor performance y nuevas características)
 > - **Lucide React**: Actualizado a 0.515.0 (más iconos disponibles)
 >
