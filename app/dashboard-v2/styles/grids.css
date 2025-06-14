@@ -587,7 +587,17 @@ body.is-dragging .drag-indicator {
 
 /* Drag handle para categorías */
 .category-drag-handle {
-  @apply drag-handle text-indigo-500 hover:text-indigo-700 hover:bg-indigo-100;
+  @apply cursor-grab text-indigo-500 hover:text-indigo-700 hover:bg-indigo-100;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   cursor: grab !important;
   z-index: 10 !important;
   position: relative !important;
@@ -705,7 +715,17 @@ table.grid-table.category-border tbody {
 
 /* Drag handle para secciones */
 .section-drag-handle {
-  @apply drag-handle text-teal-500 hover:text-teal-700 hover:bg-teal-100;
+  @apply cursor-grab text-teal-500 hover:text-teal-700 hover:bg-teal-100;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   cursor: grab !important;
   z-index: 10 !important;
   position: relative !important;
@@ -827,7 +847,17 @@ table.grid-table.section-border tbody {
 
 /* Drag handle para productos */
 .product-drag-handle {
-  @apply drag-handle text-amber-500 hover:text-amber-700 hover:bg-amber-100;
+  @apply cursor-grab text-amber-500 hover:text-amber-700 hover:bg-amber-100;
+  touch-action: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   cursor: grab !important;
   z-index: 10 !important;
   position: relative !important;
