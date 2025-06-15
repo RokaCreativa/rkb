@@ -55,32 +55,32 @@ export async function GET(
     const sections = await prisma.sections.findMany({
       where: {
         category_id: categoryId,
-        deleted: 0 as any  // 🧭 MIGA DE PAN: sections.deleted es Int (0/1), no Boolean
+        deleted: 0  // 🧭 MIGA DE PAN: sections.deleted es Int (0/1), no Boolean
       }
     });
-    
+
     console.log('🎯 T31: Secciones encontradas:', sections.length);
 
     if (sections.length > 0) {
-      // Extraer los IDs de las secciones
-      const sectionIds = sections.map(section => section.section_id);
+    // Extraer los IDs de las secciones
+    const sectionIds = sections.map(section => section.section_id);
 
       // Consulta para obtener productos por sección (modo tradicional)
       // 🧭 MIGA DE PAN: Solo productos tradicionales vía products_sections
       // PROBLEMA RESUELTO: Esta consulta ya es exclusiva para productos tradicionales
       const traditionalProducts = await prisma.products_sections.findMany({
-        where: {
-          section_id: { in: sectionIds },
-          products: {
+      where: {
+        section_id: { in: sectionIds },
+        products: {
             deleted: false,
-          }
-        },
-        include: {
-          sections: true,
-          products: true
         }
-      });
-      
+      },
+      include: {
+        sections: true,
+        products: true
+      }
+    });
+
       console.log('🎯 T31: Productos tradicionales encontrados:', traditionalProducts.length);
 
       // Procesar productos tradicionales
@@ -121,11 +121,11 @@ export async function GET(
     ).map(productId => {
       return allProducts.find(product => product.product_id === productId);
     }).filter((product): product is NonNullable<typeof product> => product !== null && product !== undefined)
-      .sort((a, b) => {
-        const orderA = a.display_order || 0;
-        const orderB = b.display_order || 0;
-        return orderA - orderB;
-      });
+    .sort((a, b) => {
+      const orderA = a.display_order || 0;
+      const orderB = b.display_order || 0;
+      return orderA - orderB;
+    });
 
     console.log('🎯 T31: Productos únicos finales:', uniqueProducts.length);
     return NextResponse.json(uniqueProducts);

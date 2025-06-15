@@ -33,7 +33,9 @@ interface ProductGridViewProps {
     subtitle?: string;
 }
 
-export const ProductGridView: React.FC<ProductGridViewProps> = ({
+// 🎯 SOLUCIÓN v0.dev: Componente funcional separado para memoización
+// PORQUÉ: Permite aplicar React.memo de forma limpia sin redeclarar el componente
+const ProductGridViewComponent: React.FC<ProductGridViewProps> = ({
     products,
     onToggleVisibility,
     onEdit,
@@ -128,4 +130,10 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
             />
         </div>
     );
-}; 
+};
+
+// 🎯 SOLUCIÓN v0.dev: Exportación con memoización
+// PORQUÉ: Evita re-renders innecesarios cuando las props no cambian
+// CONEXIÓN: DashboardViewWrapper lo renderiza y se beneficia de esta optimización
+export const ProductGridView = React.memo(ProductGridViewComponent);
+ProductGridView.displayName = 'ProductGridView'; 

@@ -12,13 +12,13 @@ import React from 'react';
 import { MixedListItem, isSectionItem, isProductItem } from '@/app/dashboard-v2/types/domain/mixed';
 import { Section, Product } from '@/app/dashboard-v2/types';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
-import { 
-    EyeIcon, 
-    PencilIcon, 
-    TrashIcon, 
-    FolderIcon, 
+import {
+    EyeIcon,
+    PencilIcon,
+    TrashIcon,
+    FolderIcon,
     CubeIcon,
-    PlusIcon 
+    PlusIcon
 } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 
@@ -32,7 +32,8 @@ interface MixedContentViewProps {
     onSectionDelete: (section: Section) => void;
     onSectionToggleVisibility: (section: Section) => void;
     onAddSection: () => void;
-    onAddProductDirect: () => void;
+    onAddProduct: () => void;
+    isSectionSelected: boolean;
     categoryName?: string;
 }
 
@@ -46,7 +47,8 @@ export const MixedContentView: React.FC<MixedContentViewProps> = ({
     onSectionDelete,
     onSectionToggleVisibility,
     onAddSection,
-    onAddProductDirect,
+    onAddProduct,
+    isSectionSelected,
     categoryName = "Categoría"
 }) => {
     // 🧭 MIGA DE PAN: Contadores separados por tipo para UX informativa
@@ -69,9 +71,9 @@ export const MixedContentView: React.FC<MixedContentViewProps> = ({
 
     const renderSectionItem = (section: Section) => {
         const imageUrl = section.image ? `/images/sections/${section.image}` : '/images/placeholder.png';
-        
+
         return (
-            <div 
+            <div
                 key={`section-${section.section_id}`}
                 className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 cursor-pointer transition-colors"
                 onClick={() => onSectionSelect(section)}
@@ -91,25 +93,25 @@ export const MixedContentView: React.FC<MixedContentViewProps> = ({
                         <span className="text-sm text-blue-600">📁 Sección</span>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => { e.stopPropagation(); onSectionToggleVisibility(section); }}
                     >
                         <EyeIcon className={`h-5 w-5 ${section.status ? 'text-green-500' : 'text-gray-400'}`} />
                     </Button>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => { e.stopPropagation(); onSectionEdit(section); }}
                     >
                         <PencilIcon className="h-5 w-5" />
                     </Button>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => { e.stopPropagation(); onSectionDelete(section); }}
                     >
                         <TrashIcon className="h-5 w-5 text-red-500" />
@@ -121,9 +123,9 @@ export const MixedContentView: React.FC<MixedContentViewProps> = ({
 
     const renderProductItem = (product: Product) => {
         const imageUrl = product.image ? `/images/products/${product.image}` : '/images/placeholder.png';
-        
+
         return (
-            <div 
+            <div
                 key={`product-${product.product_id}`}
                 className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
             >
@@ -139,31 +141,36 @@ export const MixedContentView: React.FC<MixedContentViewProps> = ({
                     />
                     <div className="flex flex-col">
                         <span className="font-medium text-green-900">{product.name}</span>
+                        {/* 🧭 MIGA DE PAN: DESCRIPCIÓN AGREGADA - PROBLEMA RESUELTO */}
+                        {/* PORQUÉ: Los productos directos necesitan mostrar descripción como los tradicionales */}
+                        {product.description && (
+                            <span className="text-sm text-gray-600 mb-1">{product.description}</span>
+                        )}
                         <div className="flex items-center space-x-2">
                             <span className="text-sm text-green-600">📦 Producto Directo</span>
                             <span className="text-sm font-semibold text-green-700">${product.price}</span>
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-2">
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => { e.stopPropagation(); onProductToggleVisibility(product); }}
                     >
                         <EyeIcon className={`h-5 w-5 ${product.status ? 'text-green-500' : 'text-gray-400'}`} />
                     </Button>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => { e.stopPropagation(); onProductEdit(product); }}
                     >
                         <PencilIcon className="h-5 w-5" />
                     </Button>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
+                    <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => { e.stopPropagation(); onProductDelete(product); }}
                     >
                         <TrashIcon className="h-5 w-5 text-red-500" />
@@ -185,11 +192,11 @@ export const MixedContentView: React.FC<MixedContentViewProps> = ({
                         <span>📦 {visibleProducts.length}/{products.length} productos directos</span>
                     </div>
                 </div>
-                
+
                 {/* 🧭 MIGA DE PAN: Botones de acción diferenciados */}
                 <div className="flex space-x-2">
-                    <Button 
-                        variant="outline" 
+                    <Button
+                        variant="outline"
                         onClick={onAddSection}
                         className="flex items-center space-x-2"
                     >
@@ -197,13 +204,14 @@ export const MixedContentView: React.FC<MixedContentViewProps> = ({
                         <FolderIcon className="h-4 w-4" />
                         <span>Sección</span>
                     </Button>
-                    <Button 
-                        onClick={onAddProductDirect}
+                    <Button
+                        onClick={onAddProduct}
+                        disabled={!isSectionSelected}
                         className="flex items-center space-x-2"
                     >
                         <PlusIcon className="h-4 w-4" />
                         <CubeIcon className="h-4 w-4" />
-                        <span>Producto Directo</span>
+                        <span>Producto en Sección</span>
                     </Button>
                 </div>
             </div>

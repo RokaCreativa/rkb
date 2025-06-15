@@ -17,13 +17,14 @@ export interface Product {
   product_id: number;
   name: string;
   image?: string | null;
-  status: number;
-  price: string;
+  status: boolean;
+  price: number;
   discount_price?: string | null;
-  section_id: number;
+  section_id?: number | null;
   client_id?: number;
   display_order: number;
   description?: string;
+  category_id?: number | null;
 }
 
 /**
@@ -44,7 +45,7 @@ export interface ProductActions {
   createProduct: (data: FormData) => Promise<Product | null>;
   updateProduct: (formData: FormData, productId: number) => Promise<Product | null>;
   deleteProduct: (productId: number) => Promise<boolean>;
-  toggleProductVisibility: (productId: number, status: number) => Promise<boolean>;
+  toggleProductVisibility: (productId: number, status: boolean) => Promise<boolean>;
 }
 
 /**
@@ -59,8 +60,12 @@ export interface ProductViewProps {
   onAddProduct: () => void;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: number) => void;
-  onToggleProductVisibility: (productId: number, status: number) => Promise<void>;
+  onToggleProductVisibility: (productId: number, status: boolean) => Promise<void>;
   isUpdatingVisibility: number | null;
   isReorderModeActive?: boolean;
   onReorderProduct?: (sourceIndex: number, destIndex: number) => void;
+}
+
+export interface ProductWithPriceLabels extends Product {
+  // ... existing code ...
 } 

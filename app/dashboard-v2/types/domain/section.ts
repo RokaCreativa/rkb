@@ -19,7 +19,7 @@ export interface Section {
   category_id: number;
   client_id?: number;
   display_order: number;
-  status: number;
+  status: boolean;
   created_at?: string;
   updated_at?: string;
   products_count?: number;
@@ -44,7 +44,7 @@ export interface SectionActions {
   createSection: (data: FormData) => Promise<Section | null>;
   updateSection: (formData: FormData, sectionId: number) => Promise<Section | null>;
   deleteSection: (sectionId: number, categoryId?: number) => Promise<boolean>;
-  toggleSectionVisibility: (sectionId: number, status: number) => Promise<boolean>;
+  toggleSectionVisibility: (sectionId: number, status: boolean) => Promise<boolean>;
 }
 
 /**
@@ -56,7 +56,7 @@ export interface SectionViewProps {
   onBackToCategories: () => void;
   onAddSection: () => void;
   onSectionClick: (section: Section) => void;
-  onToggleSectionVisibility: (sectionId: number, status: number) => Promise<void>;
+  onToggleSectionVisibility: (sectionId: number, status: boolean) => Promise<void>;
   onEditSection: (section: Section) => void;
   onDeleteSection: (sectionId: number) => void;
   isUpdatingVisibility: number | null;

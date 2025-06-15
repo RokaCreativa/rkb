@@ -19,79 +19,191 @@
 'use client';
 
 import React from 'react';
-import { Category } from '@/app/dashboard-v2/types';
+import { Category, Product, Section } from '@/app/dashboard-v2/types';
 import { GenericTable, Column } from '@/app/dashboard-v2/components/ui/Table/GenericTable';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
 import { EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
-import { useCategoryWithCounts } from '@/app/dashboard-v2/stores/dashboardStore';
-
-// --- TIPOS DE PROPS ---
-interface CategoryGridViewProps {
-    categories: Category[];
-    onCategorySelect: (category: Category) => void;
-    onToggleVisibility: (category: Category) => void;
-    onEdit: (category: Category) => void;
-    onDelete: (category: Category) => void;
-    onAddNew: () => void;
-    // 🎯 SOLUCIÓN v0.dev: Nueva prop para crear productos directos en categorías
-    // PORQUÉ: Simetría con MixedContentView que ya tiene esta funcionalidad
-    // CONEXIÓN: DashboardViewWrapper pasará openModal('editProductDirect', null)
-    onAddProductDirect?: () => void;
-    // 🧭 MIGA DE PAN: Categoría seleccionada para habilitar/deshabilitar botón
-    selectedCategoryId?: number | null;
-}
+import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
 
 /**
- * 🧭 MIGA DE PAN CONTEXTUAL: Componente para mostrar contadores híbridos inteligentes
+ * 🧭 MIGA DE PAN CONTEXTUAL: Lista de Productos Directos (Componente "Tonto")
  * 
- * PORQUÉ SEPARADO: Cada fila necesita sus propios contadores reactivos sin afectar otras filas
- * PROBLEMA RESUELTO: Antes mostraba solo "X/Y secciones", ahora muestra información completa
+ * 📍 UBICACIÓN: CategoryGridView.tsx → ProductDirectList
  * 
- * ARQUITECTURA REACTIVA: Usa useCategoryWithCounts que se actualiza automáticamente cuando:
- * - Se crean/eliminan secciones o productos directos
- * - Se cambia la visibilidad de elementos
- * - Se detecta cambio en el modo de la categoría
+ * 🎯 PORQUÉ ESTE CAMBIO (CORRECCIÓN):
+ * Este componente ahora es 100% presentacional. No tiene lógica de datos propia.
+ * Recibe la lista de `products` ya filtrada y simplemente la renderiza.
  * 
- * CONEXIONES CRÍTICAS:
- * - useCategoryWithCounts(): Hook que calcula contadores en tiempo real
- * - CategoryGridView columna 'content': Renderiza este componente por cada categoría
- * - dashboardStore: Fuente de datos reactiva que dispara actualizaciones
+ * 🔄 FLUJO DE DATOS (CORRECTO):
+ * 1. `DashboardViewWrapper` calcula `directProductsForCategory` con `useMemo`.
+ * 2. Pasa esa lista como prop `directProducts` a `CategoryGridView`.
+ * 3. `CategoryGridView` pasa esa misma lista a este componente.
+ * 4. Este componente solo mapea y renderiza. Cero lógica de estado.
  * 
- * PATRÓN v0.dev: Componente pequeño y enfocado que maneja un aspecto específico de la UI
- * OPTIMIZACIÓN: Solo se re-renderiza cuando cambian los datos de SU categoría específica
+ * 🚨 PROBLEMA RESUELTO:
+ * Eliminada la llamada redundante a `useDashboardStore` que causaba el bug visual.
+ * El flujo de datos es ahora unidireccional y predecible (Top -> Down).
  */
-const CategoryContentDisplay = React.memo(({ categoryId }: { categoryId: number }) => {
-    const categoryData = useCategoryWithCounts(categoryId);
-    
-    if (!categoryData) {
+interface ProductDirectListProps {
+    products: Product[];
+    onEdit: (product: Product) => void;
+    onDelete: (product: Product) => void;
+    onToggleVisibility: (product: Product) => void;
+    onAddProductDirect: () => void;
+}
+
+const ProductDirectList: React.FC<ProductDirectListProps> = React.memo(({ products, onEdit, onDelete, onToggleVisibility, onAddProductDirect }) => {
+
+    if (products.length === 0) {
         return (
-            <span className="text-sm text-gray-400">Cargando...</span>
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                <div className="text-center">
+                    <div className="text-gray-400 mb-2">📦</div>
+                    <p className="text-sm text-gray-500 mb-3">
+                        No hay productos directos en esta categoría
+                    </p>
+                    <Button
+                        onClick={onAddProductDirect}
+                        size="sm"
+                        className="flex items-center space-x-2"
+                    >
+                        <span>📦</span>
+                        <span>Crear Primer Producto Directo</span>
+                    </Button>
+                </div>
+            </div>
         );
     }
-    
-    const displayText = categoryData.sectionsCount > 0 
-        ? `${categoryData.sectionsCount} secciones` 
-        : `${categoryData.productsCount} productos directos`;
-    
+
+    return (
+        <div className="mt-4 bg-green-50 rounded-lg border border-green-200 p-4">
+            <div className="space-y-2">
+                {products.map(product => (
+                    <div
+                        key={`direct-product-${product.product_id}`}
+                        className="flex items-center justify-between p-3 bg-white rounded-md border border-green-200 hover:border-green-300 transition-colors"
+                    >
+                        <div className="flex items-center flex-1">
+                            <Image
+                                src={product.image ? `/images/products/${product.image}` : '/images/placeholder.png'}
+                                alt={product.name || 'Producto'}
+                                width={32}
+                                height={32}
+                                className="rounded-md object-cover mr-3"
+                            />
+                            <div className="flex flex-col">
+                                <span className="font-medium text-green-900 text-sm">{product.name}</span>
+                                {product.description && (
+                                    <span className="text-xs text-gray-600">{product.description}</span>
+                                )}
+                                <div className="flex items-center space-x-2 mt-1">
+                                    <span className="text-xs text-green-600">📦 Directo</span>
+                                    <span className="text-xs font-semibold text-green-700">${product.price}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onToggleVisibility(product)}
+                                className="p-1"
+                            >
+                                <EyeIcon className={`h-4 w-4 ${product.status ? 'text-green-500' : 'text-gray-400'}`} />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onEdit(product)}
+                                className="p-1"
+                            >
+                                <PencilIcon className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onDelete(product)}
+                                className="p-1"
+                            >
+                                <TrashIcon className="h-4 w-4 text-red-500" />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+});
+ProductDirectList.displayName = 'ProductDirectList';
+
+const CategoryContentDisplay = React.memo(({ categoryId }: { categoryId: number }) => {
+    const categories = useDashboardStore(state => state.categories);
+    const sections = useDashboardStore(state => state.sections);
+    const products = useDashboardStore(state => state.products);
+
+    const displayData = React.useMemo(() => {
+        const category = categories.find(c => c.category_id === categoryId);
+        if (!category) return null;
+
+        const categorySections = sections[categoryId] || [];
+        const allCategoryProducts = products[`cat-${categoryId}`] || [];
+        const directProducts = allCategoryProducts.filter(p => p.section_id === null);
+
+        const sectionsCount = categorySections.length;
+        const directProductsCount = directProducts.length;
+
+        const visibleDirectProductsCount = directProducts.filter(p => p.status).length;
+
+        const displayText = sectionsCount > 0
+            ? `${sectionsCount} secciones`
+            : `${directProductsCount} productos directos`;
+
+        return {
+            displayText,
+            hasDirectProducts: directProductsCount > 0,
+            directProductsCount,
+            visibleDirectProductsCount
+        };
+    }, [categoryId, categories, sections, products]);
+
+    if (!displayData) {
+        return <span className="text-sm text-gray-400">Cargando...</span>;
+    }
+
     return (
         <div className="flex flex-col">
             <span className="text-sm text-gray-600 font-medium">
-                {displayText}
+                {displayData.displayText}
             </span>
-            {categoryData.productsCount > 0 && (
+            {displayData.hasDirectProducts && (
                 <span className="text-xs text-gray-400">
-                    {categoryData.visibleProductsCount} / {categoryData.productsCount} productos visibles
+                    {displayData.visibleDirectProductsCount} / {displayData.directProductsCount} productos visibles
                 </span>
             )}
         </div>
     );
 });
-
 CategoryContentDisplay.displayName = 'CategoryContentDisplay';
 
-export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
+interface CategoryGridViewProps {
+    categories: Category[];
+    directProducts: Product[];
+    onCategorySelect: (category: Category) => void;
+    onToggleVisibility: (category: Category) => void;
+    onEdit: (category: Category) => void;
+    onDelete: (category: Category) => void;
+    onAddNew: () => void;
+    onAddProductDirect?: () => void;
+    selectedCategoryId?: number | null;
+    onProductEdit?: (product: Product) => void;
+    onProductDelete?: (product: Product) => void;
+    onProductToggleVisibility?: (product: Product) => void;
+}
+
+export const CategoryGridView = React.memo<CategoryGridViewProps>(({
     categories,
+    directProducts = [],
     onCategorySelect,
     onToggleVisibility,
     onEdit,
@@ -99,38 +211,24 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
     onAddNew,
     onAddProductDirect,
     selectedCategoryId,
+    onProductEdit,
+    onProductDelete,
+    onProductToggleVisibility,
 }) => {
-    /**
-     * 🧭 MIGA DE PAN CONTEXTUAL: Contador de visibilidad para feedback inmediato al usuario
-     * PORQUÉ NECESARIO: Los usuarios necesitan saber cuántas categorías están activas en el menú
-     * PATRÓN CONSISTENTE: Mismo cálculo que ProductGridView y SectionGridView
-     * CONEXIÓN: Se actualiza automáticamente cuando store.toggleCategoryVisibility cambia el estado
-     */
-    const visibleCategories = categories.filter(category => category.status);
+    const safeDirectProducts = directProducts || [];
+
+    const visibleCategories = categories.filter(category => category.status).length;
     const totalCategories = categories.length;
 
-    /**
-     * 🧭 MIGA DE PAN CONTEXTUAL: Configuración de columnas para GenericTable
-     * DECISIONES DE DISEÑO:
-     * - Columna 'name': Imagen + texto para identificación visual rápida
-     * - Columna 'sections': Contador de secciones visibles (igual que en móvil)
-     * - Columna 'display_order': Orden de aparición en el menú (importante para UX)
-     * - Columna 'actions': Botones de acción con stopPropagation para evitar conflicto con onRowClick
-     * 
-     * PATRÓN DE ACCIONES:
-     * - EyeIcon: Verde si visible, gris si oculto (feedback visual inmediato)
-     * - PencilIcon: Editar categoría (abre EditCategoryModal)
-     * - TrashIcon: Eliminar categoría (abre DeleteConfirmationModal)
-     * 
-     * CONEXIÓN: GenericTable.tsx renderiza estas columnas automáticamente
-     */
+    const visibleDirectProducts = safeDirectProducts.filter(p => p.status).length;
+    const totalDirectProducts = safeDirectProducts.length;
+
     const columns: Column<Category>[] = [
         {
             key: 'name',
             header: 'Nombre',
             render: (category) => (
                 <div className="flex items-center">
-                    {/* DECISIÓN UX: Imagen 40x40 para identificación rápida sin ocupar mucho espacio */}
                     <Image
                         src={category.image || '/images/placeholder.png'}
                         alt={category.name || 'Categoría'}
@@ -141,17 +239,12 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
                     <div className="flex flex-col">
                         <div className="flex items-center space-x-2">
                             <span className="font-medium">{category.name}</span>
-                            {/* 🎯 SOLUCIÓN v0.dev: Badge VIRTUAL para categorías virtuales */}
-                            {/* PORQUÉ: Identificación visual inmediata para admin */}
-                            {/* COMPORTAMIENTO: Solo visible para categorías con is_virtual_category = true */}
-                            {/* CONEXIÓN: EditCategoryModal permitirá cambiar este estado */}
                             {category.is_virtual_category && (
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                                     VIRTUAL
                                 </span>
                             )}
                         </div>
-                        {/* 🧭 MIGA DE PAN: Tooltip explicativo para categorías virtuales */}
                         {category.is_virtual_category && (
                             <span className="text-xs text-purple-600">
                                 Productos aparecen en vista raíz del cliente
@@ -177,7 +270,6 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
             header: 'Acciones',
             render: (category) => (
                 <div className="flex justify-end items-center space-x-1">
-                    {/* CRÍTICO: stopPropagation evita que se dispare onRowClick al hacer clic en botones */}
                     <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onToggleVisibility(category); }}>
                         <EyeIcon className={`h-5 w-5 ${category.status ? 'text-green-500' : 'text-gray-400'}`} />
                     </Button>
@@ -197,45 +289,61 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
             <div className="flex justify-between items-center mb-4">
                 <div className="flex flex-col">
                     <h2 className="text-xl font-semibold">Gestionar Categorías</h2>
-                    {/* 🧭 MIGA DE PAN: Contador siguiendo patrón consistente en todo el sistema */}
                     <p className="text-sm text-gray-500">
-                        {visibleCategories.length} / {totalCategories} categorías visibles
+                        {visibleCategories} / {totalCategories} categorías visibles
                     </p>
                 </div>
-                {/* 🎯 SOLUCIÓN v0.dev: Botones de acción para categorías Y productos directos */}
                 <div className="flex space-x-2">
-                    {/* CONEXIÓN: onAddNew → useModalState.openModal('editCategory', null) */}
                     <Button onClick={onAddNew}>
                         Añadir Categoría
                     </Button>
-                    {/* 🎯 NUEVO: Botón para productos directos en categorías */}
-                    {/* PORQUÉ: Simetría con vista de secciones que tiene botón similar */}
-                    {/* COMPORTAMIENTO: Deshabilitado si no hay categoría seleccionada */}
-                    {/* CONEXIÓN: onAddProductDirect → openModal('editProductDirect', null) */}
                     {onAddProductDirect && (
-                        <Button 
+                        <Button
                             onClick={onAddProductDirect}
                             disabled={!selectedCategoryId}
                             variant="outline"
                             className="flex items-center space-x-2"
+                            title={!selectedCategoryId ? "Selecciona una categoría primero para crear un producto directo" : "Crear producto directo en la categoría seleccionada"}
                         >
                             <span>📦</span>
-                            <span>Producto Directo</span>
+                            <span>
+                                {!selectedCategoryId
+                                    ? "Producto Directo (selecciona categoría)"
+                                    : "Producto Directo"
+                                }
+                            </span>
                         </Button>
                     )}
                 </div>
             </div>
-            {/* 
-                🧭 MIGA DE PAN CONTEXTUAL: GenericTable maneja toda la lógica de renderizado
-                PORQUÉ DELEGACIÓN: Reutilización de código y consistencia visual
-                CONEXIÓN: onRowClick → onCategorySelect → store.setSelectedCategoryId → navegación
-            */}
             <GenericTable
                 data={categories}
                 columns={columns}
                 onRowClick={onCategorySelect}
                 emptyMessage="No hay categorías para mostrar."
             />
+            {selectedCategoryId && onProductEdit && onProductDelete && onProductToggleVisibility && onAddProductDirect && (
+                <div className="mt-4 border-t pt-4">
+                    <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center space-x-2">
+                            <h3 className="text-lg font-semibold text-gray-700">Productos Directos</h3>
+                            <span className="text-sm text-gray-500">({visibleDirectProducts} / {totalDirectProducts} visibles)</span>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={onAddProductDirect} className="flex items-center space-x-2">
+                            <span>📦</span>
+                            <span>Agregar</span>
+                        </Button>
+                    </div>
+                    <ProductDirectList
+                        products={safeDirectProducts}
+                        onEdit={onProductEdit}
+                        onDelete={onProductDelete}
+                        onToggleVisibility={onProductToggleVisibility}
+                        onAddProductDirect={onAddProductDirect}
+                    />
+                </div>
+            )}
         </div>
     );
-}; 
+});
+CategoryGridView.displayName = 'CategoryGridView'; 

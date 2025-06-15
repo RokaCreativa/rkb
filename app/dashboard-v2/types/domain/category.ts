@@ -40,14 +40,14 @@ export interface Category {
   name: string;
   description?: string;
   image?: string | null;
-  status: number;
+  status: boolean;
   display_order: number;
   client_id: number;
   created_at?: string;
   updated_at?: string;
   sections_count?: number;
   visible_sections_count?: number;
-  
+
   // 🎯 SOLUCIÓN v0.dev: CATEGORÍAS VIRTUALES
   // PORQUÉ: Permite productos "huérfanos" que aparecen en vista raíz del cliente
   // COMPORTAMIENTO: false = categoría normal, true = categoría virtual (productos elevados)
@@ -95,7 +95,7 @@ export interface CategoryActions {
   createCategory: (formData: FormData) => Promise<Category | null>;
   updateCategory: (formData: FormData, categoryId: number) => Promise<Category | null>;
   deleteCategory: (categoryId: number) => Promise<boolean>;
-  toggleCategoryVisibility: (categoryId: number, currentStatus: number) => Promise<boolean>;
+  toggleCategoryVisibility: (categoryId: number, status: boolean) => Promise<boolean>;
 }
 
 /**
@@ -158,7 +158,7 @@ export interface CategoryViewProps {
   isUpdatingVisibility: number | null;
   onAddCategory: () => void;
   onCategoryClick: (category: Category) => void;
-  onToggleCategoryVisibility: (categoryId: number, status: number) => Promise<void>;
+  onToggleCategoryVisibility: (categoryId: number, status: boolean) => Promise<void>;
   onEditCategory: (category: Category) => void;
   onDeleteCategory: (categoryId: number) => void;
   sections: { [key: string]: any[] };

@@ -6,8 +6,9 @@ Este documento registra errores comunes, sus causas y soluciones implementadas e
 
 ### Error: Inconsistencia de Tipos Booleanos vs. Numéricos
 
-**Descripción**: 
+**Descripción**:
 Los campos de estado como `status` y `deleted` se manejan de manera inconsistente en diferentes partes de la aplicación:
+
 - En la base de datos: como `BOOLEAN` o `TINYINT(1)`
 - En la API: a veces como booleanos, a veces como números
 - En el frontend: esperados como 0/1 (numéricos)
@@ -16,22 +17,25 @@ Los campos de estado como `status` y `deleted` se manejan de manera inconsistent
 Falta de estandarización en el manejo de tipos y conversiones entre frontend y backend.
 
 **Solución**:
+
 1. Estandarizar el uso de tipos según documentación en `estandares-tipos.md`
 2. En endpoints de API, convertir explícitamente:
    ```typescript
    // Convertir booleano de BD a numérico para frontend
    return {
      ...entity,
-     status: entity.status ? 1 : 0
+     status: entity.status ? 1 : 0,
    };
    ```
 3. Implementar adaptadores para conversiones sistemáticas:
    ```typescript
    // lib/adapters/category-adapter.ts
-   export function adaptHookCategoryToDashboard(category: HookCategory): DashboardCategory {
+   export function adaptHookCategoryToDashboard(
+     category: HookCategory
+   ): DashboardCategory {
      return {
        ...category,
-       status: category.status ? 1 : 0
+       status: category.status ? 1 : 0,
      };
    }
    ```
@@ -44,6 +48,7 @@ Falta de estandarización en el manejo de tipos y conversiones entre frontend y 
 Después de refactorizar los tipos, las operaciones de edición de productos dejaron de funcionar.
 
 **Síntomas**:
+
 - El endpoint `/api/products/[id]` devuelve error 500
 - Mensaje de error: "Cannot read properties of undefined (reading 'status')"
 
@@ -52,7 +57,7 @@ El campo `deleted` se trataba incorrectamente como numérico en lugar de boolean
 
 ```typescript
 // Código incorrecto en route.ts
-deleted: 0 as any
+deleted: 0 as any;
 ```
 
 **Solución**:
@@ -60,7 +65,7 @@ Cambiar para usar el tipo correcto:
 
 ```typescript
 // Código corregido
-deleted: false
+deleted: false;
 ```
 
 ### Error: Elementos no se muestran después de cambiar el estado
@@ -72,17 +77,23 @@ Al cambiar la visibilidad de categorías, secciones o productos, a veces los cam
 Actualización optimista de la UI sin confirmar cambios con el servidor.
 
 **Solución**:
+
 1. Implementar patrón de actualización optimista con rollback:
+
    ```typescript
    const toggleVisibility = async (id, currentStatus) => {
      // 1. Guardar estado anterior
      const previousData = [...currentData];
-     
+
      // 2. Actualizar UI optimistamente
-     setCurrentData(data => data.map(item => 
-       item.id === id ? {...item, status: currentStatus === 1 ? 0 : 1} : item
-     ));
-     
+     setCurrentData((data) =>
+       data.map((item) =>
+         item.id === id
+           ? { ...item, status: currentStatus === 1 ? 0 : 1 }
+           : item
+       )
+     );
+
      try {
        // 3. Enviar cambio al servidor
        await api.updateStatus(id, currentStatus === 1 ? 0 : 1);
@@ -103,17 +114,21 @@ El dashboard tardaba más de 20 segundos en cargar para menús con muchas catego
 
 **Causa**:
 Precarga agresiva de todos los datos al iniciar, incluyendo:
+
 - Todas las categorías
 - Todas las secciones de todas las categorías
 - Todos los productos de todas las secciones
 
 **Solución**:
+
 1. Implementar carga bajo demanda:
+
    - Cargar inicialmente solo categorías
    - Cargar secciones cuando se expande una categoría
    - Cargar productos cuando se expande una sección
 
 2. Implementar paginación:
+
    ```typescript
    // API con paginación
    export async function getCategories(page = 1, limit = 10) {
@@ -123,23 +138,24 @@ Precarga agresiva de todos los datos al iniciar, incluyendo:
          where: { deleted: 0 },
          skip,
          take: limit,
-         orderBy: { display_order: 'asc' }
+         orderBy: { display_order: "asc" },
        }),
-       prisma.categories.count({ where: { deleted: 0 } })
+       prisma.categories.count({ where: { deleted: 0 } }),
      ]);
-     
+
      return {
        data,
        pagination: {
          total,
          pages: Math.ceil(total / limit),
-         current: page
-       }
+         current: page,
+       },
      };
    }
    ```
 
 **Resultados**:
+
 - Tiempo de carga inicial reducido a menos de 2 segundos
 - Experiencia de usuario más fluida
 - Menor carga en el servidor
@@ -152,6 +168,7 @@ Precarga agresiva de todos los datos al iniciar, incluyendo:
 Errores de React relacionados con la renderización de componentes, especialmente con modales.
 
 **Síntomas**:
+
 - Warnings en consola sobre prop drilling
 - Problemas al abrir/cerrar modales
 - Comportamiento impredecible en formularios
@@ -160,23 +177,26 @@ Errores de React relacionados con la renderización de componentes, especialment
 Múltiples implementaciones de los mismos componentes con ligeras variaciones.
 
 **Solución**:
+
 1. Consolidar componentes duplicados:
+
    - Crear componentes base reutilizables (`BaseModal`, `FormModal`, etc.)
    - Extender funcionalidad mediante composición en lugar de duplicación
 
 2. Implementar sistema unificado de modales:
+
    ```typescript
    // Uso del sistema unificado
    const { showModal, hideModal } = useModalState();
-   
+
    // Para mostrar un modal
-   showModal('deleteCategory', { categoryId: 123 });
-   
+   showModal("deleteCategory", { categoryId: 123 });
+
    // En el componente orquestador
    const modalConfig = {
      deleteCategory: {
        component: DeleteCategoryModal,
-       title: "Eliminar Categoría"
+       title: "Eliminar Categoría",
      },
      // Otros modales...
    };
@@ -190,17 +210,21 @@ Múltiples implementaciones de los mismos componentes con ligeras variaciones.
 Al mover código a nuevos servicios o hooks, algunas funcionalidades dejaron de funcionar.
 
 **Síntomas**:
+
 - Eventos que no se disparan
 - Datos que no se actualizan
 - Referencias indefinidas
 
 **Causas**:
+
 1. Referencias perdidas a variables de estado o funciones
 2. Ciclo de vida de hooks no respetado
 3. Contexto (`this`) perdido en funciones
 
 **Solución**:
+
 1. Implementar refactorización gradual con enfoque en compatibilidad:
+
    ```typescript
    // En el componente original
    const oldFunction = useCallback(() => {
@@ -216,9 +240,9 @@ Al mover código a nuevos servicios o hooks, algunas funcionalidades dejaron de 
      hookToggleVisibility: (id: number, currentStatus: boolean) => Promise<void>
    ) {
      return async (
-       categoryId: number, 
-       currentStatus: number, 
-       categories: Category[], 
+       categoryId: number,
+       currentStatus: number,
+       categories: Category[],
        setCategories: (categories: Category[]) => void
      ) => {
        // Lógica de adaptación
@@ -238,7 +262,9 @@ Al intentar eliminar una categoría que contiene secciones, la operación falla.
 Falta de manejo de eliminación en cascada o validación apropiada.
 
 **Solución**:
+
 1. Implementar eliminación en cascada en la base de datos:
+
    ```prisma
    model sections {
      // Otros campos...
@@ -247,17 +273,20 @@ Falta de manejo de eliminación en cascada o validación apropiada.
    ```
 
 2. Si no es posible la eliminación en cascada, implementar validación:
+
    ```typescript
    async function deleteCategory(id) {
      // Verificar si tiene secciones
      const sectionsCount = await prisma.sections.count({
-       where: { category_id: id }
+       where: { category_id: id },
      });
-     
+
      if (sectionsCount > 0) {
-       throw new Error("No se puede eliminar una categoría con secciones. Elimine primero las secciones.");
+       throw new Error(
+         "No se puede eliminar una categoría con secciones. Elimine primero las secciones."
+       );
      }
-     
+
      // Continuar con la eliminación
    }
    ```
@@ -273,33 +302,34 @@ La interfaz se bloquea durante la carga inicial, mostrando una pantalla en blanc
 Carga síncrona de datos grandes que bloquea el hilo principal.
 
 **Solución**:
+
 1. Implementar carga progresiva y componentes de skeleton:
+
    ```tsx
    function ProductList() {
      const { products, isLoading } = useProducts();
-     
+
      return (
        <div>
-         {isLoading ? (
-           // Mostrar esqueletos mientras se carga
-           Array.from({ length: 5 }).map((_, index) => (
-             <ProductSkeleton key={index} />
-           ))
-         ) : (
-           products.map(product => (
-             <ProductItem key={product.id} product={product} />
-           ))
-         )}
+         {isLoading
+           ? // Mostrar esqueletos mientras se carga
+             Array.from({ length: 5 }).map((_, index) => (
+               <ProductSkeleton key={index} />
+             ))
+           : products.map((product) => (
+               <ProductItem key={product.id} product={product} />
+             ))}
        </div>
      );
    }
    ```
 
 2. Implementar indicadores de carga para acciones individuales:
+
    ```tsx
    function DeleteButton({ onDelete, itemId }) {
      const [isDeleting, setIsDeleting] = useState(false);
-     
+
      const handleDelete = async () => {
        setIsDeleting(true);
        try {
@@ -308,12 +338,9 @@ Carga síncrona de datos grandes que bloquea el hilo principal.
          setIsDeleting(false);
        }
      };
-     
+
      return (
-       <button 
-         onClick={handleDelete} 
-         disabled={isDeleting}
-       >
+       <button onClick={handleDelete} disabled={isDeleting}>
          {isDeleting ? "Eliminando..." : "Eliminar"}
        </button>
      );
@@ -338,7 +365,8 @@ Carga síncrona de datos grandes que bloquea el hilo principal.
 
 **Análisis**: Precarga agresiva de todos los datos, incluyendo categorías, secciones y productos.
 
-**Solución implementada**: 
+**Solución implementada**:
+
 1. Implementación de carga bajo demanda
 2. Cargar secciones y productos solo cuando se necesitan
 
@@ -349,23 +377,27 @@ Carga síncrona de datos grandes que bloquea el hilo principal.
 **Problema**: Los grids de categorías y productos no se actualizaban inmediatamente al editar elementos, mientras que el de secciones sí lo hacía correctamente.
 
 **Síntomas**:
+
 - Al editar una categoría, la UI no reflejaba el cambio hasta recargar la página
 - Los cambios en productos no se veían inmediatamente en el grid
 - El grid de secciones funcionaba correctamente, actualizándose instantáneamente
 - Inconsistencia en la experiencia de usuario entre los diferentes niveles de la jerarquía
 
-**Análisis**: 
+**Análisis**:
+
 1. La implementación del patrón de actualización variaba entre los diferentes niveles de la aplicación
 2. El componente de secciones implementaba un patrón eficaz de actualización directa del objeto antes de actualizar el estado
 3. Los componentes de categorías y productos intentaban actualizar mediante recarga desde API, causando retrasos
 4. Las implementaciones complejas ocultaban la solución simple que ya funcionaba en el componente de secciones
 
 **Solución implementada**:
+
 1. Identificar y replicar el patrón exitoso del componente de secciones:
+
    ```typescript
    // Patrón crítico: Actualizar el objeto directamente antes del callback
    categoryToEdit.name = editCategoryName;
-   
+
    // Cerrar modal y ejecutar callback
    onClose();
    if (onSuccess) {
@@ -374,11 +406,12 @@ Carga síncrona de datos grandes que bloquea el hilo principal.
    ```
 
 2. Simplificar la función `onSuccess` para forzar actualización inmediata:
+
    ```typescript
    onSuccess={() => {
      // Forzar un refresco artificial del componente con nueva referencia
      setCategories([...categories]);
-     
+
      // También actualizar el selectedCategory si corresponde
      if (selectedCategory && selectedCategory.category_id === categoryId) {
        setSelectedCategory({...selectedCategory, name: categoryToEdit.name});
@@ -389,12 +422,14 @@ Carga síncrona de datos grandes que bloquea el hilo principal.
 3. Documentar el patrón en los mandamientos de refactorización como "Patrón de Actualización Inmediata"
 
 **Resultados**:
+
 - Actualización inmediata y consistente en todos los niveles (categorías, secciones y productos)
 - Experiencia de usuario mejorada con feedback visual inmediato
 - Simplificación del código al eliminar lógica compleja de refresco
 - Establecimiento de un patrón estándar aplicable a todos los componentes
 
 **Lecciones aprendidas**:
+
 1. Identificar y replicar patrones que ya funcionan correctamente
 2. Evitar soluciones complejas cuando existe una alternativa simple
 3. Mantener consistencia en la implementación de patrones a través de la aplicación
@@ -410,62 +445,84 @@ Carga síncrona de datos grandes que bloquea el hilo principal.
 Las secciones cargadas para categorías expandidas no se mostraban correctamente debido a discrepancias entre el estado global (almacenado en hooks centrales) y el estado local del componente.
 
 **Síntomas**:
+
 - Secciones que no aparecen después de expandir una categoría, a pesar de que los datos se cargan correctamente
 - Logs muestran que los datos existen en la API pero no se renderizan en la UI
 - Carga repetida de los mismos datos
 
 **Causa**:
+
 1. Dependencia exclusiva del estado global que puede actualizarse de forma asíncrona
 2. Falta de un estado local dedicado para almacenar datos de uso inmediato
 3. Uso de referencias no normalizadas a los datos entre componentes
 
 **Solución**:
+
 1. Implementar un estado local dedicado para mantener los datos accesibles inmediatamente:
+
    ```typescript
    // Crear un estado local específico para secciones expandidas
-   const [expandedCategorySections, setExpandedCategorySections] = useState<{ [key: number]: Section[] }>({});
+   const [expandedCategorySections, setExpandedCategorySections] = useState<{
+     [key: number]: Section[];
+   }>({});
    ```
 
 2. Priorizar el estado local sobre el global para renderizado inmediato:
+
    ```typescript
    // Usar primero el estado local, luego el global como respaldo
-   const sectionsList = expandedCategorySections[categoryId] || sections[categoryId] || [];
+   const sectionsList =
+     expandedCategorySections[categoryId] || sections[categoryId] || [];
    ```
 
 3. Actualizar ambos estados al cargar datos, pero usar el local para la UI:
+
    ```typescript
    // Al cargar secciones, actualizar ambos estados
    try {
-     const data = await fetch(`/api/sections?category_id=${categoryId}`).then(r => r.json());
-     
+     const data = await fetch(`/api/sections?category_id=${categoryId}`).then(
+       (r) => r.json()
+     );
+
      // Actualizar estado GLOBAL (para coordinar con otros componentes)
-     setSections(prev => ({
+     setSections((prev) => ({
        ...prev,
-       [categoryId]: processedSections
+       [categoryId]: processedSections,
      }));
-     
+
      // CRUCIAL: También guardar en estado local para renderizado inmediato
-     setExpandedCategorySections(prev => ({
+     setExpandedCategorySections((prev) => ({
        ...prev,
-       [categoryId]: processedSections
+       [categoryId]: processedSections,
      }));
    } catch (error) {
-     console.error('Error loading sections', error);
+     console.error("Error loading sections", error);
    }
    ```
 
 4. Implementar verificación visible para depuración:
    ```tsx
-   {DEBUG && (
-     <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2 mb-3 text-xs">
-       <p>Debug: Categoría {category.category_id} tiene {sectionsList.length} secciones</p>
-       <p>Secciones: {sectionsList.map((s: Section) => s.name).join(', ')}</p>
-       <p>Fuente: {expandedCategorySections[categoryId] ? 'Estado local' : 'Estado global'}</p>
-     </div>
-   )}
+   {
+     DEBUG && (
+       <div className="bg-yellow-50 border border-yellow-200 rounded-md p-2 mb-3 text-xs">
+         <p>
+           Debug: Categoría {category.category_id} tiene {sectionsList.length}{" "}
+           secciones
+         </p>
+         <p>Secciones: {sectionsList.map((s: Section) => s.name).join(", ")}</p>
+         <p>
+           Fuente:{" "}
+           {expandedCategorySections[categoryId]
+             ? "Estado local"
+             : "Estado global"}
+         </p>
+       </div>
+     );
+   }
    ```
 
 **Resultados**:
+
 - Renderizado inmediato de secciones expandidas
 - Eliminación de la percepción de latencia
 - Mayor robustez ante condiciones de red variables
@@ -481,34 +538,41 @@ Las secciones cargadas para categorías expandidas no se mostraban correctamente
 El dashboard cargaba repetidamente los mismos datos debido a efectos múltiples y condiciones de recarga no controladas.
 
 **Síntomas**:
+
 - Múltiples llamadas API para el mismo recurso
 - Logs de consola mostrando recargas innecesarias
 - Parpadeo de componentes durante recargas
 - Rendimiento reducido en la interfaz de usuario
 
 **Causa**:
+
 1. Efectos con dependencias incorrectas o faltantes
 2. Ausencia de verificación de datos ya cargados
 3. Recarga de datos en cada renderización de componente
 
 **Solución**:
+
 1. Implementar verificación de cache antes de cargar:
+
    ```typescript
    // Evitar cargar datos si ya existen
    if (categories.length > 0) {
-     console.log('✅ Ya hay categorías cargadas, evitando recarga');
+     console.log("✅ Ya hay categorías cargadas, evitando recarga");
      setIsLoading(false);
      return;
    }
    ```
 
 2. Verificar datos específicos para cargas condicionadas:
+
    ```typescript
    // Para categorías expandidas, verificar cache específica
    useEffect(() => {
-     expandedCategoryIds.forEach(categoryId => {
+     expandedCategoryIds.forEach((categoryId) => {
        if (!sections[categoryId] || sections[categoryId].length === 0) {
-         console.log(`Cargando secciones para categoría expandida ${categoryId}`);
+         console.log(
+           `Cargando secciones para categoría expandida ${categoryId}`
+         );
          fetchSectionsByCategory(categoryId);
        }
      });
@@ -527,6 +591,7 @@ El dashboard cargaba repetidamente los mismos datos debido a efectos múltiples 
    ```
 
 **Resultados**:
+
 - Reducción de llamadas API redundantes
 - Mejora significativa en el rendimiento percibido
 - Experiencia de usuario más fluida
@@ -545,6 +610,142 @@ El dashboard cargaba repetidamente los mismos datos debido a efectos múltiples 
 7. **Seguir patrones establecidos** en el proyecto
 8. **Realizar pruebas manuales** después de cada cambio significativo
 
+## 🔄 Bucles Infinitos en React 19 + Zustand (CRÍTICO)
+
+### Error: "The result of getSnapshot should be cached to avoid an infinite loop"
+
+**Descripción**:
+Bucles infinitos críticos que impiden el funcionamiento de la aplicación con errores:
+
+- "The result of getSnapshot should be cached to avoid an infinite loop"
+- "Maximum update depth exceeded"
+- 100+ console.logs repetidos del mismo componente
+- Componentes que no se renderizan correctamente
+
+**Síntomas**:
+
+- Aplicación completamente inutilizable
+- Errores en consola que se repiten infinitamente
+- Componentes que no muestran datos aunque existen en el store
+- Performance extremadamente degradada
+
+**Causa Raíz**:
+
+1. **Hooks derivados que crean nuevos objetos**: Hooks como `useCategoryWithCounts` que retornan objetos complejos crean nuevas referencias en cada render
+2. **Múltiples llamadas a `useDashboardStore`**: Componentes que llaman múltiples veces al store en lugar de usar una sola destructuración
+3. **Funciones de comparación complejas**: Selectores Zustand con funciones de igualdad complejas que fallan en React 19
+4. **Incompatibilidad React 19 Concurrent Features**: Las nuevas características de React 19 son más estrictas con la estabilidad de referencias
+
+**Solución Definitiva**:
+
+1. **Eliminar hooks que crean objetos complejos**:
+
+   ```typescript
+   // ❌ ANTES (causaba bucles infinitos)
+   export const useCategoryWithCounts = (categoryId: number | null) => {
+     return useDashboardStore((state) => {
+       // Retorna nuevo objeto en cada render
+       return {
+         sectionsCount: sections.length,
+         productsCount: products.length,
+         // ... más propiedades
+       };
+     });
+   };
+
+   // ✅ AHORA (sin bucles infinitos)
+   const CategoryContentDisplay = React.memo(({ categoryId }) => {
+     // Selectores específicos que retornan primitivos
+     const category = useDashboardStore((state) =>
+       state.categories.find((c) => c.category_id === categoryId)
+     );
+     const sections = useDashboardStore(
+       (state) => state.sections[categoryId] || []
+     );
+     const products = useDashboardStore(
+       (state) => state.products[`cat-${categoryId}`] || []
+     );
+
+     // Memoización local para cálculos
+     const categoryData = React.useMemo(() => {
+       if (!category) return null;
+       return {
+         sectionsCount: sections.length,
+         productsCount: products.length,
+       };
+     }, [category, sections, products]);
+   });
+   ```
+
+2. **Consolidar llamadas al store**:
+
+   ```typescript
+   // ❌ ANTES (múltiples llamadas)
+   const store = useDashboardStore();
+   const mixedContent = useMixedContentForCategory(store.selectedCategoryId);
+
+   // ✅ AHORA (una sola destructuración)
+   const {
+     client,
+     categories,
+     sections,
+     products,
+     selectedCategoryId,
+     selectedSectionId,
+     // ... todas las propiedades necesarias
+   } = useDashboardStore();
+   ```
+
+3. **Eliminar funciones de comparación en selectores**:
+
+   ```typescript
+   // ❌ ANTES (función de comparación compleja)
+   export const useCategoryProducts = (categoryId, sectionId) => {
+     return useDashboardStore(
+       (state) => {
+         /* selector */
+       },
+       (a, b) => {
+         /* función compleja */
+       }
+     );
+   };
+
+   // ✅ AHORA (sin función de comparación)
+   export const useCategoryProducts = (categoryId, sectionId) => {
+     return useDashboardStore(
+       (state) => {
+         /* selector */
+       }
+       // Zustand maneja la igualdad automáticamente
+     );
+   };
+   ```
+
+**Archivos Modificados**:
+
+- `app/dashboard-v2/stores/dashboardStore.ts`: Eliminadas funciones de comparación y hook problemático
+- `app/dashboard-v2/components/core/DashboardViewWrapper.tsx`: Consolidadas llamadas al store
+- `app/dashboard-v2/components/domain/categories/CategoryGridView.tsx`: Reemplazado hook problemático por selectores específicos
+
+**Resultados**:
+
+- ✅ Bucles infinitos completamente eliminados
+- ✅ Performance restaurada a niveles normales
+- ✅ Componentes se renderizan correctamente
+- ✅ T31 (Productos Directos) funcional
+- ✅ Compatibilidad total con React 19
+
+**Lecciones Aprendidas**:
+
+1. **React 19 es más estricto**: Las nuevas características requieren mayor cuidado con la estabilidad de referencias
+2. **Evitar objetos complejos en hooks derivados**: Preferir selectores específicos que retornen primitivos
+3. **Una llamada al store por componente**: Consolidar en una sola destructuración
+4. **Zustand maneja igualdad automáticamente**: No especificar funciones de comparación a menos que sea absolutamente necesario
+5. **Memoización local vs hooks derivados**: Usar `React.useMemo` dentro del componente en lugar de hooks complejos
+
+**Estado**: ✅ Resuelto Definitivamente
+
 ---
 
-Este documento se actualizará continuamente a medida que se identifiquen y resuelvan nuevos problemas. Si encuentras un error no documentado, por favor añádelo siguiendo el formato establecido. 
+Este documento se actualizará continuamente a medida que se identifiquen y resuelvan nuevos problemas. Si encuentras un error no documentado, por favor añádelo siguiendo el formato establecido.

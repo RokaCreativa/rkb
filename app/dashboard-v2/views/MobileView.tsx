@@ -16,9 +16,9 @@
  */
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
-import { useDashboardStore, useCategoryDisplayMode, useCategoryProducts } from '../stores/dashboardStore';
+import { useDashboardStore } from '../stores/dashboardStore';
 import { CategoryList } from '../components/domain/categories/CategoryList';
 import { SectionListView } from '../components/domain/sections/SectionListView';
 import { ProductListView } from '../components/domain/products/ProductListView';
@@ -51,9 +51,22 @@ export const MobileView: React.FC = () => {
         initialDataLoaded,
     } = useDashboardStore();
 
-    // ✅ T32.3 - HOOKS DE AUTO-DETECCIÓN: Integración con lógica inteligente
-    const categoryDisplayMode = useCategoryDisplayMode(activeCategoryId);
-    const categoryProducts = useCategoryProducts(activeCategoryId, activeSectionId);
+    // 🎯 CORREGIDO: Lógica de los hooks eliminados, ahora implementada de forma segura con `useMemo`.
+    const categoryDisplayMode = useMemo(() => {
+        if (!activeCategoryId) return 'none';
+        const categorySections = sections[activeCategoryId] || [];
+        return getCategoryDisplayMode(categorySections);
+    }, [activeCategoryId, sections]);
+
+    const categoryProducts = useMemo(() => {
+        if (activeSectionId) {
+            return products[activeSectionId] || [];
+        } else if (activeCategoryId) {
+            // Para la vista móvil, los productos de una categoría son todos los híbridos
+            return products[`cat-${activeCategoryId}`] || [];
+        }
+        return [];
+    }, [activeCategoryId, activeSectionId, products]);
 
     const { openModal } = useModalStore();
     const { data: session, status: sessionStatus } = useSession();

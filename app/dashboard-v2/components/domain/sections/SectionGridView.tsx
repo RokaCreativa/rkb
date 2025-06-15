@@ -32,9 +32,11 @@ interface SectionGridViewProps {
     onDelete: (section: Section) => void;
     onMove?: (section: Section) => void; // 🎯 T31.5 FASE 3: Función para mover secciones
     onAddNew: () => void;
+    onAddProduct: (section: Section) => void;
 }
 
-export const SectionGridView: React.FC<SectionGridViewProps> = ({
+// 🎯 SOLUCIÓN v0.dev: Componente funcional separado para memoización
+const SectionGridViewComponent: React.FC<SectionGridViewProps> = ({
     sections,
     onSectionSelect,
     onToggleVisibility,
@@ -42,6 +44,7 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
     onDelete,
     onMove,
     onAddNew,
+    onAddProduct
 }) => {
     // 🧭 MIGA DE PAN: Calcular contador de visibilidad siguiendo el patrón de ProductGridView
     const visibleSections = sections.filter(section => section.status);
@@ -68,7 +71,7 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
             }
         },
         {
-            key: 'products',
+            key: 'products_count',
             header: 'Productos',
             render: (section) => (
                 <span className="text-sm text-gray-600">
@@ -125,4 +128,8 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
             />
         </div>
     );
-}; 
+};
+
+// 🎯 SOLUCIÓN v0.dev: Exportación con memoización
+export const SectionGridView = React.memo(SectionGridViewComponent);
+SectionGridView.displayName = 'SectionGridView'; 

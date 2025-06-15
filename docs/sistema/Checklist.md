@@ -107,7 +107,7 @@
     - **Objetivo:** Permitir crear productos directamente en categorías sin secciones intermedias usando "relaciones opcionales" + Sistema de categorías virtuales para marketing.
     - **Propuesta:** Implementar `category_id` opcional en productos para jerarquía flexible (Categoría → Producto directo) + Solución v0.dev de categorías virtuales.
     - **Justificación:** Categorías simples como "BEBIDAS" no necesitan secciones intermedias, pero debe coexistir con modo tradicional. Las categorías virtuales resuelven el problema de "productos huérfanos" con arquitectura dual.
-    - **✅ COMPLETADO (15/01/2025):** Backend + Frontend implementado exitosamente. Solución v0.dev aplicada completamente.
+    - **✅ COMPLETADO (15/01/2025):** Backend + Frontend implementado exitosamente. Solución v0.dev aplicada completamente. Bucles infinitos React 19 + Zustand resueltos.
     - **Tareas Detalladas:**
       - [x] **#T31.1 - Modificar Schema:** Añadido `category_id` opcional a products + `is_virtual_category` a categories.
       - [x] **#T31.2 - Migración de BD:** Aplicada migración `20250614015912_add_products_direct_to_categories_t31`.

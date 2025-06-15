@@ -9,17 +9,20 @@
  */
 'use client';
 
+import { useMemo } from 'react';
 import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
-import { useCategoryDisplayMode } from '@/app/dashboard-v2/stores/dashboardStore';
+import { getCategoryDisplayMode } from '../../utils/categoryUtils';
 
 export const useDashboardLayout = () => {
     const selectedCategoryId = useDashboardStore(state => state.selectedCategoryId);
     const selectedSectionId = useDashboardStore(state => state.selectedSectionId);
-    
-    // 🧭 MIGA DE PAN: Auto-detección T31 para determinar modo de categoría
-    // PORQUÉ: Necesario para decidir si mostrar productos directos o secciones
-    // CONEXIÓN: useCategoryDisplayMode → getCategoryDisplayMode → auto-detección
-    const categoryDisplayMode = useCategoryDisplayMode(selectedCategoryId);
+    const sections = useDashboardStore(state => state.sections);
+
+    const categoryDisplayMode = useMemo(() => {
+        if (!selectedCategoryId) return 'none';
+        const categorySections = sections[selectedCategoryId] || [];
+        return getCategoryDisplayMode(categorySections);
+    }, [selectedCategoryId, sections]);
 
     /**
      * 🧭 MIGA DE PAN: Lógica de CSS Grid corregida para evitar saltos visuales
@@ -65,10 +68,10 @@ export const useDashboardLayout = () => {
     const shouldShowProducts = () => {
         // Caso 1: Flujo tradicional - sección seleccionada
         if (selectedSectionId) return true;
-        
+
         // Caso 2: Flujo T31 - categoría simple con productos directos
         if (selectedCategoryId && categoryDisplayMode === 'simple') return true;
-        
+
         return false;
     };
 
