@@ -20,6 +20,7 @@ export interface Section {
   client_id?: number;
   display_order: number;
   status: boolean;
+  is_virtual?: boolean;
   created_at?: string;
   updated_at?: string;
   products_count?: number;

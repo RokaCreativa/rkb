@@ -57,18 +57,50 @@
 ### 7️⃣ **MANDAMIENTO DE CÓDIGO LEGIBLE Y DOCUMENTADO**
 
 **"Escribirás código auto-explicativo con nombres claros. Documentarás con comentarios el 'porqué' del código complejo, no el 'qué'."**
+Separación absoluta de lógica y presentación
+“Separarás estrictamente la lógica de la presentación. Los componentes UI serán tan simples (‘tontos’) como sea posible. La lógica de negocio, manejo de datos y efectos secundarios vivirán solo en hooks personalizados y librerías auxiliares (lib).”
+
+Buenas prácticas obligatorias:
+
+Los componentes UI NO deben contener lógica de negocio (solo props, rendering y callbacks).
+
+Usa hooks para manejar estado, peticiones y lógica compleja.
+
+Divide el código en archivos cortos, claros y con única responsabilidad.
+
+Nombra los hooks y funciones según su propósito real.
+
+No mezcles side effects ni acceso a datos dentro de componentes visuales.
+
+Documenta el “porqué” de cualquier decisión arquitectónica relevante.
+
+Prioriza la facilidad de testeo y reutilización en cada parte.
+
+Si dudas, separa más: prefiere sobre-separar antes que mezclar.
 
 - El próximo desarrollador (que podríamos ser nosotros) te lo agradecerá.
 
-**📋 Reglas Específicas de Implementación:**
+#### 📋 **Reglas Específicas de Implementación:**
 
-- **🧠 Planificación Obligatoria:** Antes de escribir código, describe tu plan paso a paso en pseudocódigo detallado y explícito
-- **✅ Código Completo:** NUNCA dejes TODOs, placeholders o partes incompletas en el código final
-- **🔄 Retornos Tempranos:** Usa early returns para mejorar legibilidad y reducir anidamiento excesivo
-- **🎯 Nombres Descriptivos:** Variables y funciones con nombres que expliquen su propósito sin ambigüedad
-- **📞 Funciones de Eventos:** Prefijo `handle` para event handlers (`handleClick`, `handleKeyDown`, `handleSubmit`)
-- **📦 Imports Completos:** Incluye todos los imports necesarios y nombra correctamente los componentes clave
-- **⚖️ Balance Rendimiento-Legibilidad:** Prioriza código legible pero mantén optimizaciones críticas (Mandamiento #9)
+- **🧠 Planificación Obligatoria:**  
+  Antes de escribir código, describe tu plan paso a paso en pseudocódigo detallado y explícito.
+- **✅ Código Completo:**  
+  NUNCA dejes TODOs, placeholders o partes incompletas en el código final.
+- **🔄 Retornos Tempranos:**  
+  Usa early returns para mejorar legibilidad y reducir anidamiento excesivo.
+- **🎯 Nombres Descriptivos:**  
+  Variables y funciones con nombres que expliquen su propósito sin ambigüedad.
+- **📞 Funciones de Eventos:**  
+  Prefijo `handle` para event handlers (`handleClick`, `handleKeyDown`, `handleSubmit`).
+- **📦 Imports Completos:**  
+  Incluye todos los imports necesarios y nombra correctamente los componentes clave.
+- **⚖️ Balance Rendimiento-Legibilidad:**  
+  Prioriza código legible pero mantén optimizaciones críticas (ver Mandamiento #9).
+- **📖 Guía de Comentarios Contextuales:**  
+  Aplica siempre la plantilla de migas de pan para explicar el "porqué" y las conexiones clave del código, haciendo referencia explícita a los mandamientos aplicados.  
+  Es obligatorio colocar el resumen del Mandamiento 7 y la guía de comentarios en la cabecera de cada archivo del proyecto.
+- **🔄 Actualización Obligatoria:**  
+  Cada vez que cambies la lógica, refactorices o soluciones un bug, revisa y actualiza todos los comentarios contextuales relacionados antes de hacer commit.
 
 ### 8️⃣ **MANDAMIENTO DE CONSISTENCIA VISUAL Y ESTRUCTURAL**
 
@@ -100,6 +132,6 @@
 
 ---
 
-\_Este documento evoluciona. Cualquier cambio se debe acordar y registrar en la bitácora.
+_Este documento evoluciona. Cualquier cambio se debe acordar y registrar en la bitácora._
 
-\_
+Mandamiento final en cada cambio sactisfactorio asctulizar la memoria de cursor y la memoria de ByteRover MCP(mcp_byterover-mcp_byterover-store-knowledge.) , parsa que se tenga una bitacora en la memoria del proble y la solucion

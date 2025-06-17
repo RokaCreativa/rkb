@@ -50,38 +50,21 @@ model business_type {
 }
 
 model categories {
-  category_id   Int       @id @default(autoincrement())
-  name          String?   @db.VarChar(50)
-  image         String?   @db.VarChar(45)
-  status        Boolean?  @default(true)
-  display_order Int?
-  client_id     Int?
-  registered_at DateTime? @db.DateTime(0)
-  deleted       Int?      @default(0) @db.TinyInt
-  deleted_at    String?   @db.VarChar(20)
-  deleted_by    String?   @db.VarChar(50)
-  deleted_ip    String?   @db.VarChar(20)
-
-  // 🎯 SOLUCIÓN v0.dev: CATEGORÍAS VIRTUALES PARA PRODUCTOS "HUÉRFANOS"
-  // PORQUÉ CRÍTICO: Permite productos que aparecen en vista raíz del cliente sin categoría visible
-  // PROBLEMA RESUELTO: Productos "especiales del día" o promociones sin estructura jerárquica
-  // COMPORTAMIENTO DUAL:
-  // - Admin: Ve "Promociones" como categoría normal (organización interna)
-  // - Cliente: Ve productos elevados al nivel raíz (UX limpia)
-  // CONEXIÓN: API cliente aplicará lógica de elevación basada en este flag
-  // CASOS DE USO: "Especial del Día", "Promociones", "Sugerencias del Chef"
-  is_virtual_category Boolean @default(false)
-
-  clients  clients?   @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_category_client")
-  sections sections[]
-
-  // 🎯 T31: NUEVA RELACIÓN INVERSA CON PRODUCTOS DIRECTOS
-  // PORQUÉ: Permite que una categoría tenga productos directos sin secciones intermedias
-  // CONEXIÓN: CategoryGridView → fetchProductsByCategory() → esta relación
-  // CASOS DE USO: Categorías simples como "BEBIDAS" con productos directos
-  // NOMBRE: "direct_products" para diferenciarlo de productos tradicionales vía secciones
-  direct_products products[] @relation("CategoryToProducts")
-  products        products[]
+  category_id         Int        @id @default(autoincrement())
+  name                String?    @db.VarChar(50)
+  image               String?    @db.VarChar(45)
+  status              Boolean?   @default(true)
+  display_order       Int?
+  client_id           Int?
+  registered_at       DateTime?  @db.DateTime(0)
+  deleted             Int?       @default(0) @db.TinyInt
+  deleted_at          String?    @db.VarChar(20)
+  deleted_by          String?    @db.VarChar(50)
+  deleted_ip          String?    @db.VarChar(20)
+  is_virtual_category Boolean    @default(false)
+  clients             clients?   @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_category_client")
+  direct_products     products[] @relation("CategoryToProducts")
+  sections            sections[]
 
   @@index([client_id], map: "fk_category_client")
 }
@@ -289,18 +272,9 @@ model notification {
 }
 
 model products {
-  product_id Int  @id @default(autoincrement())
-  client_id  Int?
-  section_id Int?
-
-  // 🎯 T31: NUEVA RELACIÓN DIRECTA OPCIONAL A CATEGORÍA
-  // PORQUÉ: Permite productos directos en categorías sin secciones intermedias
-  // CONEXIÓN: dashboardStore.createProductDirect() → esta relación → productos sin sección
-  // FLUJO: Producto puede estar en sección (tradicional) O en categoría (directo)
-  // CASOS DE USO: Categorías simples como "BEBIDAS" → "Coca Cola" (sin sección intermedia)
-  // REGLA DE NEGOCIO: section_id y category_id son mutuamente excluyentes
-  category_id Int?
-
+  product_id                   Int                 @id @default(autoincrement())
+  client_id                    Int?
+  section_id                   Int?
   name                         String              @db.VarChar(100)
   display_order                Int?
   price                        Decimal             @db.Decimal(10, 2)
@@ -335,21 +309,16 @@ model products {
   deleted_ip                   String?             @db.VarChar(20)
   video                        String?             @db.VarChar(100)
   no_picture                   Int?                @default(0)
+  category_id                  Int?
+  is_showcased                 Boolean             @default(false)
   clients                      clients?            @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_product_client")
   sections                     sections?           @relation(fields: [section_id], references: [section_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_section")
+  category                     categories?         @relation("CategoryToProducts", fields: [category_id], references: [category_id], onDelete: Cascade)
   products_sections            products_sections[]
-
-  // 🎯 T31: NUEVA RELACIÓN DIRECTA A CATEGORÍA
-  // PORQUÉ: Implementa la propuesta de "relaciones opcionales" de Gemini
-  // CONEXIÓN: categories.direct_products[] ← esta relación → products.category
-  // FLUJO DE DATOS: CategoryGridView → fetchProductsByCategory() → esta relación
-  // OPTIMIZACIÓN: Índice en category_id para queries rápidas de productos por categoría
-  category              categories? @relation("CategoryToProducts", fields: [category_id], references: [category_id], onDelete: Cascade)
-  categories            categories? @relation(fields: [categoriesCategory_id], references: [category_id])
-  categoriesCategory_id Int?
 
   @@index([client_id], map: "fk_product_client")
   @@index([section_id], map: "fk_products_section")
+  @@index([category_id], map: "products_category_id_fkey")
 }
 
 model products_sections {
@@ -475,6 +444,7 @@ model sections {
   deleted_at        String?             @db.VarChar(20)
   deleted_by        String?             @db.VarChar(50)
   deleted_ip        String?             @db.VarChar(20)
+  is_virtual        Boolean             @default(false)
   products          products[]
   products_sections products_sections[]
   categories        categories?         @relation(fields: [category_id], references: [category_id], onDelete: Cascade, map: "fk_section_category")

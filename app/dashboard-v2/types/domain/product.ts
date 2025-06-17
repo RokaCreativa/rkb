@@ -16,15 +16,25 @@ import { Section } from './section';
 export interface Product {
   product_id: number;
   name: string;
-  image?: string | null;
+  image: string | null;
   status: boolean;
   price: number;
   discount_price?: string | null;
-  section_id?: number | null;
-  client_id?: number;
-  display_order: number;
-  description?: string;
-  category_id?: number | null;
+  section_id: number | null;
+  client_id: number;
+  display_order: number | null;
+  description: string | null;
+  category_id: number | null;
+  created_at: string;
+  updated_at: string;
+  is_showcased: boolean;
+  multiple_prices?: MultiplePrice[];
+  price1?: number | null;
+  is_promotion?: boolean;
+  sections?: {
+    section_id: number;
+    name: string;
+  } | null;
 }
 
 /**
@@ -68,4 +78,11 @@ export interface ProductViewProps {
 
 export interface ProductWithPriceLabels extends Product {
   // ... existing code ...
+}
+
+export interface MultiplePrice {
+  id: number;
+  product_id: number;
+  price: number;
+  label: string;
 } 

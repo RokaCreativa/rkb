@@ -87,7 +87,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
  * @param {ButtonProps} props - Las propiedades del botón
  * @returns {JSX.Element} Un botón estilizado y funcional
  */
-export const Button: React.FC<ButtonProps> = ({
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   variant = 'primary',
   size = 'md',
   isLoading = false,
@@ -99,7 +99,7 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   children,
   ...props
-}) => {
+}, ref) => {
   /**
    * Clases base que se aplican a todos los botones
    * - flex: Para alinear el contenido
@@ -156,6 +156,7 @@ export const Button: React.FC<ButtonProps> = ({
 
   return (
     <button
+      ref={ref}
       className={buttonClasses}
       disabled={disabled || isLoading}
       {...props}
@@ -188,6 +189,8 @@ export const Button: React.FC<ButtonProps> = ({
       )}
     </button>
   );
-};
+});
+
+Button.displayName = 'Button';
 
 export default Button; 

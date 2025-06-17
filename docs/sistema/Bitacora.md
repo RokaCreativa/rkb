@@ -1,10 +1,10 @@
-﻿# ðŸ““ BitÃ¡cora de Desarrollo - RokaMenu
+﻿# 📓 Bitácora de Desarrollo - RokaMenu
 
-> **Nuestra memoria externa y la Ãºnica fuente de verdad sobre la evoluciÃ³n del proyecto.**
-> Cada cambio significativo, cada nueva funcionalidad, cada refactorizaciÃ³n, queda registrada aquÃ­.
+> **Nuestra memoria externa y la única fuente de verdad sobre la evolución del proyecto.**
+> Cada cambio significativo, cada nueva funcionalidad, cada refactorización, queda registrada aquí.
 >
-> **Mandamiento #1:** Consultar esta bitÃ¡cora antes de empezar a trabajar.
-> **Mandamiento #2:** Actualizar esta bitÃ¡cora despuÃ©s de terminar un trabajo.
+> **Mandamiento #1:** Consultar esta bitácora antes de empezar a trabajar.
+> **Mandamiento #2:** Actualizar esta bitácora después de terminar un trabajo.
 
 ---
 
@@ -12,14 +12,14 @@
 
 ```
 ---
-### **#ID | TÃ­tulo del Cambio**
+### **#ID | Título del Cambio**
 - **Fecha:** YYYY-MM-DD
 - **Responsable:** [Tu Nombre/Gemini]
 - **Checklist:** #[ID de Tarea] (ej: #T1)
-- **Mandamientos Involucrados:** #[NÃºmero] (ej: #5, #7)
+- **Mandamientos Involucrados:** #[Número] (ej: #5, #7)
 
-**DescripciÃ³n:**
-> [ExplicaciÃ³n CLARA y CONCISA de QUÃ‰ se hizo y POR QUÃ‰ se hizo. Si es necesario, aÃ±adir CÃ“MO se implementÃ³ a alto nivel.]
+**Descripción:**
+> [Explicación CLARA y CONCISA de QUÉ se hizo y POR QUÉ se hizo. Si es necesario, añadir CÓMO se implementó a alto nivel.]
 
 **Archivos Modificados/Creados:**
 - `ruta/al/archivo1.ts`
@@ -29,16 +29,16 @@
 
 ---
 
-### **#1 | CreaciÃ³n del Sistema de DocumentaciÃ³n Fundacional**
+### **#1 | Creación del Sistema de Documentación Fundacional**
 
 - **Fecha:** 2024-05-24
 - **Responsable:** Gemini
 - **Checklist:** N/A
 - **Mandamientos Involucrados:** #1, #2, #10
 
-**DescripciÃ³n:**
+**Descripción:**
 
-> Se crea el sistema de gobierno del proyecto para combatir la pÃ©rdida de contexto y establecer un flujo de trabajo claro y ordenado. Este sistema se compone de tres documentos interconectados que vivirÃ¡n en la carpeta `docs/sistema`.
+> Se crea el sistema de gobierno del proyecto para combatir la pérdida de contexto y establecer un flujo de trabajo claro y ordenado. Este sistema se compone de tres documentos interconectados que vivirán en la carpeta `docs/sistema`.
 
 **Archivos Modificados/Creados:**
 
@@ -49,16 +49,16 @@
 
 ---
 
-### **#2 | SincronizaciÃ³n y Reemplazo de Repositorio en GitHub**
+### **#2 | Sincronización y Reemplazo de Repositorio en GitHub**
 
 - **Fecha:** 2024-05-24
 - **Responsable:** Gemini
 - **Checklist:** N/A
 - **Mandamientos Involucrados:** #8 (Consistencia), #10 (Disciplina)
 
-**DescripciÃ³n:**
+**Descripción:**
 
-> Se ha subido el estado actual del proyecto al repositorio remoto de GitHub (`https://github.com/RokaCreativa/rokamenu`), reemplazando por completo el contenido anterior que estaba desactualizado. Esto establece una Ãºnica fuente de verdad para el control de versiones y asegura un backup del proyecto. Se forzÃ³ el push para limpiar el historial previo.
+> Se ha subido el estado actual del proyecto al repositorio remoto de GitHub (`https://github.com/RokaCreativa/rokamenu`), reemplazando por completo el contenido anterior que estaba desactualizado. Esto establece una única fuente de verdad para el control de versiones y asegura un backup del proyecto. Se forzó el push para limpiar el historial previo.
 
 **Archivos Modificados/Creados:**
 
@@ -66,16 +66,16 @@
 
 ---
 
-### **#3 | Cambio de Prioridad: MigraciÃ³n de Base de Datos**
+### **#3 | Cambio de Prioridad: Migración de Base de Datos**
 
 - **Fecha:** 2024-05-24
 - **Responsable:** Gemini & [Tu Nombre]
 - **Checklist:** #T10
 - **Mandamientos Involucrados:** #1 (Mandamiento de la Verdad), #7 (Consenso)
 
-**DescripciÃ³n:**
+**Descripción:**
 
-> Por decisiÃ³n estratÃ©gica, se ha adelantado la Fase 3: MigraciÃ³n de la Base de Datos de MySQL a PostgreSQL. Se considera una tarea fundacional crÃ­tica que debe ser completada antes de continuar con el desarrollo de nuevas funcionalidades para asegurar una base tecnolÃ³gica sÃ³lida y escalable.
+> Por decisión estratégica, se ha adelantado la Fase 3: Migración de la Base de Datos de MySQL a PostgreSQL. Se considera una tarea fundacional crítica que debe ser completada antes de continuar con el desarrollo de nuevas funcionalidades para asegurar una base tecnológica sólida y escalable.
 
 **Archivos Modificados/Creados:**
 
@@ -83,18 +83,18 @@
 
 ---
 
-### **#5 | FRACASO Y RE-PLANIFICACIÃ“N: Vista MÃ³vil**
+### **#5 | FRACASO Y RE-PLANIFICACIÓN: Vista Móvil**
 
 - **Fecha:** 2024-05-24
 - **Responsable:** Gemini
 - **Checklist:** #T6 (fallido)
-- **Mandamientos Involucrados:** #5, y violaciÃ³n del "Principio de Insistencia Rota".
+- **Mandamientos Involucrados:** #5, y violación del "Principio de Insistencia Rota".
 
-**DescripciÃ³n:**
+**Descripción:**
 
-> Se intentÃ³ implementar la vista mÃ³vil "Drill-Down" modificando el archivo `DashboardView.tsx`. La herramienta de ediciÃ³n automÃ¡tica (`edit_file`) fallÃ³ repetidamente, corrompiendo el archivo. Este incidente confirma que `DashboardView.tsx` es demasiado complejo y no debe ser modificado automÃ¡ticamente.
+> Se intentó implementar la vista móvil "Drill-Down" modificando el archivo `DashboardView.tsx`. La herramienta de edición automática (`edit_file`) falló repetidamente, corrompiendo el archivo. Este incidente confirma que `DashboardView.tsx` es demasiado complejo y no debe ser modificado automáticamente.
 >
-> **Nuevo Plan:** Se abandona la modificaciÃ³n de `DashboardView.tsx`. La nueva estrategia consiste en usar un hook `useIsMobile` para renderizar condicionalmente desde `page.tsx` un componente `<MobileView />` completamente separado.
+> **Nuevo Plan:** Se abandona la modificación de `DashboardView.tsx`. La nueva estrategia consiste en usar un hook `useIsMobile` para renderizar condicionalmente desde `page.tsx` un componente `<MobileView />` completamente separado.
 
 **Archivos Modificados/Creados:**
 
@@ -103,16 +103,16 @@
 
 ---
 
-### **#6 | ImplementaciÃ³n de Vista MÃ³vil y SincronizaciÃ³n con GitHub**
+### **#6 | Implementación de Vista Móvil y Sincronización con GitHub**
 
 - **Fecha:** 2024-06-14
 - **Responsable:** Gemini & Rokacreativa
 - **Checklist:** #T6, #T6.1
 - **Mandamientos Involucrados:** #5, #11
 
-**DescripciÃ³n:**
+**Descripción:**
 
-> Se implementÃ³ la estructura fundamental para la experiencia de usuario en dispositivos mÃ³viles. Se creÃ³ un componente 'ViewSwitcher' que renderiza una 'MobileView' especÃ­fica en pantallas pequeÃ±as, dejando intacta la 'DashboardView' de escritorio. La 'MobileView' ahora carga y muestra la lista de categorÃ­as, con una navegaciÃ³n funcional (aunque bÃ¡sica) a una vista de "secciones". Todo el progreso ha sido subido y sincronizado con el repositorio de GitHub.
+> Se implementó la estructura fundamental para la experiencia de usuario en dispositivos móviles. Se creó un componente 'ViewSwitcher' que renderiza una 'MobileView' específica en pantallas pequeñas, dejando intacta la 'DashboardView' de escritorio. La 'MobileView' ahora carga y muestra la lista de categorías, con una navegación funcional (aunque básica) a una vista de "secciones". Todo el progreso ha sido subido y sincronizado con el repositorio de GitHub.
 
 **Archivos Modificados/Creados:**
 
@@ -124,16 +124,16 @@
 
 ---
 
-### **#7 | ImplementaciÃ³n de Vista de Productos en MÃ³vil**
+### **#7 | Implementación de Vista de Productos en Móvil**
 
 - **Fecha:** 2024-06-14
 - **Responsable:** Gemini
 - **Checklist:** #T6.4, #T6.5
 - **Mandamientos Involucrados:** #5 (Mobile-First)
 
-**DescripciÃ³n:**
+**Descripción:**
 
-> Se ha completado el flujo de navegaciÃ³n "Drill-Down" en la vista mÃ³vil. Se implementÃ³ la lÃ³gica para que, al seleccionar una secciÃ³n, se muestren los productos correspondientes. Esto se logrÃ³ creando un nuevo sub-componente `ProductListView` dentro de `MobileView.tsx`, que utiliza el hook `useProductManagement` para buscar los datos. Se ha corregido tambiÃ©n la navegaciÃ³n hacia atrÃ¡s para que el usuario pueda volver fluidamente desde la vista de productos a la de secciones.
+> Se ha completado el flujo de navegación "Drill-Down" en la vista móvil. Se implementó la lógica para que, al seleccionar una sección, se muestren los productos correspondientes. Esto se logró creando un nuevo sub-componente `ProductListView` dentro de `MobileView.tsx`, que utiliza el hook `useProductManagement` para buscar los datos. Se ha corregido también la navegación hacia atrás para que el usuario pueda volver fluidamente desde la vista de productos a la de secciones.
 
 **Archivos Modificados/Creados:**
 
@@ -142,20 +142,20 @@
 
 ---
 
-### **#8 | ImplementaciÃ³n de Acciones CRUD en UI MÃ³vil**
+### **#8 | Implementación de Acciones CRUD en UI Móvil**
 
 - **Fecha:** 2024-06-14
 - **Responsable:** Gemini
 - **Checklist:** #T7
 - **Mandamientos Involucrados:** #5 (Mobile-First), #8 (Consistencia de la UI)
 
-**DescripciÃ³n:**
+**Descripción:**
 
-> Se ha implementado el esqueleto de las acciones de Crear, Editar y Eliminar en la interfaz mÃ³vil.
+> Se ha implementado el esqueleto de las acciones de Crear, Editar y Eliminar en la interfaz móvil.
 >
-> - **Crear:** Se ha aÃ±adido un BotÃ³n de AcciÃ³n Flotante (FAB) que es contextual a la vista (categorÃ­as, secciones, productos).
-> - **Editar/Eliminar:** Se ha aÃ±adido un componente de menÃº contextual (icono de tres puntos) a cada elemento en las listas de categorÃ­as, secciones y productos.
->   Por el momento, todas las acciones disparan un `console.log` a la espera de la implementaciÃ³n de los modales correspondientes.
+> - **Crear:** Se ha añadido un Botón de Acción Flotante (FAB) que es contextual a la vista (categorías, secciones, productos).
+> - **Editar/Eliminar:** Se ha añadido un componente de menú contextual (icono de tres puntos) a cada elemento en las listas de categorías, secciones y productos.
+>   Por el momento, todas las acciones disparan un `console.log` a la espera de la implementación de los modales correspondientes.
 
 **Archivos Modificados/Creados:**
 
@@ -167,16 +167,16 @@
 
 ---
 
-### **#9 | DecisiÃ³n EstratÃ©gica: CancelaciÃ³n de MigraciÃ³n a PostgreSQL**
+### **#9 | Decisión Estratégica: Cancelación de Migración a PostgreSQL**
 
 - **Fecha:** 2024-06-14
 - **Responsable:** Gemini & Rokacreativa
 - **Checklist:** Fase 3
-- **Mandamientos Involucrados:** #4 (Consenso), #9 (OptimizaciÃ³n de recursos)
+- **Mandamientos Involucrados:** #4 (Consenso), #9 (Optimización de recursos)
 
-**DescripciÃ³n:**
+**Descripción:**
 
-> Por decisiÃ³n estratÃ©gica conjunta, se ha cancelado la migraciÃ³n de la base de datos de MySQL a PostgreSQL. Tras evaluar la complejidad y los obstÃ¡culos encontrados, se ha concluido que MySQL es una tecnologÃ­a robusta y perfectamente adecuada para las necesidades actuales y futuras de la aplicaciÃ³n. Esta decisiÃ³n permite liberar recursos de desarrollo y enfocarlos en la entrega de valor directo al usuario a travÃ©s de nuevas funcionalidades, en lugar de en una optimizaciÃ³n prematura de la infraestructura.
+> Por decisión estratégica conjunta, se ha cancelado la migración de la base de datos de MySQL a PostgreSQL. Tras evaluar la complejidad y los obstáculos encontrados, se ha concluido que MySQL es una tecnología robusta y perfectamente adecuada para las necesidades actuales y futuras de la aplicación. Esta decisión permite liberar recursos de desarrollo y enfocarlos en la entrega de valor directo al usuario a través de nuevas funcionalidades, en lugar de en una optimización prematura de la infraestructura.
 
 **Archivos Modificados/Creados:**
 
@@ -184,150 +184,226 @@
 
 ---
 
-### **#32 | MODERNIZACIÓN COMPLETA DEL STACK TECNOLÓGICO**
-
-- **Fecha:** 2025-01-14
-- **Responsable:** Claude & Usuario
-- **Checklist:** Modernización Pre-T31
-- **Mandamientos Involucrados:** #4 (Consenso), #9 (Optimización), #10 (Disciplina)
-
-**Descripción:**
-
-> Se ejecutó una modernización completa del stack tecnológico para preparar el proyecto para competir en el mercado con herramientas de vanguardia. Esta actualización era crítica antes de implementar T31 (Productos Directos en Categorías).
->
-> **ACTUALIZACIONES APLICADAS:**
->
-> - **Tailwind CSS**: 3.4.17 → 4.1.10 (última versión con mejor performance)
-
----
-
-### **#33 | IMPLEMENTACIÓN COMPLETA: CATEGORÍAS VIRTUALES (Solución v0.dev)**
-
-- **Fecha:** 2025-01-15
-- **Responsable:** Claude & Usuario
-- **Checklist:** T31 + Solución v0.dev
-- **Mandamientos Involucrados:** #1 (Consulta), #2 (Actualización), #5 (Mobile-First), #6 (Separación), #7 (Legibilidad)
-
-**Descripción:**
-
-> Se implementó la solución completa de **Categorías Virtuales** propuesta por v0.dev, que resuelve elegantemente el problema de "productos huérfanos" en T31. Esta solución proporciona una arquitectura dual donde las categorías virtuales se comportan diferente en vista admin vs cliente.
->
-> **FUNCIONALIDAD IMPLEMENTADA:**
->
-> - **Arquitectura Dual**: Admin ve organización interna, cliente ve productos "elevados" sin mostrar categoría
-> - **Casos de Uso**: "Especial del Día", "Promociones", "Sugerencias del Chef"
-> - **Flexibilidad**: Sistema perfecto para marketing y elementos especiales
-> - **UX Limpia**: Interfaz cliente sin categorías confusas
->
-> **COMPONENTES TÉCNICOS:**
->
-> - **Schema DB**: Campo `is_virtual_category Boolean @default(false)` agregado
-> - **Tipos TypeScript**: Interface Category actualizada con documentación contextual
-> - **CategoryForm**: Checkbox con tooltip explicativo para configurar categorías virtuales
-> - **CategoryGridView**: Badge púrpura "VIRTUAL" para identificación visual
-> - **Botón Producto Directo**: Simetría con vista de secciones
-> - **DashboardViewWrapper**: Conexiones completas para nueva funcionalidad
->
-> **CALIDAD DE CÓDIGO:**
->
-> - **Migas de Pan Contextuales**: Comentarios que explican PORQUÉ, CONEXIONES y PROBLEMAS RESUELTOS
-> - **Documentación Viva**: Cada archivo modificado incluye contexto de relaciones
-> - **Patrones Consistentes**: Siguiendo arquitectura establecida del proyecto
-> - **Separación de Responsabilidades**: Lógica separada de presentación
-
-**Archivos Modificados/Creados:**
-
-- `prisma/schema.prisma` (Campo is_virtual_category agregado)
-- `app/dashboard-v2/types/domain/category.ts` (Interface actualizada)
-- `app/dashboard-v2/components/domain/categories/CategoryForm.tsx` (Checkbox virtual)
-- `app/dashboard-v2/components/domain/categories/CategoryGridView.tsx` (Badge VIRTUAL)
-- `app/dashboard-v2/components/core/DashboardViewWrapper.tsx` (Props conectadas)
-- `app/dashboard-v2/stores/dashboardStore.ts` (Funciones actualizadas)
-
-**Propuesta Futura del Usuario:**
-
-> **TEMPORIZADOR AUTOMÁTICO**: El usuario propuso una funcionalidad brillante de horarios programados para categorías (ej: "Happy Hour" Viernes 17:00-22:00). Esta funcionalidad se registró en el ULTRA-MEGA-CHECKLIST como Fase 12 para implementación futura, combinando perfectamente con las categorías virtuales para crear un sistema de marketing automático.
->
-> - **Prisma**: 6.5.0 → 6.9.0 (mejor performance y nuevas características)
-> - **Lucide React**: Actualizado a 0.515.0 (más iconos disponibles)
->
-> **NUEVAS LIBRERÍAS ESENCIALES AÑADIDAS:**
->
-> - `@radix-ui/react-dialog@1.1.14` - Modales profesionales para T31
-> - `@radix-ui/react-dropdown-menu@2.1.15` - Menús contextuales modernos
-> - `@radix-ui/colors@3.0.0` - Paletas de colores profesionales
-> - `@use-gesture/react@10.3.1` - Gestos táctiles para móvil
->
-> **MIGRACIÓN TAILWIND 4 COMPLETADA:**
->
-> - Cambiadas directivas `@tailwind` a `@import "tailwindcss"`
-> - Arreglados gradientes `bg-gradient-` a `bg-linear-`
-> - Eliminados `!important` de directivas `@apply`
-> - Expandidas clases personalizadas (action-button, drag-handle)
-> - Herramienta automática de migración ejecutada exitosamente
-
-**Archivos Modificados/Creados:**
-
-- `package.json` (Dependencias actualizadas)
-- `app/globals.css` (Directivas Tailwind 4)
-- `app/dashboard-v2/globals.css` (Directivas Tailwind 4)
-- `app/dashboard-v2/styles/index.css` (Directivas Tailwind 4)
-- `app/dashboard-v2/styles/grids.css` (Clases expandidas para Tailwind 4)
-- `app/dashboard-v2/components/views/FloatingPhonePreview.tsx` (Gradientes actualizados)
-- `docs/sistema/ui.md` (Estado de modernización documentado)
-
----
-
-### **#33 | 🪄 REPARACIÓN COMPLETA DE UI POST-MIGRACIÓN TAILWIND 4**
-
-- **Fecha:** 2025-01-14
-- **Responsable:** Claude & Usuario
-- **Checklist:** Modernización Pre-T31 (Completada)
-- **Mandamientos Involucrados:** #4 (Consenso), #8 (Consistencia), #9 (Optimización)
-
-**Descripción:**
-
-> Tras la migración a Tailwind 4, se detectaron problemas visuales críticos en la UI. Se aplicó una "varita mágica" 🪄 para reparar automáticamente todos los estilos rotos y mejorar significativamente la apariencia del dashboard.
->
-> **REPARACIONES AUTOMÁTICAS APLICADAS:**
->
-> - **Script automático**: Migró 39 archivos con clases obsoletas
-> - `outline-none` → `outline-0` (nueva sintaxis Tailwind 4)
-> - `shrink-0` → `shrink-0` (sintaxis simplificada)
-> - Eliminadas clases obsoletas: `transform`, `filter`, `backdrop-filter`
->
-> **MEJORAS VISUALES MANUALES:**
->
-> - Añadidos colores y bordes faltantes en tablas
-> - Mejorados encabezados con `bg-gray-50` y `text-gray-500`
-> - Añadido `divide-gray-200` para separadores
-> - Mejorado contraste y legibilidad general
->
-> **RESULTADO:** UI completamente funcional y profesional, lista para T31
-
-**Archivos Modificados/Creados:**
-
-- 39 archivos TSX/TS (migración automática de clases)
-- `app/dashboard-v2/styles/grids.css` (mejoras visuales manuales)
-- `postcss.config.js` (eliminado plugin tailwindcss)
-- `tailwind.config.ts` (nueva configuración Tailwind 4)
-
----
-
-### **#10 | Brainstorming EstratÃ©gico y Futuro de la UI MÃ³vil**
+### **#10 | Brainstorming Estratégico y Futuro de la UI Móvil**
 
 - **Fecha:** 2024-06-14
 - **Responsable:** Gemini & Rokacreativa
-- **Checklist:** #T9 (creada a raÃ­z de esto)
+- **Checklist:** #T9 (creada a raíz de esto)
 - **Mandamientos Involucrados:** #4 (Consenso), #5 (Mobile-First), #8 (Consistencia)
 
-**DescripciÃ³n:**
+**Descripción:**
 
-> Se realizÃ³ una sesiÃ³n de brainstorming para definir la evoluciÃ³n de la experiencia mÃ³vil. Se tomaron las siguientes decisiones clave:
+> Se realizó una sesión de brainstorming para definir la evolución de la experiencia móvil. Se tomaron las siguientes decisiones clave:
 >
-> 1.  **ReordenaciÃ³n en MÃ³vil:** Se implementarÃ¡ un "Modo de OrdenaciÃ³n" con flechas o agarraderas, en lugar de un drag-and-drop complejo, para mejorar la usabilidad. Se creÃ³ la tarea #T9 para ello.
-> 2.  **Mejora de las Listas:** Se acordÃ³ enriquecer las listas con imÃ¡genes en miniatura, contadores de visibilidad (ej: "5/8 visibles") y un botÃ³n de "ojo" para cambiar el estado. Los Ã­tems ocultos se mostrarÃ¡n con opacidad reducida.
-> 3.  **VisiÃ³n a Futuro:** Se ratifica que la arquitectura actual es flexible y escalable para adaptarse a otros tipos de negocio (peluquerÃ­as, inmobiliarias, etc.) sin necesidad de cambios estructurales, solo ajustes en las etiquetas de la UI.
+> 1.  **Reordenación en Móvil:** Se implementará un "Modo de Ordenación" con flechas o agarraderas, en lugar de un drag-and-drop complejo, para mejorar la usabilidad. Se creó la tarea #T9 para ello.
+> 2.  **Mejora de las Listas:** Se acordó enriquecer las listas con imágenes en miniatura, contadores de visibilidad (ej: "5/8 visibles") y un botón de "ojo" para cambiar el estado. Los ítems ocultos se mostrarán con opacidad reducida.
+> 3.  **Visión a Futuro:** Se ratifica que la arquitectura actual es flexible y escalable para adaptarse a otros tipos de negocio (peluquerías, inmobiliarias, etc.) sin necesidad de cambios estructurales, solo ajustes en las etiquetas de la UI.
+
+---
+
+### **#11 | Corrección Arquitectónica: Extracción de ClientId en DashboardView**
+
+- **Fecha:** 2024-12-20
+- **Responsable:** Gemini
+- **Checklist:** #T21.3 (Continuación)
+- **Mandamientos Involucrados:** #1, #6, #9
+
+**Descripción:**
+
+> Se identificó y corrigió el problema arquitectónico fundamental en `DashboardView.tsx`: el componente no estaba extrayendo correctamente el `clientId` de la sesión, causando que todas las llamadas al store fallaran con `client_id=undefined`. Se implementó la extracción correcta del `clientId` siguiendo el patrón exitoso de `MobileView.tsx`, respetando la separación de responsabilidades (Mandamiento #6) y optimizando el rendimiento (Mandamiento #9).
+
+**Cambios Realizados:**
+
+- Extraer `clientId` de `session?.user?.client_id` al inicio del componente
+- Corregir todas las llamadas al store para pasar el `clientId` como parámetro
+- Simplificar el useEffect de carga inicial eliminando lógica de caché innecesaria
+- Corregir parámetros en `deleteSection` y `toggleProductVisibility`
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/components/core/DashboardView.tsx` (Modificado)
+- `docs/sistema/Bitacora.md` (Actualizado)
+
+---
+
+### **#12 | Corrección de API: Visibilidad de Secciones (Error 404)**
+
+- **Fecha:** 2024-06-16
+- **Responsable:** Gemini
+- **Checklist:** #T17 (Corrección sobre la tarea)
+- **Mandamientos Involucrados:** #6 (Separación de Responsabilidades), #7 (Código Legible)
+
+**Descripción:**
+
+> Se solucionó un error crítico que provocaba un `404 Not Found` al intentar cambiar la visibilidad de una sección en la vista móvil. El problema se debía a que el hook `useSectionManagement` estaba apuntando a una ruta de API incorrecta (`/api/sections/[id]`) en lugar de a una específica para la visibilidad.
+
+> Se implementó la ruta `PUT /api/sections/[id]/visibility` y se corrigió la llamada en el hook, siguiendo el patrón ya establecido para los productos y solucionando el error.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/hooks/domain/section/useSectionManagement.ts` (Modificado)
+- `app/api/sections/[id]/visibility/route.ts` (Creado)
+- `docs/sistema/Bitacora.md` (Actualizado)
+
+---
+
+### **#13 | Épica de Refactorización: De "God Component" a "Master-Detail" y Resurrección de la UI**
+
+- **Fecha:** 2024-06-18
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** #T18, #T19, #T20, #T21, #T22 (completados en esta sesión)
+- **Mandamientos Involucrados:** #3, #5, #6, #7, #9, #10, #11
+
+**Descripción:**
+
+> Esta sesión fue una de las más intensas y transformadoras del proyecto. Se abordaron y resolvieron múltiples problemas críticos, culminando en una refactorización masiva de la arquitectura del dashboard.
+
+> **1. Corrección de Bugs Críticos:**
+>
+> - Se solucionó un `TypeError` en `goToCategory` y un fallo en los botones de visibilidad de la vista móvil. La causa raíz era una inconsistencia de tipos: el frontend enviaba `0/1` y el backend esperaba `boolean`. Se corrigió en `dashboardStore.ts`.
+> - Se eliminó un error de hidratación de React que rompía la aplicación al eliminar el `ViewSwitcher.tsx` y reemplazarlo por una carga dinámica (`ssr: false`) del nuevo `DynamicView.tsx` desde un `DashboardClient.tsx` reestructurado.
+
+> **2. Refactorización a "Master-Detail":**
+>
+> - Se identificó a `DashboardView.tsx` como un "God Component" insostenible.
+> - Se descompuso en una arquitectura "Master-Detail" orquestada por el `dashboardStore`:
+>   - `DashboardView.tsx` ahora actúa como un orquestador simple.
+>   - Se crearon tres componentes de vista "tontos" y reutilizables: `CategoryGridView.tsx`, `SectionGridView.tsx`, y `ProductGridView.tsx`.
+>   - Se crearon modales genéricos (`EditModals.tsx`, `DeleteConfirmationModal.tsx`) y un hook para su estado (`useModalState.tsx`).
+>   - Se actualizó el `dashboardStore` para manejar el estado de selección (`selectedCategoryId`, `selectedSectionId`).
+
+> **3. Crisis y Recuperación:**
+>
+> - La refactorización inicial provocó una regresión catastrófica: la UI entera (móvil y escritorio) se rompió.
+> - **Diagnóstico:** Al reescribir `DashboardClient.tsx`, se eliminó por error la lógica de carga de datos y, crucialmente, la renderización del `DynamicView.tsx`.
+> - **Solución:** Se restauró la arquitectura correcta en `DashboardClient.tsx`, devolviéndole la responsabilidad de cargar los datos y de renderizar el `DynamicView`, que a su vez volvió a actuar como el "switcher" entre `MobileView` y `DashboardView`.
+
+> **4. Auditoría de Código:**
+>
+> - Tras restaurar la funcionalidad, se realizó una auditoría completa de todos los archivos modificados para añadir comentarios contextuales de alta calidad ("migas de pan"), cumpliendo con el Mandamiento #7.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/stores/dashboardStore.ts` (Modificado)
+- `app/dashboard-v2/components/core/DashboardClient.tsx` (Modificado)
+- `app/dashboard-v2/components/core/DynamicView.tsx` (Creado)
+- `app/dashboard-v2/components/core/ViewSwitcher.tsx` (Eliminado)
+- `app/dashboard-v2/components/core/DashboardView.tsx` (Modificado)
+- `app/dashboard-v2/components/views/CategoryGridView.tsx` (Creado)
+- `app/dashboard-v2/components/views/SectionGridView.tsx` (Creado)
+- `app/dashboard-v2/components/views/ProductGridView.tsx` (Creado)
+- `app/dashboard-v2/components/modals/EditModals.tsx` (Creado)
+- `app/dashboard-v2/components/modals/DeleteConfirmationModal.tsx` (Creado)
+- `app/dashboard-v2/hooks/ui/useModalState.tsx` (Creado)
+- `docs/sistema/Bitacora.md` (Actualizado)
+
+---
+
+### **#14 | Refactorización de Subida de Imágenes y Corrección Visual**
+
+- **Fecha:** 2024-06-18
+- **Responsable:** Gemini
+- **Checklist:** Tarea implícita derivada de la funcionalidad de modales.
+- **Mandamientos Involucrados:** #3 (No Reinventar), #6 (Separación de Responsabilidades), #10 (Mejora Proactiva)
+
+**Descripción:**
+
+> Se abordaron dos problemas relacionados con las imágenes:
+>
+> 1.  **Corrección Visual:** Las imágenes de secciones y productos no se mostraban en las tablas principales. Se corrigió la ruta en los componentes `SectionGridView.tsx` y `ProductGridView.tsx` para que apuntaran a la carpeta correcta (`/images/sections/` y `/images/products/` respectivamente).
+> 2.  **Refactorización del Backend:** Se identificó que tener un endpoint de subida por entidad era ineficiente. Se creó un único endpoint genérico en `/api/upload` que recibe un `entityType` ('categories', 'sections', 'products') y guarda el archivo en la carpeta correspondiente del servidor. Se refactorizó el `dashboardStore` para usar esta nueva API, centralizando y limpiando la lógica de subida de archivos.
+
+**Archivos Modificados/Creados:**
+
+- `app/api/upload/route.ts` (Creado)
+- `app/dashboard-v2/stores/dashboardStore.ts` (Modificado)
+- `app/dashboard-v2/components/domain/sections/SectionGridView.tsx` (Modificado)
+- `app/dashboard-v2/components/domain/products/ProductGridView.tsx` (Modificado)
+- `app/dashboard-v2/components/modals/EditModals.tsx` (Modificado)
+- `app/dashboard-v2/components/domain/categories/CategoryForm.tsx` (Modificado)
+- `app/dashboard-v2/components/domain/sections/SectionForm.tsx` (Modificado)
+- `app/dashboard-v2/components/domain/products/ProductForm.tsx` (Modificado)
+- `app/dashboard-v2/components/ui/Form/FormField.tsx` (Modificado)
+- `app/api/products/upload-image/route.ts` (Eliminado a través de refactorización)
+
+---
+
+### **#15 | Consolidación, Estabilización y Correcciones Críticas de UX (Finales de 2024)**
+
+- **Fecha:** 2024-12-26
+- **Responsable:** Gemini & Claude
+- **Checklist:** Tareas #T21, #T27, #T28, #T29 y múltiples correcciones de UX.
+- **Mandamientos Involucrados:** #1, #4, #6, #7, #9, #10
+
+**Descripción:**
+
+> Esta entrada consolida una serie de correcciones intensivas realizadas a finales de 2024 para estabilizar la arquitectura Master-Detail, implementar las funciones CRUD restantes y solucionar una cascada de problemas de UX y errores de TypeScript. Este esfuerzo fue crucial para llevar la aplicación a un estado funcional y coherente.
+
+> **Logros Principales:**
+>
+> 1.  **Implementación Completa de CRUD:** Se implementaron todas las funciones de Crear, Actualizar y Eliminar que faltaban en el `dashboardStore` para todas las entidades, solucionando errores de "función no implementada". Se corrigieron incompatibilidades entre el frontend y los endpoints de la API (ej: `section_id` vs `id`).
+> 2.  **Solución de Errores TypeScript:** Se corrigieron una larga lista de errores de tipos en todo el proyecto, desde modelos de Prisma en las APIs hasta props inconsistentes entre componentes y el store.
+> 3.  **Corrección Masiva de UX:**
+>     - **Toasts:** Eliminado el problema de toasts duplicados al centralizar el componente `<Toaster />`.
+>     - **Contadores y Visibilidad:** Añadidos contadores de visibilidad a todas las tablas y corregida la lógica de actualización.
+>     - **Modales:** Rediseñados los modales a un tamaño apropiado y corregida la carga de imágenes en las vistas de edición.
+>     - **Navegación Móvil:** Solucionados delays innecesarios y redirecciones incorrectas después de eliminar elementos.
+>
+> **Resultado:** La aplicación alcanzó un estado de estabilidad significativo, con una arquitectura coherente y una experiencia de usuario más fluida y predecible tanto en móvil como en escritorio.
+
+---
+
+### **#19 | Planificación Estratégica - Jerarquía Flexible y Features Gastronómicos Críticos**
+
+- **Fecha:** 2024-12-24
+- **Responsable:** Claude (Asistente IA)
+- **Checklist:** #T32-T35 (planificación estratégica)
+- **Mandamientos Involucrados:** #1 (Contexto), #4 (Sugerencias), #10 (Mejora proactiva)
+
+**Descripción:**
+
+> Sesión de análisis profundo y planificación estratégica basada en casos de uso reales del usuario. Se ha refinado completamente la propuesta de jerarquía flexible y se han identificado features críticos obligatorios para restaurantes profesionales que actualmente faltan en v2.
+
+**Decisiones Estratégicas Clave:**
+
+1. **Jerarquía Híbrida por Categoría (Actualización de Propuesta):**
+
+   - **Descubrimiento**: Casos reales como Palm Beach necesitan AMBAS jerarquías EN EL MISMO MENÚ
+   - **Ejemplo Real**:
+     - "SNACKS" → Productos directos (Sopas, Sándwiches, Papas Fritas)
+     - "HAMBURGUESAS" → Secciones → Productos (Sencilla, Con Queso, Doble)
+   - **Solución**: Campo `hierarchy_mode` en tabla `categories` ("simple" | "sections")
+   - **Ventaja**: Flexibilidad total sin complejidad para el usuario
+
+2. **Alcance de Alergenos Ampliado:**
+
+   - **Decisión**: Obligatorio para TODOS los negocios gastronómicos (no solo restaurantes)
+   - **Justificación**: "Todo lo que tenga que ver con gastronomía en general lleva alergenos incluso un café con leche que tiene lactosa"
+   - **Implementación**: Basado en `business_type` (Restaurante, Bar, Cafetería, etc.)
+
+3. **Migración de Precios Múltiples:**
+
+   - **Problema Identificado**: Campo `multiple_prices` usa "S"/"N" (VARCHAR) en lugar de boolean estándar
+   - **Solución**: Migración a BOOLEAN siguiendo estándares del proyecto
+   - **Casos de Uso**: Bocadillo Grande/Mediano/Pequeño con hasta 4 variantes de precio
+
+4. **Sistema Multiidioma con Auto-Traducción:**
+   - **Enfoque**: Fase 1 manual → Fase 2 auto-traducción cuando haya presupuesto
+   - **Costo Estimado**: $2-5 USD una sola vez por restaurante promedio
+   - **Prioridad**: Override manual más importante que auto-traducción
+
+**Contexto del Proyecto:**
+
+- **Sin Clientes en Producción**: Libertad total para cambios de schema sin riesgo
+- **Data de Prueba Abundante**: Múltiples clientes legacy disponibles para testing
+- **Base Sólida**: Arquitectura Master-Detail consolidada, lista para extensión
+
+**Plan de Implementación Acordado:**
+
+1. **#T32 - Jerarquía Híbrida** (Base fundamental)
+2. **#T34 - Precios Múltiples** (Crítico para restaurantes)
+3. **#T33 - Alergenos** (Obligatorio legal)
+4. **#T35 - Multiidioma** (Expansión internacional)
 
 ---
 
@@ -355,1134 +431,9 @@
 - `@radix-ui/colors@3.0.0` - Paletas de colores profesionales
 - `@use-gesture/react@10.3.1` - Gestos táctiles para móvil
 
-**Archivos Modificados/Creados:**
-
-- `package.json` (Dependencias actualizadas)
-- `docs/sistema/ui.md` (Actualizado con estado de modernización)
-
 **Impacto:**
 
 > El proyecto ahora cuenta con un stack completamente moderno y está listo para implementar T31 con las mejores herramientas disponibles. Se ha eliminado la deuda técnica y se ha preparado el terreno para una UI de vanguardia.
-
-**Archivos Modificados/Creados:**
-
-- `docs/sistema/Checklist.md` (Nueva tarea #T9 aÃ±adida)
-
----
-
-### **#11 | CorrecciÃ³n ArquitectÃ³nica: ExtracciÃ³n de ClientId en DashboardView**
-
-- **Fecha:** 2024-12-20
-- **Responsable:** Gemini
-- **Checklist:** #T21.3 (ContinuaciÃ³n)
-- **Mandamientos Involucrados:** #1, #6, #9
-
-**DescripciÃ³n:**
-
-> Se identificÃ³ y corrigiÃ³ el problema arquitectÃ³nico fundamental en `DashboardView.tsx`: el componente no estaba extrayendo correctamente el `clientId` de la sesiÃ³n, causando que todas las llamadas al store fallaran con `client_id=undefined`. Se implementÃ³ la extracciÃ³n correcta del `clientId` siguiendo el patrÃ³n exitoso de `MobileView.tsx`, respetando la separaciÃ³n de responsabilidades (Mandamiento #6) y optimizando el rendimiento (Mandamiento #9).
-
-**Cambios Realizados:**
-
-- Extraer `clientId` de `session?.user?.client_id` al inicio del componente
-- Corregir todas las llamadas al store para pasar el `clientId` como parÃ¡metro
-- Simplificar el useEffect de carga inicial eliminando lÃ³gica de cachÃ© innecesaria
-- Corregir parÃ¡metros en `deleteSection` y `toggleProductVisibility`
-
-**Archivos Modificados/Creados:**
-
-- `app/dashboard-v2/components/core/DashboardView.tsx` (Modificado)
-- `docs/sistema/Bitacora.md` (Actualizado)
-
----
-
-### **#12 | CorrecciÃ³n de API: Visibilidad de Secciones (Error 404)**
-
-- **Fecha:** 2024-06-16
-- **Responsable:** Gemini
-- **Checklist:** #T17 (CorrecciÃ³n sobre la tarea)
-- **Mandamientos Involucrados:** #6 (SeparaciÃ³n de Responsabilidades), #7 (CÃ³digo Legible)
-
-**DescripciÃ³n:**
-
-> Se solucionÃ³ un error crÃ­tico que provocaba un `404 Not Found` al intentar cambiar la visibilidad de una secciÃ³n en la vista mÃ³vil. El problema se debÃ­a a que el hook `useSectionManagement` estaba apuntando a una ruta de API incorrecta (`/api/sections/[id]`) en lugar de a una especÃ­fica para la visibilidad.
-
-> Se implementÃ³ la ruta `PUT /api/sections/[id]/visibility` y se corrigiÃ³ la llamada en el hook, siguiendo el patrÃ³n ya establecido para los productos y solucionando el error.
-
-**Archivos Modificados/Creados:**
-
-- `app/dashboard-v2/hooks/domain/section/useSectionManagement.ts` (Modificado)
-- `app/api/sections/[id]/visibility/route.ts` (Creado)
-- `docs/sistema/Bitacora.md` (Actualizado)
-
----
-
-### **#13 | Ã‰pica de RefactorizaciÃ³n: De "God Component" a "Master-Detail" y ResurrecciÃ³n de la UI**
-
-- **Fecha:** 2024-06-18
-- **Responsable:** Gemini & Rokacreativa
-- **Checklist:** #T18, #T19, #T20, #T21, #T22 (completados en esta sesiÃ³n)
-- **Mandamientos Involucrados:** #3, #5, #6, #7, #9, #10, #11
-
-**DescripciÃ³n:**
-
-> Esta sesiÃ³n fue una de las mÃ¡s intensas y transformadoras del proyecto. Se abordaron y resolvieron mÃºltiples problemas crÃ­ticos, culminando en una refactorizaciÃ³n masiva de la arquitectura del dashboard.
-
-> **1. CorrecciÃ³n de Bugs CrÃ­ticos:**
->
-> - Se solucionÃ³ un `TypeError` en `goToCategory` y un fallo en los botones de visibilidad de la vista mÃ³vil. La causa raÃ­z era una inconsistencia de tipos: el frontend enviaba `0/1` y el backend esperaba `boolean`. Se corrigiÃ³ en `dashboardStore.ts`.
-> - Se eliminÃ³ un error de hidrataciÃ³n de React que rompÃ­a la aplicaciÃ³n al eliminar el `ViewSwitcher.tsx` y reemplazarlo por una carga dinÃ¡mica (`ssr: false`) del nuevo `DynamicView.tsx` desde un `DashboardClient.tsx` reestructurado.
-
-> **2. RefactorizaciÃ³n a "Master-Detail":**
->
-> - Se identificÃ³ a `DashboardView.tsx` como un "God Component" insostenible.
-> - Se descompuso en una arquitectura "Master-Detail" orquestada por el `dashboardStore`:
->   - `DashboardView.tsx` ahora actÃºa como un orquestador simple.
->   - Se crearon tres componentes de vista "tontos" y reutilizables: `CategoryGridView.tsx`, `SectionGridView.tsx`, y `ProductGridView.tsx`.
->   - Se crearon modales genÃ©ricos (`EditModals.tsx`, `DeleteConfirmationModal.tsx`) y un hook para su estado (`useModalState.tsx`).
->   - Se actualizÃ³ el `dashboardStore` para manejar el estado de selecciÃ³n (`selectedCategoryId`, `selectedSectionId`).
-
-> **3. Crisis y RecuperaciÃ³n:**
->
-> - La refactorizaciÃ³n inicial provocÃ³ una regresiÃ³n catastrÃ³fica: la UI entera (mÃ³vil y escritorio) se rompiÃ³.
-> - **DiagnÃ³stico:** Al reescribir `DashboardClient.tsx`, se eliminÃ³ por error la lÃ³gica de carga de datos y, crucialmente, la renderizaciÃ³n del `DynamicView.tsx`.
-> - **SoluciÃ³n:** Se restaurÃ³ la arquitectura correcta en `DashboardClient.tsx`, devolviÃ©ndole la responsabilidad de cargar los datos y de renderizar el `DynamicView`, que a su vez volviÃ³ a actuar como el "switcher" entre `MobileView` y `DashboardView`.
-
-> **4. AuditorÃ­a de CÃ³digo:**
->
-> - Tras restaurar la funcionalidad, se realizÃ³ una auditorÃ­a completa de todos los archivos modificados para aÃ±adir comentarios contextuales de alta calidad ("migas de pan"), cumpliendo con el Mandamiento #7.
-
-**Archivos Modificados/Creados:**
-
-- `app/dashboard-v2/stores/dashboardStore.ts` (Modificado)
-- `app/dashboard-v2/components/core/DashboardClient.tsx` (Modificado)
-- `app/dashboard-v2/components/core/DynamicView.tsx` (Creado)
-- `app/dashboard-v2/components/core/ViewSwitcher.tsx` (Eliminado)
-- `app/dashboard-v2/components/core/DashboardView.tsx` (Modificado)
-- `app/dashboard-v2/components/views/CategoryGridView.tsx` (Creado)
-- `app/dashboard-v2/components/views/SectionGridView.tsx` (Creado)
-- `app/dashboard-v2/components/views/ProductGridView.tsx` (Creado)
-- `app/dashboard-v2/components/modals/EditModals.tsx` (Creado)
-- `app/dashboard-v2/components/modals/DeleteConfirmationModal.tsx` (Creado)
-- `app/dashboard-v2/hooks/ui/useModalState.tsx` (Creado)
-- `docs/sistema/Bitacora.md` (Actualizado)
-
----
-
-### **#14 | RefactorizaciÃ³n de Subida de ImÃ¡genes y CorrecciÃ³n Visual**
-
-- **Fecha:** 2024-06-18
-- **Responsable:** Gemini
-- **Checklist:** Tarea implÃ­cita derivada de la funcionalidad de modales.
-- **Mandamientos Involucrados:** #3 (No Reinventar), #6 (SeparaciÃ³n de Responsabilidades), #10 (Mejora Proactiva)
-
-**DescripciÃ³n:**
-
-> Se abordaron dos problemas relacionados con las imÃ¡genes:
->
-> 1.  **CorrecciÃ³n Visual:** Las imÃ¡genes de secciones y productos no se mostraban en las tablas principales. Se corrigiÃ³ la ruta en los componentes `SectionGridView.tsx` y `ProductGridView.tsx` para que apuntaran a la carpeta correcta (`/images/sections/` y `/images/products/` respectivamente).
-> 2.  **RefactorizaciÃ³n del Backend:** Se identificÃ³ que tener un endpoint de subida por entidad era ineficiente. Se creÃ³ un Ãºnico endpoint genÃ©rico en `/api/upload` que recibe un `entityType` ('categories', 'sections', 'products') y guarda el archivo en la carpeta correspondiente del servidor. Se refactorizÃ³ el `dashboardStore` para usar esta nueva API, centralizando y limpiando la lÃ³gica de subida de archivos.
-
-**Archivos Modificados/Creados:**
-
-- `app/api/upload/route.ts` (Creado)
-- `app/dashboard-v2/stores/dashboardStore.ts` (Modificado)
-- `app/dashboard-v2/components/domain/sections/SectionGridView.tsx` (Modificado)
-- `app/dashboard-v2/components/domain/products/ProductGridView.tsx` (Modificado)
-- `app/dashboard-v2/components/modals/EditModals.tsx` (Modificado)
-- `app/dashboard-v2/components/domain/categories/CategoryForm.tsx` (Modificado)
-- `app/dashboard-v2/components/domain/sections/SectionForm.tsx` (Modificado)
-- `app/dashboard-v2/components/domain/products/ProductForm.tsx` (Modificado)
-- `app/dashboard-v2/components/ui/Form/FormField.tsx` (Modificado)
-- `app/api/products/upload-image/route.ts` (Eliminado a travÃ©s de refactorizaciÃ³n)
-
----
-
-### **#15 | CorrecciÃ³n Masiva de Errores TypeScript y ConsolidaciÃ³n del Proyecto**
-
-- **Fecha:** 2024-12-20
-- **Responsable:** Gemini
-- **Checklist:** CorrecciÃ³n de errores crÃ­ticos
-- **Mandamientos Involucrados:** #1, #6, #7, #9
-
-**DescripciÃ³n:**
-
-> Se llevÃ³ a cabo una correcciÃ³n sistemÃ¡tica de una cascada de errores TypeScript que habÃ­an quedado tras las refactorizaciones previas. Esta tarea fue crucial para restaurar la estabilidad del proyecto y eliminar todos los errores de compilaciÃ³n que impedÃ­an el desarrollo fluido.
-
-> **Errores Corregidos:**
->
-> 1. **Modelo de Notificaciones:** Corregido el error en `/api/notifications/route.ts` donde la funciÃ³n `createNotification` no incluÃ­a los campos requeridos `id` y `updatedAt` segÃºn el schema de Prisma.
->
-> 2. **DashboardView.tsx:** Corregido el error en `useModalState()` que intentaba pasar argumentos cuando la funciÃ³n no los requiere.
->
-> 3. **DashboardStore.ts:** Corregidas las funciones `fetchSectionsByCategory` y `fetchProductsBySection` que tenÃ­an expresiones `await` dentro de funciones `set()` que no eran async.
->
-> 4. **DashboardClient.tsx:** Eliminada la dependencia de la prop `clientId` que no se estaba pasando desde `page.tsx`, ya que el `clientId` se obtiene internamente de la sesiÃ³n.
->
-> 5. **NavegaciÃ³n MÃ³vil:** Agregadas las funciones faltantes `handleCategorySelect`, `handleSectionSelect` y `handleBack` al store para la navegaciÃ³n mÃ³vil.
->
-> 6. **MobileView.tsx:** Corregidas las llamadas a funciones de toggle de visibilidad para que pasen solo 2 argumentos en lugar de 3, y adaptadas las funciones de selecciÃ³n para pasar IDs en lugar de objetos completos.
->
-> 7. **Declaraciones de MÃ³dulo:** Limpiada la duplicaciÃ³n de declaraciones de tipos en `lib/auth.ts`.
-
-> **Arquitectura Consolidada:**
-> La correcciÃ³n de estos errores consolida la arquitectura hÃ­brida del proyecto:
->
-> - Vista de escritorio con arquitectura "Master-Detail" usando `DashboardView` â†' `CategoryGridView` â†' `SectionGridView` â†' `ProductGridView`
-> - Vista mÃ³vil con navegaciÃ³n "Drill-Down" usando `MobileView` con estados `categories` â†' `sections` â†' `products`
-> - Store unificado `dashboardStore` que maneja ambas vistas sin conflictos
-
-**Archivos Modificados/Creados:**
-
-- `app/api/notifications/route.ts` (Modificado)
-- `app/dashboard-v2/components/core/DashboardView.tsx` (Modificado)
-- `app/dashboard-v2/components/core/DashboardClient.tsx` (Modificado)
-- `app/dashboard-v2/stores/dashboardStore.ts` (Modificado)
-- `app/dashboard-v2/views/MobileView.tsx` (Modificado)
-- `lib/auth.ts` (Modificado)
-- `docs/sistema/Bitacora.md` (Actualizado)
-
----
-
-### **#16 | ImplementaciÃ³n Completa de Funciones CRUD para Secciones y Productos**
-
-- **Fecha:** 2024-12-23
-- **Responsable:** Claude (Asistente IA)
-- **Checklist:** #T21, #T27, #T28
-- **Mandamientos Involucrados:** #4 (Correcciones directas), #6 (SeparaciÃ³n responsabilidades), #7 (CÃ³digo documentado), #10 (Mejora proactiva)
-
-**DescripciÃ³n:**
-
-> Se ha completado la implementaciÃ³n de todas las funciones CRUD faltantes en el `dashboardStore.ts` que estaban causando errores "FunciÃ³n no implementada" en la aplicaciÃ³n. Se han implementado las operaciones de Crear, Actualizar y Eliminar para categorÃ­as, secciones y productos, siguiendo el patrÃ³n arquitectÃ³nico establecido y aÃ±adiendo comentarios contextuales como "migas de pan" para facilitar el mantenimiento futuro.
-
-**Funciones Implementadas:**
-
-- `updateCategory()`: ActualizaciÃ³n de categorÃ­as existentes usando FormData y endpoint PUT
-- `deleteCategory()`: EliminaciÃ³n de categorÃ­as con reseteo inteligente de selecciones
-- `toggleCategoryVisibility()`: Alternado de visibilidad usando endpoint PATCH
-- `createSection()`: CreaciÃ³n de secciones con asociaciÃ³n automÃ¡tica a categorÃ­a
-- `updateSection()`: ActualizaciÃ³n de secciones existentes
-- `deleteSection()`: EliminaciÃ³n de secciones con gestiÃ³n de estado limpia
-- `createProduct()`: CreaciÃ³n de productos con asociaciÃ³n a secciÃ³n
-- `updateProduct()`: ActualizaciÃ³n de productos existentes
-- `deleteProduct()`: EliminaciÃ³n de productos
-
-**Problemas TÃ©cnicos Resueltos:**
-
-1. **Tipos de Datos**: Se corrigiÃ³ el manejo de `price` en `ProductForm.tsx` para usar string en lugar de number, alineÃ¡ndose con Prisma.Decimal
-2. **Compatibilidad de Props**: Se ajustaron las funciones en `DashboardView.tsx` para coincidir con las interfaces esperadas por `SectionGridView` y `ProductGridView`
-3. **GestiÃ³n de Estado**: Todas las funciones incluyen recarga automÃ¡tica de datos despuÃ©s de operaciones exitosas
-4. **Feedback Visual**: ImplementaciÃ³n de toasts informativos durante las operaciones CRUD
-
-**Archivos Modificados/Creados:**
-
-- `app/dashboard-v2/stores/dashboardStore.ts` (ImplementaciÃ³n completa de funciones CRUD)
-- `app/dashboard-v2/components/domain/products/ProductForm.tsx` (CorrecciÃ³n de tipos price)
-- `app/dashboard-v2/components/core/DashboardView.tsx` (Ajuste de compatibilidad de props)
-
-**Arquitectura Consolidada:**
-
-- **PatrÃ³n Unificado**: Todas las operaciones CRUD siguen el mismo patrÃ³n: FormData â†' API â†' Toast â†' Recarga de datos
-- **SeparaciÃ³n de Responsabilidades**: El store maneja toda la lÃ³gica de API, los componentes solo renderizan y delegan
-- **Comentarios Contextuales**: Cada funciÃ³n incluye "migas de pan" que explican su conexiÃ³n con otros componentes del sistema
-- **GestiÃ³n de Errores**: Manejo consistente de errores con mensajes informativos al usuario
-
----
-
-### **#17 | CorrecciÃ³n de Funciones de EdiciÃ³n CRUD - Incompatibilidad de Endpoints**
-
-- **Fecha:** 2024-12-23
-- **Responsable:** Claude (Asistente IA)
-- **Checklist:** #T29 (corregida y completada)
-- **Mandamientos Involucrados:** #4 (Correcciones directas), #7 (CÃ³digo documentado), #10 (Mejora proactiva)
-
-**DescripciÃ³n:**
-
-> Se identificÃ³ y corrigiÃ³ la causa raÃ­z de por quÃ© las funciones de ediciÃ³n no funcionaban: **incompatibilidad entre los campos que enviaba el store y los campos que esperaban los endpoints PUT**. Los endpoints de las APIs tenÃ­an diferentes convenciones de nomenclatura que no coincidÃ­an con mi implementaciÃ³n inicial.
-
-**Problemas Identificados y Corregidos:**
-
-1. **Secciones**:
-
-   - âŒ Store enviaba: `section_id`
-   - âœ… Endpoint esperaba: `id`
-   - **Corregido**: `updateSection()` ahora envÃ­a el campo correcto
-
-2. **Productos**:
-
-   - âŒ Store enviaba solo: `product_id`
-   - âœ… Endpoint requerÃ­a: `product_id`, `section_id`, `client_id` (campos obligatorios)
-   - **Corregido**: `updateProduct()` ahora incluye todos los campos requeridos
-
-3. **CategorÃ­as**:
-   - âœ… Ya funcionaba correctamente (enviaba `category_id` como esperaba el endpoint)
-
-**Mejoras Implementadas:**
-
-- **Manejo de Errores Mejorado**: Se actualizaron los mensajes de error para capturar tanto `errorData.message` como `errorData.error`
-- **DocumentaciÃ³n Contextual**: Se aÃ±adieron comentarios especÃ­ficos sobre los campos requeridos por cada endpoint
-- **ValidaciÃ³n de Campos**: Se aÃ±adiÃ³ lÃ³gica para obtener automÃ¡ticamente `section_id` y `client_id` del estado del store
-
-**Archivos Modificados:**
-
-- `app/dashboard-v2/stores/dashboardStore.ts`
-  - `updateSection()`: Corregido para usar campo `id`
-  - `updateProduct()`: AÃ±adidos campos requeridos `section_id` y `client_id`
-  - Comentarios actualizados con informaciÃ³n especÃ­fica de cada endpoint
-
-**ValidaciÃ³n:**
-
-- âœ… CompilaciÃ³n exitosa sin errores TypeScript
-- âœ… EliminaciÃ³n funciona correctamente (confirmado por usuario)
-- âœ… EdiciÃ³n corregida y lista para pruebas
-
----
-
-### **#18 | CorrecciÃ³n Integral de UX - Toasts, Contadores, Modal y Propuesta de JerarquÃ­a Flexible**
-
-- **Fecha:** 2024-12-24
-- **Responsable:** Claude (Asistente IA)
-- **Checklist:** #T27 (completada), correcciones crÃ­ticas de UX
-- **Mandamientos Involucrados:** #1 (Contexto), #4 (Correcciones directas), #6 (SeparaciÃ³n responsabilidades), #7 (CÃ³digo documentado), #10 (Mejora proactiva)
-
-**DescripciÃ³n:**
-
-> SesiÃ³n integral de correcciÃ³n de mÃºltiples problemas crÃ­ticos de UX identificados tras la implementaciÃ³n de la nueva arquitectura Master-Detail. Se solucionaron problemas de feedback visual, diseÃ±o de modales y se estableciÃ³ una propuesta estratÃ©gica para jerarquÃ­a flexible del sistema.
-
-**Problemas Identificados y Solucionados:**
-
-1. **Toasts Duplicados** âŒâ†'âœ…:
-
-   - **Causa**: Dos componentes `<Toaster />` activos simultÃ¡neamente
-   - **Ubicaciones**: `app/layout.tsx` (top-right) + `DashboardClient.tsx` (bottom-right)
-   - **SoluciÃ³n**: Eliminado el toaster del layout raÃ­z, manteniendo solo el de DashboardClient
-   - **Resultado**: Un solo toast por acciÃ³n en posiciÃ³n bottom-right
-
-2. **Contadores de Visibilidad Faltantes** âŒâ†'âœ…:
-
-   - **Problema**: Solo ProductGridView tenÃ­a contador "X / Y productos visibles"
-   - **Implementado**: Contadores dinÃ¡micos para CategoryGridView y SectionGridView
-   - **PatrÃ³n**: `{visibleItems.filter(item => item.status).length} / {totalItems.length} [tipo] visibles`
-   - **CorrecciÃ³n**: Eliminada duplicaciÃ³n accidental en CategoryGridView
-
-3. **FunciÃ³n toggleProductVisibility Defectuosa** âŒâ†'âœ…:
-
-   - **Causa**: LÃ³gica compleja de recarga que priorizaba `activeSectionId` (mÃ³vil) sobre `selectedSectionId` (escritorio)
-   - **SoluciÃ³n**: Simplificada a `selectedSectionId || activeSectionId` para priorizar escritorio
-   - **Resultado**: Contador de productos se actualiza correctamente tras cambios de visibilidad
-
-4. **ImÃ¡genes No Cargaban en Modales de EdiciÃ³n** âŒâ†'âœ…:
-
-   - **Causa**: `ImageUploader` recibÃ­a solo nombre de archivo (`"bowls.jpg"`) en lugar de ruta completa
-   - **Archivos corregidos**:
-     - `SectionForm.tsx`: `section?.image ? \`/images/sections/${section.image}\` : null`
-     - `ProductForm.tsx`: `product?.image ? \`/images/products/${product.image}\` : null`
-     - `CategoryForm.tsx`: Ya tenÃ­a la correcciÃ³n implementada
-   - **Resultado**: Preview de imÃ¡genes funciona correctamente en ediciÃ³n
-
-5. **Modal de Pantalla Completa** âŒâ†'âœ…:
-   - **Causa**: Clases CSS `sm:w-full w-full` forzaban ancho completo
-   - **SoluciÃ³n**: Reemplazado por `sm:max-w-lg` con diseÃ±o responsivo centrado
-   - **Mejora**: Modal ahora tiene tamaÃ±o apropiado y se centra correctamente
-
-**Arquitectura y Patrones Consolidados:**
-
-- **Contadores Reactivos**: PatrÃ³n unificado `filter(item => item.status).length` aplicado a todas las vistas
-- **GestiÃ³n de Estado**: DiferenciaciÃ³n clara entre variables mÃ³vil (`active*Id`) y escritorio (`selected*Id`)
-- **Rutas de ImÃ¡genes**: PatrÃ³n `/images/[entityType]/[filename]` implementado consistentemente
-- **Modal Responsivo**: DiseÃ±o adaptativo que funciona bien en mÃ³vil y escritorio
-
-**Propuesta EstratÃ©gica - JerarquÃ­a Flexible:**
-
-> Se desarrollÃ³ propuesta "Smart Sections" para manejar diferentes casos de uso de clientes:
->
-> - **90% clientes**: CategorÃ­as â†' Secciones â†' Productos (sin cambios)
-> - **10% clientes**: CategorÃ­as â†' Productos (secciones auto-creadas invisibles)
-> - **PersonalizaciÃ³n**: Nombres customizables ("CategorÃ­as" â†' "Tipos", etc.)
->
-> **Ventajas**: Zero breaking changes, DB schema intacta, APIs inalteradas, UX escalable
-> **ImplementaciÃ³n**: Campo `client_settings.ui_mode` + secciones con flag `is_auto`
-
-**Archivos Modificados:**
-
-- `app/layout.tsx` (Eliminado Toaster duplicado)
-- `app/dashboard-v2/components/domain/categories/CategoryGridView.tsx` (Contador + correcciÃ³n duplicaciÃ³n)
-- `app/dashboard-v2/components/domain/sections/SectionGridView.tsx` (Contador agregado)
-- `app/dashboard-v2/components/domain/sections/SectionForm.tsx` (Ruta imagen corregida)
-- `app/dashboard-v2/components/domain/products/ProductForm.tsx` (Ruta imagen corregida)
-- `app/dashboard-v2/stores/dashboardStore.ts` (toggleProductVisibility simplificado)
-- `app/dashboard-v2/components/ui/Modal/BaseModal.tsx` (DiseÃ±o responsivo)
-
-**Estado Actual del Proyecto:**
-
-- âœ… **Visibilidad MÃ³vil**: Funcional en todas las entidades
-- âœ… **Visibilidad Escritorio**: Funcional con contadores actualizados
-- âœ… **Modales**: DiseÃ±o apropiado con imÃ¡genes funcionando
-- âœ… **Toasts**: Sistema unificado sin duplicaciones
-- âœ… **Arquitectura Master-Detail**: Consolidada y estable
-- ðŸ"„ **JerarquÃ­a Flexible**: Propuesta desarrollada, pendiente implementaciÃ³n
-
----
-
-### **#19 | PlanificaciÃ³n EstratÃ©gica - JerarquÃ­a Flexible y Features GastronÃ³micos CrÃ­ticos**
-
-- **Fecha:** 2024-12-24
-- **Responsable:** Claude (Asistente IA)
-- **Checklist:** #T32-T35 (planificaciÃ³n estratÃ©gica)
-- **Mandamientos Involucrados:** #1 (Contexto), #4 (Sugerencias), #10 (Mejora proactiva)
-
-**DescripciÃ³n:**
-
-> SesiÃ³n de anÃ¡lisis profundo y planificaciÃ³n estratÃ©gica basada en casos de uso reales del usuario. Se ha refinado completamente la propuesta de jerarquÃ­a flexible y se han identificado features crÃ­ticos obligatorios para restaurantes profesionales que actualmente faltan en v2.
-
-**Decisiones EstratÃ©gicas Clave:**
-
-1. **JerarquÃ­a HÃ­brida por CategorÃ­a (ActualizaciÃ³n de Propuesta):**
-
-   - **Descubrimiento**: Casos reales como Palm Beach necesitan AMBAS jerarquÃ­as EN EL MISMO MENÃš
-   - **Ejemplo Real**:
-     - "SNACKS" â†' Productos directos (Sopas, SÃ¡ndwiches, Papas Fritas)
-     - "HAMBURGUESAS" â†' Secciones â†' Productos (Sencilla, Con Queso, Doble)
-   - **SoluciÃ³n**: Campo `hierarchy_mode` en tabla `categories` ("simple" | "sections")
-   - **Ventaja**: Flexibilidad total sin complejidad para el usuario
-
-2. **Alcance de Alergenos Ampliado:**
-
-   - **DecisiÃ³n**: Obligatorio para TODOS los negocios gastronÃ³micos (no solo restaurantes)
-   - **JustificaciÃ³n**: "Todo lo que tenga que ver con gastronomÃ­a en general lleva alergenos incluso un cafÃ© con leche que tiene lactosa"
-   - **ImplementaciÃ³n**: Basado en `business_type` (Restaurante, Bar, CafeterÃ­a, etc.)
-
-3. **MigraciÃ³n de Precios MÃºltiples:**
-
-   - **Problema Identificado**: Campo `multiple_prices` usa "S"/"N" (VARCHAR) en lugar de boolean estÃ¡ndar
-   - **SoluciÃ³n**: MigraciÃ³n a BOOLEAN siguiendo estÃ¡ndares del proyecto
-   - **Casos de Uso**: Bocadillo Grande/Mediano/PequeÃ±o con hasta 4 variantes de precio
-
-4. **Sistema Multiidioma con Auto-TraducciÃ³n:**
-   - **Enfoque**: Fase 1 manual â†' Fase 2 auto-traducciÃ³n cuando haya presupuesto
-   - **Costo Estimado**: $2-5 USD una sola vez por restaurante promedio
-   - **Prioridad**: Override manual mÃ¡s importante que auto-traducciÃ³n
-
-**Contexto del Proyecto:**
-
-- **Sin Clientes en ProducciÃ³n**: Libertad total para cambios de schema sin riesgo
-- **Data de Prueba Abundante**: MÃºltiples clientes legacy disponibles para testing
-- **Base SÃ³lida**: Arquitectura Master-Detail consolidada, lista para extensiÃ³n
-
-**Plan de ImplementaciÃ³n Acordado:**
-
-1. **#T32 - JerarquÃ­a HÃ­brida** (Base fundamental)
-2. **#T34 - Precios MÃºltiples** (CrÃ­tico para restaurantes)
-3. **#T33 - Alergenos** (Obligatorio legal)
-4. **#T35 - Multiidioma** (ExpansiÃ³n internacional)
-
-**Archivos de DocumentaciÃ³n Actualizados:**
-
-- `docs/sistema/EstructuraRokaMenu.md`: AÃ±adida arquitectura de jerarquÃ­a flexible y features gastronÃ³micos
-- `docs/sistema/Checklist.md`: Nueva Fase 6 con tareas T32-T35 detalladas
-- `docs/sistema/Bitacora.md`: Esta entrada
-
-**Commit Realizado:**
-
-- Estado actual guardado con mensaje descriptivo completo
-- 49 archivos modificados con correcciones UX integrales
-- ReorganizaciÃ³n de iconos de alergenos a ubicaciÃ³n estÃ¡ndar
-
-**PrÃ³ximos Pasos Inmediatos:**
-
-1. Iniciar implementaciÃ³n T32.1: ExtensiÃ³n schema categories con hierarchy_mode
-2. Crear migraciÃ³n SQL para campo nuevo con default 'sections'
-3. Actualizar Prisma schema con enum categories_hierarchy_mode
-4. Implementar lÃ³gica adaptativa en DashboardStore
-
----
-
-### **#20 | DecisiÃ³n EstratÃ©gica: Auto-DetecciÃ³n Inteligente para JerarquÃ­a Flexible**
-
-- **Fecha:** 2024-12-24
-- **Responsable:** Claude (Asistente IA)
-- **Checklist:** #T32.1 (decisiÃ³n de implementaciÃ³n)
-- **Mandamientos Involucrados:** #3 (No Reinventar), #6 (SeparaciÃ³n Responsabilidades), #10 (Mejora Proactiva)
-
-**DescripciÃ³n:**
-
-> SesiÃ³n de anÃ¡lisis final donde se tomÃ³ la decisiÃ³n definitiva sobre la implementaciÃ³n de jerarquÃ­a flexible. Tras revisar capturas de la aplicaciÃ³n antigua y analizar la estructura existente de la DB, se optÃ³ por la **auto-detecciÃ³n inteligente** como la soluciÃ³n mÃ¡s elegante y prÃ¡ctica.
-
-**AnÃ¡lisis de la AplicaciÃ³n Antigua:**
-
-- **Estructura Observada**: La app legacy ya implementaba jerarquÃ­a CategorÃ­as â†' Secciones â†' Productos de forma consistente
-- **Casos de Uso Reales**: Se confirmÃ³ que clientes como "piscis" necesitan flexibilidad (algunas categorÃ­as con pocas secciones, otras con muchas)
-- **Features Existentes**: Alergenos con iconos, configuraciÃ³n de colores, modal de productos - todo ya funcionaba correctamente
-
-**DecisiÃ³n Final: Auto-DetecciÃ³n vs Campo Manual**
-
-```typescript
-// OPCIÃ“N ELEGIDA: Auto-detecciÃ³n inteligente
-const getCategoryDisplayMode = (categoryId: number) => {
-  const sections = getSectionsByCategory(categoryId);
-  return sections.length === 1 ? "simple" : "sections";
-};
-```
-
-**Razones de la DecisiÃ³n:**
-
-1. **Complejidad Menor**: 20 lÃ­neas de cÃ³digo vs 200+ con migraciÃ³n DB
-2. **Elegancia ArquitectÃ³nica**: La data define el comportamiento (principio DRY)
-3. **MigraciÃ³n Inmediata**: Funciona instantÃ¡neamente con toda la data legacy existente
-4. **Cero ConfiguraciÃ³n**: No hay UI que el usuario pueda configurar incorrectamente
-5. **Mantenimiento Simplificado**: Se auto-adapta cuando se aÃ±aden/quitan secciones
-
-**Plan de ImplementaciÃ³n T32.1:**
-
-1. **FunciÃ³n de Auto-DetecciÃ³n**: `getCategoryDisplayMode(categoryId)` en utils
-2. **IntegraciÃ³n en Store**: Modificar `fetchDataForCategory` para usar auto-detecciÃ³n
-3. **UI Condicional**: Renderizar `ProductGridView` O `SectionGridView` segÃºn resultado
-4. **Mobile Adaptation**: Adaptar navegaciÃ³n mÃ³vil para saltar secciones en modo simple
-
-**Preparativos Completados:**
-
-- âœ… **Checklist actualizado** con tareas T32.1-T32.4 refinadas segÃºn auto-detecciÃ³n
-- âœ… **Commit previo** con estado estable antes de iniciar implementaciÃ³n
-- âœ… **DocumentaciÃ³n actualizada** en EstructuraRokaMenu.md
-
-**Siguiente Paso Inmediato:**
-
-Iniciar implementaciÃ³n de T32.1 siguiendo los Mandamientos, especialmente #5 (Mobile-First) y #7 (CÃ³digo documentado con "migas de pan" contextuales).
-
----
-
-### **#21 | ImplementaciÃ³n Exitosa de T32.1 - Auto-DetecciÃ³n Inteligente para JerarquÃ­a Flexible**
-
-- **Fecha:** 26 de diciembre de 2024
-- **SesiÃ³n:** ImplementaciÃ³n T32.1 - Auto-DetecciÃ³n Inteligente para JerarquÃ­a Flexible
-- **Estado:** âœ… **COMPLETADO EXITOSAMENTE**
-
-## ðŸŽ¯ OBJETIVO ALCANZADO: JerarquÃ­a HÃ­brida AutomÃ¡tica
-
-Hoy implementÃ© **T32.1 - Auto-DetecciÃ³n Inteligente**, el sistema que permite que EN EL MISMO MENÃš algunas categorÃ­as vayan directo a productos (ej: "SNACKS") y otras usen secciones intermedias (ej: "HAMBURGUESAS" â†' "Tipos").
-
-## ðŸš€ IMPLEMENTACIONES REALIZADAS
-
-### 1. **Funciones de Auto-DetecciÃ³n (`categoryUtils.ts`)**
-
-```typescript
-// âœ… Funciones creadas:
-- getCategoryDisplayMode(sections): 'simple' | 'sections'
-- isCategorySimpleMode(sections): boolean
-- isCategorySectionsMode(sections): boolean
-```
-
-### 2. **ExtensiÃ³n del DashboardStore**
-
-```typescript
-// âœ… Nuevas funciones aÃ±adidas:
-- fetchProductsByCategory(categoryId) // Para categorÃ­as simples
-- fetchDataForCategory(categoryId)    // FunciÃ³n MAESTRA de auto-detecciÃ³n
-- useCategoryDisplayMode(categoryId)  // Hook helper
-- useCategoryProducts(categoryId, sectionId?) // Hook unificado
-```
-
-### 3. **API de Productos Extendida**
-
-```typescript
-// âœ… Soporte aÃ±adido para category_id:
-GET /api/products?category_id=123  // Productos directos por categorÃ­a
-GET /api/products?section_id=456   // Productos por secciÃ³n (modo tradicional)
-```
-
-### 4. **NavegaciÃ³n Inteligente**
-
-```typescript
-// âœ… handleCategorySelect() actualizado:
-// - Auto-detecta el modo de la categorÃ­a
-// - Si es simple â†' va directo a productos
-// - Si es compleja â†' mantiene navegaciÃ³n por secciones
-```
-
-## ðŸ§ LÃ“GICA DE AUTO-DETECCIÃ“N
-
-**Criterio Clave:**
-
-- **1 secciÃ³n** = Modo "simple" (productos directos)
-- **MÃºltiples secciones** = Modo "sections" (jerarquÃ­a completa)
-
-**Flujo Inteligente:**
-
-1. `fetchDataForCategory()` carga secciones primero
-2. `getCategoryDisplayMode()` evalÃºa automÃ¡ticamente el modo
-3. Si es simple â†' carga productos directos automÃ¡ticamente
-4. Si es complejo â†' mantiene secciones para navegaciÃ³n posterior
-
-## ðŸŽ¯ CASOS DE USO RESUELTOS
-
-### CategorÃ­a Simple - "SNACKS"
-
-```
-SNACKS â†' [1 secciÃ³n invisible] â†' Productos directos
-```
-
-- **Usuario ve:** SNACKS â†' Productos (inmediato)
-- **Sistema maneja:** Auto-detecciÃ³n + fetchProductsByCategory()
-
-### CategorÃ­a Compleja - "HAMBURGUESAS"
-
-```
-HAMBURGUESAS â†' MÃºltiples secciones â†' Productos
-```
-
-- **Usuario ve:** HAMBURGUESAS â†' Tipos â†' Productos (tradicional)
-- **Sistema mantiene:** NavegaciÃ³n por secciones existente
-
-## ðŸ" COMENTARIOS CONTEXTUALES
-
-Siguiendo el **Mandamiento #7**, aÃ±adÃ­ "migas de pan" detalladas en todo el cÃ³digo explicando:
-
-- **El porquÃ©** de cada decisiÃ³n tÃ©cnica
-- **CÃ³mo se conecta** cada funciÃ³n con otros archivos
-- **El flujo completo** de auto-detecciÃ³n paso a paso
-
-Ejemplo:
-
-```typescript
-// ðŸ§­ MIGA DE PAN: Esta funciÃ³n es el corazÃ³n de la jerarquÃ­a flexible
-// permite que EN EL MISMO MENÃš algunas categorÃ­as vayan directo a productos
-// mientras otras usen secciones intermedias
-```
-
-## ðŸ" ESTADO DEL PROYECTO
-
-### âœ… COMPLETADO:
-
-- [x] **T32.1** - Auto-detecciÃ³n inteligente implementada y funcional
-
-### ðŸŽ¯ PRÃ“XIMOS PASOS:
-
-- [ ] **T32.2** - UI Adaptativa en DashboardStore
-- [ ] **T32.3** - UI Adaptativa en DashboardView
-- [ ] **T32.4** - NavegaciÃ³n MÃ³vil Adaptativa
-
-## ðŸŽ‰ RESULTADO
-
-**Â¡LA JERARQUÃA FLEXIBLE YA ES REALIDAD!**
-
-El sistema ahora detecta automÃ¡ticamente el tipo de categorÃ­a y adapta la navegaciÃ³n sin intervenciÃ³n del usuario. Un client puede tener categorÃ­as simples y complejas EN EL MISMO MENÃš, exactamente como necesita Palm Beach.
-
-**Sin cambios en DB, sin configuraciones adicionales, solo inteligencia pura.**
-
----
-
-### **#22 | ImplementaciÃ³n Exitosa de T32.2 - UI Adaptativa en DashboardView**
-
-- **Fecha:** 26 de diciembre de 2024
-- **SesiÃ³n:** ImplementaciÃ³n T32.2 - UI Adaptativa para Vista de Escritorio
-- **Estado:** âœ… **COMPLETADO EXITOSAMENTE**
-
-## ðŸŽ¯ OBJETIVO ALCANZADO: UI Adaptativa Inteligente en Escritorio
-
-CompletÃ© **T32.2 - UI Adaptativa en DashboardView**, integrando la auto-detecciÃ³n T32.1 en la vista de escritorio para renderizar automÃ¡ticamente la UI correcta segÃºn el tipo de categorÃ­a.
-
-## ðŸš€ IMPLEMENTACIONES REALIZADAS
-
-### 1. **IntegraciÃ³n de Hooks de Auto-DetecciÃ³n**
-
-```typescript
-// âœ… Nuevos imports aÃ±adidos:
-import {
-  useCategoryDisplayMode,
-  useCategoryProducts,
-} from "@/app/dashboard-v2/stores/dashboardStore";
-
-// âœ… Hooks integrados en DashboardView:
-const categoryDisplayMode = useCategoryDisplayMode(store.selectedCategoryId);
-const categoryProducts = useCategoryProducts(
-  store.selectedCategoryId,
-  store.selectedSectionId
-);
-```
-
-### 2. **LÃ³gica de Renderizado Adaptativo**
-
-```typescript
-// âœ… Variables de estado inteligentes:
-const isSimpleCategory = categoryDisplayMode === "simple";
-const isSectionsCategory = categoryDisplayMode === "sections";
-
-// âœ… Layout dinÃ¡mico adaptado:
-const gridColsClass = (() => {
-  if (isSimpleCategory) return "lg:grid-cols-2"; // CategorÃ­as + Productos directos
-  if (isSectionsCategory) return layout_tradicional; // CategorÃ­as + Secciones + Productos
-  return ""; // Solo categorÃ­as
-})();
-```
-
-### 3. **Renderizado Condicional Inteligente**
-
-```typescript
-// âœ… Para categorÃ­as SIMPLES â†' Productos directos:
-{
-  store.selectedCategoryId && isSimpleCategory && (
-    <ProductGridView products={categoryProducts} />
-  );
-}
-
-// âœ… Para categorÃ­as COMPLEJAS â†' Secciones intermedias:
-{
-  store.selectedCategoryId && isSectionsCategory && (
-    <SectionGridView sections={visibleSections} />
-  );
-}
-```
-
-### 4. **SustituciÃ³n de fetchSectionsByCategory**
-
-```typescript
-// âœ… ANTES:
-useEffect(() => {
-  if (store.selectedCategoryId)
-    store.fetchSectionsByCategory(store.selectedCategoryId);
-}, [store.selectedCategoryId]);
-
-// âœ… DESPUÃ‰S (con auto-detecciÃ³n):
-useEffect(() => {
-  if (store.selectedCategoryId) {
-    store.fetchDataForCategory(store.selectedCategoryId); // FunciÃ³n maestra
-  }
-}, [store.selectedCategoryId]);
-```
-
-## ðŸ§ LÃ“GICA DE UI ADAPTATIVA
-
-**Casos de Renderizado:**
-
-### CategorÃ­a Simple - "SNACKS"
-
-```
-UI: [CategorÃ­as] â†' [Productos Directos]
-Layout: 2 columnas (lg:grid-cols-2)
-NavegaciÃ³n: Un clic â†' productos inmediatos
-```
-
-### CategorÃ­a Compleja - "HAMBURGUESAS"
-
-```
-UI: [CategorÃ­as] â†' [Secciones] â†' [Productos]
-Layout: 2 o 3 columnas segÃºn selecciÃ³n
-NavegaciÃ³n: Tradicional por secciones
-```
-
-## ðŸŽ¯ CASOS DE USO RESUELTOS
-
-âœ… **Palm Beach Mix:** CategorÃ­as simples y complejas EN LA MISMA PANTALLA  
-âœ… **UX Mejorada:** Sin clics innecesarios para categorÃ­as simples  
-âœ… **Retrocompatible:** CategorÃ­as complejas funcionan igual que siempre  
-âœ… **Responsive:** Layout se adapta automÃ¡ticamente
-
-## ðŸ" ESTADO DEL PROYECTO
-
-### âœ… COMPLETADO:
-
-- [x] **T32.1** - Auto-detecciÃ³n inteligente implementada y funcional
-- [x] **T32.2** - UI Adaptativa en DashboardView (ESCRITORIO)
-
-### ðŸŽ¯ PRÃ“XIMOS PASOS:
-
-- [ ] **T32.3** - Actualizar MobileView para unificar comportamiento
-- [ ] **T32.4** - NavegaciÃ³n MÃ³vil Adaptativa completa
-
-## ðŸŽ‰ RESULTADO T32.2
-
-**Â¡LA UI DE ESCRITORIO YA ES COMPLETAMENTE ADAPTATIVA!**
-
-El DashboardView ahora renderiza automÃ¡ticamente:
-
-- **Productos directos** para categorÃ­as simples (sin secciones molestas)
-- **Secciones tradicionales** para categorÃ­as complejas (workflow existente)
-
-**Â¡Todo automÃ¡tico, sin configuraciÃ³n, sin rompimiento!** ðŸ"¥
-
----
-
-### **#23 | FinalizaciÃ³n Exitosa de T32.3-T32.4 - JerarquÃ­a HÃ­brida MÃ³vil Completada**
-
-- **Fecha:** 26 de diciembre de 2024
-- **Responsable:** Claude (Asistente IA)
-- **Checklist:** #T32.3, #T32.4
-- **Mandamientos Involucrados:** #1 (Contexto), #5 (Mobile-First), #6 (SeparaciÃ³n responsabilidades), #7 (CÃ³digo documentado), #10 (Mejora proactiva)
-
-**DescripciÃ³n:**
-
-> CompletÃ© exitosamente **T32.3-T32.4**, finalizando la implementaciÃ³n completa de la jerarquÃ­a hÃ­brida en la vista mÃ³vil. El sistema ahora tiene comportamiento unificado entre escritorio y mÃ³vil, con navegaciÃ³n inteligente que se adapta automÃ¡ticamente al tipo de categorÃ­a.
-
-**Implementaciones Realizadas:**
-
-### **T32.3 - ActualizaciÃ³n de MobileView:**
-
-**âœ… IntegraciÃ³n de Auto-DetecciÃ³n:**
-
-- Importado `getCategoryDisplayMode` de `categoryUtils.ts`
-- Integrados hooks `useCategoryDisplayMode` y `useCategoryProducts`
-- Simplificada funciÃ³n `handleCategorySelectWithAutoDetection` para usar directamente `handleCategorySelect` del store
-
-**âœ… Renderizado Adaptativo:**
-
-- Vista de secciones solo se muestra para categorÃ­as complejas (`categoryDisplayMode === 'sections'`)
-- Vista de productos usa `categoryProducts` para categorÃ­as simples y `products[sectionId]` para complejas
-- FAB adaptativo que crea productos directamente en categorÃ­a simple o en secciÃ³n especÃ­fica para complejas
-
-**âœ… TÃ­tulos DinÃ¡micos:**
-
-- Para categorÃ­as simples: muestra nombre de categorÃ­a en vista productos
-- Para categorÃ­as complejas: muestra nombre de secciÃ³n en vista productos
-- NavegaciÃ³n coherente con el tipo de jerarquÃ­a
-
-### **T32.4 - NavegaciÃ³n MÃ³vil Adaptativa:**
-
-**âœ… NavegaciÃ³n Inteligente en `handleCategorySelect`:**
-
-- Usa `fetchDataForCategory()` con auto-detecciÃ³n integrada
-- Para categorÃ­as simples: salta directamente a vista productos (sin pasar por secciones)
-- Para categorÃ­as complejas: mantiene navegaciÃ³n tradicional a secciones
-- Historial optimizado para evitar pasos innecesarios
-
-**âœ… LÃ³gica de "AtrÃ¡s" Mejorada en `handleBack`:**
-
-- Detecta categorÃ­as simples que saltaron directo a productos
-- Para categorÃ­as simples: desde productos va directo a categorÃ­as
-- Para categorÃ­as complejas: mantiene navegaciÃ³n tradicional por secciones
-- Historial coherente con el flujo de navegaciÃ³n adaptativo
-
-**Casos de Uso Resueltos:**
-
-### **CategorÃ­a Simple - "SNACKS" (MÃ³vil)**
-
-```
-Usuario: CategorÃ­as â†' SNACKS â†' Productos (directo)
-Sistema: handleCategorySelect â†' auto-detecciÃ³n â†' setActiveView('products')
-AtrÃ¡s: Productos â†' CategorÃ­as (salta secciones)
-```
-
-### **CategorÃ­a Compleja - "HAMBURGUESAS" (MÃ³vil)**
-
-```
-Usuario: CategorÃ­as â†' HAMBURGUESAS â†' Secciones â†' Productos
-Sistema: handleCategorySelect â†' auto-detecciÃ³n â†' setActiveView('sections')
-AtrÃ¡s: Productos â†' Secciones â†' CategorÃ­as (navegaciÃ³n tradicional)
-```
-
-**Arquitectura Unificada Lograda:**
-
-**âœ… Comportamiento Consistente:**
-
-- Escritorio y mÃ³vil usan la misma lÃ³gica de auto-detecciÃ³n
-- Mismos hooks `useCategoryDisplayMode` y `useCategoryProducts`
-- Misma funciÃ³n `fetchDataForCategory()` con auto-detecciÃ³n
-
-**âœ… SeparaciÃ³n de Responsabilidades:**
-
-- `categoryUtils.ts`: LÃ³gica pura de auto-detecciÃ³n
-- `dashboardStore.ts`: GestiÃ³n de estado y navegaciÃ³n
-- `MobileView.tsx`: Renderizado y UI mÃ³vil
-- `DashboardView.tsx`: Renderizado y UI escritorio
-
-**âœ… Comentarios Contextuales:**
-
-- "Migas de pan" detalladas en todas las funciones crÃ­ticas
-- ExplicaciÃ³n del flujo de auto-detecciÃ³n paso a paso
-- Conexiones claras entre componentes y funciones
-
-**Archivos Modificados:**
-
-- `app/dashboard-v2/views/MobileView.tsx` (IntegraciÃ³n T32.3 completada)
-- `app/dashboard-v2/stores/dashboardStore.ts` (T32.4 ya implementado previamente)
-- `docs/sistema/Bitacora.md` (Esta entrada)
-
-**Estado Final T32 - JerarquÃ­a HÃ­brida:**
-
-- âœ… **T32.1**: Auto-detecciÃ³n inteligente implementada
-- âœ… **T32.2**: UI adaptativa en DashboardView (escritorio)
-- âœ… **T32.3**: IntegraciÃ³n en MobileView completada
-- âœ… **T32.4**: NavegaciÃ³n mÃ³vil adaptativa completada
-
-**ðŸŽ‰ RESULTADO FINAL:**
-
-**Â¡LA JERARQUÃA HÃBRIDA ESTÃ COMPLETAMENTE IMPLEMENTADA!**
-
-El sistema ahora soporta automÃ¡ticamente:
-
-- **CategorÃ­as simples**: NavegaciÃ³n directa a productos (sin secciones molestas)
-- **CategorÃ­as complejas**: NavegaciÃ³n tradicional por secciones
-- **Comportamiento unificado**: Misma lÃ³gica en escritorio y mÃ³vil
-- **Zero configuraciÃ³n**: Auto-detecciÃ³n basada en estructura existente
-- **Retrocompatible**: Funciona con toda la data legacy sin cambios
-
-**Casos reales soportados:**
-
-- **Palm Beach**: CategorÃ­as simples y complejas EN EL MISMO MENÃš
-- **Cualquier restaurante**: Flexibilidad total sin complejidad adicional
-
----
-
-### **#24 | Correcciones CrÃ­ticas de UX - Secciones Visibles, Error 500 y NavegaciÃ³n de CategorÃ­as VacÃ­as**
-
-- **Fecha:** 26 de diciembre de 2024
-- **Responsable:** Claude (Asistente IA)
-- **Checklist:** Correcciones crÃ­ticas de UX identificadas por usuario
-- **Mandamientos Involucrados:** #1 (Contexto), #4 (Correcciones directas), #6 (SeparaciÃ³n responsabilidades), #7 (CÃ³digo documentado), #10 (Mejora proactiva)
-
-**DescripciÃ³n:**
-
-> Se identificaron y corrigieron tres problemas crÃ­ticos de UX reportados por el usuario tras pruebas exhaustivas en ambas vistas (escritorio y mÃ³vil). Las correcciones abordan problemas de visibilidad, errores de API y navegaciÃ³n en categorÃ­as vacÃ­as.
-
-**Problemas Identificados y Corregidos:**
-
-### **1. âœ… Secciones Creadas Deshabilitadas en Vista MÃ³vil**
-
-**ðŸ" Problema:** Las secciones creadas desde mÃ³vil aparecÃ­an deshabilitadas (no visibles) por defecto.
-
-**ðŸ" Causa RaÃ­z:** El modal `NewSectionModal.tsx` no incluÃ­a el campo `status` en el FormData, pero el endpoint `/api/sections` POST esperaba este campo para determinar la visibilidad.
-
-**ðŸ› ï¸ SoluciÃ³n Implementada:**
-
-- **Estado aÃ±adido:** `sectionStatus` con valor por defecto `true` (visible)
-- **UI mejorada:** Campo de visibilidad con radio buttons (Visible/Oculto) siguiendo el patrÃ³n de escritorio
-- **FormData corregido:** EnvÃ­o de `status: '1'` para visible, `'0'` para oculto
-- **Reset mejorado:** FunciÃ³n `handleCancel` resetea estado a visible por defecto
-
-**Archivos Modificados:**
-
-- `app/dashboard-v2/components/modals/NewSectionModal.tsx`
-
-### **2. âœ… Error 500 al Editar Secciones en Vista MÃ³vil**
-
-**ðŸ" Problema:** Error HTTP 500 y mensaje "La actualizaciÃ³n no fue exitosa" al editar secciones desde mÃ³vil.
-
-**ðŸ" Causa RaÃ­z:** Incompatibilidad de campos entre `EditSectionModal.tsx` y endpoint PUT `/api/sections`. El modal enviaba `section_id` pero el endpoint esperaba `id`.
-
-**ðŸ› ï¸ SoluciÃ³n Implementada:**
-
-- **Campo corregido:** FormData ahora envÃ­a `id` en lugar de `section_id`
-- **Compatibilidad restaurada:** AlineaciÃ³n con especificaciÃ³n del endpoint PUT
-- **Consistencia:** Mismo patrÃ³n usado en otras entidades (categorÃ­as, productos)
-
-**Archivos Modificados:**
-
-- `app/dashboard-v2/components/modals/EditSectionModal.tsx`
-
-### **3. âœ… CategorÃ­as VacÃ­as No Muestran Vista de Secciones**
-
-**ðŸ" Problema:** Al seleccionar una categorÃ­a sin secciones en escritorio, no se mostraba la vista de secciones vacÃ­a para agregar la primera secciÃ³n.
-
-**ðŸ" Causa RaÃ­z:** La lÃ³gica de auto-detecciÃ³n en `categoryUtils.ts` clasificaba categorÃ­as vacÃ­as (0 secciones) como "simple", pero el `DashboardView.tsx` solo renderiza la vista de secciones para categorÃ­as "sections".
-
-**ðŸ› ï¸ SoluciÃ³n Implementada:**
-
-- **LÃ³gica corregida:** CategorÃ­as con 0 secciones ahora se clasifican como "sections" para mostrar vista vacÃ­a
-- **NavegaciÃ³n mejorada:** Permite agregar la primera secciÃ³n a categorÃ­as vacÃ­as
-- **JerarquÃ­a refinada:**
-  - 0 secciones â†' modo "sections" (vista vacÃ­a para agregar)
-  - 1 secciÃ³n â†' modo "simple" (productos directos)
-  - 2+ secciones â†' modo "sections" (navegaciÃ³n tradicional)
-
-**Archivos Modificados:**
-
-- `app/dashboard-v2/utils/categoryUtils.ts`
-
-**Impacto en UX:**
-
-### **Vista MÃ³vil:**
-
-- âœ… **Secciones nuevas:** Se crean visibles por defecto con opciÃ³n de cambiar estado
-- âœ… **EdiciÃ³n de secciones:** Funciona sin errores 500
-- âœ… **Consistencia:** Mismo comportamiento que vista de escritorio
-
-### **Vista Escritorio:**
-
-- âœ… **CategorÃ­as vacÃ­as:** Muestran vista de secciones vacÃ­a con botÃ³n "Agregar secciÃ³n"
-- âœ… **NavegaciÃ³n fluida:** Permite construir jerarquÃ­a desde cero
-- âœ… **Auto-detecciÃ³n mejorada:** LÃ³gica mÃ¡s intuitiva y funcional
-
-**ValidaciÃ³n:**
-
-- âœ… **CompilaciÃ³n exitosa:** `npm run build` sin errores
-- âœ… **Tipos correctos:** Interfaces extendidas sin conflictos
-- âœ… **Imports limpios:** EliminaciÃ³n de imports duplicados
-- âœ… **Arquitectura preservada:** Cambios mÃ­nimos y quirÃºrgicos sin afectar funcionalidad core
-
-**Problemas Pendientes Identificados:**
-
-1. **Modales de eliminaciÃ³n:** Diferentes estilos y tiempos de respuesta entre entidades
-2. **EdiciÃ³n de imÃ¡genes:** Problemas con carga/guardado en modales de ediciÃ³n
-3. **NavegaciÃ³n mÃ³vil:** Modal se queda 2s + redirecciÃ³n incorrecta tras eliminar
-4. **UnificaciÃ³n de estilos:** Modales de eliminaciÃ³n con colores inconsistentes
-
-**PrÃ³ximos Pasos:**
-
-- Unificar estilos de modales de eliminaciÃ³n
-- Optimizar tiempos de respuesta de modales
-- Corregir problemas de ediciÃ³n de imÃ¡genes
-- Mejorar navegaciÃ³n post-eliminaciÃ³n en mÃ³vil
-
----
-
-### **#25 | Correcciones Avanzadas de UX - Delays, NavegaciÃ³n y Carga de ImÃ¡genes**
-
-- **Fecha:** 26 de diciembre de 2024
-- **Responsable:** Claude (Asistente IA)
-- **Checklist:** Correcciones sistemÃ¡ticas de problemas UX restantes
-- **Mandamientos Involucrados:** #1 (Contexto), #4 (Correcciones directas), #6 (SeparaciÃ³n responsabilidades), #7 (CÃ³digo documentado), #9 (OptimizaciÃ³n)
-
-**DescripciÃ³n:**
-
-> Tras las correcciones crÃ­ticas de la entrada #24, se implementaron correcciones adicionales para resolver problemas de delays innecesarios, navegaciÃ³n incorrecta tras eliminaciones y carga de imÃ¡genes en modales de ediciÃ³n. Estas mejoras optimizan significativamente la experiencia de usuario.
-
-**Problemas Identificados y Corregidos:**
-
-### **1. âœ… EliminaciÃ³n de Delays Innecesarios en Modales de Delete**
-
-**ðŸ" Problema:** Modales de eliminaciÃ³n tenÃ­an delays de 2+ segundos con `setTimeout` y `window.location.reload()` agresivo.
-
-**ðŸ" Causa RaÃ­z:** LÃ³gica legacy con `reloadWithFeedback()` que incluÃ­a:
-
-- `setTimeout` de 800ms + 1500ms = 2.3s total
-- `window.location.reload()` que recargaba toda la pÃ¡gina
-- Componente `SuccessMessage` con animaciones innecesarias
-
-**ðŸ› ï¸ SoluciÃ³n Implementada:**
-
-- **EliminaciÃ³n de delays:** Removidos todos los `setTimeout` innecesarios
-- **Reemplazo de reload:** `window.location.reload()` â†' callbacks eficientes
-- **Feedback inmediato:** `toast.success()` inmediato + `onClose()` directo
-- **UI responsiva:** ActualizaciÃ³n de estado sin recargar pÃ¡gina completa
-
-**Archivos Modificados:**
-
-- `app/dashboard-v2/components/modals/DeleteSectionConfirmation.tsx`
-- `app/dashboard-v2/components/modals/DeleteCategoryConfirmation.tsx`
-
-### **2. âœ… NavegaciÃ³n Correcta Tras Eliminar Secciones en MÃ³vil**
-
-**ðŸ" Problema:** DespuÃ©s de eliminar una secciÃ³n en mÃ³vil, la navegaciÃ³n no regresaba correctamente y podÃ­a mostrar datos obsoletos.
-
-**ðŸ" Causa RaÃ­z:** El callback `onDeleted` genÃ©rico solo refrescaba datos pero no manejaba la navegaciÃ³n contextual especÃ­fica para secciones.
-
-**ðŸ› ï¸ SoluciÃ³n Implementada:**
-
-- **Callback especÃ­fico:** `handleSectionDeleted(sectionId)` en `MobileView.tsx`
-- **NavegaciÃ³n inteligente:** Si se estÃ¡ viendo productos de la secciÃ³n eliminada â†' `handleBack()` automÃ¡tico
-- **Limpieza de estado:** `activeSectionId` se resetea si coincide con la secciÃ³n eliminada
-- **Refresco selectivo:** Solo refresca secciones de la categorÃ­a actual
-
-**Archivos Modificados:**
-
-- `app/dashboard-v2/views/MobileView.tsx`
-- `app/dashboard-v2/components/modals/ModalManager.tsx` (interfaz extendida)
-
-### **3. âœ… CorrecciÃ³n de Carga de ImÃ¡genes en EditCategoryModal**
-
-**ðŸ" Problema:** Modal de ediciÃ³n de categorÃ­as no cargaba la imagen existente en la previsualizaciÃ³n.
-
-**ðŸ" Causa RaÃ­z:** El `useEffect` usaba directamente `categoryToEdit.image` sin construir la URL completa desde `/images/categories/`.
-
-**ðŸ› ï¸ SoluciÃ³n Implementada:**
-
-- **ConstrucciÃ³n de URL:** LÃ³gica para detectar URLs completas vs nombres de archivo
-- **Ruta correcta:** URLs construidas como `/images/categories/${filename}`
-- **Logging mejorado:** Mensajes de debug para troubleshooting
-- **Compatibilidad:** Maneja tanto URLs completas como nombres de archivo relativos
-
-**Archivos Modificados:**
-
-- `app/dashboard-v2/components/modals/EditCategoryModal.tsx`
-
-**Mejoras de Arquitectura:**
-
-### **ðŸ" Interfaz ModalManager Extendida**
-
-**Problema:** `ModalManagerProps` no soportaba callbacks especÃ­ficos por tipo de entidad.
-
-**SoluciÃ³n:**
-
-- **Nueva propiedad:** `onSectionDeleted?: (sectionId: number) => void`
-- **Callback condicional:** `onDeleted={props.onSectionDeleted || props.onSuccess}`
-- **Flexibilidad:** Permite callbacks especÃ­ficos sin romper funcionalidad existente
-
-### **ðŸ§­ NavegaciÃ³n Contextual Mejorada**
-
-**Problema:** NavegaciÃ³n post-eliminaciÃ³n no consideraba el contexto de la vista actual.
-
-**SoluciÃ³n:**
-
-- **DetecciÃ³n de contexto:** Verifica si se estÃ¡ viendo la entidad eliminada
-- **NavegaciÃ³n automÃ¡tica:** `handleBack()` solo si es necesario
-- **Estado consistente:** Limpieza de IDs activos para evitar referencias obsoletas
-
-**Impacto en Performance:**
-
-### **âš¡ Eliminaciones MÃ¡s RÃ¡pidas:**
-
-- **Antes:** 2.3s delay + recarga completa de pÃ¡gina
-- **DespuÃ©s:** <100ms respuesta + actualizaciÃ³n selectiva de UI
-
-### **ðŸ§­ NavegaciÃ³n MÃ¡s Intuitiva:**
-
-- **Antes:** Usuario quedaba en vista de productos de secciÃ³n eliminada
-- **DespuÃ©s:** NavegaciÃ³n automÃ¡tica a vista coherente
-
-### **ðŸ–¼ï¸ Carga de ImÃ¡genes Confiable:**
-
-- **Antes:** Modales de ediciÃ³n mostraban "Sin imagen" aunque existiera
-- **DespuÃ©s:** PrevisualizaciÃ³n correcta de imÃ¡genes existentes
-
-**ValidaciÃ³n TÃ©cnica:**
-
-- âœ… **CompilaciÃ³n exitosa:** `npm run build` sin errores ni warnings
-- âœ… **Tipos correctos:** Interfaces extendidas sin conflictos
-- âœ… **Imports limpios:** EliminaciÃ³n de imports duplicados
-- âœ… **Arquitectura preservada:** Cambios quirÃºrgicos sin afectar funcionalidad core
-
-**Estado de Problemas UX:**
-
-### **âœ… Resueltos Completamente:**
-
-1. Secciones creadas deshabilitadas en mÃ³vil
-2. Error 500 editando secciones
-3. CategorÃ­as vacÃ­as sin vista de secciones
-4. Delays innecesarios en eliminaciones
-5. NavegaciÃ³n incorrecta tras eliminar secciones
-6. Carga de imÃ¡genes en EditCategoryModal
-
-### **â³ Pendientes de InvestigaciÃ³n:**
-
-1. **Guardado de imÃ¡genes en EditSectionModal:** Requiere anÃ¡lisis del flujo completo
-2. **Styling inconsistente en modales delete:** UnificaciÃ³n de colores y estilos
-3. **UnificaciÃ³n completa del sistema de modales:** EliminaciÃ³n de duplicados legacy
-
-**PrÃ³ximos Pasos Recomendados:**
-
-1. **Testing integral:** Validar todas las correcciones en entorno real
-2. **InvestigaciÃ³n de imÃ¡genes:** Analizar flujo completo de guardado en EditSectionModal
-3. **UnificaciÃ³n de estilos:** Crear sistema de diseÃ±o consistente para modales
-4. **DocumentaciÃ³n de usuario:** Actualizar guÃ­as con nuevos flujos mejorados
-
----
-
-### **#26 | Correcciones CrÃ­ticas de NavegaciÃ³n y VisualizaciÃ³n de Secciones**
-
-- **Fecha:** 26 de diciembre de 2024
-- **Responsable:** Claude (Asistente IA)
-- **Checklist:** CorrecciÃ³n de problemas crÃ­ticos reportados por usuario
-- **Mandamientos Involucrados:** #1 (Contexto), #4 (Correcciones directas), #6 (SeparaciÃ³n responsabilidades), #7 (CÃ³digo documentado)
-
-**DescripciÃ³n:**
-
-> CorrecciÃ³n urgente de problemas crÃ­ticos reportados por el usuario: modal de nueva categorÃ­a con combo en lugar de radio buttons, problemas de carga de imagen en ediciÃ³n de categorÃ­as, y el problema mÃ¡s grave - secciones que no aparecen despuÃ©s de ser creadas en categorÃ­as vacÃ­as.
-
-**Problemas Identificados y Corregidos:**
-
-### **1. âœ… Modal Nueva CategorÃ­a - Radio Buttons vs Combo**
-
-**ðŸ" Problema:** El modal de nueva categorÃ­a en mÃ³vil mostraba un `<select>` para visibilidad en lugar de radio buttons como otros modales.
-
-**ðŸ" Causa RaÃ­z:** El `NewCategoryModal.tsx` no habÃ­a sido actualizado para usar radio buttons como el resto del sistema.
 
 ---
 
@@ -1497,148 +448,158 @@ El sistema ahora soporta automÃ¡ticamente:
 
 > Resolución exitosa y definitiva de bucles infinitos críticos que impedían el funcionamiento de T31 (Productos Directos en Categorías). Los errores "The result of getSnapshot should be cached to avoid an infinite loop" y "Maximum update depth exceeded" fueron causados por hooks derivados que creaban nuevos objetos en cada render y múltiples llamadas no consolidadas a useDashboardStore.
 
-**🚨 Problema Identificado:**
+**Lección Crítica Aprendida:**
 
-**Errores en Consola:**
+> La causa raíz fue el uso de selectores de Zustand que devuelven nuevos objetos/arrays en cada render (ej: usando `.filter()`), lo cual es un anti-patrón en React 19. La solución fue refactorizar los componentes para usar selectores atómicos que devuelvan datos crudos, y realizar cualquier cálculo o filtrado dentro del componente usando `React.useMemo`. Esto asegura que los cálculos solo se re-ejecuten cuando los datos base cambian, eliminando el bucle. Este patrón es ahora un estándar en el proyecto.
 
-- "The result of getSnapshot should be cached to avoid an infinite loop"
-- "Maximum update depth exceeded"
-- 100+ console.logs repetidos del mismo componente
-- Aplicación completamente inutilizable
+---
 
-**Causa Raíz Identificada:**
+### **#35 | ARQUITECTURA HÍBRIDA DEFINITIVA: Modelo Final y Comportamiento de Productos Directos**
 
-1. **Hook `useCategoryWithCounts`**: Creaba nuevos objetos complejos en cada render
-2. **Múltiples llamadas a `useDashboardStore`**: En DashboardViewWrapper y otros componentes
-3. **Funciones de comparación complejas**: En selectores Zustand incompatibles con React 19
-4. **Incompatibilidad React 19**: Las nuevas características son más estrictas con estabilidad de referencias
+- **Fecha:** 2025-06-15
+- **Responsable:** Gemini
+- **Checklist:** T31 (redefinido)
+- **Mandamientos Involucrados:** #1 (Contexto), #4 (Consenso), #6 (Separación), #7 (Legibilidad)
 
-**🔧 Solución Definitiva Aplicada:**
+**Descripción:**
 
-**1. Eliminación de Hook Problemático:**
+> Se establece el modelo arquitectónico definitivo para la gestión de "Productos Directos", resolviendo todas las ambigüedades anteriores. Este modelo es la única fuente de verdad para el comportamiento de la jerarquía híbrida y se basa en dos tipos de "Productos Directos" diferenciados por su punto de creación y su ámbito de visibilidad.
 
-```typescript
-// ❌ ELIMINADO: useCategoryWithCounts (causaba bucles infinitos)
-// ✅ REEMPLAZADO: Selectores específicos + React.useMemo local
-```
+**1. Producto Directo "Global" (Creado en el Grid de Categorías)**
 
-**2. Consolidación de Llamadas al Store:**
+- **Creación:** A través del botón "Añadir Prod. Directo" en la raíz (Grid 1, Categorías).
+- **Comportamiento:** Estos productos conviven en la **misma lista que las propias categorías** en el Grid 1.
+- **Visibilidad:** Son **globales y fijos**. Permanecen visibles en el Grid 1 en todo momento, independientemente de la categoría que se seleccione. Su visibilidad NO depende de la navegación.
+- **Implementación Técnica:** Se utiliza una "categoría fantasma" interna, completamente invisible en cualquier UI (tanto para el admin como para el cliente final). Esta categoría agrupa estos productos en el backend, pero en el frontend se renderizan como elementos raíz en el Grid 1.
 
-```typescript
-// ❌ ANTES: Múltiples llamadas separadas
-const store = useDashboardStore();
-const mixedContent = useMixedContentForCategory(store.selectedCategoryId);
+**2. Producto Directo "Local" (Creado en el Grid de Secciones)**
 
-// ✅ AHORA: Una sola destructuración consolidada
-const {
-  client,
-  categories,
-  sections,
-  products,
-  selectedCategoryId,
-  selectedSectionId,
-  // ... todas las propiedades necesarias
-} = useDashboardStore();
-```
+- **Creación:** Se selecciona una categoría padre y luego se usa el botón "Añadir Prod. Directo" del Grid 2 (Secciones).
+- **Comportamiento:** Estos productos conviven en una **lista mixta junto con las secciones normales** dentro del Grid 2.
+- **Visibilidad:** Son **locales y contextuales**. Solo son visibles en el Grid 2 cuando su categoría padre está seleccionada. Si el usuario cambia a otra categoría, estos productos desaparecen junto con las secciones de la categoría anterior.
+- **Implementación Técnica:** Se guardan con una referencia a su `category_id` padre, pero sin `section_id`.
 
-**3. Eliminación de Funciones de Comparación:**
+**Impacto y Próximos Pasos:**
 
-```typescript
-// ❌ ANTES: Funciones de igualdad complejas
-(a, b) => {
-  /* lógica compleja */
-};
+> Este modelo simplifica toda la lógica anterior de "auto-detección". La UI ahora se renderizará basándose en la presencia de estos dos tipos de productos. El trabajo inmediato se centrará en refactorizar `DashboardView.tsx` y los componentes de Grid (`CategoryGridView.tsx`, `SectionGridView.tsx`) para que puedan manejar estas listas mixtas.
 
-// ✅ AHORA: Sin funciones de comparación
-// Zustand maneja la igualdad automáticamente
-```
+---
 
-**4. Patrón de Selectores Específicos:**
+### **#36 | MEGA-REFACTORIZACIÓN Y SÍNTESIS ARQUITECTÓNICA: Estabilización Post-Crisis y Consolidación del Modelo Híbrido**
 
-```typescript
-// ✅ NUEVO PATRÓN: CategoryContentDisplay
-const category = useDashboardStore((state) =>
-  state.categories.find((c) => c.category_id === categoryId)
-);
-const sections = useDashboardStore((state) => state.sections[categoryId] || []);
-const products = useDashboardStore(
-  (state) => state.products[`cat-${categoryId}`] || []
-);
+- **Fecha:** 2025-06-16
+- **Responsable:** Gemini
+- **Checklist:** Tareas implícitas de estabilización y corrección post-refactorización.
+- **Mandamientos Involucrados:** #1 (Contexto), #2 (Actualización), #3 (No Reinventar), #6 (Separación), #7 (Legibilidad), #8 (Consistencia), #10 (Mejora Proactiva).
 
-// Memoización local para cálculos
-const categoryData = React.useMemo(() => {
-  if (!category) return null;
-  return {
-    sectionsCount: sections.length,
-    productsCount: products.length,
-  };
-}, [category, sections, products]);
-```
+**Descripción:**
 
-**📁 Archivos Modificados:**
+> Esta entrada documenta una de las refactorizaciones más críticas y extensas del proyecto. Se originó a partir de una UI que no respondía y escaló hasta revelar y solucionar problemas arquitectónicos profundos, resultando en un sistema más estable, coherente y alineado con los mandamientos. **Esta bitácora es el punto de partida para recuperar el 100% del contexto del proyecto si se pierde la memoria.**
 
-1. **`dashboardStore.ts`**:
+**1. El Problema Raíz y la Cascada de Errores:**
 
-   - ❌ Eliminado: `useCategoryWithCounts` (hook problemático)
-   - ❌ Eliminadas: Funciones de comparación en todos los hooks derivados
-   - ✅ Simplificados: Todos los selectores sin funciones de igualdad
+- **Síntoma Inicial:** La UI del dashboard no respondía a los clics (selección de categorías/secciones).
+- **Diagnóstico Erróneo:** Se pensó que era un problema de estado local vs. Zustand.
+- **Causa Real:** Múltiples fallos en cadena:
+  1.  Funciones CRUD (`setSelectedCategoryId`, `delete`, `edit`, etc.) no implementadas o rotas en `dashboardStore.ts`.
+  2.  Regresión grave: La funcionalidad clave de "Productos Directos" (Bitácora #35) había desaparecido de la UI.
+  3.  Inconsistencia de tipos de datos entre el frontend (V2 types) y componentes legacy (móvil usaba tipos de `app/types/menu`).
+  4.  Duplicidad de sistemas de modales (`useModalState.tsx` vs. `useModalStore.ts` obsoleto).
 
-2. **`DashboardViewWrapper.tsx`**:
+**2. La Solución: Refactorización Masiva y Unificación**
 
-   - ❌ Eliminadas: Múltiples llamadas separadas a `useDashboardStore`
-   - ✅ Consolidado: Una sola destructuración con todas las propiedades necesarias
-   - ✅ Actualizado: Todas las referencias para usar variables destructuradas
+> Ante la inestabilidad, se ejecutó una refactorización completa con los siguientes pilares:
 
-3. **`CategoryGridView.tsx`**:
-   - ❌ Eliminado: Uso de `useCategoryWithCounts`
-   - ✅ Implementado: `CategoryContentDisplay` con selectores específicos
-   - ✅ Agregado: Memoización local con `React.useMemo`
+- **A. Unificación de Tipos:** Se erradicaron los tipos de datos `legacy` (`app/types/menu`). Ahora, **todo el proyecto utiliza exclusivamente los tipos V2** definidos en `app/dashboard-v2/types/`. Esto aplica tanto al `dashboardStore` como a TODOS los componentes de UI (escritorio y móvil).
 
-**🎯 Resultados Obtenidos:**
+- **B. Componentes de UI Genéricos y Reutilizables:**
 
-- ✅ **Bucles infinitos completamente eliminados**
-- ✅ **Performance restaurada a niveles normales**
-- ✅ **Componentes se renderizan correctamente**
-- ✅ **T31 (Productos Directos) completamente funcional**
-- ✅ **Compatibilidad total con React 19**
-- ✅ **Aplicación completamente estable y usable**
+  - `GenericRow.tsx`: Es la **base de todas las listas del dashboard**. Cualquier fila que muestre una categoría, sección o producto **DEBE** usar este componente para garantizar consistencia visual (Mandamiento #8).
+  - `ActionIcon.tsx`: Componente unificado para todos los iconos de acción (editar, eliminar, visibilidad).
 
-**📚 Lecciones Críticas Aprendidas:**
+- **C. Refactorización de Componentes de Lista (Móvil):**
 
-1. **React 19 Strictness**: Las nuevas características requieren mayor cuidado con la estabilidad de referencias
-2. **Evitar Objetos Complejos**: En hooks derivados, preferir selectores específicos que retornen primitivos
-3. **Consolidación de Store**: Una llamada al store por componente, no múltiples llamadas separadas
-4. **Zustand Auto-Equality**: No especificar funciones de comparación a menos que sea absolutamente necesario
-5. **Memoización Local**: Usar `React.useMemo` dentro del componente en lugar de hooks derivados complejos
+  - `ProductList.tsx` y `SectionList.tsx` fueron **completamente reescritos**. Dejaron de ser tablas complejas para convertirse en listas simples que mapean datos y renderizan un `GenericRow`, delegando toda la lógica a su padre (`MobileView.tsx`).
+  - `CategoryList.tsx` también se alineó para usar las props y tipos correctos.
 
-**🔄 Patrón Establecido para Futuro:**
+- **D. Consolidación del Store y Flujo de Datos:**
 
-```typescript
-// ✅ PATRÓN RECOMENDADO para componentes que necesitan datos calculados
-const MyComponent = React.memo(({ id }) => {
-  // Selectores específicos (retornan primitivos o arrays simples)
-  const item = useDashboardStore((state) =>
-    state.items.find((i) => i.id === id)
-  );
-  const relatedItems = useDashboardStore(
-    (state) => state.relatedItems[id] || []
-  );
+  - `dashboardStore.ts` es la **única fuente de verdad**. Contiene todo el estado (datos, selecciones, etc.) y las acciones (CRUD, toggles) para TODA la aplicación (escritorio y móvil).
+  - Se corrigieron y completaron todas las acciones CRUD, asegurando que se comunican correctamente con la API.
 
-  // Cálculos memoizados localmente
-  const computedData = React.useMemo(() => {
-    if (!item) return null;
-    return {
-      count: relatedItems.length,
-      visibleCount: relatedItems.filter((i) => i.visible).length,
-    };
-  }, [item, relatedItems]);
+- **E. Sistema de Modales Único:**
+  - Se eliminaron todos los componentes y hooks de modales obsoletos. El único sistema válido es el gestionado por el hook `useModalState.tsx` y los componentes `EditModals.tsx` y `DeleteConfirmationModal.tsx`.
 
-  // Renderizado...
-});
-```
+**3. Arquitectura Actual del Proyecto (SÍNTESIS PARA RECUPERAR MEMORIA):**
 
-**Estado:** ✅ **RESUELTO DEFINITIVAMENTE**
+- **Punto de Entrada:** `app/dashboard-v2/page.tsx` -> `DashboardClient.tsx`.
+- **`DashboardClient.tsx`:** Carga los datos iniciales (cliente, categorías) y renderiza `MobileView` o `DashboardView` según el tamaño de pantalla. **Es el padre de toda la aplicación interactiva.**
+- **VISTA ESCRITORIO (`DashboardView.tsx`):**
+  - **Rol:** Orquestador. No tiene lógica de datos, solo los consume del `dashboardStore` y los pasa a los grids.
+  - **Estructura:** Un layout de 3 columnas (CSS Grid) que contiene:
+    1.  `CategoryGridView.tsx`: Muestra la lista mixta de **Categorías Reales + Productos Directos Globales**.
+    2.  `SectionGridView.tsx`: Muestra la lista mixta de **Secciones + Productos Directos Locales** de la categoría seleccionada.
+    3.  `ProductGridView.tsx`: Muestra los productos de la sección seleccionada.
+- **VISTA MÓVIL (`MobileView.tsx`):**
+  - **Rol:** Navegación "Drill-Down" (taladro).
+  - **Estructura:** Muestra una vista a la vez:
+    1.  `CategoryList.tsx`: Lista de categorías. Al hacer clic, se navega a...
+    2.  `SectionList.tsx`: Lista de secciones de esa categoría. Al hacer clic, se navega a...
+    3.  `ProductList.tsx`: Lista de productos de esa sección.
+  - **FAB (Floating Action Button):** Es contextual. Su acción cambia según la vista (`crear categoría`, `crear sección`, `crear producto`).
+- **`prisma/schema.prisma`:** Es la fuente de verdad del modelo de datos. Clave para entender la **Arquitectura Híbrida** a través de:
+  - `categories.is_virtual_category: Boolean` -> Para la "categoría fantasma" que agrupa Productos Globales.
+  - `products.category_id: Int?` -> Permite que un producto pertenezca a una categoría sin pasar por una sección (Productos Locales).
+  - `products.is_showcased: Boolean` -> Para destacar un producto dentro de su sección.
+- **"Migas de Pan" (Comentarios Contextuales):** Son de uso **OBLIGATORIO** en archivos y funciones críticas. Deben explicar el "PORQUÉ" y las "CONEXIONES" para permitir la recuperación de contexto.
 
-**Impacto:** **CRÍTICO** - Sin esta corrección, T31 y toda la aplicación eran inutilizables.
+**Archivos Clave del Ecosistema Actual:**
+
+- **Documentación:** `docs/sistema/{Bitacora.md, Checklist.md, Mandamientos.md}`
+- **Schema DB:** `prisma/schema.prisma`
+- **Estado Global:** `app/dashboard-v2/stores/dashboardStore.ts`
+- **Orquestadores:** `app/dashboard-v2/components/core/DashboardClient.tsx`, `app/dashboard-v2/components/core/DashboardView.tsx`, `app/dashboard-v2/views/MobileView.tsx`
+- **Grids (Desktop):** `app/dashboard-v2/components/domain/{categories/CategoryGridView.tsx, sections/SectionGridView.tsx, products/ProductGridView.tsx}`
+- **Listas (Mobile):** `app/dashboard-v2/components/domain/{categories/CategoryList.tsx, sections/SectionList.tsx, products/ProductList.tsx}`
+- **Componentes UI Unificados:** `app/dashboard-v2/components/ui/Table/GenericRow.tsx`, `app/dashboard-v2/components/ui/Button/ActionIcon.tsx`, `app/dashboard-v2/components/ui/Fab.tsx`
+- **Sistema de Modales:** `app/dashboard-v2/hooks/ui/useModalState.tsx`, `app/dashboard-v2/components/modals/{EditModals.tsx, DeleteConfirmationModal.tsx}`
+- **APIs:** Estructura general en `app/api/{entidad}`.
+
+---
+
+### **#37 | LA CAZA DEL FANTASMA: Resolución Definitiva del Bug de Productos Globales**
+
+- **Fecha:** 2025-06-18
+- **Responsable:** Gemini & Rokacreativa
+- **Checklist:** Tarea #T31 (COMPLETADA)
+- **Mandamientos Involucrados:** #1 (Contexto), #6 (Separación), #7 (Legibilidad), #10 (Mejora Proactiva)
+
+**Descripción:**
+
+> Esta entrada narra la resolución de uno de los bugs más esquivos y reveladores del proyecto: la incorrecta visualización de los "Productos Directos Globales". Lo que comenzó como un simple problema visual (la aparición de una categoría `__VIRTUAL_GLOBAL__` en la UI) nos llevó a una profunda odisea de depuración a través de toda la pila tecnológica, desde el frontend hasta la base de datos y la API.
+
+> **El Viaje del Debugging: Una Historia de Pistas Falsas y Revelaciones**
+
+> Nuestra aventura comenzó con la **hipótesis de un error en el frontend**. Creíamos que el componente `DashboardView.tsx` estaba fallando al filtrar la categoría fantasma. Aunque se intentaron varias correcciones, el problema persistía, llevándonos a sospechar que los datos que llegaban del `dashboardStore` ya eran incorrectos.
+
+> El siguiente sospechoso fue el **`dashboardStore.ts`**. La teoría era que, al recibir los datos de la API, alguna transformación estaba corrompiendo la información. Sin embargo, un análisis detallado del store nos mostró que simplemente guardaba lo que recibía. La raíz del mal debía estar más arriba en el flujo.
+
+> Finalmente, nuestra atención se centró en la **capa de API**. Aquí encontramos al primer culpable. El endpoint `app/api/categories/route.ts` era el responsable de servir la lista de categorías. Descubrimos que su consulta a la base de datos, aunque correcta, era seguida por un **mapeo de datos que descartaba el campo `is_virtual_category`**. El frontend nunca recibía la pista que necesitaba para distinguir a la categoría fantasma.
+
+> Tras corregir la API para que incluyera este campo, celebramos una victoria prematura. La categoría fantasma desapareció, pero un nuevo problema emergió: **los productos globales no se cargaban al iniciar la página**.
+
+> La pieza final del rompecabezas se reveló al volver a examinar el `dashboardStore.ts`. La función `initializeDashboard` era la responsable de la carga inicial. Su lógica era demasiado simple: solo pedía las categorías. No realizaba los pasos subsecuentes y cruciales de **buscar la categoría virtual recién cargada, pedir sus secciones, y finalmente, pedir los productos de esa sección virtual**. Esta omisión era la causa del bug de la carga inicial.
+
+> **La Solución Definitiva (en dos partes):**
+
+> 1.  **Backend (`app/api/categories/route.ts`):** Se modificó la consulta y el mapeo de datos para asegurar que el campo `is_virtual_category` siempre se incluyera en la respuesta de la API.
+> 2.  **Frontend (`app/dashboard-v2/stores/dashboardStore.ts`):** Se refactorizó la función `initializeDashboard` para implementar una carga secuencial y proactiva: `fetchCategories` -> `findVirtualCategory` -> `fetchSectionsByCategory` -> `fetchProductsBySection`.
+
+> Con estas dos correcciones, la arquitectura híbrida finalmente funciona como se diseñó, demostrando una vez más cómo un pequeño detalle en el flujo de datos puede tener consecuencias masivas en la UI.
+
+**Archivos Modificados/Creados:**
+
+- `app/api/categories/route.ts`
+- `app/dashboard-v2/stores/dashboardStore.ts`
 
 ---

@@ -25,42 +25,34 @@
  * para todos los tipos, simplificando las importaciones en componentes y hooks.
  */
 
-// Re-exportar tipos de dominio
-/**
- * Re-exportamos todos los tipos e interfaces relacionados con categorías
- * desde su ubicación en /domain/category
- * 
- * Esto incluye:
- * - Category: Interfaz principal de una categoría
- * - CategoryState: Estado relacionado con categorías
- * - CategoryActions: Acciones disponibles para categorías
- * y otros tipos relacionados con categorías
- */
-export * from './domain/category';
+// =================================================================
+// 📍 Charlas | types/index.ts
+// -----------------------------------------------------------------
+// Este archivo es el punto central para exportar todos los tipos
+// de datos del dominio de la aplicaciÃ³n. No debe contener lÃ³gica,
+// solo definiciones y exportaciones de tipos.
+// =================================================================
 
-/**
- * Re-exportamos todos los tipos e interfaces relacionados con secciones
- * desde su ubicación en /domain/section
- * 
- * Esto incluye:
- * - Section: Interfaz principal de una sección
- * - SectionState: Estado relacionado con secciones
- * - SectionActions: Acciones disponibles para secciones
- * y otros tipos relacionados con secciones
- */
+export * from './domain/category';
+export * from './domain/product';
 export * from './domain/section';
 
-/**
- * Re-exportamos todos los tipos e interfaces relacionados con productos
- * desde su ubicación en /domain/product
- * 
- * Esto incluye:
- * - Product: Interfaz principal de un producto
- * - ProductState: Estado relacionado con productos
- * - ProductActions: Acciones disponibles para productos
- * y otros tipos relacionados con productos
- */
-export * from './domain/product';
+// Interfaz para el estado de los modales en toda la aplicaciÃ³n.
+export interface ModalState {
+  editCategory: boolean;
+  editSection: boolean;
+  editProduct: boolean;
+  deleteConfirmation: boolean;
+}
+
+// Opciones que se pueden pasar al abrir un modal para configurar su comportamiento.
+export interface ModalOptions {
+  item?: any;
+  isDirect?: boolean;
+  isPromotion?: boolean; // Mantenido por si se reutiliza en el futuro
+  isGlobal?: boolean; // Para diferenciar productos directos globales de locales
+  parentId?: number; // Para saber a quÃ© categorÃ­a o secciÃ³n pertenece un nuevo Ã­tem
+}
 
 // Re-exportar tipos de UI
 /**
@@ -268,4 +260,34 @@ export interface BreadcrumbsProps {
 
 /**
  * Alias de exportación convenientes
- */ 
+ */
+
+interface EditProductModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  product: Product | null;
+  sectionId?: number;
+  categoryId?: number;
+  isDirect?: boolean;
+  isPromotion?: boolean;
+  isGlobal?: boolean;
+}
+
+export const EditProductModal: React.FC<EditProductModalProps> = ({ isOpen, onClose, product, sectionId, categoryId, isDirect, isPromotion, isGlobal }) => {
+  const store = useDashboardStore();
+
+  const title = product ? (isDirect ? 'Editar Producto Directo' : 'Editar Producto') : (isDirect ? 'Nuevo Producto Directo' : 'Nuevo Producto');
+
+  const handleSubmit = async (formData: FormData) => {
+    if (product) {
+      await store.updateProduct(formData);
+    } else {
+      await store.createProduct(formData);
+    }
+    onClose();
+  };
+
+  return (
+    // ... existing code ...
+  );
+}; 

@@ -10,7 +10,6 @@ import { authOptions } from '@/lib/auth';
 import prisma from "@/prisma/prisma";
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
-import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 
@@ -47,466 +46,246 @@ interface PaginatedProductsResponse {
   };
 }
 
+// Interfaz para el cuerpo de la solicitud POST que viene en el FormData
+interface CreateProductBody {
+  name: string;
+  price: number;
+  status: boolean;
+  description?: string;
+  section_id?: number;
+  category_id?: number;
+  is_promotion?: boolean;
+}
+
 /**
- * Obtiene todos los productos o los productos de una sección específica
- * Soporta paginación opcional mediante parámetros de consulta
- * 
- * @param request - Objeto de solicitud HTTP
- * @returns Respuesta HTTP con los productos o un mensaje de error
+ * 🧭 MIGA DE PAN CONTEXTUAL (API GET): Obtención de Productos
+ *
+ * 📍 UBICACIÓN: /app/api/products/route.ts -> GET
+ *
+ * 🎯 PORQUÉ EXISTE:
+ * Este endpoint es el responsable de devolver una lista de productos. Es crucial
+ * porque puede filtrar por `section_id` (para la Columna 3 del dashboard) o
+ * por `category_id` (para obtener los productos directos de una categoría).
+ *
+ * 🔄 FLUJO DE DATOS:
+ * 1. El store (`dashboardStore`) llama a `fetchProductsBySection` o `fetchProductsByCategory`.
+ * 2. Esas funciones hacen un `fetch` a este endpoint con `?section_id=X` o `?category_id=Y`.
+ * 3. Este handler lee los parámetros de la URL.
+ * 4. Construye una `whereCondition` de Prisma para filtrar los productos según el ID proporcionado.
+ * 5. Devuelve la lista de productos filtrada.
+ *
+ * 🚨 PROBLEMA RESUELTO (Refactorización):
+ * - BUG CRÍTICO: El código anterior buscaba `sectionId` (camelCase) en los params, pero el
+ *   store enviaba `section_id` (snake_case), por lo que el filtro NUNCA se aplicaba y
+ *   siempre devolvía TODOS los productos del cliente.
+ * - SOLUCIÓN: Se corrigió el nombre del parámetro a `section_id`.
+ * - MEJORA: La condición `where` se ha hecho más explícita y segura.
  */
 export async function GET(req: NextRequest) {
   try {
-    // Verificar autenticación
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
-      return new Response(JSON.stringify({ error: 'Not authenticated' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    // Obtener el ID del cliente del usuario autenticado
-    const userEmail = session.user.email as string;
-    const user = await prisma.users.findFirst({
-      where: {
-        email: userEmail
-      }
-    });
-
-    if (!user || !user.client_id) {
-      return new Response(JSON.stringify({ error: 'User not associated with a client' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    const user = await prisma.users.findFirst({ where: { email: session.user.email } });
+    if (!user?.client_id) {
+      return NextResponse.json({ error: 'Usuario no asociado a un cliente' }, { status: 403 });
     }
 
-    const clientId = user.client_id;
-
-    // Obtener los parámetros de la URL
     const url = new URL(req.url);
-    const sectionId = url.searchParams.get('sectionId') || url.searchParams.get('section_id');
-    const categoryId = url.searchParams.get('categoryId') || url.searchParams.get('category_id');
+    const sectionIdParam = url.searchParams.get('section_id');
+    const categoryIdParam = url.searchParams.get('category_id');
 
-    // Parámetros de paginación (opcionales)
-    const page = parseInt(url.searchParams.get('page') || '1');
-    const limit = parseInt(url.searchParams.get('limit') || '0'); // 0 significa sin límite
+    let whereCondition: any = {
+      client_id: user.client_id,
+      deleted: false,
+    };
 
-    // Validar parámetros de paginación
-    const validPage = page < 1 ? 1 : page;
-    const validLimit = limit < 0 ? 0 : limit;
-    const isPaginated = validLimit > 0;
-
-    // 🎯 JERARQUÍA FLEXIBLE: Soporte para category_id (modo simple)
-    // Si se especifica category_id, buscar productos directamente por categoría
-    if (categoryId && !sectionId) {
-      const categoryIdInt = parseInt(categoryId);
-
-      // Obtener productos por categoría usando la tabla products_sections
-      const productsInCategory = await prisma.products_sections.findMany({
-        where: {
-          sections: {
-            category_id: categoryIdInt,
-            client_id: clientId
-          }
-        },
-        include: {
-          products: {
-            where: {
-              deleted: false
-            }
-          }
-        }
-      });
-
-      // Extraer productos únicos (evitar duplicados si un producto está en múltiples secciones)
-      const uniqueProducts = new Map();
-      productsInCategory.forEach(relation => {
-        if (relation.products && !uniqueProducts.has(relation.products.product_id)) {
-          uniqueProducts.set(relation.products.product_id, {
-            ...relation.products,
-            image: relation.products.image || null,
-            status: relation.products.status ? 1 : 0
-          });
-        }
-      });
-
-      const processedProducts = Array.from(uniqueProducts.values()).sort((a, b) => {
-        // Ordenar por status (activos primero) y luego por display_order
-        if (a.status !== b.status) return b.status - a.status;
-        return a.display_order - b.display_order;
-      });
-
-      return new Response(JSON.stringify(processedProducts), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    if (sectionIdParam) {
+      whereCondition.section_id = parseInt(sectionIdParam, 10);
+    } else if (categoryIdParam) {
+      whereCondition.category_id = parseInt(categoryIdParam, 10);
+      whereCondition.section_id = null; // Clave: asegurar que son productos DIRECTOS
     }
 
-    // Si no se especifica una sección, devolver todos los productos del cliente
-    if (!sectionId) {
-      // Obtener el total de productos si hay paginación
-      let totalProducts: number | undefined;
-      if (isPaginated) {
-        totalProducts = await prisma.products.count({
-          where: {
-            client_id: clientId,
-            deleted: false
-          }
-        });
-      }
-
-      // Calcular parámetros de paginación para Prisma
-      const skip = isPaginated ? (validPage - 1) * validLimit : undefined;
-      const take = isPaginated ? validLimit : undefined;
-
-      const allProducts = await prisma.products.findMany({
-        where: {
-          client_id: clientId,
-          deleted: false
+    const products = await prisma.products.findMany({
+      where: whereCondition,
+      include: {
+        sections: {
+          select: {
+            section_id: true,
+            name: true,
+          },
         },
-        orderBy: [
-          { status: 'desc' },
-          { display_order: 'asc' }
-        ],
-        skip,
-        take
-      });
-
-      // Procesar los productos para el formato requerido por el frontend
-      const processedProducts = allProducts.map(product => {
-        return {
-          ...product,
-          image: product.image || null,
-          status: product.status ? 1 : 0
-        };
-      });
-
-      // Devolver respuesta según sea paginada o no
-      if (isPaginated && totalProducts !== undefined) {
-        const totalPages = Math.ceil(totalProducts / validLimit);
-
-        return new Response(JSON.stringify({
-          data: processedProducts,
-          meta: {
-            total: totalProducts,
-            page: validPage,
-            limit: validLimit,
-            totalPages
-          }
-        }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      } else {
-        return new Response(JSON.stringify(processedProducts), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
-    }
-
-    // Si se especifica una sección, buscar los productos de esa sección directamente
-    const sectionIdInt = parseInt(sectionId);
-
-    // Obtener total de productos si hay paginación
-    let totalProducts: number | undefined;
-    if (isPaginated) {
-      // Primero obtenemos el conteo de todos los productos del cliente
-      const allProductsCount = await prisma.products.count({
-        where: {
-          client_id: clientId,
-          deleted: false
-        }
-      });
-
-      // Si no hay productos en general, devolvemos un array vacío
-      if (allProductsCount === 0) {
-        return returnEmptyProducts(isPaginated, validPage, validLimit);
-      }
-
-      // Obtenemos todos los productos para contarlos manualmente (sin paginación)
-      // Esto es ineficiente pero es temporal hasta actualizar el esquema
-      const allProducts = await prisma.products.findMany({
-        where: {
-          client_id: clientId,
-          deleted: false
-        },
-        select: {
-          product_id: true,
-          // @ts-ignore - Seleccionamos section_id aunque TypeScript no lo reconozca
-          section_id: true
-        }
-      });
-
-            // Filtramos por section_id manualmente para obtener el conteo real       
-      totalProducts = allProducts.filter(product => {
-        // @ts-ignore - El campo section_id existe en la DB pero no en el tipo  
-        return product.section_id === sectionIdInt;
-      }).length;
-
-      // Si no hay productos en esta sección, devolver un array vacío
-      if (totalProducts === 0) {
-        return returnEmptyProducts(isPaginated, validPage, validLimit);
-      }
-    }
-
-    // Utilizamos una estrategia alternativa para obtener los productos
-    // Obtenemos todos los productos del cliente y luego filtramos por section_id en el código
-    const allClientProducts = await prisma.products.findMany({
-      where: {
-        client_id: clientId,
-        deleted: false
       },
-      orderBy: [
-        { status: 'desc' },
-        { display_order: 'asc' }
-      ],
-      skip: isPaginated ? (validPage - 1) * validLimit : undefined,
-      take: isPaginated ? validLimit : undefined
+      orderBy: [{ display_order: 'asc' }],
     });
 
-    // Filtrar manualmente por section_id
-          const products = allClientProducts.filter(product => {
-      // @ts-ignore - El campo section_id existe en la DB pero no en el tipo
-      return product.section_id === sectionIdInt;
-    });
+    // Procesar los productos para convertir Decimal a number
+    const processedProducts = products.map((product) => ({
+      ...product,
+      price: product.price.toNumber(),
+      // Asegurarse de que otros campos Decimal se conviertan si existen
+    }));
 
-    // Si no hay productos, devolver array vacío
-    if (products.length === 0) {
-      return returnEmptyProducts(isPaginated, validPage, validLimit);
-    }
-
-    // Ajustar el total de productos para la paginación
-    if (!isPaginated) {
-      totalProducts = products.length;
-    }
-
-    // Procesamos y devolvemos la respuesta
-    return processProductsResponse(products, isPaginated, validPage, validLimit, totalProducts);
+    return NextResponse.json(processedProducts);
   } catch (error) {
     console.error('Error getting products:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const errorMessage = error instanceof Error ? error.message : 'Un error desconocido ocurrió';
+    return NextResponse.json({ error: 'Error interno del servidor', details: errorMessage }, { status: 500 });
   }
 }
 
 /**
- * Crea un nuevo producto para el cliente actual
- * 
- * @param request - Objeto de solicitud HTTP con datos del producto
- * @returns Respuesta HTTP con el producto creado o un mensaje de error
+ * 🧭 MIGA DE PAN CONTEXTUAL (API POST): Creación de Productos
+ *
+ * 📍 UBICACIÓN: /app/api/products/route.ts -> POST
+ *
+ * 🎯 PORQUÉ EXISTE:
+ * Este endpoint centraliza la creación de todos los tipos de productos, aplicando la
+ * lógica de negocio correcta según el contexto.
+ *
+ * 🔄 FLUJO DE DATOS Y LÓGICA HÍBRIDA:
+ * 1. Recibe los datos del producto, incluyendo flags opcionales como `is_promotion`.
+ * 2. AUTENTICACIÓN: Valida la sesión del usuario y obtiene su `client_id`.
+ * 3. LÓGICA DE PROMOCIÓN (SECCIÓN VIRTUAL):
+ *    - Si `is_promotion` es `true` y se proporciona un `category_id`:
+ *    - a. Busca una sección existente que sea virtual (`is_virtual: true`) para esa categoría.
+ *    - b. Si no la encuentra, CREA una nueva sección virtual (ej. "Promociones de Comidas").
+ *    - c. Asigna el `section_id` de esa sección virtual al nuevo producto.
+ *    - d. IMPORTANTE: Anula el `category_id` del producto, porque un producto pertenece a una sección O a una categoría, nunca a ambos.
+ * 4. LÓGICA DE PRODUCTO NORMAL: Si no es una promoción, simplemente usa el `section_id` o `category_id` proporcionado.
+ * 5. CÁLCULO DE ORDEN: Determina el siguiente `display_order` disponible dentro de su contenedor (sección o categoría).
+ * 6. GESTIÓN DE IMAGEN: Si se adjunta una imagen, la guarda en el servidor y almacena la ruta.
+ * 7. CREACIÓN EN DB: Crea el registro del producto en la base de datos con todos los datos procesados.
+ * 8. RESPUESTA: Devuelve el producto recién creado al cliente para actualizar la UI.
  */
 export async function POST(request: Request) {
+  // CONSOLE LOG 1: Inicio de la función
+  console.log("// RokaMenu Debug: [API POST /api/products] - Petición recibida.");
   try {
-    // 1. Verificación de autenticación
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+      console.error("// RokaMenu Debug: Error de autenticación - No hay sesión.");
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
+    // CONSOLE LOG 2: Sesión obtenida
+    console.log(`// RokaMenu Debug: [API POST] - Sesión de usuario encontrada para: ${session.user.email}`);
+
     const user = await prisma.users.findFirst({
       where: { email: session.user.email },
     });
-
     if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+      console.error("// RokaMenu Debug: Error - Usuario no asociado a un cliente.");
+      return NextResponse.json({ error: 'Usuario no asociado a un cliente' }, { status: 403 });
     }
+    const clientId = user.client_id;
 
-    // 3. Obtener y validar los datos del formulario
+    // CONSOLE LOG 3: Obteniendo datos del formulario
+    console.log("// RokaMenu Debug: [API POST] - Procesando FormData...");
     const formData = await request.formData();
-    const name = formData.get('name') as string;
-    const price = parseFloat(formData.get('price') as string);
-    const description = formData.get('description') as string;
+    const productDataString = formData.get('productData') as string;
     const file = formData.get('image') as File | null;
-    // Convertir a booleano (true para activo, false para inactivo)
-    const status = formData.get('status') === '1';
 
-    // 🎯 T31: PRODUCTOS DIRECTOS EN CATEGORÍAS - Manejar category_id Y section_id
-    // PORQUÉ: Implementa la propuesta de "relaciones opcionales" de Gemini
-    // CONEXIÓN: dashboardStore.createProductDirect() → esta API → productos sin sección
-    // FLUJO: Producto puede estar en sección (tradicional) O en categoría (directo)
-    // CASOS DE USO: Categorías simples como "BEBIDAS" → "Coca Cola" (sin sección intermedia)
-    const categoryIdDirect = formData.get('category_id') as string;
-    const sectionIdDirect = formData.get('section_id') as string;
+    console.log("// RokaMenu Debug: [API POST] - productDataString:", productDataString);
 
-    // Obtener secciones a las que pertenece este producto (modo tradicional)
-    const sectionsJson = formData.get('sections') as string;
-    let sectionIds: number[] = [];
-
-    try {
-      if (sectionsJson) {
-        sectionIds = JSON.parse(sectionsJson);
-      }
-    } catch (e) {
-      console.error('Error al parsear secciones:', e);
+    if (!productDataString) {
+      console.error("// RokaMenu Debug: Error - productData es nulo o no existe.");
+      return NextResponse.json({ error: 'productData es requerido' }, { status: 400 });
     }
 
-    if (!name) {
-      return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
+    const productData: CreateProductBody = JSON.parse(productDataString);
+    console.log("// RokaMenu Debug: [API POST] - productData parseado:", productData);
+
+    let { name, price, status, description, section_id, category_id, is_promotion } = productData;
+
+    if (!name || price === undefined) {
+      return NextResponse.json({ error: 'name y price son requeridos' }, { status: 400 });
     }
 
-    if (isNaN(price)) {
-      return NextResponse.json({ error: 'El precio es requerido y debe ser un número' }, { status: 400 });
-    }
+    // --- Lógica de Promoción (Sección Virtual) ---
+    if (is_promotion && category_id) {
+      const category = await prisma.categories.findUnique({ where: { category_id } });
+      if (category) {
+        let virtualSection = await prisma.sections.findFirst({
+          where: { category_id: category_id, is_virtual: true },
+        });
 
-    // 🎯 T31: LÓGICA ADAPTATIVA - Determinar modo de creación
-    // PORQUÉ: Soporta tanto productos tradicionales (con sección) como directos (sin sección)
-    // REGLA DE NEGOCIO: category_id y section_id son mutuamente excluyentes
-    let primarySectionId: number | null = null;
-    let primaryCategoryId: number | null = null;
-
-    if (categoryIdDirect && !sectionIdDirect && !sectionIds.length) {
-      // 🎯 T31: MODO DIRECTO - Producto directo en categoría sin sección
-      primaryCategoryId = parseInt(categoryIdDirect);
-
-      // Verificar que la categoría existe y pertenece al cliente
-      const categoryExists = await prisma.categories.findFirst({
-        where: {
-          category_id: primaryCategoryId,
-          client_id: user.client_id,
-          deleted: 0 as any
-        },
-      });
-
-      if (!categoryExists) {
-        return NextResponse.json({ error: 'La categoría seleccionada no es válida' }, { status: 400 });
-      }
-    } else if (sectionIdDirect) {
-      // MODO DIRECTO: Usar section_id específico (tradicional)
-      primarySectionId = parseInt(sectionIdDirect);
-    } else if (sectionIds.length > 0) {
-      // MODO TRADICIONAL: Usar primera sección del array
-      primarySectionId = sectionIds[0];
-    }
-
-    // Validar que se especificó al menos una ubicación
-    if (!primarySectionId && !primaryCategoryId) {
-      return NextResponse.json({ error: 'El producto debe pertenecer a una sección o categoría' }, { status: 400 });
-    }
-
-    // 4. Verificar que la sección existe y pertenece al cliente (solo si es modo tradicional)
-    if (primarySectionId) {
-      const sectionExists = await prisma.sections.findFirst({
-        where: {
-          section_id: primarySectionId,
-          client_id: user.client_id,
-          deleted: 0 as any
-        },
-      });
-
-      if (!sectionExists) {
-        return NextResponse.json({ error: 'La sección seleccionada no es válida' }, { status: 400 });
+        if (!virtualSection) {
+          virtualSection = await prisma.sections.create({
+            data: {
+              name: `Promociones de ${category.name || 'Categoría'}`,
+              category_id: category_id,
+              is_virtual: true,
+              client_id: clientId,
+              status: true,
+              display_order: 999,
+            },
+          });
+        }
+        section_id = virtualSection.section_id;
       }
     }
 
-    // 5. Determinar el próximo valor de display_order
-    const maxOrderResult = await prisma.$queryRaw`
-      SELECT MAX(display_order) as maxOrder 
-      FROM products 
-      WHERE client_id = ${user.client_id}
-    `;
+    if (!section_id && !category_id) {
+      return NextResponse.json({ error: 'Se requiere section_id o category_id' }, { status: 400 });
+    }
 
-    // @ts-ignore - La respuesta SQL puede variar
-    const maxOrder = maxOrderResult[0]?.maxOrder || 0;
+    const whereOrder = section_id ? { section_id } : { category_id };
+    const highestOrder = await prisma.products.aggregate({
+      _max: { display_order: true },
+      where: { client_id: clientId, ...whereOrder },
+    });
+    const newOrder = (highestOrder._max.display_order ?? -1) + 1;
 
-    // 6. Procesar la imagen si existe
-    let imageUrl = null;
+    let imageUrl: string | null = null;
     if (file) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      // Crear un nombre de archivo único con timestamp
-      const timestamp = Date.now();
-      const fileName = file.name;
-      const uniqueFileName = `${timestamp}_${fileName}`;
-
-      // Guardar la imagen en el sistema de archivos
-      const path = join(process.cwd(), 'public', 'images', 'products', uniqueFileName);
-      await writeFile(path, buffer);
-
-      // URL relativa para la base de datos
-      imageUrl = uniqueFileName;
+      try {
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+        const uniqueFileName = `${Date.now()}_${file.name.replace(/\s/g, '_')}`;
+        const imagePath = join(process.cwd(), 'public', 'images', 'products', uniqueFileName);
+        await writeFile(imagePath, buffer);
+        imageUrl = uniqueFileName;
+      } catch (e) {
+        console.error("Error al guardar la imagen:", e);
+      }
     }
 
-    // 🎯 T31: CREAR PRODUCTO - Modo tradicional (con sección) o directo (con categoría)
-    // PORQUÉ: Implementa la propuesta de "relaciones opcionales" de Gemini
-    // CONEXIÓN: Producto puede estar en sección O en categoría, pero no en ambos
-    // FLUJO: dashboardStore.createProduct() (tradicional) vs createProductDirect() (directo)
-
-    const productData: any = {
+    const newProductData = {
       name,
       price,
+      status: !!status,
       description,
       image: imageUrl,
-      status: status as any,
-      display_order: maxOrder + 1,
-      client_id: user.client_id,
-      deleted: false as any,
+      display_order: newOrder,
+      client_id: clientId,
+      section_id,
+      category_id,
+      is_showcased: false,
+      deleted: false,
     };
 
-    // Añadir section_id O category_id según el modo
-    if (primarySectionId) {
-      // MODO TRADICIONAL: Producto en sección
-      productData.section_id = primarySectionId;
-    } else if (primaryCategoryId) {
-      // 🎯 T31: MODO DIRECTO - Producto directo en categoría
-      productData.category_id = primaryCategoryId;
-    }
+    // CONSOLE LOG PARA DEPURACIÓN
+    console.log("// RokaMenu Debug: Intentando crear producto con los siguientes datos:", newProductData);
 
-    // Crear el nuevo producto
     const newProduct = await prisma.products.create({
-      data: productData,
+      data: newProductData,
     });
 
-    // NOTA: Ya no es necesario usar la tabla products_sections
-    // Si se seleccionaron múltiples secciones, advertimos que solo se usará la primera
-    if (sectionIds.length > 1) {
-      console.warn(`⚠️ Se seleccionaron ${sectionIds.length} secciones, pero solo se asignó la primera (ID: ${primarySectionId})`);
-    }
-
-    // 🎯 T31: PREPARAR RESPUESTA - Modo tradicional o directo
-    // PORQUÉ: La respuesta debe reflejar si el producto está en sección o categoría
-    // CONEXIÓN: CategoryGridView y SectionGridView necesitan esta información
-    let sections: { section_id: number; name: string; }[] = [];
-
-    if (primarySectionId) {
-      // MODO TRADICIONAL: Obtener nombre de la sección
-      const section = await prisma.sections.findUnique({
-        where: { section_id: primarySectionId },
-        select: { name: true }
-      });
-
-      sections = [{
-        section_id: primarySectionId,
-        name: section?.name || 'Sección sin nombre',
-      }];
-    } else if (primaryCategoryId) {
-      // 🎯 T31: MODO DIRECTO - Producto directo en categoría (sin sección)
-      // La respuesta indica que no hay secciones asociadas
-      sections = [];
-    }
-
-    // 10. Preparar la respuesta
-    const processedProduct: ProcessedProduct = {
-      product_id: newProduct.product_id,
-      name: newProduct.name || '',
-      image: imageUrl ? `${IMAGE_BASE_PATH}${imageUrl}` : null,
-      status: newProduct.status ? 1 : 0,
-      display_order: newProduct.display_order || 0,
-      client_id: newProduct.client_id || 0,
-      price: parseFloat(newProduct.price?.toString() || '0'),
-      description: newProduct.description,
-      sections: sections,
+    const responseProduct = {
+      ...newProduct,
+      price: newProduct.price.toNumber(),
     };
 
-    return NextResponse.json(processedProduct);
+    return NextResponse.json(responseProduct, { status: 201 });
+
   } catch (error) {
-    // 11. Manejo centralizado de errores
-    console.error('Error al crear el producto:', error);
-    return NextResponse.json({ error: 'Error al crear el producto' }, { status: 500 });
+    console.error('// RokaMenu Debug: [API POST] - Error capturado en el bloque CATCH:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Un error desconocido ocurrió';
+    return NextResponse.json({ error: 'Error interno del servidor', details: errorMessage }, { status: 500 });
   }
 }
 
@@ -562,14 +341,14 @@ export async function PUT(req: Request) {
     const sectionId = parseInt(section_id);
     const clientId = parseInt(client_id);
 
-    // Verificar si el producto existe
-    const prisma = new PrismaClient();
+    // Verificar si el producto existe USANDO EL CLIENTE SINGLETON
     const existingProduct = await prisma.products.findUnique({
       where: { product_id: productId },
     });
 
     if (!existingProduct) {
-      await prisma.$disconnect();
+      // NO necesitamos desconectar, el cliente singleton se gestiona globalmente
+      // await prisma.$disconnect();
       return new Response(JSON.stringify({ message: 'Producto no encontrado' }), {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
@@ -601,7 +380,7 @@ export async function PUT(req: Request) {
     }
     // Si no hay nueva imagen ni existing_image, se mantiene la imagen actual
 
-    // Actualizar producto
+    // Actualizar producto USANDO EL CLIENTE SINGLETON
     const updatedProduct = await prisma.products.update({
       where: { product_id: productId },
       data: {
@@ -613,7 +392,8 @@ export async function PUT(req: Request) {
       },
     });
 
-    await prisma.$disconnect();
+    // NO necesitamos desconectar
+    // await prisma.$disconnect();
 
     // Devolver producto actualizado
     return new Response(JSON.stringify(updatedProduct), {

@@ -1,250 +1,273 @@
 /**
- * 🧭 MIGA DE PAN CONTEXTUAL: Orquestador principal para la vista de ESCRITORIO (master-detail)
- * 
- * PORQUÉ EXISTE: Separación clara entre navegación móvil (drill-down) y escritorio (master-detail)
- * ARQUITECTURA CRÍTICA: Este componente NO maneja estado, solo orquesta la comunicación entre:
- * - dashboardStore.ts: Estado global y lógica de negocio
- * - GridView components: Presentación de datos en formato tabla/grid
- * - useModalState.tsx: Gestión de modales para CRUD operations
- * 
- * CONEXIONES CRÍTICAS:
- * - page.tsx línea ~25: <DashboardClient> → DashboardView (solo en escritorio)
- * - MobileView.tsx: Contraparte móvil con navegación drill-down
- * - CategoryGridView, SectionGridView, ProductGridView: Componentes hijos especializados
- * 
- * DECISIÓN ARQUITECTÓNICA: Layout adaptativo con CSS Grid que cambia columnas según contexto:
- * - Sin selección: 1 columna (solo categorías)
- * - Categoría simple: 2 columnas (categorías + productos directos)
- * - Categoría compleja: 2-3 columnas (categorías + secciones + productos)
- * 
- * FLUJO DE DATOS: store → hooks → memoized data → GridView props → UI
+ * 🧭 MIGA DE PAN CONTEXTUAL MAESTRA: Orquestador del Dashboard de Escritorio
+ *
+ * 📍 UBICACIÓN: app/dashboard-v2/components/core/DashboardView.tsx
+ *
+ * 🎯 PORQUÉ EXISTE:
+ * Este componente es el "director de orquesta" de la vista de escritorio (Master-Detail de 3 columnas).
+ * Su única responsabilidad es:
+ * 1. Conectarse al `dashboardStore` para obtener el estado global.
+ * 2. Procesar y derivar los datos brutos del store en listas listas para consumir por cada Grid.
+ * 3. Pasar los datos procesados y los callbacks de acciones a los componentes de Grid "tontos".
+ * NO contiene estado local (`useState`) para la lógica de negocio.
+ *
+ * 🔄 FLUJO DE DATOS:
+ * 1. `useDashboardStore()`: Se suscribe al estado global (categorías, secciones, productos, selecciones).
+ * 2. `useMemo` (Hooks de Derivación): Se utilizan varios `useMemo` para transformar los datos brutos del
+ *    store en las listas específicas que cada Grid necesita, recalculando solo cuando los datos base cambian.
+ *    - `grid1Items`: Combina categorías reales + productos directos globales.
+ *    - `sectionsAndLocalProducts`: Combina secciones + productos directos locales de la categoría seleccionada.
+ *    - `grid3Items`: Productos de la sección seleccionada.
+ * 3. `Props Drilling` (Controlado): Pasa las listas y los manejadores de eventos (que llaman a acciones del store)
+ *    a `CategoryGridView`, `SectionGridView` y `ProductGridView`.
+ *
+ * 🔗 CONEXIONES DIRECTAS:
+ * - **Consume Estado de:** `useDashboardStore`.
+ * - **Dispara Acciones en:** `useDashboardStore` (ej. `setSelectedCategoryId`) y `useModalState` (ej. `openModal`).
+ * - **Renderiza Componentes Hijos:** `DashboardHeader`, `CategoryGridView`, `SectionGridView`, `ProductGridView`, y todos los `EditModals`.
+ *
+ * 🚨 PROBLEMA RESUELTO (Bitácora #13, #32):
+ * - Se eliminó el `useState` local para manejar selecciones, que rompía el flujo de datos unidireccional y causaba una UI no responsiva.
+ * - La lógica de derivación de datos con `useMemo` previene bucles infinitos en React 19 que ocurrían cuando el filtrado se hacía en el selector de Zustand.
+ * - Se implementó la lógica para manejar la "Arquitectura Híbrida Definitiva" (Bitácora #35), mostrando correctamente las listas mixtas.
+ *
+ * ⚠️ REGLAS DE NEGOCIO:
+ * - Los type guards (`'price' in item`) son cruciales en los manejadores de eventos para diferenciar entre los tipos de ítems en las listas mixtas.
+ * - La lógica de `useMemo` es la ÚNICA fuente de verdad para el contenido de los grids.
  */
-'use client';
 
-import React, { useMemo, useEffect } from 'react';
+/**
+ * 📜 Recordatorio del Mandamiento #7: Separación Absoluta de Lógica y Presentación
+ * ---------------------------------------------------------------------------------
+ * "Separarás estrictamente la lógica de la presentación. Los componentes UI serán tan
+ * simples (‘tontos’) como sea posible. La lógica de negocio, manejo de datos y
+ * efectos secundarios vivirán solo en hooks personalizados y librerías auxiliares (lib)."
+ */
+import React, { useMemo } from 'react';
 import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
-import { useModalState } from '@/app/dashboard-v2/hooks/ui/useModalState';
+import { useModalState, ItemType } from '@/app/dashboard-v2/hooks/ui/useModalState';
+import { Category, Section, Product } from '@/app/dashboard-v2/types';
+
+import { DashboardHeader } from './DashboardHeader';
 import { CategoryGridView } from '../domain/categories/CategoryGridView';
 import { SectionGridView } from '../domain/sections/SectionGridView';
 import { ProductGridView } from '../domain/products/ProductGridView';
 import { EditCategoryModal, EditSectionModal, EditProductModal } from '../modals/EditModals';
 import { DeleteConfirmationModal } from '../modals/DeleteConfirmationModal';
-import { MoveItemModal } from '../modals/MoveItemModal';
-import { Category, Section, Product } from '@/app/dashboard-v2/types';
-import { getCategoryDisplayMode, isCategorySimpleMode } from '../../utils/categoryUtils';
 
-export const DashboardView: React.FC = () => {
-  const store = useDashboardStore();
-  const selectedCategoryId = useDashboardStore(state => state.selectedCategoryId);
-  const selectedSectionId = useDashboardStore(state => state.selectedSectionId);
-  const sections = useDashboardStore(state => state.sections);
-  const products = useDashboardStore(state => state.products);
-  const categories = useDashboardStore(state => state.categories);
+const DashboardView = () => {
+  // =================================================================
+  // 🧭 PASO 1: Conexión al Estado Global
+  // Se obtiene todo el estado y las acciones necesarias del store central.
+  // =================================================================
+  const {
+    client,
+    categories,
+    sections,
+    products,
+    isReorderMode,
+    toggleReorderMode,
+    toggleCategoryVisibility,
+    toggleSectionVisibility,
+    toggleProductVisibility,
+    selectedCategoryId,
+    selectedSectionId,
+    setSelectedCategoryId,
+    setSelectedSectionId,
+    toggleShowcaseStatus,
+  } = useDashboardStore();
 
-  const { modalState, openModal, closeModal, handleDeleteItem, handleMoveItem, handleConfirmDelete } = useModalState();
+  const { modalState, openModal, closeModal, handleConfirmDelete } = useModalState();
 
-  /**
-   * 🧭 MIGA DE PAN CONTEXTUAL: Effect para cargar datos cuando se selecciona categoría
-   * PORQUÉ NECESARIO: Vista escritorio usa master-detail, necesita cargar datos automáticamente
-   * CONEXIÓN: store.setSelectedCategoryId() en CategoryGridView.onCategorySelect dispara este effect
-   * T31.5: Ahora usa fetchDataForCategory para auto-detección y carga híbrida
-   * FLUJO: fetchDataForCategory → detecta si es simple/compleja → carga secciones y/o productos
-   */
-  useEffect(() => {
-    if (selectedCategoryId) {
-      store.fetchDataForCategory(selectedCategoryId);
-    }
-  }, [selectedCategoryId, store.fetchDataForCategory]);
+  // =================================================================
+  // 🧭 PASO 2: Derivación de Datos con `useMemo` para cada Grid
+  // Se procesan los datos brutos del store para crear las listas específicas.
+  // 🚨 Patrón CRÍTICO para evitar bucles de renderizado en React 19 con Zustand.
+  // =================================================================
 
-  /**
-   * 🧭 MIGA DE PAN CONTEXTUAL: Effect para cargar productos cuando se selecciona sección
-   * PORQUÉ: En vista escritorio, seleccionar sección debe mostrar productos inmediatamente
-   * CONEXIÓN: SectionGridView.onSectionSelect → store.setSelectedSectionId → este effect
-   * FLUJO: CategoryGrid → SectionGrid → ProductGrid (master-detail tradicional)
-   */
-  useEffect(() => {
-    if (selectedSectionId) store.fetchProductsBySection(selectedSectionId);
-  }, [selectedSectionId, store.fetchProductsBySection]);
+  // 🧠 Lógica Memoizada para encontrar el ID de la Sección Global.
+  // DEBE CALCULARSE PRIMERO porque grid1Items depende de él.
+  const globalSectionId = useMemo(() => {
+    const virtualCategory = categories.find((c) => c.is_virtual_category);
+    if (!virtualCategory) return undefined;
 
-  // --- DERIVED AND MEMOIZED DATA ---
-  
-  /**
-   * 🧭 MIGA DE PAN CONTEXTUAL (SOLUCIÓN FINAL AL BUG DE DUPLICACIÓN)
-   * 
-   * 🎯 PORQUÉ ESTE CAMBIO:
-   * El error de duplicación ocurría porque los componentes hijos recibían listas de datos "sucias"
-   * (mezcladas) y trataban de filtrarlas, causando inconsistencias.
-   * 
-   * ✅ LA SOLUCIÓN CORRECTA (Patrón: "Cálculo en el Padre"):
-   * 1. El componente padre (`DashboardView`) es el ÚNICO que conoce el estado global (productos, secciones).
-   * 2. Se usa `useMemo` para crear listas limpias y separadas para cada tipo de dato.
-   *    - `sectionsForCategory`: Solo las secciones de la categoría seleccionada.
-   *    - `directProductsForCategory`: Solo los productos cuyo `category_id` coincide.
-   *    - `productsForSection`: Solo los productos de la sección seleccionada.
-   * 3. Estas listas limpias y pre-calculadas se pasan como props a los componentes hijos.
-   * 4. Los componentes hijos ahora son "tontos": solo renderizan la lista que reciben, sin filtrar nada.
-   * 
-   * 🔗 CONEXIÓN: Este patrón es la aplicación correcta de la lección aprendida sobre los selectores de Zustand.
-   * Evita cálculos complejos en los hijos y centraliza la lógica de datos en el orquestador.
-   */
-  const sectionsForCategory = useMemo(
-    () => selectedCategoryId ? sections[selectedCategoryId] || [] : [],
-    [sections, selectedCategoryId]
-  );
-  
-  const directProductsForCategory = useMemo(
-    () => selectedCategoryId ? (products[`cat-${selectedCategoryId}`] || []).filter(p => p.category_id === selectedCategoryId) : [],
-    [products, selectedCategoryId]
-  );
-  
-  const productsForSection = useMemo(
-    () => selectedSectionId ? products[selectedSectionId] || [] : [],
-    [products, selectedSectionId]
-  );
+    const allSections = Object.values(sections).flat();
+    const virtualSection = allSections.find(
+      (s) => s.category_id === virtualCategory.category_id
+    );
+    return virtualSection?.section_id;
+  }, [categories, sections]);
 
-  const categoryDisplayMode = useMemo(() => {
-    if (!selectedCategoryId) return 'none';
-    return getCategoryDisplayMode(sectionsForCategory);
-  }, [selectedCategoryId, sectionsForCategory]);
-  
-  const isSimpleCategory = categoryDisplayMode === 'simple';
-  const isSectionsCategory = categoryDisplayMode === 'sections';
+  const allProducts = useMemo(() => Object.values(products).flat(), [products]);
 
-  /**
-   * DECISIÓN UX CRÍTICA: Layout dinámico según contexto de selección
-   * PORQUÉ COMPLEJO: Diferentes tipos de categorías requieren diferentes layouts
-   * - Sin selección: Categorías ocupan todo el ancho (mejor UX para selección inicial)
-   * - Categoría simple: 2 columnas (categorías + productos, sin secciones intermedias)
-   * - Categoría compleja: 2-3 columnas (categorías + secciones + productos opcionales)
-   * CONEXIÓN: Se aplica en className del grid container principal
-   */
-  const gridColsClass = (() => {
-    if (isSimpleCategory && selectedCategoryId) {
-      return 'lg:grid-cols-2';
-    }
-    if (isSectionsCategory) {
-      return selectedSectionId
-        ? 'lg:grid-cols-3' // 3 columnas: categorías + secciones + productos
-        : selectedCategoryId
-          ? 'lg:grid-cols-2' // 2 columnas: categorías + secciones
-          : '';
-    }
-    return ''; // 1 columna por defecto
-  })();
+  // 🧠 Memo para Grid 1: Categorías y Productos Globales
+  const grid1Items = useMemo(() => {
+    // 1. Obtener las categorías que no son virtuales.
+    const realCategories = categories.filter((c) => !c.is_virtual_category);
 
-  if (!store.client) return <div className="p-8 text-center">Cargando cliente...</div>;
+    // 2. ✅ CORRECCIÓN: Obtener los productos globales filtrando por el ID de la sección virtual.
+    const globalDirectProducts = allProducts.filter((p) => p.section_id === globalSectionId);
+
+    // 3. Ordenar y combinar.
+    return [...realCategories, ...globalDirectProducts].sort(
+      (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
+    );
+  }, [categories, allProducts, globalSectionId]);
+
+  // 🧠 Memo para Grid 2: Secciones y Productos Locales
+  const sectionsAndLocalProducts = useMemo(() => {
+    if (!selectedCategoryId) return [];
+
+    // Obtiene las secciones y productos directos para la categoría seleccionada.
+    const sectionsForCategory = sections[selectedCategoryId] || [];
+    const localDirectProducts = products[`cat-${selectedCategoryId}`] || [];
+
+    // Combina y ordena.
+    const combined = [...sectionsForCategory, ...localDirectProducts].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+
+    return combined;
+  }, [selectedCategoryId, sections, products]);
+
+  // 🧠 Memo para Grid 3: Productos de una Sección
+  const grid3Items: Product[] = useMemo(() => {
+    if (!selectedSectionId) return [];
+    return products[selectedSectionId] || [];
+  }, [selectedSectionId, products]);
+
+  // =================================================================
+  // 🧭 PASO 3: Manejadores de Eventos
+  // Delegan toda la lógica a las acciones del store o del hook de modales.
+  // =================================================================
+
+  const handleCategorySelect = (category: Category) => {
+    const newId = selectedCategoryId === category.category_id ? null : category.category_id;
+    setSelectedCategoryId(newId);
+  };
+
+  const handleSectionSelect = (section: Section) => {
+    const newId = selectedSectionId === section.section_id ? null : section.section_id;
+    setSelectedSectionId(newId);
+  };
 
   return (
-    <div className="flex-1 p-4 md:p-6 lg:p-8 bg-gray-50 min-h-screen">
-      <div className={`grid grid-cols-1 ${gridColsClass} gap-6 h-full items-start`}>
-        {/* Columna de Categorías (siempre visible) */}
-        <div className={!selectedCategoryId ? 'lg:col-span-full' : ''}>
-          <CategoryGridView
-            categories={categories}
-            directProducts={directProductsForCategory}
-            onCategorySelect={(cat) => store.setSelectedCategoryId(cat.category_id)}
-            onToggleVisibility={(cat) => store.toggleCategoryVisibility(cat.category_id, cat.status)}
-            onEdit={(cat) => openModal('editCategory', cat)}
-            onDelete={(cat) => handleDeleteItem(cat, 'category')}
-            onAddNew={() => openModal('editCategory', null)}
-            selectedCategoryId={selectedCategoryId}
-            onAddProductDirect={() => openModal('editProductDirect', null)}
-            onProductEdit={(prod) => openModal('editProductDirect', prod)}
-            onProductDelete={(prod) => handleDeleteItem(prod, 'product')}
-            onProductToggleVisibility={(prod) => store.toggleProductVisibility(prod.product_id, prod.status)}
-          />
-        </div>
+    <div className="flex-1 flex flex-col h-full bg-gray-50">
+      <DashboardHeader />
 
-        {/* 
-         * 🧭 MIGA DE PAN CONTEXTUAL (REFACTORIZACIÓN CRÍTICA)
-         *
-         * 🎯 PORQUÉ ESTE CAMBIO:
-         * El error de duplicación ocurría porque la lógica anterior SIEMPRE renderizaba SectionGridView
-         * en la segunda columna, sin importar el tipo de categoría.
-         *
-         * 🔄 NUEVO FLUJO DE RENDERIZADO:
-         * 1. Calculamos `categoryDisplayMode` ('sections' o 'simple') de forma segura con useMemo.
-         * 2. Usamos ese valor para decidir QUÉ componente renderizar en la segunda columna.
-         * 3. Si es 'sections', renderizamos SectionGridView.
-         * 4. Si es 'simple', la lógica de productos directos YA está dentro de CategoryGridView.
-         *    Por lo tanto, la segunda y tercera columna NO deben renderizarse para categorías simples.
-         *    El layout se ajusta con `gridColsClass` para que CategoryGridView ocupe más espacio.
-         *
-         * ✅ RESULTADO: Se elimina la duplicación. Cada componente tiene su única responsabilidad.
-         * SectionGridView -> Solo muestra secciones.
-         * CategoryGridView -> Muestra categorías y (si los tiene) sus productos directos.
-         * ProductGridView -> Muestra productos de una sección.
-         */}
+      {/* ================================================================= */}
+      {/* 🧭 PASO 4: Renderizado de Grids                                   */}
+      {/* Se pasan los datos derivados y los manejadores a los componentes  */}
+      {/* "tontos" que solo se encargan de pintar la UI.                  */}
+      {/* ================================================================= */}
+      <main className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 overflow-y-auto">
 
-        {/* Columna 2: Secciones (SÓLO si la categoría las tiene) */}
-        {selectedCategoryId && isSectionsCategory && (
-          <div className="min-w-0 flex-1">
-            <SectionGridView
-              sections={sectionsForCategory}
-              onSectionSelect={(section: Section) => store.setSelectedSectionId(section.section_id)}
-              onToggleVisibility={(section: Section) => store.toggleSectionVisibility(section.section_id, section.status)}
-              onEdit={(section: Section) => openModal('editSection', section)}
-              onDelete={(section: Section) => handleDeleteItem(section, 'section')}
-              onMove={(section: Section) => handleMoveItem(section, 'section')}
-              onAddNew={() => openModal('editSection', null)}
-              onAddProduct={(section) => {
-                store.setSelectedSectionId(section.section_id);
-                openModal('editProduct', null);
-              }}
-            />
-          </div>
-        )}
+        {/* Grid 1: Categorías y Productos Globales */}
+        <CategoryGridView
+          items={grid1Items}
+          selectedCategoryId={selectedCategoryId}
+          onCategorySelect={handleCategorySelect}
+          onProductSelect={() => { }} // Placeholder, productos directos no son seleccionables
+          onToggleVisibility={(item) => {
+            if ('price' in item) { // Es Producto
+              toggleProductVisibility(item.product_id, !item.status);
+            } else { // Es Categoría
+              toggleCategoryVisibility(item.category_id, !item.status);
+            }
+          }}
+          onEdit={(item) => {
+            if ('price' in item) { // Es Producto
+              openModal('editProduct', { item, isDirect: true, isGlobal: true });
+            } else { // Es Categoría
+              openModal('editCategory', { item });
+            }
+          }}
+          onDelete={(item) => {
+            if ('price' in item) { // Es Producto
+              openModal('deleteConfirmation', { item, type: 'product' });
+            } else { // Es Categoría
+              openModal('deleteConfirmation', { item, type: 'category' });
+            }
+          }}
+          onAddNewCategory={() => openModal('editCategory')}
+          onAddNewProductDirect={() => openModal('editProduct', { isDirect: true, isGlobal: true })}
+        />
 
-        {/* Columna 3: Productos de una Sección (SÓLO si hay una sección seleccionada) */}
-        {selectedSectionId && (
-          <div className="min-w-0 flex-1">
-            <ProductGridView
-              products={productsForSection}
-              onToggleVisibility={(product: Product) => store.toggleProductVisibility(product.product_id, product.status)}
-              onEdit={(product: Product) => openModal('editProduct', product)}
-              onDelete={(product: Product) => handleDeleteItem(product, 'product')}
-              onMove={(product: Product) => handleMoveItem(product, 'product')}
-              onAddNew={() => openModal('editProduct', null)}
-            />
-          </div>
-        )}
-      </div>
+        {/* Grid 2: Secciones y Productos Locales */}
+        <SectionGridView
+          sections={sectionsAndLocalProducts}
+          title="Secciones"
+          selectedSectionId={selectedSectionId}
+          onSectionSelect={handleSectionSelect}
+          onToggleVisibility={(item) => {
+            if ('price' in item) { // Es Producto
+              toggleProductVisibility(item.product_id, !item.status);
+            } else { // Es Sección
+              toggleSectionVisibility((item as Section).section_id, !item.status);
+            }
+          }}
+          onEdit={(item) => {
+            if ('price' in item) { // Es Producto
+              openModal('editProduct', { item, isDirect: true });
+            } else { // Es Sección
+              openModal('editSection', { item });
+            }
+          }}
+          onDelete={(item) => {
+            if ('price' in item) { // Es Producto
+              openModal('deleteConfirmation', { item, type: 'product' });
+            } else { // Es Sección
+              openModal('deleteConfirmation', { item, type: 'section' });
+            }
+          }}
+          isCategorySelected={!!selectedCategoryId}
+          onAddNew={() => selectedCategoryId ? openModal('editSection', { parentId: selectedCategoryId }) : null}
+          onAddProductDirect={() => selectedCategoryId ? openModal('editProduct', { parentId: selectedCategoryId, isDirect: true }) : null}
+        />
 
-      {/* --- Modales --- */}
+        {/* Grid 3: Productos de Sección */}
+        <ProductGridView
+          products={grid3Items}
+          title="Productos"
+          onToggleVisibility={(item) => toggleProductVisibility(item.product_id, !item.status)}
+          onToggleShowcase={toggleShowcaseStatus}
+          onEdit={(item) => openModal('editProduct', { item })}
+          onDelete={(item) => openModal('deleteConfirmation', { item, type: 'product' })}
+          onAddNew={() => { if (selectedSectionId) openModal('editProduct', { parentId: selectedSectionId }); }}
+          isSectionSelected={!!selectedSectionId}
+        />
+      </main>
+
+      {/* ================================================================= */}
+      {/* 🧭 PASO 5: Renderizado de Modales                                 */}
+      {/* Los modales se controlan a través del `useModalState` hook.      */}
+      {/* ================================================================= */}
       <EditCategoryModal
         isOpen={modalState.type === 'editCategory'}
         onClose={closeModal}
-        category={modalState.data as Category | null}
-        clientId={store.client.id}
+        category={modalState.options.item as Category | null}
+        clientId={client?.client_id}
       />
       <EditSectionModal
         isOpen={modalState.type === 'editSection'}
         onClose={closeModal}
-        section={modalState.data as Section | null}
-        categoryId={selectedCategoryId ?? undefined}
+        section={modalState.options.item as Section | null}
+        categoryId={modalState.options.parentId || (modalState.options.item as Section)?.category_id}
       />
       <EditProductModal
-        isOpen={modalState.type === 'editProduct' || modalState.type === 'editProductDirect'}
+        isOpen={modalState.type === 'editProduct'}
         onClose={closeModal}
-        product={modalState.data as Product | null}
-        sectionId={selectedSectionId ?? undefined}
-        categoryId={selectedCategoryId ?? undefined}
-        isDirect={modalState.type === 'editProductDirect'}
+        product={modalState.options.item as Product | null}
+        sectionId={modalState.options.parentId}
+        categoryId={modalState.options.parentId}
+        isDirect={modalState.options.isDirect}
       />
       <DeleteConfirmationModal
-        isOpen={modalState.type === 'delete'}
+        isOpen={modalState.type === 'deleteConfirmation'}
         onClose={closeModal}
         onConfirm={handleConfirmDelete}
-        itemType={modalState.itemType || ''}
-      />
-      <MoveItemModal
-        isOpen={modalState.type === 'move'}
-        onClose={closeModal}
-        item={modalState.data}
-        itemType={modalState.itemType || 'product'}
+        itemType={modalState.options.type ?? 'item'}
       />
     </div>
   );
 };
 
-export default DashboardView; 
+export default DashboardView;

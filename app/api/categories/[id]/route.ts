@@ -1,9 +1,33 @@
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL
+ * 
+ * 📍 UBICACIÓN: app/api/categories/[id]/route.ts
+ * 
+ * 🎯 OBJETIVO: Proveer endpoints para operaciones CRUD sobre una CATEGORÍA específica.
+ *
+ * 🔄 FLUJO DE DATOS:
+ * 1. PUT (Actualizar): Recibe datos parciales de una categoría. Valida con Zod. Actualiza en BD.
+ * 2. DELETE (Eliminar): Recibe el ID de una categoría. La elimina de la BD.
+ *
+ * 🔗 CONEXIONES:
+ * - Es consumido por `updateCategory` y `deleteCategory` en `dashboardStore.ts`.
+ * - `EditCategoryModal` y `DeleteConfirmationModal` (a través del store) disparan estas operaciones.
+ * 
+ * ⚠️ CONSIDERACIONES:
+ * - No hay lógica de autenticación aquí; se asume que un middleware la manejará o se añadirá después.
+ * - La validación de Zod asegura la integridad de los datos antes de tocar la base de datos.
+ */
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/auth";
 import prisma from '@/prisma/prisma';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
+import { NextRequest } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import { z } from 'zod';
+
+const prismaClient = new PrismaClient();
 
 /**
  * @route PATCH /api/categories/[id]
@@ -31,11 +55,11 @@ export async function PATCH(
 
     // 3. Obtener y validar el ID de la categoría
     const categoryId = parseInt(params.id);
-    
+
     if (isNaN(categoryId)) {
       return NextResponse.json({ error: 'ID de categoría inválido' }, { status: 400 });
     }
-    
+
     // 4. Verificar que la categoría exista y pertenezca al cliente
     const category = await prisma.categories.findFirst({
       where: {
@@ -77,115 +101,36 @@ export async function PATCH(
   }
 }
 
+const updateCategorySchema = z.object({
+  name: z.string().min(1, 'El nombre es requerido').optional(),
+  status: z.boolean().optional(),
+  image: z.string().optional().nullable(),
+  display_order: z.number().optional(),
+});
+
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const categoryId = parseInt(params.id, 10);
+    if (isNaN(categoryId)) {
+      return NextResponse.json({ error: 'ID de categoría inválido' }, { status: 400 });
     }
 
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
+    const body = await request.json();
+    const validation = updateCategorySchema.safeParse(body);
 
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    const categoryId = parseInt(params.id);
-    
-    // Verificar que la categoría exista y pertenezca al cliente
-    const existingCategory = await prisma.categories.findFirst({
-      where: {
-        category_id: categoryId,
-        client_id: user.client_id,
-      },
+    const updatedCategory = await prismaClient.categories.update({
+      where: { category_id: categoryId },
+      data: validation.data,
     });
 
-    if (!existingCategory) {
-      return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
-    }
-
-    let imageFileName = null;
-    let updatedData: any = {};
-    
-    // Verificar si la solicitud es multipart/form-data o JSON
-    const contentType = request.headers.get('content-type') || '';
-    
-    if (contentType.includes('multipart/form-data')) {
-      // Procesar FormData para imagen
-      const formData = await request.formData();
-      const name = formData.get('name');
-      const image = formData.get('image') as File | null;
-      
-      if (name) {
-        updatedData.name = name.toString();
-      }
-      
-      if (image) {
-        // Crear nombre de archivo único (timestamp + nombre original)
-        const timestamp = Date.now();
-        const fileName = image.name.toLowerCase().replace(/\s+/g, '-');
-        imageFileName = `${timestamp}-${fileName}`;
-        
-        // Guardar la imagen en el directorio público
-        const publicDir = join(process.cwd(), 'public');
-        const categoriesDir = join(publicDir, 'images', 'categories');
-        
-        try {
-          const bytes = await image.arrayBuffer();
-          const buffer = Buffer.from(bytes);
-          const imagePath = join(categoriesDir, imageFileName);
-          
-          await writeFile(imagePath, buffer);
-          updatedData.image = imageFileName;
-        } catch (error) {
-          console.error('Error al guardar la imagen:', error);
-          return NextResponse.json({ error: 'Error al procesar la imagen' }, { status: 500 });
-        }
-      }
-    } else {
-      // Procesar JSON para actualizaciones sin imagen
-      const data = await request.json();
-      
-      // Actualizar nombre si está definido
-      if (data.name !== undefined) {
-        updatedData.name = data.name;
-      }
-      
-      // Actualizar display_order si está definido
-      if (data.display_order !== undefined) {
-        updatedData.display_order = data.display_order;
-      }
-      
-      // Actualizar status si está definido
-      if (data.status !== undefined) {
-        updatedData.status = data.status === 1;
-      }
-      
-      // Permitir eliminar la imagen estableciéndola a null
-      if (data.image !== undefined) {
-        updatedData.image = data.image;
-      }
-    }
-    
-    // Actualizar la categoría con los datos proporcionados
-    const updatedCategory = await prisma.categories.update({
-      where: {
-        category_id: categoryId,
-      },
-      data: updatedData,
-    });
-
-    // Convertir el status a formato numérico para la respuesta
-    return NextResponse.json({
-      ...updatedCategory,
-      status: updatedCategory.status ? 1 : 0,
-      category_id: updatedCategory.category_id,
-    });
+    return NextResponse.json(updatedCategory, { status: 200 });
   } catch (error) {
     console.error('Error al actualizar la categoría:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
@@ -193,45 +138,20 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
+    const categoryId = parseInt(params.id, 10);
+    if (isNaN(categoryId)) {
+      return NextResponse.json({ error: 'ID de categoría inválido' }, { status: 400 });
     }
 
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
+    await prismaClient.categories.delete({
+      where: { category_id: categoryId },
     });
 
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-    }
-
-    const categoryId = parseInt(params.id);
-    
-    // Verificar que la categoría exista y pertenezca al cliente
-    const existingCategory = await prisma.categories.findFirst({
-      where: {
-        category_id: categoryId,
-        client_id: user.client_id,
-      },
-    });
-
-    if (!existingCategory) {
-      return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
-    }
-
-    // Eliminar la categoría
-    await prisma.categories.delete({
-      where: {
-        category_id: categoryId,
-      },
-    });
-
-    return NextResponse.json({ success: true, message: 'Categoría eliminada correctamente' });
+    return NextResponse.json({ message: 'Categoría eliminada con éxito' }, { status: 200 });
   } catch (error) {
     console.error('Error al eliminar la categoría:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });

@@ -5,6 +5,38 @@
  * @module app/api/categories/route
  */
 
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL MAESTRA: API de Categorías
+ *
+ * 📍 UBICACIÓN: app/api/categories/route.ts
+ *
+ * 🎯 PORQUÉ EXISTE:
+ * Este endpoint es el responsable de servir la lista de categorías al frontend.
+ * Es una de las primeras llamadas que se hacen al cargar el dashboard y es
+ * fundamental para la arquitectura híbrida.
+ *
+ * 🔄 FLUJO DE DATOS:
+ * 1. El `dashboardStore` (acción `fetchCategories`) llama a esta función GET.
+ * 2. Se valida la sesión del usuario.
+ * 3. Se hace una consulta a la base de datos (`prisma.categories.findMany`).
+ * 4. 🚨 PUNTO CRÍTICO: Se procesan los resultados para añadir contadores de secciones.
+ * 5. Se devuelve un array de categorías enriquecido al frontend.
+ *
+ * 🚨 PROBLEMAS HISTÓRICOS RESUELTOS:
+ * - **"El Bug Fantasma" (Junio 2025):** La UI mostraba la categoría `__VIRTUAL_GLOBAL__` en lugar de sus productos. La causa raíz fue doble:
+ *   1. El `select` en la consulta de Prisma NO incluía el campo `is_virtual_category`.
+ *   2. El objeto final que se mapeaba antes de devolver la respuesta también lo omitía.
+ *   Esto causaba que el frontend nunca supiera qué categoría era la virtual.
+ * - **SOLUCIÓN:** Se añadió `is_virtual_category` tanto en el `select` de Prisma como en el objeto de mapeo final. (Ver Bitácora #37).
+ *
+ * 🔗 DEPENDENCIAS CRÍTICAS:
+ * - Es llamado por `dashboardStore.ts`.
+ * - Un cambio en la estructura del objeto de respuesta aquí romperá la UI en `DashboardView.tsx`.
+ *
+ * 📖 MANDAMIENTOS RELACIONADOS:
+ * - #6 (Separación de Responsabilidades): La lógica de consulta y formateo de datos de categorías vive aquí, no en el cliente.
+ */
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -30,6 +62,7 @@ interface ProcessedCategory {
   products: number;
   sections_count?: number;
   visible_sections_count?: number;
+  is_virtual_category: boolean;
 }
 
 /**
@@ -111,6 +144,7 @@ export async function GET(request: Request) {
         status: true,
         display_order: true,
         client_id: true,
+        is_virtual_category: true,
       },
       skip,
       take,
@@ -150,7 +184,8 @@ export async function GET(request: Request) {
           client_id: category.client_id || 0,
           products: 0, // Simplificación temporal: no calculamos productos para evitar errores
           sections_count: totalSections,
-          visible_sections_count: visibleSections
+          visible_sections_count: visibleSections,
+          is_virtual_category: category.is_virtual_category,
         };
       })
     );
@@ -279,6 +314,7 @@ export async function POST(request: Request) {
       display_order: newCategory.display_order || 0,
       client_id: newCategory.client_id || 0,
       products: 0, // Nueva categoría, sin productos
+      is_virtual_category: newCategory.is_virtual_category,
     };
 
     return NextResponse.json(processedCategory);
@@ -377,6 +413,7 @@ export async function PUT(request: Request) {
       display_order: updatedCategory.display_order || 0,
       client_id: updatedCategory.client_id || 0,
       products: 0, // Simplificación temporal: no calculamos productos para evitar errores
+      is_virtual_category: updatedCategory.is_virtual_category,
     };
 
     return NextResponse.json(processedCategory);

@@ -1,312 +1,215 @@
 /**
- * @fileoverview MobileView - Componente principal para la interfaz de usuario en dispositivos móviles.
- * @description
- * Este componente actúa como el controlador central para la navegación y visualización en la vista móvil.
- * Ahora es un componente "tonto" que consume su estado y lógica del store centralizado de Zustand (`useDashboardStore`).
- * Esto resuelve los problemas de rendimiento y bucles de renderizado de la arquitectura anterior.
+ * 🧭 MIGA DE PAN CONTEXTUAL MAESTRA: Orquestador de la Vista Móvil
  *
- * ✅ T32.3 COMPLETADO - INTEGRACIÓN AUTO-DETECCIÓN: Unifica comportamiento entre escritorio y móvil
- * usando la misma lógica de auto-detección inteligente para jerarquía flexible.
+ * 📍 UBICACIÓN: app/dashboard-v2/views/MobileView.tsx
  *
- * @architecture
- * Este componente está envuelto en un `<DragDropContext>` para soportar la funcionalidad de
- * arrastrar y soltar en sus componentes hijos (como `SectionList`), aunque esta funcionalidad
- * pueda estar desactivada visualmente en la vista móvil por defecto. El manejador `onDragEnd`
- * es necesario para que el contexto funcione correctamente.
+ * 🎯 PORQUÉ EXISTE:
+ * Este componente es el controlador principal para la experiencia de usuario en dispositivos móviles.
+ * Implementa un patrón de navegación "Drill-Down" (taladro), donde el usuario navega a través de
+ * niveles jerárquicos (Categorías -> Secciones -> Productos) en una sola vista que se actualiza.
+ *
+ * 🔄 FLUJO DE DATOS Y ESTADO:
+ * 1. **Estado Global (`useDashboardStore`):** Consume los datos (categorías, secciones, productos) y las
+ *    acciones CRUD del store central. También utiliza los `selectedCategoryId` y `selectedSectionId`
+ *    del store para filtrar los datos a mostrar.
+ * 2. **Estado Local (`useState`):** Utiliza un estado local `currentView` para controlar qué
+ *    lista se está mostrando en un momento dado ('categories', 'sections', o 'products'). Este es
+ *    un uso ACEPTABLE de `useState` porque el estado de la navegación es puramente local a la
+ *    vista móvil y no necesita ser compartido globalmente.
+ * 3. **Navegación:**
+ *    - `handleCategorySelect`: Actualiza el `selectedCategoryId` en el store y cambia `currentView` a 'sections'.
+ *    - `handleSectionSelect`: Actualiza el `selectedSectionId` en el store y cambia `currentView` a 'products'.
+ *    - `handleBack`: Navega hacia atrás en la jerarquía, limpiando la selección correspondiente en el store.
+ * 4. **Renderizado Condicional:** Muestra `CategoryList`, `SectionList`, o `ProductList` basado en el valor de `currentView`.
+ * 5. **FAB Contextual:** El Botón de Acción Flotante (`Fab`) cambia su acción (`onClick`) dependiendo de `currentView`.
+ *
+ * 🔗 CONEXIONES DIRECTAS:
+ * - **Consume Estado de:** `useDashboardStore`, `useModalState`.
+ * - **Renderiza Componentes Hijos:** `CategoryList`, `SectionList`, `ProductList`, `Fab`, y todos los `EditModals`.
+ *
+ * 🚨 PROBLEMA RESUELTO:
+ * - Se refactorizó para consumir datos y tipos del `dashboardStore` v2, eliminando la dependencia de hooks y tipos `legacy`.
+ * - Los componentes de lista (`CategoryList`, `SectionList`, `ProductList`) fueron refactorizados para ser más simples y consistentes, usando `GenericRow`.
+ *
+ * ⚠️ REGLAS DE NEGOCIO:
+ * - El flujo de navegación es estrictamente jerárquico. No se puede saltar de categorías a productos directamente.
+ * - El botón "Volver" es la única forma de navegar hacia arriba en la jerarquía.
  */
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useSession } from 'next-auth/react';
+import React, { useState } from 'react';
 import { useDashboardStore } from '../stores/dashboardStore';
-import { CategoryList } from '../components/domain/categories/CategoryList';
-import { SectionListView } from '../components/domain/sections/SectionListView';
-import { ProductListView } from '../components/domain/products/ProductListView';
-import Fab from '../components/ui/Fab';
-import { useModalStore } from '../hooks/ui/state/useModalStore';
-import { ModalManager } from '../components/modals/ModalManager';
-import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/solid';
+import { useModalState } from '../hooks/ui/useModalState';
 import { Category, Section, Product } from '../types';
-import { toast } from 'react-hot-toast';
-import { getCategoryDisplayMode } from '../utils/categoryUtils';
+import { ArrowLeftIcon, PlusIcon } from '@heroicons/react/24/solid';
 
-export const MobileView: React.FC = () => {
-    // --- CONEXIÓN AL STORE CENTRAL DE ZUSTAND ---
+// Vistas de lista (ahora todas usan exportaciones nombradas y tipos v2)
+import { CategoryList } from '../components/domain/categories/CategoryList';
+import { SectionList } from '../components/domain/sections/SectionList';
+import { ProductList } from '../components/domain/products/ProductList';
+
+// Componentes UI
+import Fab from '../components/ui/Fab';
+import { EditCategoryModal, EditSectionModal, EditProductModal } from '../components/modals/EditModals';
+import { DeleteConfirmationModal } from '../components/modals/DeleteConfirmationModal';
+import { Loader } from '../components/ui/Loader';
+
+export const MobileView = () => {
+    // =================================================================
+    // 🧭 PASO 1: Conexión a Estados Globales
+    // Se suscribe tanto al store de datos (`dashboardStore`) como al de modales (`useModalState`).
+    // =================================================================
     const {
         categories,
         sections,
         products,
-        activeView,
-        activeCategoryId,
-        activeSectionId,
-        handleCategorySelect,
-        handleSectionSelect,
-        handleBack,
-        fetchCategories,
-        fetchDataForCategory,
+        selectedCategoryId,
+        setSelectedCategoryId,
+        selectedSectionId,
+        setSelectedSectionId,
         toggleCategoryVisibility,
         toggleSectionVisibility,
         toggleProductVisibility,
         isLoading,
         initialDataLoaded,
+        client
     } = useDashboardStore();
 
-    // 🎯 CORREGIDO: Lógica de los hooks eliminados, ahora implementada de forma segura con `useMemo`.
-    const categoryDisplayMode = useMemo(() => {
-        if (!activeCategoryId) return 'none';
-        const categorySections = sections[activeCategoryId] || [];
-        return getCategoryDisplayMode(categorySections);
-    }, [activeCategoryId, sections]);
+    const { modalState, openModal, closeModal, handleConfirmDelete } = useModalState();
 
-    const categoryProducts = useMemo(() => {
-        if (activeSectionId) {
-            return products[activeSectionId] || [];
-        } else if (activeCategoryId) {
-            // Para la vista móvil, los productos de una categoría son todos los híbridos
-            return products[`cat-${activeCategoryId}`] || [];
-        }
-        return [];
-    }, [activeCategoryId, activeSectionId, products]);
+    // =================================================================
+    // 🧭 PASO 2: Estado de Navegación Local
+    // `currentView` controla qué nivel de la jerarquía se muestra.
+    // =================================================================
+    const [currentView, setCurrentView] = useState<'categories' | 'sections' | 'products'>('categories');
 
-    const { openModal } = useModalStore();
-    const { data: session, status: sessionStatus } = useSession();
-    const clientId = session?.user?.client_id;
-
-    // --- CARGA DE DATOS INICIAL ---
-    useEffect(() => {
-        if (sessionStatus === 'authenticated' && clientId && !initialDataLoaded) {
-            fetchCategories(clientId);
-        }
-    }, [sessionStatus, clientId, fetchCategories, initialDataLoaded]);
-
-    /**
-     * 🧭 MIGA DE PAN CONTEXTUAL: Función wrapper que conecta la UI móvil con la lógica del store
-     * PORQUÉ EXISTE: Originalmente tenía lógica de auto-detección compleja, ahora es un simple wrapper
-     * PROBLEMA RESUELTO: Se eliminó la auto-detección que causaba navegación inconsistente
-     * CONEXIONES CRÍTICAS:
-     * - CategoryList.tsx línea ~45: onCategoryClick prop recibe esta función
-     * - dashboardStore.ts handleCategorySelect: La función real que maneja la navegación
-     * DECISIÓN ARQUITECTÓNICA: Mantener el wrapper para futuras mejoras sin cambiar la interfaz
-     * FLUJO: CategoryList onClick → handleCategorySelectWithAutoDetection → store.handleCategorySelect
-     */
-    const handleCategorySelectWithAutoDetection = (categoryId: number) => {
-        // Delegación directa al store - toda la lógica está centralizada allí
-        handleCategorySelect(categoryId);
+    // =================================================================
+    // 🧭 PASO 3: Manejadores de Navegación "Drill-Down"
+    // =================================================================
+    const handleCategorySelect = (category: Category) => {
+        setSelectedCategoryId(category.category_id);
+        setCurrentView('sections');
     };
 
-    /**
-     * 🧭 MIGA DE PAN CONTEXTUAL: Renderiza FAB (Floating Action Button) contextual según vista activa
-     * PORQUÉ COMPLEJO: Cada vista (categories/sections/products) necesita crear diferentes entidades
-     * CONEXIONES CRÍTICAS:
-     * - Fab.tsx: Componente reutilizable que recibe onClick y icon
-     * - ModalManager.tsx: openModal() que maneja todos los modales del sistema
-     * - useModalState.tsx: Hook que gestiona el estado de modales
-     * LÓGICA DE NEGOCIO: 
-     * - categories → crear nueva categoría
-     * - sections → crear nueva sección en categoría activa
-     * - products → crear producto (en categoría simple O sección específica)
-     * DECISIÓN UX: FAB siempre visible para acceso rápido a creación
-     */
+    const handleSectionSelect = (section: Section) => {
+        setSelectedSectionId(section.section_id);
+        setCurrentView('products');
+    };
+
+    const handleBack = () => {
+        if (currentView === 'products') {
+            setCurrentView('sections');
+            setSelectedSectionId(null);
+        } else if (currentView === 'sections') {
+            setCurrentView('categories');
+            setSelectedCategoryId(null);
+        }
+    };
+
     const renderFab = () => {
-        let onClickAction = () => { };
-        if (activeView === 'categories') {
-            onClickAction = () => openModal('newCategory');
-        } else if (activeView === 'sections' && activeCategoryId) {
-            onClickAction = () => openModal('newSection', { categoryId: activeCategoryId });
-        } else if (activeView === 'products' && activeCategoryId) {
-            // LÓGICA ADAPTATIVA: Diferentes flujos según tipo de categoría
-            if (categoryDisplayMode === 'simple') {
-                onClickAction = () => {
-                    // VALIDACIÓN CRÍTICA: Prevenir errores de estado inconsistente
-                    if (activeCategoryId) {
-                        openModal('newProduct', { categoryId: activeCategoryId });
-                    } else {
-                        toast.error('Error: No se puede determinar la categoría activa');
-                    }
-                };
-            } else if (activeSectionId) {
-                // Para categorías complejas, necesitamos la sección específica
-                const section = sections[activeCategoryId]?.find((s: Section) => s.section_id === activeSectionId);
-                onClickAction = () => openModal('newProduct', { section });
-            }
+        let fabAction = () => { };
+        switch (currentView) {
+            case 'categories':
+                fabAction = () => openModal('editCategory');
+                break;
+            case 'sections':
+                if (selectedCategoryId) {
+                    fabAction = () => openModal('editSection', { parentId: selectedCategoryId });
+                }
+                break;
+            case 'products':
+                if (selectedSectionId) {
+                    fabAction = () => openModal('editProduct', { parentId: selectedSectionId });
+                }
+                break;
         }
-        return <Fab onClick={onClickAction} icon={<PlusIcon className="h-6 w-6" />} />;
+        return <Fab onClick={fabAction} icon={<PlusIcon className="h-6 w-6" />} label="Añadir nuevo" />;
     };
 
-    /**
-     * 🧭 MIGA DE PAN CONTEXTUAL: Genera títulos dinámicos para la cabecera según contexto de navegación
-     * PORQUÉ NECESARIO: La navegación drill-down requiere títulos contextuales para orientación del usuario
-     * CONEXIONES: Se renderiza en la cabecera principal del componente (línea ~200)
-     * LÓGICA DE NEGOCIO:
-     * - products + categoría simple → nombre de la categoría (ej: "SNACKS")
-     * - products + categoría compleja → nombre de la sección (ej: "Hamburguesas Clásicas")
-     * - sections → nombre de la categoría (ej: "HAMBURGUESAS")
-     * - categories → título fijo "Categorías"
-     * DECISIÓN UX: Títulos descriptivos para que el usuario sepa dónde está en la jerarquía
-     */
-    const getTitle = () => {
-        if (activeView === 'products' && activeCategoryId) {
-            // Para categorías simples, mostrar nombre de categoría
-            if (categoryDisplayMode === 'simple') {
-                const category = categories.find((c: Category) => c.category_id === activeCategoryId);
-                return category?.name || 'Productos';
-            }
-            // Para categorías complejas, mostrar nombre de sección
-            if (activeSectionId) {
-                const section = sections[activeCategoryId]?.find((s: Section) => s.section_id === activeSectionId);
-                return section?.name || 'Productos';
-            }
-        }
-        if (activeView === 'sections' && activeCategoryId) {
-            const category = categories.find((c: Category) => c.category_id === activeCategoryId);
-            return category?.name || 'Secciones';
-        }
-        return 'Categorías';
-    };
+    // =================================================================
+    // 🧭 PASO 4: Lógica de Renderizado Condicional
+    // Basado en el estado de carga, y los datos filtrados del store.
+    // =================================================================
 
-    /**
-     * 🧭 MIGA DE PAN CONTEXTUAL: Callback crítico para sincronización tras operaciones CRUD
-     * PORQUÉ COMPLEJO: Diferentes vistas requieren diferentes estrategias de refresco
-     * PROBLEMA RESUELTO: Contadores desactualizados y vistas inconsistentes tras crear/editar
-     * CONEXIONES CRÍTICAS:
-     * - ModalManager.tsx: onSuccess prop que recibe esta función
-     * - dashboardStore.ts: fetchCategories, fetchProductsByCategory, fetchProductsBySection
-     * ESTRATEGIA DE REFRESCO:
-     * 1. Siempre refrescar categorías (para contadores de visibilidad)
-     * 2. Refrescar productos según contexto (categoría simple vs sección específica)
-     * 3. Caso especial: vista sections necesita fetchDataForCategory para actualizar modo
-     * DECISIÓN ARQUITECTÓNICA: Refresco granular para optimizar rendimiento
-     */
-    const handleModalSuccess = () => {
-        // CRÍTICO: Siempre refrescar categorías para mantener contadores sincronizados
-        if (clientId) {
-            useDashboardStore.getState().fetchCategories(clientId);
-        }
-
-        // Estrategia de refresco según contexto de navegación
-        if (activeCategoryId && categoryDisplayMode === 'simple') {
-            useDashboardStore.getState().fetchProductsByCategory(activeCategoryId);
-        }
-        else if (activeSectionId) {
-            useDashboardStore.getState().fetchProductsBySection(activeSectionId);
-        }
-
-        // CASO ESPECIAL: Vista sections necesita recalcular modo de visualización
-        // Esto maneja el caso donde se crea la primera sección en categoría vacía
-        if (activeView === 'sections' && activeCategoryId) {
-            useDashboardStore.getState().fetchDataForCategory(activeCategoryId);
-        }
-    };
-
-    /**
-     * 🧭 MIGA DE PAN CONTEXTUAL: Maneja eliminación de secciones con navegación inteligente
-     * PORQUÉ ESPECÍFICO: La eliminación de secciones puede dejar al usuario en estado inconsistente
-     * PROBLEMA RESUELTO: Usuario quedaba viendo productos de sección eliminada
-     * CONEXIONES: SectionListView.tsx onDelete prop recibe esta función
-     * LÓGICA DE NAVEGACIÓN:
-     * 1. Refrescar lista de secciones de la categoría
-     * 2. Si estamos viendo productos de la sección eliminada → navegar atrás
-     * 3. Limpiar activeSectionId si era la sección eliminada
-     * DECISIÓN UX: Navegación automática para evitar estados de error
-     */
-    const handleSectionDeleted = (sectionId: number) => {
-        // Refrescar datos de la categoría actual
-        if (activeCategoryId) {
-            useDashboardStore.getState().fetchSectionsByCategory(activeCategoryId);
-        }
-
-        // Navegación inteligente si estamos viendo la sección eliminada
-        if (activeView === 'products' && activeSectionId === sectionId) {
-            handleBack();
-        }
-
-        // Limpieza de estado para evitar referencias a sección inexistente
-        if (activeSectionId === sectionId) {
-            useDashboardStore.setState({ activeSectionId: null });
-        }
-    };
-
-    // --- RENDERIZADO CONDICIONAL POR ESTADO DE CARGA ---
-    if (sessionStatus === 'loading' || isLoading) {
-        return (
-            <div className="md:hidden p-4 bg-gray-50 min-h-screen flex items-center justify-center">
-                <p className="text-gray-500">Cargando dashboard...</p>
-            </div>
-        );
+    if (!initialDataLoaded || isLoading) {
+        return <div className="flex h-full w-full items-center justify-center"><Loader message="Cargando..." /></div>;
     }
 
+    // Filtra los datos del store basados en las selecciones actuales.
+    const sectionsForCategory = selectedCategoryId ? sections[selectedCategoryId] || [] : [];
+    const productsForSection = selectedSectionId ? products[selectedSectionId] || [] : [];
+
     return (
-        <div className="md:hidden p-4 bg-gray-50 min-h-screen relative pb-20">
-            <ModalManager
-                setCategories={() => { }}
-                setSections={() => { }}
-                setProducts={() => { }}
-                onSuccess={handleModalSuccess}
-                activeCategoryId={activeCategoryId ?? undefined}
-                activeSectionId={activeSectionId ?? undefined}
-            />
+        <div className="p-4 h-full flex flex-col bg-gray-50 relative pb-20">
+            {/* Botón de "Volver" condicional */}
+            {currentView !== 'categories' && (
+                <button onClick={handleBack} className="mb-4 text-blue-600 flex items-center font-semibold">
+                    <ArrowLeftIcon className="h-5 w-5 mr-2" />
+                    Volver
+                </button>
+            )}
 
-            <div className="bg-white p-4 rounded-lg shadow-md mb-4">
-                <div className="flex items-center mb-4">
-                    {activeView !== 'categories' && (
-                        <button onClick={handleBack} className="mr-4 p-2 rounded-full hover:bg-gray-100">
-                            <ArrowLeftIcon className="h-6 w-6 text-gray-700" />
-                        </button>
-                    )}
-                    <h2 className="text-xl font-bold capitalize">{getTitle()}</h2>
-                </div>
-
-                {activeView === 'categories' && (
+            <div className="flex-1 overflow-y-auto bg-white rounded-lg shadow-soft p-4">
+                {/* Renderizado condicional de la lista activa */}
+                {currentView === 'categories' && (
                     <CategoryList
                         categories={categories}
-                        onCategoryClick={(category: Category) => handleCategorySelectWithAutoDetection(category.category_id)}
-                        onEditCategory={(category: Category) => openModal('editCategory', { category })}
-                        onDeleteCategory={(category: Category) => openModal('deleteCategory', { category })}
-                        onToggleVisibility={(category: Category) => toggleCategoryVisibility(category.category_id, category.status)}
+                        onCategoryClick={handleCategorySelect}
+                        onEditCategory={(item: Category) => openModal('editCategory', { item })}
+                        onDeleteCategory={(item: Category) => openModal('deleteConfirmation', { item, type: 'category' })}
+                        onToggleVisibility={(item: Category) => toggleCategoryVisibility(item.category_id, !item.status)}
                         expandedCategories={{}}
                     />
                 )}
-
-                {/* ✅ T32.3 - RENDERIZADO ADAPTATIVO: Mostrar secciones SIEMPRE para permitir gestión */}
-                {activeView === 'sections' && activeCategoryId && (
-                    <SectionListView
-                        sections={sections[activeCategoryId] || []}
-                        onSectionClick={(section: Section) => handleSectionSelect(section.section_id)}
-                        onToggleVisibility={(section: Section) => {
-                            // 🧭 MIGA DE PAN: activeCategoryId está conectado con handleCategorySelect del store
-                            // y es fundamental para la jerarquía Category->Section->Product en la navegación móvil
-                            if (!activeCategoryId) {
-                                console.error('Error: activeCategoryId es null al cambiar visibilidad de sección');
-                                toast.error('Error de navegación. Regrese a categorías e intente de nuevo.');
-                                return;
-                            }
-                            toggleSectionVisibility(section.section_id, section.status);
-                        }}
-                        onEdit={(section: Section) => openModal('editSection', { section })}
-                        onDelete={(section: Section) => openModal('deleteSection', { section })}
+                {currentView === 'sections' && (
+                    <SectionList
+                        sections={sectionsForCategory}
+                        onSectionSelect={handleSectionSelect}
+                        onEdit={(item: Section) => openModal('editSection', { item })}
+                        onDelete={(item: Section) => openModal('deleteConfirmation', { item, type: 'section' })}
+                        onToggleVisibility={(item: Section) => toggleSectionVisibility(item.section_id, !item.status)}
                     />
                 )}
-
-                {/* ✅ T32.3 - PRODUCTOS ADAPTATIVOS: Usar productos de categoría O sección según modo */}
-                {activeView === 'products' && activeCategoryId && (
-                    <ProductListView
-                        products={categoryDisplayMode === 'simple' ? categoryProducts : (products[activeSectionId || 0] || [])}
-                        onToggleVisibility={(product: Product) => {
-                            // 🧭 MIGA DE PAN: Para categorías simples no necesitamos activeSectionId
-                            if (categoryDisplayMode === 'sections' && !activeSectionId) {
-                                console.error('Error: activeSectionId es null al intentar cambiar visibilidad de producto');
-                                toast.error('Error de navegación. Regrese a la categoría e intente de nuevo.');
-                                return;
-                            }
-                            toggleProductVisibility(product.product_id, product.status);
-                        }}
-                        onEdit={(product: Product) => openModal('editProduct', { product })}
-                        onDelete={(product: Product) => openModal('deleteProduct', { product })}
+                {currentView === 'products' && (
+                    <ProductList
+                        products={productsForSection}
+                        onEdit={(item: Product) => openModal('editProduct', { item })}
+                        onDelete={(item: Product) => openModal('deleteConfirmation', { item, type: 'product' })}
+                        onToggleVisibility={(item: Product) => toggleProductVisibility(item.product_id, !item.status)}
                     />
                 )}
             </div>
 
+            {/* FAB Contextual y Modales */}
             {renderFab()}
+
+            <EditCategoryModal
+                isOpen={modalState.type === 'editCategory'}
+                onClose={closeModal}
+                category={modalState.options.item as Category | null}
+                clientId={client?.client_id}
+            />
+            <EditSectionModal
+                isOpen={modalState.type === 'editSection'}
+                onClose={closeModal}
+                section={modalState.options.item as Section | null}
+                categoryId={modalState.options.parentId || (modalState.options.item as Section)?.category_id}
+            />
+            <EditProductModal
+                isOpen={modalState.type === 'editProduct'}
+                onClose={closeModal}
+                product={modalState.options.item as Product | null}
+                sectionId={modalState.options.parentId}
+                isDirect={modalState.options.isDirect}
+            />
+            <DeleteConfirmationModal
+                isOpen={modalState.type === 'deleteConfirmation'}
+                onClose={closeModal}
+                onConfirm={handleConfirmDelete}
+                itemType={modalState.options.type ?? 'item'}
+            />
         </div>
     );
 };
+
+export default MobileView;

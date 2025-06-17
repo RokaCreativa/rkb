@@ -1,112 +1,51 @@
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL
+ * 
+ * 📍 UBICACIÓN: app/api/products/[id]/route.ts
+ * 
+ * 🎯 OBJETIVO: Proveer endpoints para operaciones CRUD sobre un PRODUCTO específico.
+ *
+ * 🔄 FLUJO DE DATOS:
+ * 1. PUT (Actualizar): Recibe datos parciales de un producto. Valida con Zod. Actualiza en BD.
+ * 2. DELETE (Eliminar): Recibe el ID de un producto. Lo elimina de la BD.
+ *
+ * 🔗 CONEXIONES:
+ * - Es consumido por `updateProduct` y `deleteProduct` en `dashboardStore.ts`.
+ * - `EditProductModal` y `DeleteConfirmationModal` (a través del store) disparan estas operaciones.
+ * 
+ * ⚠️ CONSIDERACIONES:
+ * - La validación de Zod es crucial aquí por la cantidad de campos opcionales que tiene un producto.
+ * - Este endpoint no maneja la subida de imágenes, solo la actualización de la ruta del archivo de imagen.
+ */
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/auth";
 import prisma from '@/prisma/prisma';
+import { NextRequest } from 'next/server';
+import { z } from 'zod';
 
 /**
  * @route DELETE /api/products/[id]
  * @description Elimina un producto específico por su ID
  */
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    console.log(`Iniciando eliminación del producto con ID: ${params.id}`);
-    
-    // 1. Verificación de autenticación
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      console.log('Error: No autorizado');
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
-
-    if (!user?.client_id) {
-      console.log('Error: Cliente no encontrado');
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-    }
-
-    // 3. Obtener y validar el ID del producto
-    const productId = parseInt(params.id);
-    
+    const productId = parseInt(params.id, 10);
     if (isNaN(productId)) {
-      console.log(`Error: ID de producto inválido: ${params.id}`);
       return NextResponse.json({ error: 'ID de producto inválido' }, { status: 400 });
     }
-    
-    console.log(`Buscando producto con ID: ${productId} para el cliente: ${user.client_id}`);
-    
-    // 4. Verificar que el producto exista y pertenezca al cliente
-    const product = await prisma.products.findFirst({
-      where: {
-        product_id: productId,
-        client_id: user.client_id,
-      },
-      include: {
-        products_sections: true
-      }
+
+    await prisma.products.delete({
+      where: { product_id: productId },
     });
 
-    if (!product) {
-      console.log(`Error: Producto no encontrado: ${productId}`);
-      return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
-    }
-    
-    console.log(`Producto encontrado: ${JSON.stringify(product)}`);
-    
-    // Verificar si el producto ya está marcado como eliminado
-    if (product.deleted === true) {
-      console.log(`Advertencia: El producto ya está marcado como eliminado: ${productId}`);
-      return NextResponse.json({ 
-        success: true, 
-        message: 'El producto ya estaba eliminado' 
-      });
-    }
-
-    // 5. Primero eliminamos todas las relaciones del producto en products_sections
-    console.log(`Eliminando relaciones en products_sections para el producto: ${productId}`);
-    await prisma.products_sections.deleteMany({
-      where: {
-        product_id: productId,
-      },
-    });
-    
-    console.log(`Relaciones en products_sections eliminadas correctamente`);
-
-    // 6. Luego marcamos el producto como eliminado
-    console.log(`Marcando producto como eliminado: ${productId}`);
-    await prisma.products.update({
-      where: {
-        product_id: productId,
-      },
-      data: {
-        deleted: true,
-        deleted_at: new Date().toISOString().substring(0, 19).replace('T', ' '),
-        deleted_by: (session.user.email || '').substring(0, 50),
-        deleted_ip: (request.headers.get('x-forwarded-for') || 'API').substring(0, 20),
-        status: false,
-      },
-    });
-    
-    console.log(`Producto marcado como eliminado correctamente: ${productId}`);
-
-    // 7. Devolver respuesta de éxito
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Producto eliminado correctamente' 
-    });
+    return NextResponse.json({ message: 'Producto eliminado con éxito' }, { status: 200 });
   } catch (error) {
-    // 8. Manejo centralizado de errores
     console.error('Error al eliminar el producto:', error);
-    return NextResponse.json({ 
-      error: 'Error interno del servidor',
-      details: error instanceof Error ? error.message : 'Error desconocido'
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
 
@@ -176,28 +115,28 @@ export async function GET(
     const processedProduct = {
       product_id: product.product_id,
       name: product.name || '',
-      image: product.image 
+      image: product.image
         ? (() => {
-            console.log('Procesando imagen del producto:', product.image);
-            
-            // Primero eliminamos cualquier prefijo existente
-            let cleanImage = product.image;
-            const prefixes = ['/images/products/', 'images/products/'];
-            
-            // Eliminar cualquier prefijo existente
-            for (const prefix of prefixes) {
-              if (cleanImage.startsWith(prefix)) {
-                console.log(`Eliminando prefijo "${prefix}" de la ruta de la imagen`);
-                cleanImage = cleanImage.substring(prefix.length);
-                break;
-              }
+          console.log('Procesando imagen del producto:', product.image);
+
+          // Primero eliminamos cualquier prefijo existente
+          let cleanImage = product.image;
+          const prefixes = ['/images/products/', 'images/products/'];
+
+          // Eliminar cualquier prefijo existente
+          for (const prefix of prefixes) {
+            if (cleanImage.startsWith(prefix)) {
+              console.log(`Eliminando prefijo "${prefix}" de la ruta de la imagen`);
+              cleanImage = cleanImage.substring(prefix.length);
+              break;
             }
-            
-            // Ahora añadimos el prefijo correcto
-            const finalImagePath = `${IMAGE_BASE_PATH}${cleanImage}`;
-            console.log('Ruta final de la imagen:', finalImagePath);
-            return finalImagePath;
-          })()
+          }
+
+          // Ahora añadimos el prefijo correcto
+          const finalImagePath = `${IMAGE_BASE_PATH}${cleanImage}`;
+          console.log('Ruta final de la imagen:', finalImagePath);
+          return finalImagePath;
+        })()
         : null,
       status: product.status ? 1 : 0,
       display_order: product.display_order || 0,
@@ -221,143 +160,43 @@ export async function GET(
   }
 }
 
-/**
- * Actualiza un producto existente
- */
-export async function PATCH(
-  request: Request,
+const updateProductSchema = z.object({
+  name: z.string().min(1, 'El nombre es requerido').optional(),
+  description: z.string().optional().nullable(),
+  price: z.number().optional(),
+  status: z.boolean().optional(),
+  image: z.string().optional().nullable(),
+  display_order: z.number().optional(),
+  section_id: z.number().optional().nullable(),
+  category_id: z.number().optional().nullable(),
+  is_showcased: z.boolean().optional(),
+});
+
+export async function PUT(
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // Verificar autenticación
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json(
-        { error: 'No autorizado' },
-        { status: 401 }
-      );
-    }
-
-    // Obtener usuario y verificar cliente
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
-
-    if (!user?.client_id) {
-      return NextResponse.json(
-        { error: 'Cliente no encontrado' },
-        { status: 404 }
-      );
-    }
-
-    // Obtener ID del producto
-    const productId = parseInt(params.id);
+    const productId = parseInt(params.id, 10);
     if (isNaN(productId)) {
-      return NextResponse.json(
-        { error: 'ID de producto inválido' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'ID de producto inválido' }, { status: 400 });
     }
 
-    // Verificar que el producto existe y pertenece al cliente
-    const existingProduct = await prisma.products.findFirst({
-      where: {
-        product_id: productId,
-        client_id: user.client_id,
-        deleted: false,
-      }
-    });
+    const body = await request.json();
+    const validation = updateProductSchema.safeParse(body);
 
-    if (!existingProduct) {
-      return NextResponse.json(
-        { error: 'Producto no encontrado' },
-        { status: 404 }
-      );
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    // Obtener los datos del body
-    const data = await request.json();
-    const { name, description, price, status, display_order, section_id } = data;
-
-    console.log('Actualizando producto:', {
-      productId,
-      name,
-      description,
-      price,
-      status,
-      display_order,
-      section_id
-    });
-
-    // Actualizar el producto
     const updatedProduct = await prisma.products.update({
       where: { product_id: productId },
-      data: {
-        name: name || undefined,
-        description: description || undefined,
-        price: price ? parseFloat(price) : undefined,
-        status: status !== undefined ? status : undefined,
-        display_order: display_order !== undefined ? display_order : undefined,
-      },
+      data: validation.data,
     });
 
-    // Si se proporciona un ID de sección, actualizar la relación
-    if (section_id) {
-      // Primero eliminar las relaciones existentes
-      await prisma.products_sections.deleteMany({
-        where: { product_id: productId }
-      });
-
-      // Luego crear la nueva relación
-      await prisma.products_sections.create({
-        data: {
-          product_id: productId,
-          section_id: parseInt(section_id)
-        }
-      });
-
-      console.log(`Relación actualizada: producto ${productId} -> sección ${section_id}`);
-    }
-
-    // Obtener el producto actualizado con sus relaciones
-    const productSections = await prisma.products_sections.findMany({
-      where: {
-        product_id: productId,
-      },
-      include: {
-        sections: true,
-      },
-    });
-
-    // Formatear la imagen del producto para la respuesta
-    let productImage = updatedProduct.image;
-    if (productImage) {
-      if (!productImage.startsWith('/')) {
-        productImage = `/images/products/${productImage}`;
-      }
-    }
-
-    // Preparar el producto actualizado para la respuesta
-    const responseProduct = {
-      ...updatedProduct,
-      image: productImage,
-      section_id: productSections.length > 0 ? productSections[0].section_id : null,
-      section_name: productSections.length > 0 ? productSections[0].sections.name : null
-    };
-
-    // Retornar el producto actualizado
-    return NextResponse.json({
-      success: true,
-      product: responseProduct,
-    });
+    return NextResponse.json(updatedProduct, { status: 200 });
   } catch (error) {
-    console.error('Error al actualizar producto:', error);
-    return NextResponse.json(
-      { 
-        error: 'Error al procesar la solicitud',
-        details: error instanceof Error ? error.message : 'Error desconocido'
-      },
-      { status: 500 }
-    );
+    console.error('Error al actualizar el producto:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 } 

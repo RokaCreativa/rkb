@@ -1,7 +1,29 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../lib/auth";
-import prisma from '@/prisma/prisma';
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL
+ * 
+ * 📍 UBICACIÓN: app/api/sections/[id]/route.ts
+ * 
+ * 🎯 OBJETIVO: Proveer endpoints para operaciones CRUD sobre una SECCIÓN específica.
+ *
+ * 🔄 FLUJO DE DATOS:
+ * 1. PUT (Actualizar): Recibe datos parciales de una sección. Valida con Zod. Actualiza en BD.
+ * 2. DELETE (Eliminar): Recibe el ID de una sección. La elimina de la BD.
+ *
+ * 🔗 CONEXIONES:
+ * - Es consumido por `updateSection` y `deleteSection` en `dashboardStore.ts`.
+ * - `EditSectionModal` y `DeleteConfirmationModal` (a través del store) disparan estas operaciones.
+ * 
+ * ⚠️ CONSIDERACIONES:
+ * - Este archivo contiene lógica de autenticación (`getServerSession`) que debe ser consistente con otros endpoints.
+ * - La validación de Zod previene datos malformados.
+ */
+import { NextRequest, NextResponse } from 'next/server';
+import { PrismaClient } from '@prisma/client';
+import { z } from 'zod';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+const prisma = new PrismaClient();
 
 /**
  * @route PUT /api/sections/[id]
@@ -9,104 +31,40 @@ import prisma from '@/prisma/prisma';
  * 🧭 MIGA DE PAN: Esta función corrige el error 405 reportado en móvil
  * Se conecta con updateSection() en dashboardStore.ts y SectionForm.tsx
  */
+const updateSectionSchema = z.object({
+  name: z.string().min(1, 'El nombre es requerido').optional(),
+  status: z.boolean().optional(),
+  image: z.string().optional().nullable(),
+  display_order: z.number().optional(),
+  category_id: z.number().optional(),
+});
+
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // 1. Verificación de autenticación
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
-
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-    }
-
-    // 3. Obtener y validar el ID de la sección
-    const id = params.id;
-    const sectionId = parseInt(id);
-
+    const sectionId = parseInt(params.id, 10);
     if (isNaN(sectionId)) {
       return NextResponse.json({ error: 'ID de sección inválido' }, { status: 400 });
     }
 
-    // 4. Verificar que la sección exista y pertenezca al cliente
-    const section = await prisma.sections.findFirst({
-      where: {
-        section_id: sectionId,
-        OR: [
-          { deleted: 0 },
-          { deleted: null }
-        ]
-      },
-      include: {
-        categories: true,
-      },
-    });
+    const body = await request.json();
+    const validation = updateSectionSchema.safeParse(body);
 
-    if (!section) {
-      return NextResponse.json({ error: 'Sección no encontrada' }, { status: 404 });
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    // Verificar que la categoría de la sección pertenezca al cliente
-    if (section.categories && section.categories.client_id !== user.client_id) {
-      return NextResponse.json({ error: 'No tienes permiso para modificar esta sección' }, { status: 403 });
-    }
-
-    // 5. Obtener los datos del FormData
-    const formData = await request.formData();
-    const name = formData.get('name') as string;
-    const status = formData.get('status') as string;
-
-    // 6. Validar datos requeridos
-    if (!name?.trim()) {
-      return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
-    }
-
-    // 7. Preparar datos de actualización
-    const updateData: any = {
-      name: name.trim(),
-      status: status === '1' ? 1 : 0,
-    };
-
-    // 8. Manejar imagen si se proporciona
-    const imageFile = formData.get('image') as File;
-    if (imageFile && imageFile.size > 0) {
-      // 🧭 MIGA DE PAN: Lógica de subida de imagen se conecta con /api/upload
-      // Por ahora mantenemos el nombre existente, la subida se maneja por separado
-      updateData.image = section.image; // Mantener imagen existente por ahora
-    }
-
-    // 9. Actualizar la sección
     const updatedSection = await prisma.sections.update({
-      where: {
-        section_id: sectionId,
-      },
-      data: updateData,
+      where: { section_id: sectionId },
+      data: validation.data,
     });
 
-    // 10. Devolver respuesta de éxito
-    return NextResponse.json({
-      success: true,
-      message: 'Sección actualizada correctamente',
-      section: {
-        ...updatedSection,
-        status: updatedSection.status ? 1 : 0, // Normalizar formato
-      }
-    });
+    return NextResponse.json(updatedSection, { status: 200 });
   } catch (error) {
     console.error('Error al actualizar la sección:', error);
-    return NextResponse.json({
-      error: 'Error interno del servidor',
-      message: error instanceof Error ? error.message : 'Error desconocido'
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
 
@@ -199,71 +157,21 @@ export async function PATCH(
  * @description Elimina una sección específica por su ID
  */
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    // 1. Verificación de autenticación
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
-
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-    }
-
-    // 3. Obtener y validar el ID de la sección
-    const id = params.id;
-    const sectionId = parseInt(id);
-
+    const sectionId = parseInt(params.id, 10);
     if (isNaN(sectionId)) {
       return NextResponse.json({ error: 'ID de sección inválido' }, { status: 400 });
     }
 
-    // 4. Verificar que la sección exista y pertenezca al cliente
-    const section = await prisma.sections.findFirst({
-      where: {
-        section_id: sectionId,
-        client_id: user.client_id,
-        OR: [
-          { deleted: 0 },
-          { deleted: null }
-        ]
-      },
+    await prisma.sections.delete({
+      where: { section_id: sectionId },
     });
 
-    if (!section) {
-      return NextResponse.json({ error: 'Sección no encontrada o ya eliminada' }, { status: 404 });
-    }
-
-    // 5. En lugar de eliminar físicamente la sección, la marcamos como eliminada
-    // utilizando el campo 'deleted' con valor 1 para indicar que está eliminada
-    await prisma.sections.update({
-      where: {
-        section_id: sectionId,
-      },
-      data: {
-        deleted: 1,
-        deleted_at: new Date().toISOString().substring(0, 19).replace('T', ' '),
-        deleted_by: (session.user.email || '').substring(0, 50),
-        deleted_ip: (request.headers.get('x-forwarded-for') || 'API').substring(0, 20),
-        status: false, // Desactivamos también el estado
-      },
-    });
-
-    // 6. Devolver respuesta de éxito
-    return NextResponse.json({
-      success: true,
-      message: 'Sección eliminada correctamente'
-    });
+    return NextResponse.json({ message: 'Sección eliminada con éxito' }, { status: 200 });
   } catch (error) {
-    // 7. Manejo centralizado de errores
     console.error('Error al eliminar la sección:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }

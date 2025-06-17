@@ -1,135 +1,163 @@
 /**
- * @file SectionGridView.tsx
- * @description Componente de vista dedicado a renderizar la tabla de secciones para una categoría específica.
- * @architecture
- * Este es el primer nivel de "Detalle" en la arquitectura "Master-Detail". Su rol es mostrar
- * las "secciones hijas" de la categoría que ha sido seleccionada en `CategoryGridView`.
- * 
- * @dependencies
- * - `GenericTable`: Al igual que su par de categorías, usa la tabla genérica para el renderizado.
- * - `DashboardView` (Padre/Orquestador): Es completamente controlado desde fuera. Recibe `sections`
- *   (ya filtradas por el padre) y los callbacks. No sabe ni le importa cuál categoría fue seleccionada,
- *   solo renderiza la lista que le dan.
- * - `dashboardStore`: Su dependencia es indirecta. La lógica de selección que causa que este componente
- *   se renderice (`setSelectedCategoryId`) vive en el store y es invocada desde `CategoryGridView`
- *   a través del orquestador.
+ * 🧭 MIGA DE PAN CONTEXTUAL MAESTRA: Grid de Secciones y Productos Locales (Columna 2)
+ *
+ * 📍 UBICACIÓN: app/dashboard-v2/components/domain/sections/SectionGridView.tsx
+ *
+ * 🎯 PORQUÉ EXISTE:
+ * Este componente es el segundo pilar de la vista de escritorio. Su responsabilidad es mostrar
+ * el contenido de la categoría seleccionada en la Columna 1. Este contenido es una lista mixta
+ * que puede contener tanto SECCIONES normales como PRODUCTOS DIRECTOS LOCALES (ej. un plato especial
+ * que pertenece a una categoría pero no a una sección específica).
+ *
+ * 🔄 FLUJO DE DATOS:
+ * 1. Recibe una lista plana `sections` (nombre heredado, pero contiene Section | Product) de `DashboardView`.
+ *    Esta lista ya ha sido calculada y ordenada.
+ * 2. Muestra un estado vacío si no hay ninguna categoría seleccionada (`isCategorySelected` es false).
+ * 3. Si hay una categoría seleccionada, itera sobre la lista. Usa el type guard `isSection()` para
+ *    diferenciar entre un ítem de tipo `Section` y uno de tipo `Product`.
+ * 4. Renderiza un `GenericRow` para cada ítem con las props correspondientes.
+ * 5. Delega todas las acciones (selección, edición, etc.) a los manejadores que recibe de `DashboardView`.
+ *
+ * 🔗 CONEXIONES DIRECTAS:
+ * - **PADRE:** `DashboardView.tsx` (le provee datos y callbacks).
+ * - **HIJO:** `GenericRow.tsx` (usado para renderizar cada fila).
+ * - **CONSUME ESTADO DE:** `useDashboardStore` (solo para `isReorderMode`).
+ *
+ * ⚠️ REGLAS DE NEGOCIO:
+ * - Es CRÍTICO que `isCategorySelected` sea `true` para que este componente muestre algo más
+ *   que un mensaje de "Selecciona una categoría".
+ * - El type guard `isSection` es la clave para manejar la lista mixta.
+ * - Los Productos Directos Locales, al igual que los globales, no son "seleccionables" en el
+ *   sentido de que no abren una tercera columna. Su `onClick` suele llevar a la edición.
  */
 'use client';
 
 import React from 'react';
-import { Section } from '@/app/dashboard-v2/types';
-import { GenericTable, Column } from '@/app/dashboard-v2/components/ui/Table/GenericTable';
+import { Section, Product } from '@/app/dashboard-v2/types';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
-import { EyeIcon, PencilIcon, TrashIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
-import Image from 'next/image';
+import { Eye, Pencil, Trash, Plus, EyeOff } from 'lucide-react';
+import { GenericRow } from '../../ui/Table/GenericRow';
+import { ActionIcon } from '../../ui/Button/ActionIcon';
+import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 
-// --- TIPOS DE PROPS ---
-interface SectionGridViewProps {
-    sections: Section[];
-    onSectionSelect: (section: Section) => void;
-    onToggleVisibility: (section: Section) => void;
-    onEdit: (section: Section) => void;
-    onDelete: (section: Section) => void;
-    onMove?: (section: Section) => void; // 🎯 T31.5 FASE 3: Función para mover secciones
-    onAddNew: () => void;
-    onAddProduct: (section: Section) => void;
+// 🛡️ Type Guard: Diferencia entre una Sección y un Producto en la lista mixta.
+function isSection(item: Section | Product): item is Section {
+    return 'section_id' in item && !('price' in item);
 }
 
-// 🎯 SOLUCIÓN v0.dev: Componente funcional separado para memoización
-const SectionGridViewComponent: React.FC<SectionGridViewProps> = ({
-    sections,
-    onSectionSelect,
-    onToggleVisibility,
-    onEdit,
-    onDelete,
-    onMove,
-    onAddNew,
-    onAddProduct
-}) => {
-    // 🧭 MIGA DE PAN: Calcular contador de visibilidad siguiendo el patrón de ProductGridView
-    const visibleSections = sections.filter(section => section.status);
-    const totalSections = sections.length;
-
-    const columns: Column<Section>[] = [
-        {
-            key: 'name',
-            header: 'Nombre',
-            render: (section) => {
-                const imageUrl = section.image ? `/images/sections/${section.image}` : '/images/placeholder.png';
-                return (
-                    <div className="flex items-center">
-                        <Image
-                            src={imageUrl}
-                            alt={section.name || 'Sección'}
-                            width={40}
-                            height={40}
-                            className="rounded-md object-cover mr-4"
-                        />
-                        <span className="font-medium">{section.name}</span>
-                    </div>
-                );
-            }
-        },
-        {
-            key: 'products_count',
-            header: 'Productos',
-            render: (section) => (
-                <span className="text-sm text-gray-600">
-                    {section.visible_products_count || 0} / {section.products_count || 0} visibles
-                </span>
-            ),
-        },
-        {
-            key: 'display_order',
-            header: 'Orden',
-        },
-        {
-            key: 'actions',
-            header: 'Acciones',
-            render: (section) => (
-                <div className="flex justify-end items-center space-x-1">
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onToggleVisibility(section); }}>
-                        <EyeIcon className={`h-5 w-5 ${section.status ? 'text-green-500' : 'text-gray-400'}`} />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(section); }}>
-                        <PencilIcon className="h-5 w-5" />
-                    </Button>
-                    {/* 🎯 T31.5 FASE 3: Botón de mover (solo si se proporciona la función) */}
-                    {onMove && (
-                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onMove(section); }}>
-                            <ArrowsRightLeftIcon className="h-5 w-5 text-blue-500" />
-                        </Button>
-                    )}
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onDelete(section); }}>
-                        <TrashIcon className="h-5 w-5 text-red-500" />
-                    </Button>
-                </div>
-            )
-        }
-    ];
-
-    return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex justify-between items-center mb-4">
-                <div className="flex flex-col">
-                    <h2 className="text-xl font-semibold">Gestionar Secciones</h2>
-                    {/* 🧭 MIGA DE PAN: Contador de visibilidad siguiendo el patrón de ProductGridView */}
-                    <p className="text-sm text-gray-500">
-                        {visibleSections.length} / {totalSections} secciones visibles
-                    </p>
-                </div>
-                <Button onClick={onAddNew}>Añadir Sección</Button>
-            </div>
-            <GenericTable
-                data={sections}
-                columns={columns}
-                onRowClick={onSectionSelect}
-                emptyMessage="No hay secciones para mostrar. Seleccione una categoría."
-            />
-        </div>
-    );
+type SectionGridViewProps = {
+    sections: (Section | Product)[];
+    onSectionSelect: (section: Section) => void;
+    onEdit: (item: Section | Product) => void;
+    onDelete: (item: Section | Product) => void;
+    onToggleVisibility: (item: Section | Product) => void;
+    onAddNew: () => void;
+    onAddProductDirect: () => void;
+    title: string;
+    selectedSectionId?: number | null;
+    isCategorySelected: boolean;
 };
 
-// 🎯 SOLUCIÓN v0.dev: Exportación con memoización
-export const SectionGridView = React.memo(SectionGridViewComponent);
+export const SectionGridView = React.memo<SectionGridViewProps>(
+    ({
+        sections,
+        onSectionSelect,
+        onEdit,
+        onDelete,
+        onToggleVisibility,
+        onAddNew,
+        onAddProductDirect,
+        title,
+        selectedSectionId,
+        isCategorySelected,
+    }) => {
+        // Suscripción atómica al estado de reordenamiento.
+        const isReorderMode = useDashboardStore(state => state.isReorderMode);
+
+        // 🎨 Renderizador de acciones, reutilizable para ambos tipos de items.
+        const renderActions = (item: Section | Product) => (
+            <>
+                <ActionIcon Icon={item.status ? Eye : EyeOff} onClick={e => { e.stopPropagation(); onToggleVisibility(item); }} iconClassName={item.status ? "text-gray-600" : "text-gray-400"} />
+                <ActionIcon Icon={Pencil} onClick={e => { e.stopPropagation(); onEdit(item); }} iconClassName="text-gray-600" />
+                <ActionIcon Icon={Trash} onClick={e => { e.stopPropagation(); onDelete(item); }} iconClassName="text-gray-600" />
+            </>
+        );
+
+        return (
+            <div className="p-4 bg-white rounded-lg shadow-soft h-full flex flex-col">
+                <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                    <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+                    <div className="flex space-x-2">
+                        <Button onClick={onAddProductDirect} size="sm" variant="outline" disabled={!isCategorySelected}>
+                            Añadir Prod. Directo
+                        </Button>
+                        <Button onClick={onAddNew} size="sm" disabled={!isCategorySelected}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Añadir Sección
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="space-y-2 overflow-y-auto flex-grow">
+                    {/* Renderizado condicional basado en si hay una categoría seleccionada */}
+                    {!isCategorySelected ? (
+                        <div className="text-center py-10 flex items-center justify-center h-full">
+                            <p className="text-gray-500">Selecciona una categoría para ver su contenido.</p>
+                        </div>
+                    ) : sections.length === 0 ? (
+                        <div className="text-center py-10 flex items-center justify-center h-full">
+                            <p className="text-gray-500">No hay secciones ni productos directos.</p>
+                        </div>
+                    ) : (
+                        sections.map(item => {
+                            if (isSection(item)) {
+                                // Renderiza la fila para una Sección
+                                return (
+                                    <GenericRow
+                                        key={`sec-${item.section_id}`}
+                                        id={item.section_id}
+                                        isSelected={selectedSectionId === item.section_id}
+                                        isReorderMode={isReorderMode}
+                                        imageSrc={item.image}
+                                        imageAlt={item.name ?? 'Sección'}
+                                        imageType="sections"
+                                        title={item.name}
+                                        content={`${item.products_count ?? 0} productos`}
+                                        actions={renderActions(item)}
+                                        onClick={() => onSectionSelect(item)}
+                                    />
+                                );
+                            } else {
+                                // Renderiza la fila para un Producto Directo Local
+                                const subtitle = [
+                                    item.price ? `$${Number(item.price).toFixed(2)}` : null,
+                                    item.description
+                                ].filter(Boolean).join(' - ');
+
+                                return (
+                                    <GenericRow
+                                        key={`prod-${item.product_id}`}
+                                        id={item.product_id}
+                                        isSelected={false} // Productos directos no son seleccionables para mostrar una 3ra col
+                                        isReorderMode={isReorderMode}
+                                        imageSrc={item.image}
+                                        imageAlt={item.name ?? 'Producto'}
+                                        imageType="products"
+                                        title={item.name}
+                                        subtitle={subtitle}
+                                        actions={renderActions(item)}
+                                        onClick={() => onEdit(item)} // Editar al hacer clic
+                                        className="bg-slate-50" // Color de fondo para diferenciar
+                                    />
+                                );
+                            }
+                        })
+                    )}
+                </div>
+            </div>
+        );
+    }
+);
+
 SectionGridView.displayName = 'SectionGridView'; 

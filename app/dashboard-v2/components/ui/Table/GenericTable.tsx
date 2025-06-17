@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '@/lib/utils';
 
 /**
  * @file GenericTable.tsx
@@ -32,6 +33,8 @@ export interface GenericTableProps<T> {
   columns: Column<T>[];
   onRowClick?: (item: T) => void;
   emptyMessage?: string;
+  selectedKey?: number | string | null;
+  rowKey: keyof T;
 }
 
 // --- COMPONENTE ---
@@ -41,6 +44,8 @@ export const GenericTable = <T extends { [key: string]: any }>({
   columns,
   onRowClick,
   emptyMessage = "No hay datos para mostrar.",
+  selectedKey,
+  rowKey,
 }: GenericTableProps<T>): React.ReactElement | null => {
   if (!data || data.length === 0) {
     return <p className="text-center text-gray-500 py-4">{emptyMessage}</p>;
@@ -70,9 +75,12 @@ export const GenericTable = <T extends { [key: string]: any }>({
         <tbody className="bg-white divide-y divide-gray-200">
           {data.map((item, index) => (
             <tr
-              key={getRowKey(item, index)}
+              key={item[rowKey] ?? index}
               onClick={() => onRowClick?.(item)}
-              className={onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}
+              className={cn(
+                onRowClick ? 'cursor-pointer hover:bg-gray-50' : '',
+                { 'bg-blue-50 hover:bg-blue-100': selectedKey && item[rowKey] === selectedKey }
+              )}
             >
               {columns.map((col) => (
                 <td key={String(col.key)} className="px-6 py-4 whitespace-nowrap text-sm">

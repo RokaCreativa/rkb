@@ -29,42 +29,29 @@
  */
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
-import {
-    useDashboardStore,
-    DashboardState,
-    DashboardActions,
-} from '@/app/dashboard-v2/stores/dashboardStore';
+import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
 import dynamic from 'next/dynamic';
 import { TopNavbar } from './TopNavbar';
 import { Loader } from '../ui/Loader';
-import { useMediaQuery } from 'react-responsive';
-import { DashboardViewWrapper } from './DashboardViewWrapper';
-import { MobileView } from '../../views/MobileView';
 import AuthDebugLayout from '../../AuthDebugLayout';
 import { Toaster } from 'react-hot-toast';
 
-// Carga dinámica del componente que cambiará entre vista móvil y de escritorio.
-// SSR se deshabilita para evitar errores de hidratación, ya que el componente
-// depende de las dimensiones de la ventana del navegador.
 const DynamicView = dynamic(
     () => import('@/app/dashboard-v2/components/core/DynamicView'),
     {
         ssr: false,
         loading: () => (
-            <div className="flex-1 p-4 bg-gray-50 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center h-full">
                 <Loader message="Preparando interfaz..." />
             </div>
         ),
     }
 );
 
-interface DashboardClientProps {
-}
-
-export const DashboardClient: React.FC<DashboardClientProps> = () => {
+export const DashboardClient: React.FC = () => {
     const { data: session, status } = useSession({
         required: true,
         onUnauthenticated() {
@@ -72,9 +59,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = () => {
         },
     });
 
-    const { initializeDashboard, initialDataLoaded, isClientLoading } = useDashboardStore();
-
-    const [isMounted, setIsMounted] = useState(false);
+    const { initializeDashboard, initialDataLoaded } = useDashboardStore();
 
     useEffect(() => {
         if (session?.user?.client_id && !initialDataLoaded) {
@@ -82,23 +67,13 @@ export const DashboardClient: React.FC<DashboardClientProps> = () => {
         }
     }, [session, initialDataLoaded, initializeDashboard]);
 
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    const isDesktop = useMediaQuery({ query: '(min-width: 1024px)' });
-
-    const renderContent = () => {
-        if (isClientLoading || !initialDataLoaded) {
-            return <div className="flex justify-center items-center h-screen">Cargando...</div>;
-        }
-
-        if (isDesktop) {
-            return <DashboardViewWrapper />;
-        } else {
-            return <MobileView />;
-        }
-    };
+    if (status === 'loading' || !initialDataLoaded) {
+        return (
+            <div className="flex h-screen w-full items-center justify-center bg-gray-100">
+                <Loader message="Cargando datos del cliente..." />
+            </div>
+        );
+    }
 
     return (
         <AuthDebugLayout>
@@ -106,7 +81,7 @@ export const DashboardClient: React.FC<DashboardClientProps> = () => {
                 <div className="flex-1 flex flex-col overflow-hidden">
                     <TopNavbar />
                     <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100">
-                        {isMounted ? renderContent() : null}
+                        <DynamicView />
                     </main>
                 </div>
                 <Toaster position="bottom-right" />

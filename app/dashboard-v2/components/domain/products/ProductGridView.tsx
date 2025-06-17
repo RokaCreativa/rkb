@@ -1,139 +1,190 @@
 /**
- * @file ProductGridView.tsx
- * @description Componente de vista dedicado a renderizar la tabla de productos para una sección específica.
- * @architecture
- * Este es el segundo y último nivel de "Detalle" en la arquitectura "Master-Detail", completando el flujo.
- * Su única función es mostrar los "productos hijos" de una sección seleccionada en `SectionGridView`.
+ * 🧭 MIGA DE PAN CONTEXTUAL MAESTRA: Grid de Productos de una Sección (Columna 3)
  *
- * @dependencies
- * - `GenericTable`: Utiliza la tabla genérica para una visualización consistente.
- * - `DashboardView` (Padre/Orquestador): Al igual que los otros `GridView`, es un componente "tonto".
- *   Recibe la lista de `products` ya filtrada y todos los callbacks necesarios.
- * - `dashboardStore`: La acción `setSelectedSectionId` del store es la que, en última instancia,
- *   provoca que este componente se renderice con los productos correctos.
+ * 📍 UBICACIÓN: app/dashboard-v2/components/domain/products/ProductGridView.tsx
+ *
+ * 🎯 PORQUÉ EXISTE:
+ * Este componente es el tercer y último pilar de la vista de escritorio, representando el nivel más
+ * profundo de la jerarquía del menú (Categorías -> Secciones -> Productos). Su única responsabilidad
+ * es mostrar la lista de productos que pertenecen a la sección seleccionada en la Columna 2.
+ *
+ * 🔄 FLUJO DE DATOS:
+ * 1. A diferencia de los otros dos grids, este componente NO maneja una lista mixta. Recibe
+ *    una lista simple de `Product[]` desde `DashboardView`.
+ * 2. Muestra un estado vacío si no hay ninguna sección seleccionada (`isSectionSelected` es false).
+ * 3. Itera sobre la lista de productos y renderiza un `GenericRow` para cada uno.
+ * 4. Pasa al `GenericRow` no solo las acciones estándar, sino también componentes específicos
+ *    como el `showcaseIcon` (para destacar productos) y los `reorderHandles` (para el modo de reordenar).
+ *
+ * 🔗 CONEXIONES DIRECTAS:
+ * - **PADRE:** `DashboardView.tsx` (le provee datos y callbacks).
+ * - **HIJO:** `GenericRow.tsx` (usado para renderizar cada fila).
+ * - **CONSUME ESTADO DE:** `useDashboardStore` (solo para `isReorderMode`).
+ *
+ * 🚨 PROBLEMA RESUELTO (Refactorización):
+ * Antes, este componente tenía estilos y lógica de fila hardcodeados. Al adoptar `GenericRow`,
+ * se alinea visualmente con los otros grids, asegurando consistencia (Mandamiento #8) y
+ * centralizando la lógica de renderizado de filas en un solo lugar.
+ *
+ * ⚠️ REGLAS DE NEGOCIO:
+ * - Es CRÍTICO que `isSectionSelected` sea `true` para que este componente muestre algo.
+ * - La acción `onToggleShowcase` es única de este grid y permite destacar un producto,
+ *   lo que afecta cómo se muestra en la Columna 2.
  */
+
 'use client';
 
 import React from 'react';
-import { Product } from '@/app/dashboard-v2/types';
-import { GenericTable, Column } from '@/app/dashboard-v2/components/ui/Table/GenericTable';
+import { Product } from '@/app/dashboard-v2/types/domain/product';
+import { Star, Pencil, Trash, Move, Plus, Eye, EyeOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { GenericRow } from '@/app/dashboard-v2/components/ui/Table/GenericRow';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
-import { EyeIcon, PencilIcon, TrashIcon, ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
-import Image from 'next/image';
+import { ActionIcon } from '../../ui/Button/ActionIcon';
+import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 
-// --- TIPOS DE PROPS ---
-interface ProductGridViewProps {
+type ProductGridViewProps = {
     products: Product[];
-    onToggleVisibility: (product: Product) => void;
     onEdit: (product: Product) => void;
     onDelete: (product: Product) => void;
-    onMove?: (product: Product) => void; // 🎯 T31.5 FASE 3: Función para mover productos
+    onMove?: (product: Product) => void;
+    onToggleShowcase: (productId: number) => void;
+    onToggleVisibility: (product: Product) => void;
     onAddNew: () => void;
-    title?: string; // Para distinguir productos directos vs tradicionales
-    subtitle?: string;
-}
-
-// 🎯 SOLUCIÓN v0.dev: Componente funcional separado para memoización
-// PORQUÉ: Permite aplicar React.memo de forma limpia sin redeclarar el componente
-const ProductGridViewComponent: React.FC<ProductGridViewProps> = ({
-    products,
-    onToggleVisibility,
-    onEdit,
-    onDelete,
-    onMove,
-    onAddNew,
-    title = "Gestionar Productos",
-    subtitle,
-}) => {
-    // 🧭 MIGA DE PAN: Calcular contador de visibilidad siguiendo el patrón de SectionListView
-    const visibleProducts = products.filter(product => product.status);
-    const totalProducts = products.length;
-
-    const columns: Column<Product>[] = [
-        {
-            key: 'name',
-            header: 'Nombre',
-            render: (product) => {
-                // Comentario de Contexto:
-                // La propiedad `product.image` solo contiene el nombre del archivo.
-                // Construimos la ruta completa desde `public` para que el componente <Image> la encuentre.
-                const imageUrl = product.image ? `/images/products/${product.image}` : '/images/placeholder.png';
-                return (
-                    <div className="flex items-center">
-                        <Image
-                            src={imageUrl}
-                            alt={product.name || 'Producto'}
-                            width={40}
-                            height={40}
-                            className="rounded-md object-cover mr-4"
-                        />
-                        <div className="flex flex-col">
-                            <span className="font-medium">{product.name}</span>
-                            {/* 🧭 MIGA DE PAN: Agregamos descripción siguiendo el patrón mobile-first */}
-                            {product.description && (
-                                <span className="text-xs text-gray-500 mt-1 line-clamp-2 max-w-xs">
-                                    {product.description}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                );
-            }
-        },
-        {
-            key: 'price',
-            header: 'Precio',
-            render: (product) => `$${product.price}`
-        },
-        {
-            key: 'actions',
-            header: 'Acciones',
-            render: (product) => (
-                <div className="flex justify-end items-center space-x-1">
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onToggleVisibility(product); }}>
-                        <EyeIcon className={`h-5 w-5 ${product.status ? 'text-green-500' : 'text-gray-400'}`} />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onEdit(product); }}>
-                        <PencilIcon className="h-5 w-5" />
-                    </Button>
-                    {/* 🎯 T31.5 FASE 3: Botón de mover (solo si se proporciona la función) */}
-                    {onMove && (
-                        <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onMove(product); }}>
-                            <ArrowsRightLeftIcon className="h-5 w-5 text-blue-500" />
-                        </Button>
-                    )}
-                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); onDelete(product); }}>
-                        <TrashIcon className="h-5 w-5 text-red-500" />
-                    </Button>
-                </div>
-            )
-        }
-    ];
-
-    return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex justify-between items-center mb-4">
-                <div className="flex flex-col">
-                    <h2 className="text-xl font-semibold">{title}</h2>
-                    {subtitle && <p className="text-sm text-blue-600 font-medium">{subtitle}</p>}
-                    {/* 🧭 MIGA DE PAN: Contador de visibilidad siguiendo el patrón de SectionListView */}
-                    <p className="text-sm text-gray-500">
-                        {visibleProducts.length} / {totalProducts} productos visibles
-                    </p>
-                </div>
-                <Button onClick={onAddNew}>Añadir Producto</Button>
-            </div>
-            <GenericTable
-                data={products}
-                columns={columns}
-                emptyMessage="No hay productos para mostrar. Seleccione una sección."
-            />
-        </div>
-    );
+    title: string;
+    selectedProductId?: number | null;
+    isSectionSelected: boolean;
 };
 
-// 🎯 SOLUCIÓN v0.dev: Exportación con memoización
-// PORQUÉ: Evita re-renders innecesarios cuando las props no cambian
-// CONEXIÓN: DashboardViewWrapper lo renderiza y se beneficia de esta optimización
-export const ProductGridView = React.memo(ProductGridViewComponent);
+export const ProductGridView = React.memo<ProductGridViewProps>(
+    ({
+        products,
+        onEdit,
+        onDelete,
+        onMove,
+        onToggleShowcase,
+        onToggleVisibility,
+        onAddNew,
+        title,
+        selectedProductId,
+        isSectionSelected,
+    }) => {
+        const isReorderMode = useDashboardStore(state => state.isReorderMode);
+
+        const renderActions = (product: Product) => (
+            <>
+                <ActionIcon
+                    Icon={product.status ? Eye : EyeOff}
+                    iconClassName={product.status ? "text-gray-600" : "text-gray-400"}
+                    onClick={e => { e.stopPropagation(); onToggleVisibility(product); }}
+                />
+                <ActionIcon
+                    Icon={Pencil}
+                    iconClassName="text-gray-600"
+                    onClick={e => { e.stopPropagation(); onEdit(product); }}
+                />
+                <ActionIcon
+                    Icon={Trash}
+                    iconClassName="text-gray-600"
+                    onClick={e => { e.stopPropagation(); onDelete(product); }}
+                />
+                {onMove && (
+                    <ActionIcon
+                        Icon={Move}
+                        iconClassName="text-gray-600 cursor-move"
+                        onClick={e => { e.stopPropagation(); onMove(product); }}
+                    />
+                )}
+            </>
+        );
+
+        const renderShowcaseIcon = (product: Product) => (
+            <ActionIcon
+                Icon={Star}
+                onClick={e => {
+                    e.stopPropagation();
+                    onToggleShowcase(product.product_id);
+                }}
+                aria-label={
+                    product.is_showcased ? 'Quitar de destacados' : 'Marcar como destacado'
+                }
+                iconClassName={cn(
+                    'transition-all text-gray-600',
+                    product.is_showcased
+                        ? 'text-yellow-400 fill-yellow-400'
+                        : 'hover:text-yellow-400',
+                )}
+            />
+        );
+
+        const renderReorderHandles = (product: Product, index: number) => (
+            <div className="flex flex-col">
+                <ActionIcon
+                    Icon={ArrowUp}
+                    disabled={index === 0}
+                    onClick={() => console.log('Move Up', product.product_id)}
+                    className="p-0 h-auto"
+                    iconClassName="w-4 h-4"
+                />
+                <ActionIcon
+                    Icon={ArrowDown}
+                    disabled={index === products.length - 1}
+                    onClick={() => console.log('Move Down', product.product_id)}
+                    className="p-0 h-auto"
+                    iconClassName="w-4 h-4"
+                />
+            </div>
+        );
+
+        return (
+            <div className="p-4 bg-white rounded-lg shadow-soft h-full flex flex-col">
+                <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                    <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+                    <Button onClick={onAddNew} size="sm" disabled={!isSectionSelected}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Añadir Producto
+                    </Button>
+                </div>
+                <div className="space-y-2 overflow-y-auto flex-grow">
+                    {!isSectionSelected ? (
+                        <div className="text-center py-10 flex items-center justify-center h-full">
+                            <p className="text-gray-500">Selecciona una sección para ver sus productos.</p>
+                        </div>
+                    ) : products.length === 0 ? (
+                        <div className="text-center py-10 flex items-center justify-center h-full">
+                            <p className="text-gray-500">No hay productos en esta sección.</p>
+                        </div>
+                    ) : (
+                        products.map((product, index) => {
+                            const subtitle = [
+                                product.price ? `$${Number(product.price).toFixed(2)}` : null,
+                                product.description
+                            ].filter(Boolean).join(' - ');
+
+                            return (
+                                <GenericRow
+                                    key={product.product_id}
+                                    id={product.product_id}
+                                    isSelected={selectedProductId === product.product_id}
+                                    isReorderMode={isReorderMode}
+                                    imageSrc={product.image}
+                                    imageAlt={product.name ?? 'Producto'}
+                                    imageType="products"
+                                    title={product.name}
+                                    subtitle={subtitle}
+                                    actions={renderActions(product)}
+                                    showcaseIcon={renderShowcaseIcon(product)}
+                                    reorderHandles={renderReorderHandles(product, index)}
+                                    onClick={() => !isReorderMode && onEdit(product)}
+                                />
+                            );
+                        })
+                    )}
+                </div>
+            </div>
+        );
+    },
+);
+
 ProductGridView.displayName = 'ProductGridView'; 
