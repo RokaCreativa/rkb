@@ -77,7 +77,7 @@ const DashboardView = () => {
     toggleShowcaseStatus,
   } = useDashboardStore();
 
-  const { modalState, openModal, closeModal, handleConfirmDelete } = useModalState();
+  const { modalState, openModal, closeModal, handleConfirmDelete, isSubmitting, setIsSubmitting } = useModalState();
 
   // =================================================================
   // 🧭 PASO 2: Derivación de Datos con `useMemo` para cada Grid
@@ -85,42 +85,95 @@ const DashboardView = () => {
   // 🚨 Patrón CRÍTICO para evitar bucles de renderizado en React 19 con Zustand.
   // =================================================================
 
-  // 🧠 Lógica Memoizada para encontrar el ID de la Sección Global.
-  // DEBE CALCULARSE PRIMERO porque grid1Items depende de él.
-  const globalSectionId = useMemo(() => {
-    const virtualCategory = categories.find((c) => c.is_virtual_category);
-    if (!virtualCategory) return undefined;
-
-    const allSections = Object.values(sections).flat();
-    const virtualSection = allSections.find(
-      (s) => s.category_id === virtualCategory.category_id
-    );
-    return virtualSection?.section_id;
-  }, [categories, sections]);
-
-  const allProducts = useMemo(() => Object.values(products).flat(), [products]);
-
-  // 🧠 Memo para Grid 1: Categorías y Productos Globales
+  /**
+   * 🧭 MIGA DE PAN CONTEXTUAL: Derivación de Datos para el Grid 1 (Categorías + Prods. Globales)
+   *
+   * 📍 UBICACIÓN: app/dashboard-v2/components/core/DashboardView.tsx → useMemo<grid1Items>
+   *
+   * 🎯 PORQUÉ EXISTE:
+   * Para construir la lista mixta que se muestra en la primera columna del dashboard.
+   * Su responsabilidad es tomar los datos crudos del store y devolver un array combinado
+   * de categorías reales y productos directos globales, listos para ser renderizados.
+   *
+   * 🔄 FLUJO DE DATOS:
+   * 1. Reacciona a cambios en `categories`, `sections`, y `products` del store.
+   * 2. Encuentra la `virtualCategory` que agrupa los productos globales.
+   * 3. Busca la `virtualSection` dentro de esa categoría virtual.
+   * 4. Extrae los productos de esa `virtualSection` del estado global `products`.
+   * 5. Filtra las categorías para excluir la `virtualCategory` y obtener solo las reales.
+   * 6. Combina `realCategories` y `globalProducts` en un solo array y lo ordena.
+   *
+   * 🚨 PROBLEMA RESUELTO (Bitácora #38):
+   * - Esta lógica corrige el bug donde los productos globales no aparecían.
+   * - La implementación anterior era incorrecta porque intentaba buscar los productos
+   *   directamente en la categoría virtual, omitiendo el paso de la sección virtual.
+   * - Esta es la implementación de UI de la "Arquitectura Híbrida Definitiva".
+   *
+   * 📖 MANDAMIENTOS RELACIONADOS:
+   * - #6 (Separación de Responsabilidades): La vista deriva datos, el store los contiene.
+   * - #7 (Legibilidad): La lógica está encapsulada y comentada aquí.
+   */
   const grid1Items = useMemo(() => {
-    // 1. Obtener las categorías que no son virtuales.
-    const realCategories = categories.filter((c) => !c.is_virtual_category);
+    // 1. Encontrar la categoría virtual
+    const virtualCategory = categories.find(c => c.is_virtual_category);
 
-    // 2. ✅ CORRECCIÓN: Obtener los productos globales filtrando por el ID de la sección virtual.
-    const globalDirectProducts = allProducts.filter((p) => p.section_id === globalSectionId);
+    let globalProducts: Product[] = [];
+    if (virtualCategory) {
+      // 2. Encontrar la sección virtual dentro de esa categoría
+      const virtualSectionsForCategory = sections[virtualCategory.category_id] || [];
+      const virtualSection = virtualSectionsForCategory.find(s => s.is_virtual);
 
-    // 3. Ordenar y combinar.
-    return [...realCategories, ...globalDirectProducts].sort(
+      if (virtualSection) {
+        // 3. Obtener los productos de esa sección virtual (estos son los productos globales)
+        globalProducts = products[virtualSection.section_id] || [];
+      }
+    }
+
+    // 4. Obtener solo las categorías reales (no virtuales)
+    const realCategories = categories.filter(c => !c.is_virtual_category);
+
+    // 5. Combinar y ordenar
+    return [...realCategories, ...globalProducts].sort(
       (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
     );
-  }, [categories, allProducts, globalSectionId]);
+  }, [categories, sections, products]);
 
-  // 🧠 Memo para Grid 2: Secciones y Productos Locales
+  /**
+   * 🧭 MIGA DE PAN CONTEXTUAL: Derivación de Datos para el Grid 2 (Secciones + Prods. Locales)
+   *
+   * 📍 UBICACIÓN: app/dashboard-v2/components/core/DashboardView.tsx → useMemo<sectionsAndLocalProducts>
+   *
+   * 🎯 PORQUÉ EXISTE:
+   * Para construir la lista mixta de la segunda columna, que es contextual a la categoría
+   * seleccionada en el Grid 1. Muestra las secciones de esa categoría y sus productos directos "locales".
+   *
+   * ⚠️ REGLA DE NEGOCIO CRÍTICA (Bitácora #35):
+   * - La definición canónica de un "Producto Directo Local" es un producto que tiene
+   *   un `category_id` asignado, pero NO tiene un `section_id`. Esta lógica de filtrado
+   *   es la implementación de esa regla.
+   *
+   * 🔄 FLUJO DE DATOS:
+   * 1. Reacciona a cambios en `selectedCategoryId`, `sections`, y `products`.
+   * 2. Si no hay categoría seleccionada, devuelve una lista vacía.
+   * 3. Obtiene las secciones normales para la categoría seleccionada (`sections[selectedCategoryId]`).
+   * 4. Aplana TODOS los productos del store y los filtra para encontrar solo los locales.
+   * 5. Combina las secciones y los productos locales en un solo array y lo ordena.
+   *
+   * 🚨 PROBLEMA RESUELTO (Bitácora #38):
+   * - Implementaciones anteriores eran inestables porque no filtraban con precisión.
+   * - Este filtro robusto asegura que no haya "fugas" de productos de otras categorías
+   *   o de los productos globales, estabilizando la UI.
+   */
   const sectionsAndLocalProducts = useMemo(() => {
     if (!selectedCategoryId) return [];
 
-    // Obtiene las secciones y productos directos para la categoría seleccionada.
+    // Obtiene las secciones de la categoría seleccionada.
     const sectionsForCategory = sections[selectedCategoryId] || [];
-    const localDirectProducts = products[`cat-${selectedCategoryId}`] || [];
+
+    // 🧠 Lógica clave según Bitácora #45 y Memoria #3419991175739654741
+    // Un producto directo LOCAL es aquel que tiene category_id pero no section_id.
+    const allProductsFlat = Object.values(products).flat();
+    const localDirectProducts = allProductsFlat.filter(p => p.category_id === selectedCategoryId && !p.section_id);
 
     // Combina y ordena.
     const combined = [...sectionsForCategory, ...localDirectProducts].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
@@ -243,22 +296,28 @@ const DashboardView = () => {
       <EditCategoryModal
         isOpen={modalState.type === 'editCategory'}
         onClose={closeModal}
-        category={modalState.options.item as Category | null}
+        category={modalState.options?.item as Category | null}
         clientId={client?.client_id}
+        isSubmitting={isSubmitting}
+        setIsSubmitting={setIsSubmitting}
       />
       <EditSectionModal
         isOpen={modalState.type === 'editSection'}
         onClose={closeModal}
-        section={modalState.options.item as Section | null}
-        categoryId={modalState.options.parentId || (modalState.options.item as Section)?.category_id}
+        section={modalState.options?.item as Section | null}
+        categoryId={selectedCategoryId!}
+        isSubmitting={isSubmitting}
+        setIsSubmitting={setIsSubmitting}
       />
       <EditProductModal
         isOpen={modalState.type === 'editProduct'}
         onClose={closeModal}
-        product={modalState.options.item as Product | null}
-        sectionId={modalState.options.parentId}
-        categoryId={modalState.options.parentId}
-        isDirect={modalState.options.isDirect}
+        product={modalState.options?.item as Product | null}
+        sectionId={selectedSectionId ?? undefined}
+        categoryId={selectedCategoryId ?? undefined}
+        isDirect={(modalState.options as any)?.isDirect}
+        isSubmitting={isSubmitting}
+        setIsSubmitting={setIsSubmitting}
       />
       <DeleteConfirmationModal
         isOpen={modalState.type === 'deleteConfirmation'}

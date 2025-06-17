@@ -603,3 +603,35 @@
 - `app/dashboard-v2/stores/dashboardStore.ts`
 
 ---
+
+### **#38 | RE-CORRECCIÓN Y ESTABILIZACIÓN: Visualización de Productos Globales y Navegación**
+
+- **Fecha:** 2025-06-18
+- **Responsable:** Gemini
+- **Checklist:** Tarea implícita de corrección sobre #T31
+- **Mandamientos Involucrados:** #1 (Contexto), #6 (Separación), #7 (Legibilidad), #10 (Mejora Proactiva)
+
+**Descripción:**
+
+> A pesar de los esfuerzos en la Bitácora #37, persistía un bug que impedía la visualización de los "Productos Directos Globales" y rompía la navegación al seleccionar una categoría. Esta entrada documenta la solución definitiva, que requirió una corrección en dos frentes, siguiendo una guía detallada de un agente externo (v0) que reveló el verdadero flujo de datos anidado.
+
+> **1. Error en la Carga Inicial (`dashboardStore.ts`):**
+> La función `initializeDashboard` era incorrecta. Solo buscaba los productos por `category_id`, ignorando la arquitectura `Categoría -> Sección -> Producto`.
+> **Solución:** Se refactorizó la función para realizar una carga secuencial correcta: `fetchCategories` -> encontrar `virtualCategory` -> `fetchSectionsByCategory` -> encontrar `virtualSection` -> `fetchProductsBySection`. Esto asegura que los datos de los productos globales estén disponibles en el store desde el principio.
+
+> **2. Error en la Derivación de Datos (`DashboardView.tsx`):**
+> El `useMemo` que construía la lista para el Grid 1 (`grid1Items`) también era incorrecto y no seguía el flujo anidado.
+> **Solución:** Se refactorizó el `useMemo` para replicar la misma lógica de búsqueda (`category -> section -> product`) en la capa de la vista, extrayendo los productos correctos del estado.
+
+> **3. Error de Navegación (`dashboardStore.ts`):**
+> La función `setSelectedCategoryId` solo cambiaba el ID, pero no disparaba la carga de los datos de la nueva categoría.
+> **Solución:** Se convirtió en una función `async` que ahora llama a `fetchDataForCategory` tras actualizar el ID, asegurando que la UI reaccione y muestre el Grid 2.
+
+> **Resultado:** Con estas correcciones, el flujo de datos desde la carga inicial en el store hasta la derivación en la vista es ahora coherente con la "Arquitectura Híbrida Definitiva", resolviendo los bugs de visualización y navegación. Se añadieron "Migas de Pan Contextuales" detalladas a todas las áreas modificadas para prevenir futuras regresiones.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/stores/dashboardStore.ts`
+- `app/dashboard-v2/components/core/DashboardView.tsx`
+
+---
