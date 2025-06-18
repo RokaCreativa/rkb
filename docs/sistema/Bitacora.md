@@ -729,3 +729,23 @@
 - `app/dashboard-v2/stores/dashboardStore.ts` (Refactorizado)
 
 ---
+
+### **#42 | UI Intuitiva: Orden y Estilo por Visibilidad**
+
+- **Fecha:** 2025-06-19
+- **Responsable:** Gemini
+- **Checklist:** Tarea implícita de mejora de UX.
+- **Mandamientos Involucrados:** #6 (Separación), #7 (Legibilidad), #8 (Consistencia), #10 (Mejora Proactiva).
+
+**Descripción:**
+
+> Se ha implementado una mejora significativa en la experiencia de usuario de todos los grids y listas (escritorio y móvil). Siguiendo el principio de "la información más relevante primero", ahora todos los elementos se ordenan automáticamente para mostrar los ítems visibles (`status: true`) en la parte superior.
+
+> **Implementación:**
+>
+> 1.  **Lógica de Ordenación (Capa de Vista):** La lógica de `.sort()` se implementó en los `useMemo` de `DashboardView.tsx` y directamente en las derivaciones de datos de `MobileView.tsx`. Esto asegura que el store (`dashboardStore`) sigue conteniendo datos brutos, y es la capa de presentación la que decide cómo ordenarlos, respetando el Mandamiento #6.
+> 2.  **Estilo Visual (Componente UI "Tonto"):** Se añadió una nueva prop `status: boolean` al componente reutilizable `GenericRow.tsx`. Este componente ahora aplica automáticamente un estilo de `opacity-50 grayscale` a cualquier fila marcada como no visible. Esta centralización garantiza la consistencia visual (Mandamiento #8) en toda la aplicación.
+>
+> El resultado es una interfaz más clara y fácil de escanear, donde el usuario puede identificar de un vistazo qué elementos están activos y cuáles no.
+
+---

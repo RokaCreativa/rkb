@@ -63,7 +63,7 @@ const rowVariants = cva(
 export interface GenericRowProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'id' | 'title' | 'content'>, VariantProps<typeof rowVariants> {
     id: number | string;
     isSelected: boolean;
-    status: boolean;
+    status: boolean; // Prop para controlar la visibilidad. Aplica estilos de opacidad/escala de grises.
     isReorderMode: boolean;
     imageSrc?: string | null;
     imageAlt: string;
@@ -115,7 +115,7 @@ export const GenericRow = React.memo<GenericRowProps>(
                 {/* Contenedor de Imagen */}
                 <div className="flex-shrink-0">
                     <Image
-                        src={getImagePath(imageSrc ?? null, imageType)}
+                        src={getImagePath(imageSrc, imageType)}
                         alt={imageAlt}
                         width={40}
                         height={40}

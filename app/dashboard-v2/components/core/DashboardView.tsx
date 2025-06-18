@@ -141,12 +141,12 @@ const DashboardView = () => {
     // 5. Combinar y ordenar
     const combined = [...realCategories, ...globalProducts];
 
-    // Ordena primero por visibilidad (visibles primero), luego por display_order.
+    // 🧠 ORDENACIÓN: Visibles primero, luego por 'display_order'
     return combined.sort((a, b) => {
       if (a.status !== b.status) {
-        return a.status ? -1 : 1;
+        return a.status ? -1 : 1; // true (visible) va antes que false (oculto)
       }
-      return (a.display_order ?? 0) - (b.display_order ?? 0);
+      return (a.display_order ?? 0) - (b.display_order ?? 0); // Criterio de desempate
     });
   }, [categories, sections, products]);
 

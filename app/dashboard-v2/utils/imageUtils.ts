@@ -18,9 +18,11 @@
  * @param type El tipo de entidad ('categories', 'sections', 'products').
  * @returns Una URL de imagen siempre válida para usar en el frontend.
  */
-export const getImagePath = (imagePath: string | null | undefined, type: 'categories' | 'sections' | 'products' | 'clients' | 'main_logo'): string | null => {
+export const getImagePath = (imagePath: string | null | undefined, type: 'categories' | 'sections' | 'products' | 'clients' | 'main_logo'): string => {
+  const placeholder = '/images/placeholder.png';
+
   if (!imagePath) {
-    return null;
+    return placeholder;
   }
 
   // Si ya es una URL completa o una ruta absoluta, la devolvemos tal cual.
@@ -50,10 +52,9 @@ export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement, E
  * @param logoPath Ruta o nombre de la imagen del logo
  * @returns Ruta completa del logo
  */
-export function getClientLogoPath(logoPath: string | null | undefined): string | undefined {
-  if (!logoPath) return undefined;
-  const path = getImagePath(logoPath, 'clients');
-  return path ?? undefined;
+export function getClientLogoPath(logoPath: string | null | undefined): string {
+  if (!logoPath) return '/images/placeholder.png';
+  return getImagePath(logoPath, 'clients');
 }
 
 /**
@@ -62,8 +63,7 @@ export function getClientLogoPath(logoPath: string | null | undefined): string |
  * @param logoPath Ruta o nombre de la imagen del logo principal
  * @returns Ruta completa del logo principal
  */
-export function getMainLogoPath(logoPath: string | null | undefined): string | undefined {
-  if (!logoPath) return undefined;
-  const path = getImagePath(logoPath, 'main_logo');
-  return path ?? undefined;
+export function getMainLogoPath(logoPath: string | null | undefined): string {
+  if (!logoPath) return '/images/placeholder.png';
+  return getImagePath(logoPath, 'main_logo');
 } 
