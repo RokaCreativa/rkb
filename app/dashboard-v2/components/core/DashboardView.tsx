@@ -75,9 +75,15 @@ const DashboardView = () => {
     setSelectedCategoryId,
     setSelectedSectionId,
     toggleShowcaseStatus,
+    createCategory,
+    updateCategory,
+    createSection,
+    updateSection,
+    createProduct,
+    updateProduct,
   } = useDashboardStore();
 
-  const { modalState, openModal, closeModal, handleConfirmDelete, isSubmitting, setIsSubmitting } = useModalState();
+  const { modalState, openModal, closeModal, handleConfirmDelete } = useModalState();
 
   // =================================================================
   // 🧭 PASO 2: Derivación de Datos con `useMemo` para cada Grid
@@ -202,6 +208,41 @@ const DashboardView = () => {
     setSelectedSectionId(newId);
   };
 
+  const handleSaveModal = async ({ data, imageFile }: { data: any; imageFile?: File | null }) => {
+    try {
+      const { item, type } = modalState.options;
+
+      if (type === 'category') {
+        if (item) {
+          await updateCategory((item as Category).category_id, data, imageFile);
+        } else if (client) {
+          await createCategory({ ...data, client_id: client.client_id }, imageFile);
+        }
+      } else if (type === 'section') {
+        if (item) {
+          await updateSection((item as Section).section_id, data, imageFile);
+        } else if (selectedCategoryId) {
+          await createSection({ ...data, category_id: selectedCategoryId }, imageFile);
+        }
+      } else if (type === 'product') {
+        if (item) {
+          await updateProduct((item as Product).product_id, data, imageFile);
+        } else {
+          const productData = {
+            ...data,
+            category_id: modalState.options.isDirect ? selectedCategoryId : undefined,
+            section_id: !modalState.options.isDirect ? selectedSectionId : undefined,
+          };
+          await createProduct(productData, imageFile);
+        }
+      }
+      closeModal();
+    } catch (error) {
+      console.error(`❌ Error al guardar desde DashboardView:`, error);
+      throw error;
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full bg-gray-50">
       <DashboardHeader />
@@ -228,9 +269,9 @@ const DashboardView = () => {
           }}
           onEdit={(item) => {
             if ('price' in item) { // Es Producto
-              openModal('editProduct', { item, isDirect: true, isGlobal: true });
+              openModal('editProduct', { item, type: 'product', isDirect: true, isGlobal: true });
             } else { // Es Categoría
-              openModal('editCategory', { item });
+              openModal('editCategory', { item, type: 'category' });
             }
           }}
           onDelete={(item) => {
@@ -240,8 +281,8 @@ const DashboardView = () => {
               openModal('deleteConfirmation', { item, type: 'category' });
             }
           }}
-          onAddNewCategory={() => openModal('editCategory')}
-          onAddNewProductDirect={() => openModal('editProduct', { isDirect: true, isGlobal: true })}
+          onAddNewCategory={() => openModal('editCategory', { type: 'category' })}
+          onAddNewProductDirect={() => openModal('editProduct', { type: 'product', isDirect: true, isGlobal: true })}
         />
 
         {/* Grid 2: Secciones y Productos Locales */}
@@ -259,9 +300,9 @@ const DashboardView = () => {
           }}
           onEdit={(item) => {
             if ('price' in item) { // Es Producto
-              openModal('editProduct', { item, isDirect: true });
+              openModal('editProduct', { item, type: 'product', isDirect: true });
             } else { // Es Sección
-              openModal('editSection', { item });
+              openModal('editSection', { item, type: 'section' });
             }
           }}
           onDelete={(item) => {
@@ -272,8 +313,8 @@ const DashboardView = () => {
             }
           }}
           isCategorySelected={!!selectedCategoryId}
-          onAddNew={() => selectedCategoryId ? openModal('editSection', { parentId: selectedCategoryId }) : null}
-          onAddProductDirect={() => selectedCategoryId ? openModal('editProduct', { parentId: selectedCategoryId, isDirect: true }) : null}
+          onAddNew={() => selectedCategoryId ? openModal('editSection', { type: 'section' }) : null}
+          onAddProductDirect={() => selectedCategoryId ? openModal('editProduct', { type: 'product', isDirect: true }) : null}
         />
 
         {/* Grid 3: Productos de Sección */}
@@ -282,9 +323,9 @@ const DashboardView = () => {
           title="Productos"
           onToggleVisibility={(item) => toggleProductVisibility(item.product_id, !item.status)}
           onToggleShowcase={toggleShowcaseStatus}
-          onEdit={(item) => openModal('editProduct', { item })}
+          onEdit={(item) => openModal('editProduct', { item, type: 'product' })}
           onDelete={(item) => openModal('deleteConfirmation', { item, type: 'product' })}
-          onAddNew={() => { if (selectedSectionId) openModal('editProduct', { parentId: selectedSectionId }); }}
+          onAddNew={() => { if (selectedSectionId) openModal('editProduct', { type: 'product' }); }}
           isSectionSelected={!!selectedSectionId}
         />
       </main>
@@ -296,28 +337,20 @@ const DashboardView = () => {
       <EditCategoryModal
         isOpen={modalState.type === 'editCategory'}
         onClose={closeModal}
-        category={modalState.options?.item as Category | null}
-        clientId={client?.client_id}
-        isSubmitting={isSubmitting}
-        setIsSubmitting={setIsSubmitting}
+        item={modalState.options?.item as Category | null}
+        onSave={handleSaveModal}
       />
       <EditSectionModal
         isOpen={modalState.type === 'editSection'}
         onClose={closeModal}
-        section={modalState.options?.item as Section | null}
-        categoryId={selectedCategoryId!}
-        isSubmitting={isSubmitting}
-        setIsSubmitting={setIsSubmitting}
+        item={modalState.options?.item as Section | null}
+        onSave={handleSaveModal}
       />
       <EditProductModal
         isOpen={modalState.type === 'editProduct'}
         onClose={closeModal}
-        product={modalState.options?.item as Product | null}
-        sectionId={selectedSectionId ?? undefined}
-        categoryId={selectedCategoryId ?? undefined}
-        isDirect={(modalState.options as any)?.isDirect}
-        isSubmitting={isSubmitting}
-        setIsSubmitting={setIsSubmitting}
+        item={modalState.options?.item as Product | null}
+        onSave={handleSaveModal}
       />
       <DeleteConfirmationModal
         isOpen={modalState.type === 'deleteConfirmation'}

@@ -16,6 +16,7 @@
  * ⚠️ CONSIDERACIONES:
  * - No hay lógica de autenticación aquí; se asume que un middleware la manejará o se añadirá después.
  * - La validación de Zod asegura la integridad de los datos antes de tocar la base de datos.
+ * - #6 (Separación de Responsabilidades): La lógica de consulta y formateo de datos de categorías vive aquí, no en el cliente.
  */
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
@@ -26,6 +27,7 @@ import { join } from 'path';
 import { NextRequest } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
+import { Category } from '@/app/dashboard-v2/types';
 
 const prismaClient = new PrismaClient();
 
@@ -37,67 +39,77 @@ export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const categoryId = parseInt(params.id, 10);
+  console.log(`\n--- [API] 🚀 Petición PATCH para /api/categories/${categoryId} ---`);
+
   try {
-    // 1. Verificación de autenticación
     const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    if (!session?.user?.client_id) {
+      console.log(`[API] 🛑 Rechazado: Usuario no autorizado.`);
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
-
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-    }
-
-    // 3. Obtener y validar el ID de la categoría
-    const categoryId = parseInt(params.id);
+    const clientId = session.user.client_id;
+    console.log(`[API] 👤 Autorizado para cliente ID: ${clientId}`);
 
     if (isNaN(categoryId)) {
+      console.log(`[API] 🛑 Rechazado: ID de categoría inválido: ${params.id}`);
       return NextResponse.json({ error: 'ID de categoría inválido' }, { status: 400 });
     }
 
-    // 4. Verificar que la categoría exista y pertenezca al cliente
-    const category = await prisma.categories.findFirst({
-      where: {
-        category_id: categoryId,
-        client_id: user.client_id,
-      },
-    });
+    const contentType = request.headers.get('content-type') || '';
+    let dataToUpdate: Partial<Category> = {};
+    let imageFile: File | null = null;
 
-    if (!category) {
-      return NextResponse.json({ error: 'Categoría no encontrada' }, { status: 404 });
+    if (contentType.includes('multipart/form-data')) {
+      console.log('[API] 📦 Procesando como multipart/form-data.');
+      const formData = await request.formData();
+      const categoryDataString = formData.get('categoryData') as string;
+      imageFile = formData.get('image') as File | null;
+
+      if (categoryDataString) {
+        dataToUpdate = JSON.parse(categoryDataString);
+      }
+      console.log('[API] Datos de formulario extraídos:', { dataToUpdate, tieneImagen: !!imageFile });
+
+    } else if (contentType.includes('application/json')) {
+      console.log('[API] 📄 Procesando como application/json.');
+      dataToUpdate = await request.json();
+      console.log('[API] Datos de JSON extraídos:', dataToUpdate);
+    } else {
+      console.log(`[API] 🛑 Rechazado: Content-Type no soportado: ${contentType}`);
+      return NextResponse.json({ error: 'Content-Type no soportado' }, { status: 415 });
     }
 
-    // 5. Obtener los datos a actualizar
-    const data = await request.json();
-    const updateData: Record<string, any> = {};
-
-    // Actualizar el estado si se proporciona
-    if (data.status !== undefined) {
-      updateData.status = data.status === 1;
+    // Lógica para manejar la subida de imagen si existe
+    if (imageFile) {
+      console.log(`[API] 🖼️  Procesando subida de imagen: ${imageFile.name}`);
+      const bytes = await imageFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      const timestamp = Date.now();
+      const fileName = `${timestamp}_${imageFile.name}`;
+      const imagePath = join(process.cwd(), 'public', 'images', 'categories', fileName);
+      await writeFile(imagePath, buffer);
+      dataToUpdate.image = fileName;
+      console.log(`[API] ✅ Imagen guardada en: ${imagePath}`);
     }
 
-    // 6. Actualizar la categoría
+    // Aquí puedes añadir validación con Zod si es necesario
+    console.log('[API] 💾 Datos finales para actualizar en DB:', dataToUpdate);
+
     const updatedCategory = await prisma.categories.update({
       where: {
         category_id: categoryId,
+        client_id: clientId,
       },
-      data: updateData,
+      data: dataToUpdate,
     });
 
-    // 7. Devolver respuesta de éxito
-    return NextResponse.json({
-      ...updatedCategory,
-      status: updatedCategory.status ? 1 : 0, // Convertir a formato numérico
-    });
-  } catch (error) {
-    // 8. Manejo centralizado de errores
-    console.error('Error al actualizar la categoría:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    console.log('[API] ✅ Actualización en DB exitosa.');
+    return NextResponse.json(updatedCategory);
+
+  } catch (error: any) {
+    console.error(`[API] 💥 Error catastrófico en PATCH /api/categories/${categoryId}:`, error);
+    return NextResponse.json({ error: 'Error interno del servidor', details: error.message }, { status: 500 });
   }
 }
 

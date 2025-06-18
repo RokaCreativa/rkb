@@ -9,26 +9,28 @@
  */
 
 /**
- * Obtiene la ruta de imagen adecuada para un tipo específico
- * 
- * @param imageUrl URL o nombre de archivo de la imagen
- * @param type Tipo de imagen ('products', 'sections', 'categories', etc.)
- * @returns URL completa de la imagen
+ * Normaliza la ruta de una imagen para asegurar que siempre sea una URL válida.
+ * Si la ruta de la imagen ya es una URL completa (comienza con "http" o "/"),
+ * la devuelve sin cambios. Si es solo un nombre de archivo, construye la ruta
+ * completa usando el tipo de entidad (ej: /images/products/nombre.jpg).
+ *
+ * @param imagePath La ruta de la imagen desde la API (puede ser nombre o URL completa).
+ * @param type El tipo de entidad ('categories', 'sections', 'products').
+ * @returns Una URL de imagen siempre válida para usar en el frontend.
  */
-export const getImagePath = (imageUrl: string | null, type: string): string => {
-  if (!imageUrl) {
-    console.log(`No image provided for ${type}, using placeholder`);
-    return '/images/placeholder.png';
+export const getImagePath = (imagePath: string | null | undefined, type: 'categories' | 'sections' | 'products' | 'clients' | 'main_logo'): string | null => {
+  if (!imagePath) {
+    return null;
   }
 
-  // Si ya es una URL completa, devolverla directamente
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('/')) {
-    return imageUrl;
+  // Si ya es una URL completa o una ruta absoluta, la devolvemos tal cual.
+  if (imagePath.startsWith('http') || imagePath.startsWith('/')) {
+    return imagePath;
   }
 
-  // Construir la ruta según el tipo
-  return `/images/${type}/${imageUrl}`;
-}
+  // Si es solo un nombre de archivo, construimos la ruta.
+  return `/images/${type}/${imagePath}`;
+};
 
 /**
  * Maneja errores al cargar imágenes, estableciendo una imagen de marcador de posición
@@ -50,7 +52,8 @@ export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement, E
  */
 export function getClientLogoPath(logoPath: string | null | undefined): string | undefined {
   if (!logoPath) return undefined;
-  return getImagePath(logoPath, 'clients');
+  const path = getImagePath(logoPath, 'clients');
+  return path ?? undefined;
 }
 
 /**
@@ -61,5 +64,6 @@ export function getClientLogoPath(logoPath: string | null | undefined): string |
  */
 export function getMainLogoPath(logoPath: string | null | undefined): string | undefined {
   if (!logoPath) return undefined;
-  return getImagePath(logoPath, 'main_logo');
+  const path = getImagePath(logoPath, 'main_logo');
+  return path ?? undefined;
 } 

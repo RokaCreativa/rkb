@@ -1,9 +1,24 @@
 'use client';
 
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Product } from '@/app/dashboard-v2/types';
+import React, { useEffect, forwardRef, useImperativeHandle, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+import type { Product } from '@/app/dashboard-v2/types';
 import { FormField } from '@/app/dashboard-v2/components/ui/Form/FormField';
+import { Input } from '@/app/dashboard-v2/components/ui/Form/Input';
 import { ImageUploader } from '@/app/dashboard-v2/components/ui/Form/ImageUploader';
+import { getImagePath } from '@/app/dashboard-v2/utils/imageUtils';
+
+// --- VALIDACIÓN Y TIPOS ---
+const formSchema = z.object({
+    name: z.string().min(1, 'El nombre es obligatorio'),
+    description: z.string().optional(),
+    price: z.number().min(0, 'El precio no puede ser negativo'),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 // --- REF Y PROPS ---
 /**
@@ -29,116 +44,81 @@ interface ProductFormProps {
 }
 
 // --- COMPONENTE ---
-
 export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(({ product }, ref) => {
-    const [name, setName] = useState('');
-    const [description, setDescription] = useState('');
-    // 🧭 MIGA DE PAN: El precio se maneja como string porque Prisma.Decimal se serializa como string
-    // para mantener precisión decimal. Se conecta con ProductGridView.tsx y API /api/products
-    const [price, setPrice] = useState<string>('0');
-    // 🧭 MIGA DE PAN: Status por defecto TRUE (activo) según feedback del usuario
-    // Se conecta con toggleProductVisibility en dashboardStore.ts y contadores de visibilidad
-    const [status, setStatus] = useState<boolean>(true);
     const [imageFile, setImageFile] = useState<File | null>(null);
+
+    const {
+        register,
+        handleSubmit,
+        reset,
+        control,
+        getValues,
+        formState: { errors },
+    } = useForm<FormData>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            name: '',
+            description: '',
+            price: 0,
+        },
+    });
 
     useEffect(() => {
         if (product) {
-            // 🧭 MIGA DE PAN: Al editar, cargar datos existentes del producto
-            setName(product.name || '');
-            setDescription(product.description || '');
-            setPrice(product.price || '0');
-            // 🔧 FIX: product.status es number (1 = activo, 0 = inactivo)
-            setStatus(product.status === 1);
-            setImageFile(null); // Reset para evitar conflictos con imagen existente
+            reset({
+                name: product.name || '',
+                description: product.description || '',
+                price: product.price || 0,
+            });
         } else {
-            // 🧭 MIGA DE PAN: Al crear, valores por defecto optimizados según Mandamiento #8
-            setName('');
-            setDescription('');
-            setPrice('0');
-            setStatus(true); // ✅ CORRECCIÓN: Por defecto ACTIVO según feedback
-            setImageFile(null);
+            reset({
+                name: '',
+                description: '',
+                price: 0,
+            });
         }
-    }, [product]);
+        // Reseteamos el archivo de imagen en cada cambio de `product`
+        setImageFile(null);
+    }, [product, reset]);
 
-    // 🧭 MIGA DE PAN: Exponer getFormData para que EditModals.tsx pueda obtener los datos
-    // Patrón establecido en Mandamiento #6 para separar lógica de presentación
     useImperativeHandle(ref, () => ({
-        getFormData: () => ({
-            data: {
-                name,
-                description,
-                price,
-                status: status ? 1 : 0, // Convertir a formato esperado por API
-            },
-            imageFile,
-        })
+        getFormData: () => {
+            const formData = getValues();
+            return {
+                data: {
+                    name: formData.name,
+                    description: formData.description,
+                    price: formData.price,
+                },
+                imageFile,
+            };
+        },
     }));
 
-    return (
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
-            <FormField
-                label="Nombre del Producto"
-                name="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="focus:ring-2 focus:ring-blue-500" // Mandamiento #8: Consistencia visual
-            />
-            <FormField
-                label="Descripción"
-                name="description"
-                as="textarea"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="min-h-[80px] resize-none" // Mandamiento #5: Mobile-First
-            />
-            <FormField
-                label="Precio"
-                name="price"
-                type="number"
-                step="0.01"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                required
-                className="focus:ring-2 focus:ring-blue-500"
-            />
+    const handleImageChange = (file: File | null) => {
+        setImageFile(file);
+    };
 
-            {/* 🧭 MIGA DE PAN: Selector de visibilidad reemplaza campo "orden" según feedback
-                Se conecta con contadores de visibilidad en CategoryGridView, SectionGridView, ProductGridView */}
-            <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                    Visibilidad
-                </label>
-                <div className="flex space-x-4">
-                    <label className="flex items-center">
-                        <input
-                            type="radio"
-                            name="status"
-                            checked={status === true}
-                            onChange={() => setStatus(true)}
-                            className="mr-2 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">Activo (Visible)</span>
-                    </label>
-                    <label className="flex items-center">
-                        <input
-                            type="radio"
-                            name="status"
-                            checked={status === false}
-                            onChange={() => setStatus(false)}
-                            className="mr-2 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">Inactivo (Oculto)</span>
-                    </label>
-                </div>
-            </div>
+    return (
+        <div className="space-y-4">
+            <FormField label="Nombre del Producto" error={errors.name?.message}>
+                <Input {...register("name")} />
+            </FormField>
+
+            <FormField label="Descripción" error={errors.description?.message}>
+                <Input as="textarea" {...register("description")} />
+            </FormField>
+
+            <FormField label="Precio" error={errors.price?.message}>
+                <Input type="number" step="0.01" {...register("price", { valueAsNumber: true })} />
+            </FormField>
 
             <ImageUploader
                 label="Imagen del Producto"
-                onImageChange={setImageFile}
-                initialImageUrl={product?.image ? `/images/products/${product.image}` : null}
+                initialImageUrl={getImagePath(product?.image, 'products')}
+                onImageChange={handleImageChange}
             />
-        </form>
+        </div>
     );
 });
 

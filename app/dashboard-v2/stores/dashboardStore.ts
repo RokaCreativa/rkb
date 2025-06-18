@@ -11,6 +11,7 @@ import { create } from "zustand"
 import type { Category, Section, Product, Client } from "../types"
 import { toast } from "react-hot-toast"
 import { immer } from "zustand/middleware/immer"
+import { apiClient } from '../services/apiClient'
 
 // --- INTERFACES Y ESTADO INICIAL (sin cambios) ---
 export interface DashboardState {
@@ -38,15 +39,15 @@ export interface DashboardActions {
     fetchProductsByCategory: (categoryId: number) => Promise<void>
     fetchDataForCategory: (categoryId: number) => Promise<void>
     createCategory: (data: Partial<Category>, imageFile?: File | null) => Promise<void>
-    updateCategory: (id: number, data: Partial<Category>, imageFile?: File | null, internal?: boolean) => Promise<void>
+    updateCategory: (id: number, data: Partial<Category>, imageFile?: File | null) => Promise<void>
     deleteCategory: (id: number) => Promise<void>
     toggleCategoryVisibility: (id: number, status: boolean) => Promise<void>
     createSection: (data: Partial<Section>, imageFile?: File | null) => Promise<void>
-    updateSection: (id: number, data: Partial<Section>, imageFile?: File | null, internal?: boolean) => Promise<void>
+    updateSection: (id: number, data: Partial<Section>, imageFile?: File | null) => Promise<void>
     deleteSection: (id: number) => Promise<void>
     toggleSectionVisibility: (id: number, status: boolean) => Promise<void>
-    createProduct: (data: Partial<Product>, imageFile?: File | null) => Promise<Product>
-    updateProduct: (id: number, data: Partial<Product>, imageFile?: File | null) => Promise<Product>
+    createProduct: (data: Partial<Product>, imageFile?: File | null) => Promise<Product | undefined>
+    updateProduct: (id: number, data: Partial<Product>, imageFile?: File | null) => Promise<void>
     deleteProduct: (id: number) => Promise<void>
     toggleProductVisibility: (id: number, status: boolean) => Promise<void>
     setSelectedCategoryId: (id: number | null) => Promise<void>
@@ -233,20 +234,15 @@ export const useDashboardStore = create(
         createCategory: async (data, imageFile) => {
             set({ isUpdating: true });
             try {
-                if (imageFile) {
-                    data.image = await get().uploadProductImage(0, imageFile);
-                }
-                const response = await fetch('/api/categories', {
+                const newCategory = await apiClient<Category>('/api/categories', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
+                    data,
+                    imageFile
                 });
-                if (!response.ok) throw new Error('Error al crear la categoría');
-                const newCategory = await response.json();
                 set(state => ({ categories: [...state.categories, newCategory] }));
                 toast.success('Categoría creada');
             } catch (e: any) {
-                toast.error(e.message);
+                toast.error(`Error al crear categoría: ${e.message}`);
             } finally {
                 set({ isUpdating: false });
             }
@@ -255,22 +251,20 @@ export const useDashboardStore = create(
         updateCategory: async (id, data, imageFile) => {
             set({ isUpdating: true });
             try {
-                if (imageFile) {
-                    data.image = await get().uploadProductImage(id, imageFile);
-                }
-                const res = await fetch(`/api/categories/${id}`, {
+                const updatedCategory = await apiClient<Category>(`/api/categories/${id}`, {
                     method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
+                    data,
+                    imageFile
                 });
-                if (!res.ok) throw new Error('Error al actualizar');
-                const updatedCategory = await res.json();
-                set(state => ({
-                    categories: state.categories.map(c => c.category_id === id ? { ...c, ...updatedCategory } : c)
-                }));
+                set(state => {
+                    const index = state.categories.findIndex(c => c.category_id === id);
+                    if (index !== -1) {
+                        state.categories[index] = { ...state.categories[index], ...updatedCategory };
+                    }
+                });
                 toast.success('Categoría actualizada');
             } catch (e: any) {
-                toast.error(e.message);
+                toast.error(`Error al actualizar categoría: ${e.message}`);
             } finally {
                 set({ isUpdating: false });
             }
@@ -306,23 +300,23 @@ export const useDashboardStore = create(
         createSection: async (data, imageFile) => {
             set({ isUpdating: true });
             try {
-                if (imageFile) {
-                    data.image = await get().uploadProductImage(0, imageFile);
-                }
-                const response = await fetch('/api/sections', {
+                const newSection = await apiClient<Section>('/api/sections', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    data,
+                    imageFile
                 });
-                if (!response.ok) throw new Error('Error al crear la sección');
-                const newSection = await response.json();
-                set(state => {
-                    const catId = newSection.category_id;
-                    state.sections[catId] = [...(state.sections[catId] || []), newSection];
-                });
+                const categoryId = newSection.category_id;
+                if (categoryId) {
+                    set(state => ({
+                        sections: {
+                            ...state.sections,
+                            [categoryId]: [...(state.sections[categoryId] || []), newSection]
+                        }
+                    }));
+                }
                 toast.success('Sección creada');
             } catch (e: any) {
-                toast.error(e.message);
+                toast.error(`Error al crear sección: ${e.message}`);
             } finally {
                 set({ isUpdating: false });
             }
@@ -331,25 +325,25 @@ export const useDashboardStore = create(
         updateSection: async (id, data, imageFile) => {
             set({ isUpdating: true });
             try {
-                if (imageFile) {
-                    data.image = await get().uploadProductImage(id, imageFile);
-                }
-                const response = await fetch(`/api/sections/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
+                const updatedSection = await apiClient<Section>(`/api/sections/${id}`, {
+                    method: 'PATCH',
+                    data,
+                    imageFile
                 });
-                if (!response.ok) throw new Error('Error al actualizar');
-                const updated: Section = await response.json();
                 set(state => {
-                    const catId = updated.category_id;
-                    if (!catId || !state.sections[catId]) return;
-                    const sectionIndex = state.sections[catId].findIndex(s => s.section_id === id);
-                    if (sectionIndex !== -1) state.sections[catId][sectionIndex] = updated;
+                    if (updatedSection.category_id) {
+                        const sections = state.sections[updatedSection.category_id];
+                        if (sections) {
+                            const index = sections.findIndex(s => s.section_id === id);
+                            if (index !== -1) {
+                                sections[index] = { ...sections[index], ...updatedSection };
+                            }
+                        }
+                    }
                 });
                 toast.success('Sección actualizada');
             } catch (e: any) {
-                toast.error(e.message);
+                toast.error(`Error al actualizar sección: ${e.message}`);
             } finally {
                 set({ isUpdating: false });
             }
@@ -468,109 +462,53 @@ export const useDashboardStore = create(
         },
 
         createProduct: async (data, imageFile) => {
-            set({ isUpdating: true })
+            set({ isUpdating: true });
             try {
-                if (imageFile) {
-                    const imageUrl = await get().uploadProductImage(0, imageFile)
-                    data.image = imageUrl
-                }
-                const response = await fetch("/api/products", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data),
-                })
-                if (!response.ok) {
-                    const errorData = await response.json()
-                    throw new Error(errorData.message || "Error al crear el producto")
-                }
-                const newProduct: Product = await response.json()
-                set((state) => {
-                    const key = newProduct.section_id ? String(newProduct.section_id) : `cat-${newProduct.category_id}`
-                    state.products[key] = [...(state.products[key] || []), newProduct]
-                })
-                toast.success("Producto creado")
-                return newProduct
+                const newProduct = await apiClient<Product>('/api/products', {
+                    method: 'POST',
+                    data,
+                    imageFile
+                });
+                set(state => {
+                    const key = newProduct.section_id ? String(newProduct.section_id) : `cat-${newProduct.category_id}`;
+                    state.products[key] = [...(state.products[key] || []), newProduct];
+                });
+                toast.success('Producto creado');
+                return newProduct;
             } catch (e: any) {
-                toast.error(e.message)
-                throw e
+                toast.error(`Error al crear producto: ${e.message}`);
+                return undefined;
             } finally {
-                set({ isUpdating: false })
+                set({ isUpdating: false });
             }
         },
 
-        /**
-         * 🧭 MIGA DE PAN CONTEXTUAL: Acción de Actualización de Producto (Refactorizada)
-         *
-         * 📍 UBICACIÓN: app/dashboard-v2/stores/dashboardStore.ts → updateProduct()
-         *
-         * 🎯 PORQUÉ EXISTE (REFACTORIZADO):
-         * Para ser una función pura de lógica de negocio, agnóstica a la UI. Su única misión
-         * es validar datos, llamar a la API, actualizar el estado de datos interno y reportar
-         * el resultado de forma predecible.
-         *
-         * 🔄 FLUJO DE DATOS:
-         * 1. `EditModal.handleSave()` invoca esta función.
-         * 2. `updateProduct()` llama a `PATCH /api/products/[id]`.
-         * 3. Tras una respuesta exitosa, actualiza `state.products` con el nuevo dato.
-         * 4. Devuelve una `Promise<Product>` que se resuelve con el producto actualizado.
-         * 5. Si la API falla, lanza un `Error` que es capturado por el `catch` del modal.
-         *
-         * 🚨 PROBLEMA RESUELTO:
-         * - Se eliminó la referencia a `state.modalState.isSubmitting`, que era la causa
-         *   del `TypeError` y una violación grave de la separación de responsabilidades.
-         * - Fecha de resolución: 2025-06-18.
-         *
-         * ⚠️ REGLAS DE NEGOCIO:
-         * - La función ahora devuelve una promesa, permitiendo al llamador (la UI) reaccionar
-         *   al éxito o fracaso de la operación de forma asíncrona.
-         * - Es responsabilidad de esta función manejar los `toast` de notificación al usuario.
-         *
-         * 📖 MANDAMIENTOS RELACIONADOS:
-         * - #6 (Separación de Responsabilidades): Esta refactorización es un ejemplo clave.
-         */
         updateProduct: async (id, data, imageFile) => {
-            set({ isUpdating: true, error: null })
-
+            set({ isUpdating: true });
             try {
-                const updatedProductData: Partial<Product> = { ...data }
+                const updatedProduct = await apiClient<Product>(`/api/products/${id}`, {
+                    method: 'PATCH',
+                    data,
+                    imageFile
+                });
+                set(state => {
+                    const key = updatedProduct.section_id
+                        ? String(updatedProduct.section_id)
+                        : `cat-${updatedProduct.category_id}`;
 
-                if (imageFile) {
-                    const imageUrl = await get().uploadProductImage(id, imageFile)
-                    updatedProductData.image = imageUrl
-                }
-
-                const response = await fetch(`/api/products/${id}`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(updatedProductData),
-                })
-
-                if (!response.ok) {
-                    const errorData = await response.json()
-                    throw new Error(errorData.message || `Error al actualizar el producto`)
-                }
-
-                const updatedProduct: Product = await response.json()
-
-                set((state) => {
-                    for (const key in state.products) {
-                        const productIndex = state.products[key].findIndex((p: Product) => p.product_id === id)
-                        if (productIndex !== -1) {
-                            state.products[key][productIndex] = { ...state.products[key][productIndex], ...updatedProduct }
-                            break
+                    const productList = state.products[key];
+                    if (productList) {
+                        const index = productList.findIndex(p => p.product_id === id);
+                        if (index !== -1) {
+                            productList[index] = { ...productList[index], ...updatedProduct };
                         }
                     }
-                })
-
-                toast.success("Producto actualizado con éxito")
-                return updatedProduct
-            } catch (error: any) {
-                console.error("📦 [store] Error en updateProduct:", error)
-                set({ error: error.message })
-                toast.error(error.message || "Ocurrió un error desconocido.")
-                throw error
+                });
+                toast.success('Producto actualizado');
+            } catch (e: any) {
+                toast.error(`Error al actualizar producto: ${e.message}`);
             } finally {
-                set({ isUpdating: false })
+                set({ isUpdating: false });
             }
         },
 

@@ -635,3 +635,48 @@
 - `app/dashboard-v2/components/core/DashboardView.tsx`
 
 ---
+
+### **#39 | La Odisea de la Imagen: Refactorización y Resurrección del Sistema de Edición**
+
+- **Fecha:** 2025-06-19
+- **Responsable:** Gemini
+- **Checklist:** Tareas implícitas de corrección de regresiones.
+- **Mandamientos Involucrados:** #1 (Contexto), #2 (Actualización), #3 (No Reinventar), #6 (Separación de Responsabilidades), #7 (Legibilidad), #8 (Consistencia), #10 (Mejora Proactiva), #11 (Principio de Insistencia Rota).
+
+**Descripción:**
+
+> Esta entrada narra la crónica de una de las depuraciones más complejas y reveladoras hasta la fecha. Lo que comenzó como un simple bug — "la edición de imágenes no funciona"— se convirtió en un viaje a través de toda nuestra arquitectura, desde la UI hasta el store, obligándonos a realizar una refactorización profunda para alinear el sistema con nuestros mandamientos y, finalmente, solucionar el problema de raíz.
+
+> **Acto I: La Hipótesis Errónea y la Refactorización Necesaria**
+>
+> El problema era claro: la edición de texto funcionaba, pero al cambiar una imagen, esta no se guardaba. Mi primera hipótesis apuntaba a un fallo en la capa de UI. Para solucionarlo, tomé la decisión arquitectónica de modernizar todos los formularios de edición (`CategoryForm`, `SectionForm`, `ProductForm`) para que usaran `react-hook-form` y `zod`. Aunque esto no resolvió el bug principal, fue una mejora crucial que eliminó estados manuales (`useState`) y alineó los formularios con nuestros estándares, haciéndolos más robustos y legibles. Este proceso nos obligó también a mejorar componentes base como `Input.tsx` (ahora polimórfico) y `FormField.tsx` (ahora un simple contenedor).
+
+> **Acto II: El Verdadero Villano - La Lógica Ausente en el Store**
+>
+> A pesar de la refactorización, el bug persistía. La evidencia apuntaba a que el problema no estaba en la UI, sino en la capa de lógica. Un análisis profundo de `dashboardStore.ts` reveló la verdad: las funciones `update` no tenían ninguna lógica para manejar la subida de archivos. Simplemente enviaban JSON, ignorando por completo el `imageFile` que la UI les proporcionaba.
+>
+> La solución fue crear un `apiClient.ts` centralizado, una utilidad "inteligente" cuya única misión es construir la petición `fetch` correcta: si recibe un `imageFile`, crea un `FormData`; si no, envía `JSON`. Todas las acciones CRUD en `dashboardStore.ts` fueron refactorizadas para usar este cliente, centralizando la lógica de red y limpiando el store. Este fue el momento clave donde aplicamos rigurosamente el Mandamiento #6, separando la lógica de negocio (store) de los detalles de la comunicación (apiClient).
+
+> **Acto III: La Regresión y la Revelación Final**
+>
+> Tras solucionar el guardado, surgió una regresión: la imagen inicial en el modal de edición de categorías ya no se mostraba. Gracias a un `console.log` estratégico y tu feedback visual, descubrimos la causa: la API de categorías devolvía una ruta de imagen completa (`/images/categories/...`), mientras que nuestro `ImageUploader.tsx` intentaba "ayudar" añadiendo ese mismo prefijo, creando una URL duplicada y rota.
+>
+> La solución final fue hacer al `ImageUploader` completamente "tonto", como dicta el Mandamiento #7. Se eliminó toda la lógica de construcción de rutas, y ahora simplemente muestra la URL que se le pasa. La responsabilidad de construir la ruta correcta recae ahora en quien lo llama, utilizando la utilidad `getImagePath`, que a su vez fue robustecida para manejar tanto rutas completas como nombres de archivo simples.
+
+> **Epílogo:**
+>
+> Esta odisea ha dejado nuestro sistema de edición de datos no solo funcional, sino arquitectónicamente más sólido, coherente y resiliente. Cada componente tiene ahora una responsabilidad única y clara, y el flujo de datos es predecible y fácil de rastrear.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/services/apiClient.ts` (Creado)
+- `app/dashboard-v2/stores/dashboardStore.ts` (Refactorizado)
+- `app/dashboard-v2/components/ui/Form/ImageUploader.tsx` (Refactorizado)
+- `app/dashboard-v2/components/ui/Form/Input.tsx` (Refactorizado)
+- `app/dashboard-v2/components/ui/Form/FormField.tsx` (Refactorizado)
+- `app/dashboard-v2/components/domain/categories/CategoryForm.tsx` (Refactorizado)
+- `app/dashboard-v2/components/domain/sections/SectionForm.tsx` (Refactorizado)
+- `app/dashboard-v2/components/domain/products/ProductForm.tsx` (Refactorizado)
+- `app/dashboard-v2/utils/imageUtils.ts` (Modificado)
+
+---

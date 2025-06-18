@@ -21,17 +21,30 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> { }
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+    as?: 'input' | 'textarea';
+}
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-    ({ className, type, ...props }, ref) => {
+    ({ className, type, as = 'input', ...props }, ref) => {
+
+        const commonClasses =
+            'flex w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+
+        if (as === 'textarea') {
+            return (
+                <textarea
+                    className={cn(commonClasses, 'min-h-[80px]', className)}
+                    ref={ref as React.Ref<HTMLTextAreaElement>}
+                    {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+                />
+            );
+        }
+
         return (
             <input
                 type={type}
-                className={cn(
-                    'flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-                    className
-                )}
+                className={cn(commonClasses, 'h-10', className)}
                 ref={ref}
                 {...props}
             />

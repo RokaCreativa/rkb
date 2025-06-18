@@ -248,3 +248,6 @@ Documenta el “porqué” de cualquier decisión arquitectónica relevante.
 Prioriza la facilidad de testeo y reutilización en cada parte.
 
 Si dudas, separa más: prefiere sobre-separar antes que mezclar.
+
+en cada cambio sactisfactorio asctulizar la memoria de cursor y la memoria de ByteRover MCP(mcp_byterover-mcp_byterover-store-knowledge.) , parsa que se tenga una bitacora en la memoria del proble y la solucion
+tambien el agente ia gemini puede guardar lo que considere impoirtante y acceder a esas memorias cuando quiera

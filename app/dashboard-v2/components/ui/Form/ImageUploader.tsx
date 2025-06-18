@@ -1,11 +1,12 @@
 /**
- * 🧭 MIGA DE PAN CONTEXTUAL: Componente de carga de imágenes reutilizable
- * PROBLEMA RESUELTO: useState no se actualizaba cuando cambiaba initialImageUrl
- * CONEXIONES CRÍTICAS:
- * - CategoryForm.tsx: Usa este componente para cargar imágenes de categorías
- * - SectionForm.tsx: Usa este componente para cargar imágenes de secciones  
- * - ProductForm.tsx: Usa este componente para cargar imágenes de productos
- * DECISIÓN ARQUITECTÓNICA: useEffect para sincronizar con prop initialImageUrl
+ * 📜 Mandamiento #7: Separación Absoluta de Lógica y Presentación
+ * -----------------------------------------------------------------
+ * Este componente es un ejemplo perfecto de un componente de UI "tonto".
+ * No tiene lógica de negocio. Su única responsabilidad es:
+ * 1. Mostrar una imagen inicial si se le proporciona (`initialImageUrl`).
+ * 2. Permitir al usuario seleccionar un nuevo archivo.
+ * 3. Notificar al componente padre cuando se selecciona un archivo (`onImageChange`).
+ * No sabe cómo se construye una URL ni qué se hará con el archivo.
  */
 'use client';
 
@@ -26,17 +27,17 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     initialImageUrl,
     error,
 }) => {
-    const [preview, setPreview] = useState<string | null>(initialImageUrl || null);
+    const [preview, setPreview] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     /**
      * 🧭 MIGA DE PAN CONTEXTUAL: Sincronizar preview con initialImageUrl
-     * PROBLEMA RESUELTO: En edición, la imagen no se cargaba porque useState solo se inicializa una vez
-     * PORQUÉ NECESARIO: Cuando se abre modal de edición, initialImageUrl cambia pero preview no se actualizaba
-     * CONEXIÓN: CategoryForm y SectionForm pasan initialImageUrl que debe reflejarse inmediatamente
+     * PROBLEMA RESUELTO: La URL de la imagen se duplicaba (`/images/.../images/...`)
+     * PORQUÉ NECESARIO: Este componente debe ser "tonto". No debe construir rutas, solo
+     * mostrar la `initialImageUrl` que recibe. La construcción de la ruta es responsabilidad
+     * de quien lo llama (usando la utilidad `getImagePath`).
      */
     useEffect(() => {
-        console.log('🖼️ ImageUploader useEffect:', { initialImageUrl, preview });
         setPreview(initialImageUrl || null);
     }, [initialImageUrl]);
 
@@ -48,14 +49,12 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-            onImageChange(file);
+            // Creamos una URL local para la previsualización instantánea.
+            // Esto es más eficiente que leer el archivo con FileReader.
+            setPreview(URL.createObjectURL(file));
+            onImageChange(file); // Notificamos al padre sobre el NUEVO archivo
         } else {
-            onImageChange(null);
+            // Si el usuario cancela, no hacemos nada para no perder la preview actual
         }
     };
 
@@ -85,6 +84,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                         layout="fill"
                         objectFit="cover"
                         className="rounded-md"
+                        // onError para manejar imágenes rotas en el servidor
+                        onError={() => setPreview('/placeholder.png')}
                     />
                 ) : (
                     <div className="text-center">

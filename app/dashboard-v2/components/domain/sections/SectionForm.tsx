@@ -1,10 +1,22 @@
 'use client';
 
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Section } from '@/app/dashboard-v2/types';
+import React, { useEffect, forwardRef, useImperativeHandle, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+import type { Section } from '@/app/dashboard-v2/types';
 import { FormField } from '@/app/dashboard-v2/components/ui/Form/FormField';
+import { Input } from '@/app/dashboard-v2/components/ui/Form/Input';
 import { ImageUploader } from '@/app/dashboard-v2/components/ui/Form/ImageUploader';
 import { getImagePath } from '@/app/dashboard-v2/utils/imageUtils';
+
+// --- VALIDACIÓN Y TIPOS ---
+const formSchema = z.object({
+    name: z.string().min(1, 'El nombre es obligatorio'),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 // --- REF Y PROPS ---
 /**
@@ -31,86 +43,55 @@ interface SectionFormProps {
 }
 
 // --- COMPONENTE ---
-
 export const SectionForm = forwardRef<SectionFormRef, SectionFormProps>(({ section }, ref) => {
-    const [name, setName] = useState('');
-    // 🧭 MIGA DE PAN: Status por defecto TRUE (activo) según feedback del usuario
-    // Se conecta con toggleSectionVisibility en dashboardStore.ts y contadores de visibilidad
-    const [status, setStatus] = useState<boolean>(true);
     const [imageFile, setImageFile] = useState<File | null>(null);
+
+    const {
+        register,
+        reset,
+        getValues,
+        formState: { errors },
+    } = useForm<FormData>({
+        resolver: zodResolver(formSchema),
+        defaultValues: { name: '' },
+    });
 
     useEffect(() => {
         if (section) {
-            // 🧭 MIGA DE PAN: Al editar, cargar datos existentes de la sección
-            setName(section.name || '');
-            setStatus(Boolean(section.status)); // Normalizar boolean
-            setImageFile(null); // Reset para evitar conflictos con imagen existente
+            reset({ name: section.name || '' });
         } else {
-            // 🧭 MIGA DE PAN: Al crear, valores por defecto optimizados según Mandamiento #8
-            setName('');
-            setStatus(true); // ✅ CORRECCIÓN: Por defecto ACTIVO según feedback
-            setImageFile(null);
+            reset({ name: '' });
         }
-    }, [section]);
+        setImageFile(null);
+    }, [section, reset]);
 
-    // 🧭 MIGA DE PAN: Exponer getFormData para que EditModals.tsx pueda obtener los datos
-    // Patrón establecido en Mandamiento #6 para separar lógica de presentación
     useImperativeHandle(ref, () => ({
-        getFormData: () => ({
-            data: {
-                name,
-                status: status ? 1 : 0, // Convertir a formato esperado por API
-            },
-            imageFile,
-        })
+        getFormData: () => {
+            const formData = getValues();
+            return {
+                data: {
+                    name: formData.name,
+                },
+                imageFile,
+            };
+        },
     }));
 
+    const handleImageChange = (file: File | null) => {
+        setImageFile(file);
+    };
+
     return (
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
-            <FormField
-                label="Nombre de la Sección"
-                name="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-            />
-
-            {/* 🧭 MIGA DE PAN: Selector de visibilidad reemplaza campo "orden" según feedback
-                Se conecta con contadores de visibilidad en SectionGridView */}
-            <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                    Visibilidad
-                </label>
-                <div className="flex space-x-4">
-                    <label className="flex items-center">
-                        <input
-                            type="radio"
-                            name="status"
-                            checked={status === true}
-                            onChange={() => setStatus(true)}
-                            className="mr-2 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">Activo (Visible)</span>
-                    </label>
-                    <label className="flex items-center">
-                        <input
-                            type="radio"
-                            name="status"
-                            checked={status === false}
-                            onChange={() => setStatus(false)}
-                            className="mr-2 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">Inactivo (Oculto)</span>
-                    </label>
-                </div>
-            </div>
-
+        <div className="space-y-4">
+            <FormField label="Nombre de la Sección" error={errors.name?.message}>
+                <Input {...register("name")} />
+            </FormField>
             <ImageUploader
                 label="Imagen de la Sección"
-                onImageChange={setImageFile}
-                initialImageUrl={section?.image ? getImagePath(section.image, 'sections') : null}
+                initialImageUrl={getImagePath(section?.image, 'sections')}
+                onImageChange={handleImageChange}
             />
-        </form>
+        </div>
     );
 });
 

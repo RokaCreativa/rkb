@@ -172,8 +172,24 @@ const updateProductSchema = z.object({
   is_showcased: z.boolean().optional(),
 });
 
-export async function PUT(
-  request: NextRequest,
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL: API de Actualización y Eliminación de Productos
+ *
+ * 🎯 PORQUÉ EXISTE:
+ * Este endpoint maneja las operaciones de modificar (PATCH) y borrar (DELETE) un producto específico.
+ *
+ * 🚨 PROBLEMAS HISTÓRICOS RESUELTOS:
+ * - **Error 405 (Method Not Allowed):** Originalmente, la función de actualización se llamaba `PUT`. El frontend,
+ *   siguiendo la convención del resto de la app, intentaba hacer una llamada `PATCH`. Se renombró la función
+ *   a `PATCH` para alinearla con el cliente y solucionar el error.
+ * - **Error de `params.id`:** Se corrigió la forma de acceder al ID del producto para ser compatible
+ *   con las versiones modernas de Next.js y evitar warnings en el servidor.
+ *
+ * 📖 MANDAMIENTOS RELACIONADOS:
+ * - #8 (Consistencia): Se usa PATCH, al igual que en el resto de las APIs de actualización del proyecto.
+ */
+export async function PATCH(
+  req: Request,
   { params }: { params: { id: string } }
 ) {
   try {
@@ -182,21 +198,21 @@ export async function PUT(
       return NextResponse.json({ error: 'ID de producto inválido' }, { status: 400 });
     }
 
-    const body = await request.json();
-    const validation = updateProductSchema.safeParse(body);
+    const data = await req.json();
 
-    if (!validation.success) {
-      return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
+    // Eliminar el campo display_order si es null para evitar errores de Prisma
+    if (data.display_order === null || data.display_order === undefined) {
+      delete data.display_order;
     }
 
     const updatedProduct = await prisma.products.update({
       where: { product_id: productId },
-      data: validation.data,
+      data: data,
     });
 
-    return NextResponse.json(updatedProduct, { status: 200 });
+    return NextResponse.json(updatedProduct);
   } catch (error) {
-    console.error('Error al actualizar el producto:', error);
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
+    console.error(`Error al actualizar producto ${params.id}:`, error);
+    return NextResponse.json({ error: 'Error al actualizar producto' }, { status: 500 });
   }
 } 
