@@ -63,6 +63,7 @@ const rowVariants = cva(
 export interface GenericRowProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'id' | 'title' | 'content'>, VariantProps<typeof rowVariants> {
     id: number | string;
     isSelected: boolean;
+    status: boolean;
     isReorderMode: boolean;
     imageSrc?: string | null;
     imageAlt: string;
@@ -82,6 +83,7 @@ export const GenericRow = React.memo<GenericRowProps>(
         className,
         id,
         isSelected,
+        status,
         isReorderMode,
         imageSrc,
         imageAlt,
@@ -98,6 +100,7 @@ export const GenericRow = React.memo<GenericRowProps>(
         const rowClasses = cn(
             rowVariants({ variant }),
             { 'cursor-pointer group': !isReorderMode, 'cursor-default': isReorderMode },
+            { 'opacity-50 grayscale': !status },
             className
         );
 

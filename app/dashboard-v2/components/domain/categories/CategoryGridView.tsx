@@ -122,6 +122,7 @@ export const CategoryGridView = React.memo<CategoryGridViewProps>(({
                                 imageAlt={item.name ?? 'Categoría'}
                                 imageType="categories"
                                 title={item.name}
+                                status={item.status}
                                 content={<CategoryContentDisplay categoryId={item.category_id} />}
                                 actions={renderActions(item)}
                                 onClick={() => onCategorySelect(item)}
@@ -143,6 +144,7 @@ export const CategoryGridView = React.memo<CategoryGridViewProps>(({
                                 imageType="products"
                                 title={item.name}
                                 subtitle={subtitle}
+                                status={item.status}
                                 actions={renderActions(item)}
                                 onClick={() => onEdit(item)} // El clic en un producto global va a edición
                                 className="bg-slate-50" // Color de fondo para diferenciar

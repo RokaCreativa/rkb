@@ -173,6 +173,7 @@ export const ProductGridView = React.memo<ProductGridViewProps>(
                                     imageType="products"
                                     title={product.name}
                                     subtitle={subtitle}
+                                    status={product.status}
                                     actions={renderActions(product)}
                                     showcaseIcon={renderShowcaseIcon(product)}
                                     reorderHandles={renderReorderHandles(product, index)}

@@ -117,6 +117,7 @@ export const SectionGridView = React.memo<SectionGridViewProps>(
                                     <GenericRow
                                         key={`sec-${item.section_id}`}
                                         id={item.section_id}
+                                        status={item.status}
                                         isSelected={selectedSectionId === item.section_id}
                                         isReorderMode={isReorderMode}
                                         imageSrc={item.image}
@@ -139,6 +140,7 @@ export const SectionGridView = React.memo<SectionGridViewProps>(
                                     <GenericRow
                                         key={`prod-${item.product_id}`}
                                         id={item.product_id}
+                                        status={item.status}
                                         isSelected={false} // Productos directos no son seleccionables para mostrar una 3ra col
                                         isReorderMode={isReorderMode}
                                         imageSrc={item.image}

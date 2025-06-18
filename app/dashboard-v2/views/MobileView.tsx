@@ -106,6 +106,36 @@ export const MobileView = () => {
         }
     };
 
+    const handleSaveModal = async ({ data, imageFile }: { data: any; imageFile?: File | null }) => {
+        try {
+            const { item, type } = modalState.options;
+
+            if (type === 'category') {
+                if (item) {
+                    await useDashboardStore.getState().updateCategory((item as Category).category_id, data, imageFile);
+                } else if (client) {
+                    await useDashboardStore.getState().createCategory({ ...data, client_id: client.client_id }, imageFile);
+                }
+            } else if (type === 'section') {
+                if (item) {
+                    await useDashboardStore.getState().updateSection((item as Section).section_id, data, imageFile);
+                } else if (selectedCategoryId) {
+                    await useDashboardStore.getState().createSection({ ...data, category_id: selectedCategoryId }, imageFile);
+                }
+            } else if (type === 'product') {
+                if (item) {
+                    await useDashboardStore.getState().updateProduct((item as Product).product_id, data, imageFile);
+                } else if (selectedSectionId) {
+                    await useDashboardStore.getState().createProduct({ ...data, section_id: selectedSectionId }, imageFile);
+                }
+            }
+            closeModal();
+        } catch (error) {
+            console.error(`❌ Error al guardar desde MobileView:`, error);
+            throw error;
+        }
+    };
+
     const renderFab = () => {
         let fabAction = () => { };
         switch (currentView) {
@@ -135,9 +165,23 @@ export const MobileView = () => {
         return <div className="flex h-full w-full items-center justify-center"><Loader message="Cargando..." /></div>;
     }
 
-    // Filtra los datos del store basados en las selecciones actuales.
+    // Filtra y ordena los datos del store basados en las selecciones actuales.
+    const sortedCategories = [...categories].sort((a, b) => {
+        if (a.status !== b.status) return a.status ? -1 : 1;
+        return 0; // Podríamos añadir un segundo criterio de ordenación aquí si fuera necesario
+    });
+
     const sectionsForCategory = selectedCategoryId ? sections[selectedCategoryId] || [] : [];
+    const sortedSections = [...sectionsForCategory].sort((a, b) => {
+        if (a.status !== b.status) return a.status ? -1 : 1;
+        return 0;
+    });
+
     const productsForSection = selectedSectionId ? products[selectedSectionId] || [] : [];
+    const sortedProducts = [...productsForSection].sort((a, b) => {
+        if (a.status !== b.status) return a.status ? -1 : 1;
+        return 0;
+    });
 
     return (
         <div className="p-4 h-full flex flex-col bg-gray-50 relative pb-20">
@@ -153,7 +197,7 @@ export const MobileView = () => {
                 {/* Renderizado condicional de la lista activa */}
                 {currentView === 'categories' && (
                     <CategoryList
-                        categories={categories}
+                        categories={sortedCategories}
                         onCategoryClick={handleCategorySelect}
                         onEditCategory={(item: Category) => openModal('editCategory', { item })}
                         onDeleteCategory={(item: Category) => openModal('deleteConfirmation', { item, type: 'category' })}
@@ -163,7 +207,7 @@ export const MobileView = () => {
                 )}
                 {currentView === 'sections' && (
                     <SectionList
-                        sections={sectionsForCategory}
+                        sections={sortedSections}
                         onSectionSelect={handleSectionSelect}
                         onEdit={(item: Section) => openModal('editSection', { item })}
                         onDelete={(item: Section) => openModal('deleteConfirmation', { item, type: 'section' })}
@@ -172,7 +216,7 @@ export const MobileView = () => {
                 )}
                 {currentView === 'products' && (
                     <ProductList
-                        products={productsForSection}
+                        products={sortedProducts}
                         onEdit={(item: Product) => openModal('editProduct', { item })}
                         onDelete={(item: Product) => openModal('deleteConfirmation', { item, type: 'product' })}
                         onToggleVisibility={(item: Product) => toggleProductVisibility(item.product_id, !item.status)}
@@ -186,21 +230,20 @@ export const MobileView = () => {
             <EditCategoryModal
                 isOpen={modalState.type === 'editCategory'}
                 onClose={closeModal}
-                category={modalState.options.item as Category | null}
-                clientId={client?.client_id}
+                item={modalState.options.item as Category | null}
+                onSave={handleSaveModal}
             />
             <EditSectionModal
                 isOpen={modalState.type === 'editSection'}
                 onClose={closeModal}
-                section={modalState.options.item as Section | null}
-                categoryId={modalState.options.parentId || (modalState.options.item as Section)?.category_id}
+                item={modalState.options.item as Section | null}
+                onSave={handleSaveModal}
             />
             <EditProductModal
                 isOpen={modalState.type === 'editProduct'}
                 onClose={closeModal}
-                product={modalState.options.item as Product | null}
-                sectionId={modalState.options.parentId}
-                isDirect={modalState.options.isDirect}
+                item={modalState.options.item as Product | null}
+                onSave={handleSaveModal}
             />
             <DeleteConfirmationModal
                 isOpen={modalState.type === 'deleteConfirmation'}

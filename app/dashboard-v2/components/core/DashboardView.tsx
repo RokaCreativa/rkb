@@ -139,9 +139,15 @@ const DashboardView = () => {
     const realCategories = categories.filter(c => !c.is_virtual_category);
 
     // 5. Combinar y ordenar
-    return [...realCategories, ...globalProducts].sort(
-      (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
-    );
+    const combined = [...realCategories, ...globalProducts];
+
+    // Ordena primero por visibilidad (visibles primero), luego por display_order.
+    return combined.sort((a, b) => {
+      if (a.status !== b.status) {
+        return a.status ? -1 : 1;
+      }
+      return (a.display_order ?? 0) - (b.display_order ?? 0);
+    });
   }, [categories, sections, products]);
 
   /**
@@ -182,15 +188,29 @@ const DashboardView = () => {
     const localDirectProducts = allProductsFlat.filter(p => p.category_id === selectedCategoryId && !p.section_id);
 
     // Combina y ordena.
-    const combined = [...sectionsForCategory, ...localDirectProducts].sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+    const combined = [...sectionsForCategory, ...localDirectProducts];
 
-    return combined;
+    // Ordena primero por visibilidad, luego por display_order.
+    return combined.sort((a, b) => {
+      if (a.status !== b.status) {
+        return a.status ? -1 : 1;
+      }
+      return (a.display_order ?? 0) - (b.display_order ?? 0);
+    });
   }, [selectedCategoryId, sections, products]);
 
   // 🧠 Memo para Grid 3: Productos de una Sección
   const grid3Items: Product[] = useMemo(() => {
     if (!selectedSectionId) return [];
-    return products[selectedSectionId] || [];
+    const productList = products[selectedSectionId] || [];
+
+    // Ordena primero por visibilidad, luego por display_order.
+    return [...productList].sort((a, b) => {
+      if (a.status !== b.status) {
+        return a.status ? -1 : 1;
+      }
+      return (a.display_order ?? 0) - (b.display_order ?? 0);
+    });
   }, [selectedSectionId, products]);
 
   // =================================================================
