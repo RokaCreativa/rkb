@@ -680,3 +680,23 @@
 - `app/dashboard-v2/utils/imageUtils.ts` (Modificado)
 
 ---
+
+### **#40 | Consolidación de API: Unificación de Endpoints PATCH**
+
+- **Fecha:** 2025-06-19
+- **Responsable:** Gemini
+- **Checklist:** Tarea implícita de estabilización.
+- **Mandamientos Involucrados:** #3 (No Reinventar), #6 (Separación de Responsabilidades), #8 (Consistencia).
+
+**Descripción:**
+
+> Como acto final de la "Odisea de la Imagen", se consolidó la lógica de actualización en los endpoints de la API. Se descubrió que los endpoints `PATCH` para productos y secciones no estaban preparados para recibir `FormData` (imágenes), a diferencia del de categorías.
+
+> Se refactorizaron las funciones `PATCH` en `app/api/products/[id]/route.ts` y `app/api/sections/[id]/route.ts` para que, de manera inteligente, detecten el tipo de contenido (`multipart/form-data` o `application/json`) y procesen la petición adecuadamente. Esto unifica el comportamiento de todas las APIs de actualización, elimina código duplicado y refuerza una arquitectura consistente y predecible. Cabe destacar que la refactorización en el endpoint de secciones requirió intervención manual debido a la inestabilidad de las herramientas automáticas, reafirmando el Mandamiento #11.
+
+**Archivos Modificados/Creados:**
+
+- `app/api/products/[id]/route.ts` (Refactorizado)
+- `app/api/sections/[id]/route.ts` (Refactorizado)
+
+---

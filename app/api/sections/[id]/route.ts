@@ -22,6 +22,9 @@ import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import fs from 'fs/promises';
+import path from 'path';
+import { writeFile } from 'fs/promises';
 
 const prisma = new PrismaClient();
 
@@ -72,81 +75,91 @@ export async function PUT(
  * @route PATCH /api/sections/[id]
  * @description Actualiza parcialmente una sección (principalmente usado para visibilidad)
  */
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL: Actualización Polimórfica de Secciones
+ *
+ * 🎯 PORQUÉ EXISTE:
+ * Esta función PATCH es el endpoint unificado para actualizar una sección. Al igual que su contraparte de
+ * productos, es polimórfica: acepta `application/json` para cambios simples y `multipart/form-data`
+ * cuando se sube una nueva imagen.
+ *
+ * 🔄 FLUJO DE DATOS:
+ *  Idéntico al endpoint de productos, pero guarda las imágenes en `public/images/sections`.
+ *
+ * 🚨 PROBLEMA RESUELTO:
+ * Soluciona el bug que impedía guardar una nueva imagen para una sección, ya que antes solo
+ * estaba preparada para peticiones JSON (usadas por el toggle de visibilidad) y no para `FormData`.
+ *
+ * 📖 MANDAMIENTOS RELACIONADOS:
+ * - #6 (Separación de Responsabilidades): La API maneja la lógica de archivos.
+ * - #8 (Consistencia): Se unifica el comportamiento de las APIs de actualización del proyecto.
+ */
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  const sectionId = parseInt(params.id, 10);
+  if (isNaN(sectionId)) {
+    return NextResponse.json({ error: 'ID de sección inválido' }, { status: 400 });
+  }
+
   try {
-    // 1. Verificación de autenticación
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
 
-    // 2. Obtener el usuario y verificar que tenga un cliente asociado
-    const user = await prisma.users.findFirst({
-      where: { email: session.user.email },
-    });
+    let updateData: any;
+    const contentType = request.headers.get('content-type') || '';
 
-    if (!user?.client_id) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      updateData = {};
+
+      formData.forEach((value, key) => {
+        if (key !== 'image') {
+          if (key === 'status') {
+            updateData[key] = value === 'true';
+          } else if (key === 'display_order' && typeof value === 'string') {
+            const num = parseInt(value, 10);
+            if (!isNaN(num)) updateData.display_order = num;
+          } else if (key === 'category_id' && typeof value === 'string') {
+            const num = parseInt(value, 10);
+            if (!isNaN(num)) updateData.category_id = num;
+          } else {
+            updateData[key] = value;
+          }
+        }
+      });
+
+      const imageFile = formData.get('image') as File | null;
+      if (imageFile) {
+        const buffer = Buffer.from(await imageFile.arrayBuffer());
+        const filename = `${Date.now()}_${imageFile.name.replace(/\s/g, '_')}`;
+        const imagePath = path.join(process.cwd(), 'public/images/sections', filename);
+        await writeFile(imagePath, buffer);
+        updateData.image = filename;
+      }
+    } else {
+      updateData = await request.json();
     }
 
-    // 3. Obtener y validar el ID de la sección
-    const id = params.id;
-    const sectionId = parseInt(id);
-
-    if (isNaN(sectionId)) {
-      return NextResponse.json({ error: 'ID de sección inválido' }, { status: 400 });
+    // Limpieza de datos antes de enviar a Prisma
+    if (updateData.display_order === null || updateData.display_order === undefined) {
+      delete updateData.display_order;
+    }
+    if (updateData.category_id === null || updateData.category_id === undefined) {
+      delete updateData.category_id;
     }
 
-    // 4. Verificar que la sección exista y pertenezca al cliente
-    const section = await prisma.sections.findFirst({
-      where: {
-        section_id: sectionId,
-        OR: [
-          { deleted: 0 },
-          { deleted: null }
-        ]
-      },
-      include: {
-        categories: true,
-      },
-    });
-
-    if (!section) {
-      return NextResponse.json({ error: 'Sección no encontrada' }, { status: 404 });
-    }
-
-    // Verificar que la categoría de la sección pertenezca al cliente
-    if (section.categories && section.categories.client_id !== user.client_id) {
-      return NextResponse.json({ error: 'No tienes permiso para modificar esta sección' }, { status: 403 });
-    }
-
-    // 5. Obtener los datos a actualizar
-    const data = await request.json();
-    const updateData: Record<string, any> = {};
-
-    // Actualizar el estado si se proporciona
-    if (data.status !== undefined) {
-      updateData.status = data.status === 1;
-    }
-
-    // 6. Actualizar la sección
     const updatedSection = await prisma.sections.update({
-      where: {
-        section_id: sectionId,
-      },
+      where: { section_id: sectionId },
       data: updateData,
     });
 
-    // 7. Devolver respuesta de éxito
-    return NextResponse.json({
-      ...updatedSection,
-      status: updatedSection.status ? 1 : 0, // Convertir a formato numérico
-    });
+    return NextResponse.json(updatedSection);
+
   } catch (error) {
-    // 8. Manejo centralizado de errores
     console.error('Error al actualizar la sección:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }

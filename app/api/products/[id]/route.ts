@@ -23,6 +23,9 @@ import { authOptions } from "../../../../lib/auth";
 import prisma from '@/prisma/prisma';
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import fs from 'fs/promises';
+import path from 'path';
+import { writeFile } from 'fs/promises'
 
 /**
  * @route DELETE /api/products/[id]
@@ -173,44 +176,111 @@ const updateProductSchema = z.object({
 });
 
 /**
- * 🧭 MIGA DE PAN CONTEXTUAL: API de Actualización y Eliminación de Productos
+ * 🧭 MIGA DE PAN CONTEXTUAL: Actualización Polimórfica de Productos
  *
  * 🎯 PORQUÉ EXISTE:
- * Este endpoint maneja las operaciones de modificar (PATCH) y borrar (DELETE) un producto específico.
+ * Esta función PATCH es el endpoint unificado para actualizar un producto. Está diseñada para ser
+ * polimórfica, aceptando tanto peticiones `application/json` (para cambios de texto, estado, etc.)
+ * como `multipart/form-data` (cuando se incluye una nueva imagen).
  *
- * 🚨 PROBLEMAS HISTÓRICOS RESUELTOS:
- * - **Error 405 (Method Not Allowed):** Originalmente, la función de actualización se llamaba `PUT`. El frontend,
- *   siguiendo la convención del resto de la app, intentaba hacer una llamada `PATCH`. Se renombró la función
- *   a `PATCH` para alinearla con el cliente y solucionar el error.
- * - **Error de `params.id`:** Se corrigió la forma de acceder al ID del producto para ser compatible
- *   con las versiones modernas de Next.js y evitar warnings en el servidor.
+ * 🔄 FLUJO DE DATOS:
+ * 1. El `apiClient` desde el frontend envía una petición PATCH.
+ * 2. Esta función revisa el `Content-Type` de la cabecera.
+ * 3. Si es `multipart/form-data`:
+ *    a. Parsea el `FormData`.
+ *    b. Guarda el archivo de imagen en `public/images/products`.
+ *    c. Construye el objeto `updateData` con el nuevo nombre de la imagen y los demás campos.
+ * 4. Si es `json`:
+ *    a. Parsea el body como JSON.
+ * 5. Actualiza el producto en la base de datos con `updateData`.
+ *
+ * 🚨 PROBLEMA RESUELTO:
+ * Anteriormente, esta función solo aceptaba JSON, causando un error cuando el frontend enviaba
+ * una imagen (`FormData`). Esta refactorización lo unificó, solucionando el bug de guardado de imágenes.
  *
  * 📖 MANDAMIENTOS RELACIONADOS:
- * - #8 (Consistencia): Se usa PATCH, al igual que en el resto de las APIs de actualización del proyecto.
+ * - #6 (Separación de Responsabilidades): La API maneja la lógica de archivos, no el frontend.
+ * - #8 (Consistencia): Se alinea con el comportamiento de otros endpoints de actualización.
  */
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
+  const productId = parseInt(params.id, 10);
+  if (isNaN(productId)) {
+    return NextResponse.json({ error: 'ID de producto inválido' }, { status: 400 });
+  }
+
   try {
-    const productId = parseInt(params.id, 10);
-    if (isNaN(productId)) {
-      return NextResponse.json({ error: 'ID de producto inválido' }, { status: 400 });
+    let updateData: any;
+    const contentType = req.headers.get('content-type') || '';
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await req.formData();
+      updateData = {};
+
+      // Iterar sobre los campos del FormData
+      formData.forEach((value, key) => {
+        if (key !== 'image') {
+          // Valores de FormData son strings, necesitamos convertirlos/parsearlos
+          if (key === 'status' || key === 'is_showcased') {
+            updateData[key] = value === 'true';
+          } else if (key === 'price' && typeof value === 'string') {
+            updateData[key] = parseFloat(value);
+          } else if (key === 'display_order' && typeof value === 'string') {
+            const num = parseInt(value, 10);
+            if (!isNaN(num)) updateData.display_order = num;
+          }
+          else if (key === 'section_id' && typeof value === 'string') {
+            const num = parseInt(value, 10);
+            if (!isNaN(num)) updateData.section_id = num;
+          }
+          else if (key === 'category_id' && typeof value === 'string') {
+            const num = parseInt(value, 10);
+            if (!isNaN(num)) updateData.category_id = num;
+          }
+          else {
+            // Para 'name' y 'description', que son strings
+            updateData[key] = value;
+          }
+        }
+      });
+
+      const imageFile = formData.get('image') as File | null;
+      if (imageFile) {
+        const buffer = Buffer.from(await imageFile.arrayBuffer());
+        const filename = `${Date.now()}_${imageFile.name.replace(/\s/g, '_')}`;
+        const imagePath = path.join(process.cwd(), 'public/images/products', filename);
+        await writeFile(imagePath, buffer);
+        updateData.image = filename;
+      }
+    } else {
+      // Si no es multipart, asumimos que es JSON
+      updateData = await req.json();
     }
 
-    const data = await req.json();
-
-    // Eliminar el campo display_order si es null para evitar errores de Prisma
-    if (data.display_order === null || data.display_order === undefined) {
-      delete data.display_order;
+    // Eliminar el campo display_order si es null/undefined para evitar errores de Prisma
+    if (updateData.display_order === null || updateData.display_order === undefined) {
+      delete updateData.display_order;
     }
+
+    // Si section_id es null, lo eliminamos para que Prisma no intente establecer una relación inexistente
+    if (updateData.section_id === null) {
+      delete updateData.section_id;
+    }
+
+    if (updateData.category_id === null) {
+      delete updateData.category_id;
+    }
+
 
     const updatedProduct = await prisma.products.update({
       where: { product_id: productId },
-      data: data,
+      data: updateData,
     });
 
     return NextResponse.json(updatedProduct);
+
   } catch (error) {
     console.error(`Error al actualizar producto ${params.id}:`, error);
     return NextResponse.json({ error: 'Error al actualizar producto' }, { status: 500 });
