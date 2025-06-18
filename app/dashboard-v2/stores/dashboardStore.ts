@@ -286,7 +286,7 @@ export const useDashboardStore = create(
             try {
                 await fetch(`/api/categories/${id}/visibility`, {
                     method: 'PATCH',
-                    body: JSON.stringify({ status: status ? 1 : 0 }),
+                    body: JSON.stringify({ status: status }),
                     headers: { 'Content-Type': 'application/json' },
                 });
                 set(state => ({
@@ -377,7 +377,7 @@ export const useDashboardStore = create(
             try {
                 await fetch(`/api/sections/${id}/visibility`, {
                     method: 'PATCH',
-                    body: JSON.stringify({ status: status ? 1 : 0 }),
+                    body: JSON.stringify({ status: status }),
                     headers: { 'Content-Type': 'application/json' },
                 });
                 set(state => {
@@ -391,18 +391,43 @@ export const useDashboardStore = create(
             }
         },
 
+        /**
+         * 🧭 MIGA DE PAN CONTEXTUAL: Cambio de visibilidad de un producto
+         *
+         * 🎯 PORQUÉ EXISTE:
+         * Para manejar el cambio de estado de visibilidad de cualquier producto.
+         *
+         * 🔄 FLUJO DE DATOS:
+         * 1. Un `ActionIcon` en la UI (en un `GenericRow`) llama a esta función.
+         * 2. Llama al endpoint de API dedicado (`/api/products/[id]/visibility`) enviando un booleano.
+         * 3. Si la API responde con éxito, actualiza el estado local en Zustand.
+         *
+         * 🚨 PROBLEMA RESUELTO:
+         * - La lógica de actualización de estado (`set`) anterior era frágil. Solo buscaba el producto en
+         *   la lista "activa", fallando para productos directos globales.
+         * - **SOLUCIÓN:** La nueva lógica itera sobre TODAS las listas de productos conocidas en `state.products`,
+         *   asegurando que encontrará y actualizará el producto sin importar dónde se encuentre. Esto la hace
+         *   mucho más robusta y compatible con la arquitectura híbrida.
+         */
         toggleProductVisibility: async (id, status) => {
             try {
                 await fetch(`/api/products/${id}/visibility`, {
                     method: 'PATCH',
-                    body: JSON.stringify({ status: status ? 1 : 0 }),
+                    body: JSON.stringify({ status: status }),
                     headers: { 'Content-Type': 'application/json' },
                 });
                 set(state => {
-                    const key = state.selectedSectionId ? String(state.selectedSectionId) : `cat-${state.selectedCategoryId}`;
-                    if (!state.products[key]) return;
-                    const productIndex = state.products[key].findIndex(p => p.product_id === id);
-                    if (productIndex !== -1) state.products[key][productIndex].status = status;
+                    // Lógica de búsqueda mejorada: itera sobre todas las listas de productos.
+                    for (const key in state.products) {
+                        const productList = state.products[key];
+                        const productIndex = productList.findIndex(p => p.product_id === id);
+
+                        if (productIndex !== -1) {
+                            // Producto encontrado, actualiza su estado y termina el bucle.
+                            productList[productIndex].status = status;
+                            break;
+                        }
+                    }
                 });
             } catch (error) {
                 toast.error("Error al cambiar visibilidad");

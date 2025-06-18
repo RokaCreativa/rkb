@@ -700,3 +700,32 @@
 - `app/api/sections/[id]/route.ts` (Refactorizado)
 
 ---
+
+### **#41 | La Caza del Bug de Visibilidad: Una Lección de Consistencia**
+
+- **Fecha:** 2025-06-19
+- **Responsable:** Gemini
+- **Checklist:** Tarea implícita de estabilización y refactorización.
+- **Mandamientos Involucrados:** #1 (Contexto), #6 (Separación), #8 (Consistencia), #10 (Mejora Proactiva).
+
+**Descripción:**
+
+> Esta entrada documenta la resolución de una serie de bugs de visibilidad que afectaban a toda la aplicación. Aunque el sistema de edición ya estaba refactorizado, los botones de visibilidad (el "ojo") no funcionaban correctamente o no refrescaban la UI en tiempo real.
+
+> **Acto I: La Pista Falsa y el Endpoint Correcto**
+>
+> Mi hipótesis inicial fue que habíamos dañado la lógica del store al refactorizar los endpoints `PATCH` genéricos. Sin embargo, un análisis del `dashboardStore.ts` reveló que ya estábamos usando las mejores prácticas: las funciones `toggle...Visibility` apuntaban a endpoints dedicados (ej: `/api/products/[id]/visibility`), aislando correctamente la lógica. El problema no estaba en el store.
+
+> **Acto II: El Conflicto de Tipos**
+>
+> La investigación nos llevó a los endpoints de la API, como `app/api/products/[id]/visibility/route.ts`. Allí descubrimos el verdadero culpable: una inconsistencia de tipos. El frontend enviaba el estado como un número (`1`/`0`), mientras que el backend esperaba un booleano (`true`/`false`), causando un error 400. La solución fue alinear el `dashboardStore.ts` para que enviara un booleano, respetando el schema de la base de datos y el Mandamiento #8 (Consistencia).
+
+> **Acto III: El Bug del Refresco y la Lógica Robusta**
+>
+> Tras la corrección, un último bug persistía: el estado de los "Productos Directos Globales" no se refrescaba en la UI. La causa era que la lógica de actualización en el store era demasiado específica y no sabía cómo encontrar estos productos en su mapa de estado. Se refactorizó la función `toggleProductVisibility` para que iterara sobre _todas_ las listas de productos conocidas, en lugar de solo la activa. Esta lógica de búsqueda robusta solucionó el problema final, haciendo que el store sea más resiliente.
+
+**Archivos Modificados/Creados:**
+
+- `app/dashboard-v2/stores/dashboardStore.ts` (Refactorizado)
+
+---
