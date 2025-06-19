@@ -41,11 +41,14 @@ import { cn } from '@/lib/utils';
 import { GenericRow } from '@/app/dashboard-v2/components/ui/Table/GenericRow';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
 import { ActionIcon } from '../../ui/Button/ActionIcon';
-import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
+
 import { ArrowUp, ArrowDown } from 'lucide-react';
 
 type ProductGridViewProps = {
     products: Product[];
+    isReorderMode: boolean;
+    onMoveItem: (itemId: number, direction: 'up' | 'down', itemType: 'category' | 'section' | 'product', contextId?: number | null) => Promise<void>;
+    selectedSectionId: number | null;
     onEdit: (product: Product) => void;
     onDelete: (product: Product) => void;
     onMove?: (product: Product) => void;
@@ -60,6 +63,9 @@ type ProductGridViewProps = {
 export const ProductGridView = React.memo<ProductGridViewProps>(
     ({
         products,
+        isReorderMode,
+        onMoveItem,
+        selectedSectionId,
         onEdit,
         onDelete,
         onMove,
@@ -70,25 +76,27 @@ export const ProductGridView = React.memo<ProductGridViewProps>(
         selectedProductId,
         isSectionSelected,
     }) => {
-        const isReorderMode = useDashboardStore(state => state.isReorderMode);
+
+        const ReorderHandles = ({ id }: { id: number }) => (
+            <div className="flex flex-col">
+                <ActionIcon Icon={ArrowUp} onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    console.log('🔥 ProductGrid - Move UP clicked:', { id, mode: isReorderMode, contextId: selectedSectionId });
+                    onMoveItem(id, 'up', 'product', selectedSectionId);
+                }} />
+                <ActionIcon Icon={ArrowDown} onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    console.log('🔥 ProductGrid - Move DOWN clicked:', { id, mode: isReorderMode, contextId: selectedSectionId });
+                    onMoveItem(id, 'down', 'product', selectedSectionId);
+                }} />
+            </div>
+        );
 
         const renderActions = (product: Product) => (
-            <>
-                <ActionIcon
-                    Icon={product.status ? Eye : EyeOff}
-                    iconClassName={product.status ? "text-gray-600" : "text-gray-400"}
-                    onClick={e => { e.stopPropagation(); onToggleVisibility(product); }}
-                />
-                <ActionIcon
-                    Icon={Pencil}
-                    iconClassName="text-gray-600"
-                    onClick={e => { e.stopPropagation(); onEdit(product); }}
-                />
-                <ActionIcon
-                    Icon={Trash}
-                    iconClassName="text-gray-600"
-                    onClick={e => { e.stopPropagation(); onDelete(product); }}
-                />
+            <div className="flex items-center">
+                <ActionIcon Icon={product.status ? Eye : EyeOff} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onToggleVisibility(product); }} />
+                <ActionIcon Icon={Pencil} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEdit(product); }} />
+                <ActionIcon Icon={Trash} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(product); }} className="hover:text-red-600" />
                 {onMove && (
                     <ActionIcon
                         Icon={Move}
@@ -96,7 +104,7 @@ export const ProductGridView = React.memo<ProductGridViewProps>(
                         onClick={e => { e.stopPropagation(); onMove(product); }}
                     />
                 )}
-            </>
+            </div>
         );
 
         const renderShowcaseIcon = (product: Product) => (
@@ -118,24 +126,7 @@ export const ProductGridView = React.memo<ProductGridViewProps>(
             />
         );
 
-        const renderReorderHandles = (product: Product, index: number) => (
-            <div className="flex flex-col">
-                <ActionIcon
-                    Icon={ArrowUp}
-                    disabled={index === 0}
-                    onClick={() => console.log('Move Up', product.product_id)}
-                    className="p-0 h-auto"
-                    iconClassName="w-4 h-4"
-                />
-                <ActionIcon
-                    Icon={ArrowDown}
-                    disabled={index === products.length - 1}
-                    onClick={() => console.log('Move Down', product.product_id)}
-                    className="p-0 h-auto"
-                    iconClassName="w-4 h-4"
-                />
-            </div>
-        );
+
 
         return (
             <div className="p-4 bg-white rounded-lg shadow-soft h-full flex flex-col">
@@ -176,7 +167,7 @@ export const ProductGridView = React.memo<ProductGridViewProps>(
                                     status={product.status}
                                     actions={renderActions(product)}
                                     showcaseIcon={renderShowcaseIcon(product)}
-                                    reorderHandles={renderReorderHandles(product, index)}
+                                    reorderHandles={<ReorderHandles id={product.product_id} />}
                                     onClick={() => !isReorderMode && onEdit(product)}
                                 />
                             );

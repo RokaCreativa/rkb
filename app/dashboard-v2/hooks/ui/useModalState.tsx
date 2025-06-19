@@ -27,8 +27,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
-import { Category, Section, Product } from '@/app/dashboard-v2/types';
+import { useDashboardStore } from '../../stores/dashboardStore';
+import { Category, Section, Product } from '../../types';
 
 // --- TIPOS EXPORTADOS (CORREGIDO: Se exporta ItemType) ---
 export type ModalType =
@@ -43,9 +43,6 @@ type ModalData = Category | Section | Product | null;
 export interface ModalOptions {
     item?: ModalData;
     type?: ItemType;
-    isDirect?: boolean;
-    isGlobal?: boolean;
-    parentId?: number;
 }
 
 interface FullModalState {
@@ -53,13 +50,27 @@ interface FullModalState {
     options: ModalOptions;
 }
 
-export const useModalState = () => {
+// CONTRATO EXPLÍCITO: Definiendo el tipo de retorno del hook
+export interface UseModalStateReturn {
+    modalState: FullModalState;
+    openModal: (type: ModalType, options?: ModalOptions) => void;
+    closeModal: () => void;
+    handleConfirmDelete: () => void;
+    handleSave: (formData: { data: Partial<any>; imageFile?: File | null }) => Promise<void>;
+}
+
+export const useModalState = (): UseModalStateReturn => {
     const [modalState, setModalState] = useState<FullModalState>({
         type: null,
         options: {},
     });
 
-    const { deleteCategory, deleteSection, deleteProduct } = useDashboardStore();
+    const {
+        deleteCategory, deleteSection, deleteProduct,
+        createCategory, updateCategory,
+        createSection, updateSection,
+        createProduct, updateProduct
+    } = useDashboardStore();
 
     const openModal = (type: ModalType, options: ModalOptions = {}) => {
         setModalState({ type, options });
@@ -83,10 +94,38 @@ export const useModalState = () => {
             case 'product':
                 deleteProduct((item as Product).product_id);
                 break;
-            default:
-                break;
         }
         closeModal();
+    };
+
+    const handleSave = async (formData: { data: Partial<any>; imageFile?: File | null }) => {
+        const { item, type } = modalState.options;
+        if (!type) return;
+
+        const { data, imageFile } = formData;
+        const isEditing = !!item;
+
+        try {
+            switch (type) {
+                case 'category':
+                    if (isEditing) await updateCategory((item as Category).category_id, data, imageFile);
+                    else await createCategory(data, imageFile);
+                    break;
+                case 'section':
+                    if (isEditing) await updateSection((item as Section).section_id, data, imageFile);
+                    else await createSection(data, imageFile);
+                    break;
+                case 'product':
+                    if (isEditing) await updateProduct((item as Product).product_id, data, imageFile);
+                    else await createProduct(data, imageFile);
+                    break;
+            }
+            closeModal(); // Cierra el modal en caso de éxito
+        } catch (error) {
+            // El toast de error ya lo muestra la acción del store.
+            // No cerramos el modal para que el usuario pueda corregir.
+            console.error("Error en handleSave:", error);
+        }
     };
 
     return {
@@ -94,5 +133,6 @@ export const useModalState = () => {
         openModal,
         closeModal,
         handleConfirmDelete,
+        handleSave,
     };
 };

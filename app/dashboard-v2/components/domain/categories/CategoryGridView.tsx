@@ -42,10 +42,12 @@ import React from 'react';
 import { Category, Product } from '@/app/dashboard-v2/types';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
 import { Eye, EyeOff, Pencil, Trash, Plus } from 'lucide-react';
-import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
-import { GenericRow } from '../../ui/Table/GenericRow';
-import { ActionIcon } from '../../ui/Button/ActionIcon';
+
+import { GenericRow } from '@/app/dashboard-v2/components/ui/Table/GenericRow';
+import { ActionIcon } from '@/app/dashboard-v2/components/ui/Button/ActionIcon';
 import { CategoryContentDisplay } from './CategoryContentDisplay';
+import { ArrowUp, ArrowDown, PlusCircle, Trash2 } from 'lucide-react';
+import { getImagePath } from '@/app/dashboard-v2/utils/imageUtils';
 
 // 🛡️ Type Guard: Diferencia entre una Categoría y un Producto en la lista mixta.
 // Se basa en la existencia de propiedades únicas para cada tipo.
@@ -57,43 +59,61 @@ function isCategory(item: Category | Product): item is Category {
 interface CategoryGridViewProps {
     items: (Category | Product)[];
     selectedCategoryId?: number | null;
+    isReorderMode: boolean;
     onCategorySelect: (category: Category) => void;
     onProductSelect: (product: Product) => void;
+    onMoveItem: (itemId: number, direction: 'up' | 'down', itemType: 'category' | 'section' | 'product', contextId?: number | null) => Promise<void>;
     onToggleVisibility: (item: Category | Product) => void;
     onEdit: (item: Category | Product) => void;
-    onDelete: (item: Category | Product) => void;
+    onDelete: (item: Category | Product, itemType: 'category' | 'product') => void;
     onAddNewCategory: () => void;
     onAddNewProductDirect: () => void;
 }
 
-export const CategoryGridView = React.memo<CategoryGridViewProps>(({
+export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
     items,
     selectedCategoryId,
+    isReorderMode,
     onCategorySelect,
     onProductSelect,
+    onMoveItem,
     onToggleVisibility,
     onEdit,
     onDelete,
     onAddNewCategory,
     onAddNewProductDirect,
 }) => {
-    // Suscripción atómica al estado de reordenamiento.
-    const isReorderMode = useDashboardStore(state => state.isReorderMode);
 
-    // 🎨 Renderizador de acciones, reutilizable para ambos tipos de items.
-    // Pasa las acciones recibidas del padre a los ActionIcon.
-    const renderActions = (item: Category | Product) => (
-        <>
-            <ActionIcon Icon={item.status ? Eye : EyeOff} onClick={(e) => { e.stopPropagation(); onToggleVisibility(item); }} iconClassName={item.status ? 'text-gray-600' : 'text-gray-400'} />
-            <ActionIcon Icon={Pencil} onClick={(e) => { e.stopPropagation(); onEdit(item); }} iconClassName="text-gray-600" />
-            <ActionIcon Icon={Trash} onClick={(e) => { e.stopPropagation(); onDelete(item); }} iconClassName="text-gray-600" />
-        </>
+    const ReorderHandles = ({ id, type }: { id: number; type: 'category' | 'product' }) => (
+        <div className="flex flex-col">
+            <ActionIcon Icon={ArrowUp} onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                console.log('🔥 CategoryGrid - Move UP clicked:', { id, type, mode: isReorderMode });
+                onMoveItem(id, 'up', type);
+            }} />
+            <ActionIcon Icon={ArrowDown} onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                console.log('🔥 CategoryGrid - Move DOWN clicked:', { id, type, mode: isReorderMode });
+                onMoveItem(id, 'down', type);
+            }} />
+        </div>
     );
+
+    const renderActions = (item: Category | Product) => {
+        const isCat = isCategory(item);
+        return (
+            <div className="flex items-center">
+                <ActionIcon Icon={item.status ? Eye : EyeOff} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onToggleVisibility(item); }} />
+                <ActionIcon Icon={Pencil} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEdit(item); }} />
+                <ActionIcon Icon={Trash2} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(item, isCat ? 'category' : 'product'); }} className="hover:text-red-600" />
+            </div>
+        );
+    };
 
     return (
         <div className="p-4 bg-white rounded-lg shadow-soft h-full flex flex-col">
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                <h2 className="text-xl font-semibold text-gray-800">Categorias</h2>
+                <h2 className="text-xl font-semibold text-gray-800">Categorías</h2>
                 <div className="flex space-x-2">
                     <Button onClick={onAddNewProductDirect} size="sm" variant="outline">
                         Añadir Prod. Global
@@ -104,57 +124,52 @@ export const CategoryGridView = React.memo<CategoryGridViewProps>(({
                     </Button>
                 </div>
             </div>
-            <div className="space-y-2 overflow-y-auto flex-grow">
-                {items.length === 0 ? (
-                    <div className="text-center py-10">
-                        <p className="text-gray-500">No hay categorías ni productos globales.</p>
-                    </div>
-                ) : (
-                    items.map((item, index) => {
-                        if (isCategory(item)) {
-                            // Renderiza la fila para una Categoría
-                            return <GenericRow
-                                key={`cat-${item.category_id}`}
-                                id={item.category_id}
-                                isSelected={selectedCategoryId === item.category_id}
-                                isReorderMode={isReorderMode}
-                                imageSrc={item.image}
-                                imageAlt={item.name ?? 'Categoría'}
-                                imageType="categories"
-                                title={item.name}
-                                status={item.status}
-                                content={<CategoryContentDisplay categoryId={item.category_id} />}
-                                actions={renderActions(item)}
-                                onClick={() => onCategorySelect(item)}
-                            />;
-                        } else {
-                            // Renderiza la fila para un Producto Directo Global
-                            const subtitle = [
-                                item.price ? `$${Number(item.price).toFixed(2)}` : null,
-                                item.description,
-                            ].filter(Boolean).join(' - ');
 
-                            return <GenericRow
-                                key={`prod-${item.product_id}`}
-                                id={item.product_id}
-                                isSelected={false} // Productos globales no se "seleccionan"
-                                isReorderMode={isReorderMode}
-                                imageSrc={item.image}
-                                imageAlt={item.name ?? 'Producto'}
-                                imageType="products"
-                                title={item.name}
-                                subtitle={subtitle}
-                                status={item.status}
-                                actions={renderActions(item)}
-                                onClick={() => onEdit(item)} // El clic en un producto global va a edición
-                                className="bg-slate-50" // Color de fondo para diferenciar
-                            />;
+            <div className="space-y-2 overflow-y-auto flex-grow">
+                <div className="grid grid-cols-1 gap-2">
+                    {items.map((item) => {
+                        if (isCategory(item)) {
+                            return (
+                                <GenericRow
+                                    key={`cat-${item.category_id}`}
+                                    id={item.category_id}
+                                    isSelected={selectedCategoryId === item.category_id}
+                                    status={item.status}
+                                    isReorderMode={isReorderMode}
+                                    imageSrc={item.image}
+                                    imageAlt={item.name ?? 'Categoría'}
+                                    imageType="categories"
+                                    title={item.name}
+                                    content={<CategoryContentDisplay categoryId={item.category_id} />}
+                                    onClick={() => !isReorderMode && onCategorySelect(item)}
+                                    reorderHandles={<ReorderHandles id={item.category_id} type="category" />}
+                                    actions={renderActions(item)}
+                                />
+                            );
+                        } else {
+                            return (
+                                <GenericRow
+                                    key={`prod-${item.product_id}`}
+                                    id={item.product_id}
+                                    isSelected={false}
+                                    status={item.status}
+                                    isReorderMode={isReorderMode}
+                                    imageSrc={item.image}
+                                    imageAlt={item.name ?? 'Producto'}
+                                    imageType="products"
+                                    title={item.name}
+                                    subtitle={item.price ? `$${Number(item.price).toFixed(2)}` : ''}
+                                    onClick={() => !isReorderMode && onEdit(item)}
+                                    reorderHandles={<ReorderHandles id={item.product_id} type="product" />}
+                                    actions={renderActions(item)}
+                                />
+                            );
                         }
-                    })
-                )}
+                    })}
+                </div>
             </div>
         </div>
     );
-});
+};
 
 CategoryGridView.displayName = 'CategoryGridView'; 

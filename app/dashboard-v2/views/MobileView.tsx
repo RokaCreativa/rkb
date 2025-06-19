@@ -1,39 +1,31 @@
 /**
- * 🧭 MIGA DE PAN CONTEXTUAL MAESTRA: Orquestador de la Vista Móvil
- *
- * 📍 UBICACIÓN: app/dashboard-v2/views/MobileView.tsx
- *
- * 🎯 PORQUÉ EXISTE:
- * Este componente es el controlador principal para la experiencia de usuario en dispositivos móviles.
- * Implementa un patrón de navegación "Drill-Down" (taladro), donde el usuario navega a través de
- * niveles jerárquicos (Categorías -> Secciones -> Productos) en una sola vista que se actualiza.
- *
- * 🔄 FLUJO DE DATOS Y ESTADO:
- * 1. **Estado Global (`useDashboardStore`):** Consume los datos (categorías, secciones, productos) y las
- *    acciones CRUD del store central. También utiliza los `selectedCategoryId` y `selectedSectionId`
- *    del store para filtrar los datos a mostrar.
- * 2. **Estado Local (`useState`):** Utiliza un estado local `currentView` para controlar qué
- *    lista se está mostrando en un momento dado ('categories', 'sections', o 'products'). Este es
- *    un uso ACEPTABLE de `useState` porque el estado de la navegación es puramente local a la
- *    vista móvil y no necesita ser compartido globalmente.
- * 3. **Navegación:**
- *    - `handleCategorySelect`: Actualiza el `selectedCategoryId` en el store y cambia `currentView` a 'sections'.
- *    - `handleSectionSelect`: Actualiza el `selectedSectionId` en el store y cambia `currentView` a 'products'.
- *    - `handleBack`: Navega hacia atrás en la jerarquía, limpiando la selección correspondiente en el store.
- * 4. **Renderizado Condicional:** Muestra `CategoryList`, `SectionList`, o `ProductList` basado en el valor de `currentView`.
- * 5. **FAB Contextual:** El Botón de Acción Flotante (`Fab`) cambia su acción (`onClick`) dependiendo de `currentView`.
- *
- * 🔗 CONEXIONES DIRECTAS:
- * - **Consume Estado de:** `useDashboardStore`, `useModalState`.
- * - **Renderiza Componentes Hijos:** `CategoryList`, `SectionList`, `ProductList`, `Fab`, y todos los `EditModals`.
- *
- * 🚨 PROBLEMA RESUELTO:
- * - Se refactorizó para consumir datos y tipos del `dashboardStore` v2, eliminando la dependencia de hooks y tipos `legacy`.
- * - Los componentes de lista (`CategoryList`, `SectionList`, `ProductList`) fueron refactorizados para ser más simples y consistentes, usando `GenericRow`.
- *
- * ⚠️ REGLAS DE NEGOCIO:
- * - El flujo de navegación es estrictamente jerárquico. No se puede saltar de categorías a productos directamente.
- * - El botón "Volver" es la única forma de navegar hacia arriba en la jerarquía.
+ * 🎯 MANDAMIENTO #7 - SEPARACIÓN ABSOLUTA DE LÓGICA Y PRESENTACIÓN
+ * 
+ * 🧭 PREGUNTA TRAMPA: ¿Qué patrón de navegación usa y por qué tiene estado local?
+ * RESPUESTA: Drill-Down jerárquico (categorías→secciones→productos) con estado local PERMITIDO para navegación UI
+ * 
+ * 📍 PROPÓSITO: Controlador principal para experiencia móvil
+ * Implementa navegación "taladro" en una sola vista que se actualiza según la jerarquía
+ * 
+ * ⚠️ NO DEBE HACER: Lógica de negocio compleja, llamadas API directas, transformaciones de datos
+ * ✅ SÍ PUEDE HACER: Estado local para navegación UI (currentView) - es puramente presentacional
+ * 
+ * 🔗 DEPENDENCIAS CRÍTICAS:
+ * - useDashboardStore (stores/) - Datos y acciones CRUD
+ * - useModalState (hooks/ui/) - Manejo de modales
+ * - CategoryList, SectionList, ProductList (components/domain/) - Listas de datos
+ * - Fab (components/ui/) - Botón flotante contextual
+ * 
+ * 🚨 PROBLEMA RESUELTO: Refactorización v2 eliminando dependencias legacy (Bitácora #35)
+ * 
+ * 🧠 ARQUITECTURA MÓVIL: Navegación jerárquica estricta con FAB contextual
+ * 
+ * 🔄 FLUJO CRÍTICO:
+ * 1. Store → Filtrado local → Listas UI
+ * 2. Selección → Actualizar store + cambiar vista local
+ * 3. Navegación hacia atrás → Limpiar selección + vista anterior
+ * 
+ * 🚨 ANTES DE CREAR ALGO NUEVO → REVISAR ESTA LISTA DE DEPENDENCIAS
  */
 'use client';
 

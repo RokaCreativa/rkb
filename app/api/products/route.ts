@@ -109,6 +109,17 @@ export async function GET(req: NextRequest) {
       whereCondition.section_id = null; // Clave: asegurar que son productos DIRECTOS
     }
 
+    let orderByField = 'products_display_order'; // Por defecto productos normales
+
+    // Para productos globales (category_id sin section_id), usar categories_display_order
+    if (categoryIdParam && !sectionIdParam) {
+      orderByField = 'categories_display_order';
+    }
+    // Para productos locales (category_id con section_id null), usar sections_display_order
+    else if (categoryIdParam && whereCondition.section_id === null) {
+      orderByField = 'sections_display_order';
+    }
+
     const products = await prisma.products.findMany({
       where: whereCondition,
       include: {
@@ -119,7 +130,7 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      orderBy: [{ display_order: 'asc' }],
+      orderBy: [{ [orderByField]: 'asc' }],
     });
 
     // Procesar los productos para convertir Decimal a number

@@ -8,19 +8,19 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/prisma/prisma';
 
-interface Section {
-  id: number;
-  order: number;
+interface SectionReorderItem {
+  section_id: number;
+  display_order: number;
 }
 
 /**
  * API para reordenar secciones
- * Maneja las solicitudes POST para actualizar el orden de múltiples secciones a la vez
+ * Maneja las solicitudes PUT para actualizar el orden de múltiples secciones a la vez
  * 
- * @route POST /api/sections/reorder
+ * @route PUT /api/sections/reorder
  * @returns NextResponse con los resultados actualizados o un mensaje de error
  */
-export async function POST(request: Request) {
+export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -34,31 +34,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid request format. Expected sections array.' }, { status: 400 });
     }
 
-    const sections: Section[] = body.sections;
+    const sections: SectionReorderItem[] = body.sections;
 
-    console.log('Reordenando secciones:', sections);
+    console.log('🔥 API sections/reorder - Recibido:', sections);
 
-    // Aquí iría la lógica para actualizar las secciones en la base de datos
-
-    // Ejemplo de implementación (simulado):
-    // Construir la consulta SQL o llamada a la API
-    const updatePromises = sections.map(section => {
-      // Simulamos la actualización 
-      console.log(`Actualizando sección ${section.id} a orden ${section.order}`);
-      // En un entorno real, aquí irían las llamadas a la base de datos
-      return Promise.resolve();
+    // Actualizar cada sección con su nuevo display_order
+    const updatePromises = sections.map(async (section) => {
+      return await prisma.sections.update({
+        where: { section_id: section.section_id },
+        data: {
+          display_order: section.display_order,
+          // También actualizar el nuevo campo contextual
+          sections_display_order: section.display_order
+        }
+      });
     });
 
-    await Promise.all(updatePromises);
+    const updatedSections = await Promise.all(updatePromises);
+
+    console.log('🔥 API sections/reorder - Actualizado:', updatedSections.length, 'secciones');
 
     return NextResponse.json({
       success: true,
       message: 'Sections reordered successfully',
-      updated: sections.length
+      updated: updatedSections.length
     });
 
   } catch (error) {
-    console.error('Error reordenando secciones:', error);
+    console.error('🔥 API sections/reorder - Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

@@ -25,6 +25,11 @@ export interface Section {
   updated_at?: string;
   products_count?: number;
   visible_products_count?: number;
+
+  // 🎯 CAMPOS CONTEXTUALES: Orden específico por contexto donde aparece
+  // PORQUÉ: Permite reordenamiento independiente en diferentes grids
+  // COMPORTAMIENTO: sections_display_order se usa en Grid 2 (SectionGridView)
+  sections_display_order?: number | null;
 }
 
 /**

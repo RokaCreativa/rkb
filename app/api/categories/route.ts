@@ -134,7 +134,7 @@ export async function GET(request: Request) {
       },
       orderBy: [
         { status: 'desc' },
-        { display_order: 'asc' },
+        { categories_display_order: 'asc' },
       ],
       // Solo seleccionar los campos necesarios para optimizar rendimiento
       select: {
@@ -143,6 +143,7 @@ export async function GET(request: Request) {
         image: true,
         status: true,
         display_order: true,
+        categories_display_order: true,
         client_id: true,
         is_virtual_category: true,
       },

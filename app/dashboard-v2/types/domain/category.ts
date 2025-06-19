@@ -54,6 +54,11 @@ export interface Category {
   // CONEXIÓN: CategoryGridView mostrará badge "VIRTUAL" para estas categorías
   // CASOS DE USO: "Especial del Día", "Promociones", "Sugerencias del Chef"
   is_virtual_category?: boolean;
+
+  // 🎯 CAMPOS CONTEXTUALES: Orden específico por contexto donde aparece
+  // PORQUÉ: Permite reordenamiento independiente en diferentes grids
+  // COMPORTAMIENTO: categories_display_order se usa en Grid 1 (CategoryGridView)
+  categories_display_order?: number | null;
 }
 
 /**

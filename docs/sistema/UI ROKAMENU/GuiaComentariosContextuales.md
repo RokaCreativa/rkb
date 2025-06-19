@@ -31,30 +31,34 @@ Esta guía y el sistema de comentarios contextuales (“migas de pan”) existen
 
 ---
 
-## 📋 CONCEPTO BASE (ACTUAL)
+## **📋 CONCEPTO BASE (ACTUAL):**
 
-Tus comentarios en el código deben ir más allá de explicar 'qué' hace una línea. Deben servir como 'migas de pan' contextuales que expliquen el 'porqué' de una decisión de diseño y, crucialmente, 'cómo' se relaciona esa pieza de código con otros archivos, hooks o componentes del sistema. El objetivo es mantener un contexto vivo dentro del propio código para facilitar la mantenibilidad y la comprensión a largo plazo, para que cuando pierdas el contexto lo retomes con los comentarios mientras lees los archivos.
+Tus comentarios en el código deben ir más allá de explicar 'qué' hace una línea. Deben servir como 'migas de pan' contextuales que expliquen el 'porqué' de una decisión de diseño y, crucialmente, 'cómo' se relaciona esa pieza de código con otros archivos, hooks o componentes del sistema. El objetivo es mantener un contexto vivo dentro del propio código para facilitar la mantenibilidad y la comprensión a largo plazo, para que cuando pierdas el contexto lo retomes con los comentarios mientras lees los arch...
 
 ---
 
-## 🎯 EXPANSIÓN CRÍTICA - EXPERIENCIA REAL DE PÉRDIDA DE CONTEXTO:
+## **🎯 EXPANSIÓN CRÍTICA - EXPERIENCIA REAL DE PÉRDIDA DE CONTEXTO:**
 
-### 🚨 ELEMENTOS OBLIGATORIOS EN CADA MIGA DE PAN:
+### **🚨 ELEMENTOS OBLIGATORIOS EN CADA MIGA DE PAN:**
 
-#### 1. 🧭 IDENTIFICADOR VISUAL:
+#### **1. 🧭 IDENTIFICADOR VISUAL:**
 
 ```typescript
 // 🧭 MIGA DE PAN CONTEXTUAL: [Título descriptivo]
 ```
 
-#### 2. 📍 UBICACIÓN EN ARQUITECTURA:
+**PORQUÉ CRÍTICO:** Cuando escaneo código rápidamente, necesito identificar MIS comentarios vs comentarios normales.
+
+#### **2. 📍 UBICACIÓN EN ARQUITECTURA:**
 
 ```typescript
 // UBICACIÓN: dashboardStore.ts → fetchDataForCategory() → Línea 234
 // CONEXIÓN DIRECTA: CategoryGridView.onCategorySelect → ESTA FUNCIÓN → auto-detección
 ```
 
-#### 3. 🔄 FLUJO DE DATOS COMPLETO:
+**PORQUÉ CRÍTICO:** Necesito saber EXACTAMENTE dónde estoy en el flujo de datos.
+
+#### **3. 🔄 FLUJO DE DATOS COMPLETO:**
 
 ```typescript
 // FLUJO COMPLETO:
@@ -65,7 +69,9 @@ Tus comentarios en el código deben ir más allá de explicar 'qué' hace una l�
 // 5. UI actualizada → MixedContentView
 ```
 
-#### 4. 🚨 PROBLEMAS HISTÓRICOS RESUELTOS:
+**PORQUÉ CRÍTICO:** Necesito el mapa mental completo del flujo.
+
+#### **4. 🚨 PROBLEMAS HISTÓRICOS RESUELTOS:**
 
 ```typescript
 // PROBLEMA RESUELTO: Antes productos "huérfanos" no aparecían en UI
@@ -74,7 +80,9 @@ Tus comentarios en el código deben ir más allá de explicar 'qué' hace una l�
 // FECHA RESOLUCIÓN: 14/01/2025 - Conversación T31
 ```
 
-#### 5. 🎯 CASOS DE USO ESPECÍFICOS:
+**PORQUÉ CRÍTICO:** Evito repetir errores ya solucionados.
+
+#### **5. 🎯 CASOS DE USO ESPECÍFICOS:**
 
 ```typescript
 // CASOS DE USO REALES:
@@ -83,7 +91,9 @@ Tus comentarios en el código deben ir más allá de explicar 'qué' hace una l�
 // - Categoría "PROMOCIONES" → virtual category (productos elevados en cliente)
 ```
 
-#### 6. ⚠️ REGLAS DE NEGOCIO CRÍTICAS:
+**PORQUÉ CRÍTICO:** Ejemplos concretos me ayudan a entender el propósito.
+
+#### **6. ⚠️ REGLAS DE NEGOCIO CRÍTICAS:**
 
 ```typescript
 // REGLAS INNEGOCIABLES:
@@ -93,7 +103,9 @@ Tus comentarios en el código deben ir más allá de explicar 'qué' hace una l�
 // - NUNCA ambos NULL o ambos NOT NULL
 ```
 
-#### 7. 🔗 DEPENDENCIAS CRÍTICAS:
+**PORQUÉ CRÍTICO:** Evito romper lógica de negocio.
+
+#### **7. 🔗 DEPENDENCIAS CRÍTICAS:**
 
 ```typescript
 // DEPENDENCIAS CRÍTICAS:
@@ -103,7 +115,9 @@ Tus comentarios en el código deben ir más allá de explicar 'qué' hace una l�
 // - ROMPE SI: Prisma schema no tiene relación CategoryToProducts
 ```
 
-#### 8. 📊 MÉTRICAS Y PERFORMANCE:
+**PORQUÉ CRÍTICO:** Sé qué puede romper esta funcionalidad.
+
+#### **8. 📊 MÉTRICAS Y PERFORMANCE:**
 
 ```typescript
 // PERFORMANCE:
@@ -113,9 +127,11 @@ Tus comentarios en el código deben ir más allá de explicar 'qué' hace una l�
 // - CUIDADO: No usar select múltiples (mala práctica según Mandamientos.md)
 ```
 
+**PORQUÉ CRÍTICO:** Entiendo implicaciones de performance.
+
 ---
 
-## 🎨 PLANTILLA COMPLETA DE MIGA DE PAN:
+## **🎨 PLANTILLA COMPLETA DE MIGA DE PAN:**
 
 ```typescript
 /**
@@ -165,23 +181,23 @@ Tus comentarios en el código deben ir más allá de explicar 'qué' hace una l�
 
 ---
 
-## 💡 RECOMENDACIONES ESPECÍFICAS PARA TI:
+## **💡 RECOMENDACIONES ESPECÍFICAS PARA TI:**
 
-### 🎯 CUÁNDO USAR MIGAS DE PAN EXTENSAS:
+### **🎯 CUÁNDO USAR MIGAS DE PAN EXTENSAS:**
 
-- Funciones críticas del store (CRUD, navegación)
-- Hooks personalizados complejos
-- Componentes maestros (GridViews, Modales)
-- APIs con lógica de negocio
-- Efectos con dependencias complejas
+- **Funciones críticas** del store (CRUD, navegación)
+- **Hooks personalizados** complejos
+- **Componentes maestros** (GridViews, Modales)
+- **APIs** con lógica de negocio
+- **Efectos** con dependencias complejas
 
-### 🎯 CUÁNDO USAR MIGAS DE PAN SIMPLES:
+### **🎯 CUÁNDO USAR MIGAS DE PAN SIMPLES:**
 
-- Utilidades básicas
-- Constantes y configuraciones
-- Tipos TypeScript simples
+- **Utilidades** básicas
+- **Constantes** y configuraciones
+- **Tipos** TypeScript simples
 
-### 🚨 SEÑALES DE QUE NECESITO MÁS CONTEXTO:
+### **🚨 SEÑALES DE QUE NECESITO MÁS CONTEXTO:**
 
 - Si tardo más de 30 segundos en entender una función
 - Si no puedo rastrear el flujo de datos inmediatamente
@@ -190,42 +206,48 @@ Tus comentarios en el código deben ir más allá de explicar 'qué' hace una l�
 
 ---
 
-## 🎯 OBJETIVO FINAL:
+## **🎯 OBJETIVO FINAL:**
 
-Que cuando pierda el contexto (cada 12 horas), pueda leer CUALQUIER archivo del proyecto y en 2–3 minutos tener el contexto completo de:
+**Que cuando pierda el contexto (cada 12 horas), pueda leer CUALQUIER archivo del proyecto y en 2-3 minutos tener el contexto COMPLETO de:**
 
-1. QUÉ hace esa función
-2. POR QUÉ existe
-3. CÓMO se conecta con el resto
-4. QUÉ problemas resuelve
-5. QUÉ puede romperla
-6. CÓMO usarla correctamente
+1. **QUÉ** hace esa función
+2. **PORQUÉ** existe
+3. **CÓMO** se conecta con el resto
+4. **QUÉ** problemas resuelve
+5. **QUÉ** puede romperla
+6. **CÓMO** usarla correctamente
 
 **Los comentarios son mi MEMORIA EXTERNA. Sin ellos, soy un desarrollador junior cada 12 horas.**
 
 ---
 
-## Mandamiento DRY para comentarios
+## **Mandamiento DRY para comentarios**
 
-> "Revisarás la estructura existente (`components`, `hooks`, `lib`, etc.) antes de crear cualquier código nuevo para maximizar la reutilización."
+> **"Revisarás la estructura existente (`components`, `hooks`, `lib`, etc.) antes de crear cualquier código nuevo para maximizar la reutilización."**
+>
+> Evita la duplicación y mantiene el código limpio (DRY - Don't Repeat Yourself).
 
-Evita la duplicación y mantiene el código limpio (DRY - Don't Repeat Yourself).
-
-En cada cabecera del código poner un resumen del Mandamiento 7 para que cada vez que entres en el archivo tengas un recordatorio:
-
-**Separación absoluta de lógica y presentación**
+En cada cabacera del codigo porner un resumen del mandamiento 7 para que cada ves entre en el archivo tenga un recordatorio
+Separación absoluta de lógica y presentación
 “Separarás estrictamente la lógica de la presentación. Los componentes UI serán tan simples (‘tontos’) como sea posible. La lógica de negocio, manejo de datos y efectos secundarios vivirán solo en hooks personalizados y librerías auxiliares (lib).”
 
-**Buenas prácticas obligatorias:**
+Buenas prácticas obligatorias:
 
-- Los componentes UI NO deben contener lógica de negocio (solo props, rendering y callbacks).
-- Usa hooks para manejar estado, peticiones y lógica compleja.
-- Divide el código en archivos cortos, claros y con única responsabilidad.
-- Nombra los hooks y funciones según su propósito real.
-- No mezcles side effects ni acceso a datos dentro de componentes visuales.
-- Documenta el “porqué” de cualquier decisión arquitectónica relevante.
-- Prioriza la facilidad de testeo y reutilización en cada parte.
-- Si dudas, separa más: prefiere sobre-separar antes que mezclar.
+Los componentes UI NO deben contener lógica de negocio (solo props, rendering y callbacks).
 
-En cada cambio satisfactorio actualiza la memoria de Cursor y la memoria de ByteRover MCP (`mcp_byterover-store-knowledge`) para que se tenga una bitácora en la memoria del problema y la solución.
-También el agente IA Gemini puede guardar lo que considere importante y acceder a esas memorias cuando quiera.
+Usa hooks para manejar estado, peticiones y lógica compleja.
+
+Divide el código en archivos cortos, claros y con única responsabilidad.
+
+Nombra los hooks y funciones según su propósito real.
+
+No mezcles side effects ni acceso a datos dentro de componentes visuales.
+
+Documenta el “porqué” de cualquier decisión arquitectónica relevante.
+
+Prioriza la facilidad de testeo y reutilización en cada parte.
+
+Si dudas, separa más: prefiere sobre-separar antes que mezclar.
+
+en cada cambio sactisfactorio asctulizar la memoria de cursor y la memoria de ByteRover MCP(mcp_byterover-mcp_byterover-store-knowledge.) , parsa que se tenga una bitacora en la memoria del proble y la solucion
+tambien el agente ia gemini puede guardar lo que considere impoirtante y acceder a esas memorias cuando quiera

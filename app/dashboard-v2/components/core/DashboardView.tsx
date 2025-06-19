@@ -1,39 +1,29 @@
 /**
- * 🧭 MIGA DE PAN CONTEXTUAL MAESTRA: Orquestador del Dashboard de Escritorio
- *
- * 📍 UBICACIÓN: app/dashboard-v2/components/core/DashboardView.tsx
- *
- * 🎯 PORQUÉ EXISTE:
- * Este componente es el "director de orquesta" de la vista de escritorio (Master-Detail de 3 columnas).
- * Su única responsabilidad es:
- * 1. Conectarse al `dashboardStore` para obtener el estado global.
- * 2. Procesar y derivar los datos brutos del store en listas listas para consumir por cada Grid.
- * 3. Pasar los datos procesados y los callbacks de acciones a los componentes de Grid "tontos".
- * NO contiene estado local (`useState`) para la lógica de negocio.
- *
- * 🔄 FLUJO DE DATOS:
- * 1. `useDashboardStore()`: Se suscribe al estado global (categorías, secciones, productos, selecciones).
- * 2. `useMemo` (Hooks de Derivación): Se utilizan varios `useMemo` para transformar los datos brutos del
- *    store en las listas específicas que cada Grid necesita, recalculando solo cuando los datos base cambian.
- *    - `grid1Items`: Combina categorías reales + productos directos globales.
- *    - `sectionsAndLocalProducts`: Combina secciones + productos directos locales de la categoría seleccionada.
- *    - `grid3Items`: Productos de la sección seleccionada.
- * 3. `Props Drilling` (Controlado): Pasa las listas y los manejadores de eventos (que llaman a acciones del store)
- *    a `CategoryGridView`, `SectionGridView` y `ProductGridView`.
- *
- * 🔗 CONEXIONES DIRECTAS:
- * - **Consume Estado de:** `useDashboardStore`.
- * - **Dispara Acciones en:** `useDashboardStore` (ej. `setSelectedCategoryId`) y `useModalState` (ej. `openModal`).
- * - **Renderiza Componentes Hijos:** `DashboardHeader`, `CategoryGridView`, `SectionGridView`, `ProductGridView`, y todos los `EditModals`.
- *
- * 🚨 PROBLEMA RESUELTO (Bitácora #13, #32):
- * - Se eliminó el `useState` local para manejar selecciones, que rompía el flujo de datos unidireccional y causaba una UI no responsiva.
- * - La lógica de derivación de datos con `useMemo` previene bucles infinitos en React 19 que ocurrían cuando el filtrado se hacía en el selector de Zustand.
- * - Se implementó la lógica para manejar la "Arquitectura Híbrida Definitiva" (Bitácora #35), mostrando correctamente las listas mixtas.
- *
- * ⚠️ REGLAS DE NEGOCIO:
- * - Los type guards (`'price' in item`) son cruciales en los manejadores de eventos para diferenciar entre los tipos de ítems en las listas mixtas.
- * - La lógica de `useMemo` es la ÚNICA fuente de verdad para el contenido de los grids.
+ * 🎯 MANDAMIENTO #7 - SEPARACIÓN ABSOLUTA DE LÓGICA Y PRESENTACIÓN
+ * 
+ * 🧭 PREGUNTA TRAMPA: ¿Cuál es la arquitectura de este componente maestro?
+ * RESPUESTA: Orquestador Master-Detail de 3 columnas que deriva datos del store y los pasa a grids tontos
+ * 
+ * 📍 PROPÓSITO: Director de orquesta del dashboard de escritorio
+ * Conecta store global → deriva datos con useMemo → pasa props a componentes UI tontos
+ * 
+ * ⚠️ NO DEBE HACER: Estado local de negocio, llamadas API directas, lógica compleja de transformación
+ * 
+ * 🔗 DEPENDENCIAS CRÍTICAS:
+ * - useDashboardStore (stores/) - Fuente única de verdad para datos
+ * - useModalState (hooks/ui/) - Manejo de modales
+ * - CategoryGridView, SectionGridView, ProductGridView (components/domain/) - Grids tontos
+ * - EditModals (components/modals/) - Modales de edición
+ * 
+ * 🚨 PROBLEMA RESUELTO: Bucles infinitos React 19 con patrón selector atómico + useMemo (Bitácora #32)
+ * 
+ * 🧠 ARQUITECTURA HÍBRIDA: Maneja listas mixtas (categorías+productos globales, secciones+productos locales)
+ * 
+ * 🔄 FLUJO CRÍTICO:
+ * 1. Store → useMemo (derivación) → Props → Componentes UI
+ * 2. Eventos UI → Callbacks → Store actions
+ * 
+ * 🚨 ANTES DE CREAR ALGO NUEVO → REVISAR ESTA LISTA DE DEPENDENCIAS
  */
 
 /**
@@ -67,6 +57,7 @@ const DashboardView = () => {
     products,
     isReorderMode,
     toggleReorderMode,
+    moveItem,
     toggleCategoryVisibility,
     toggleSectionVisibility,
     toggleProductVisibility,
@@ -141,12 +132,35 @@ const DashboardView = () => {
     // 5. Combinar y ordenar
     const combined = [...realCategories, ...globalProducts];
 
-    // 🧠 ORDENACIÓN: Visibles primero, luego por 'display_order'
-    return combined.sort((a, b) => {
-      if (a.status !== b.status) {
-        return a.status ? -1 : 1; // true (visible) va antes que false (oculto)
-      }
-      return (a.display_order ?? 0) - (b.display_order ?? 0); // Criterio de desempate
+    // 🚨 DEDUPLICACIÓN: Eliminar elementos duplicados por ID
+    const deduplicatedItems = combined.filter((item, index, array) => {
+      const isCategory = !('price' in item);
+      const itemId = isCategory ? item.category_id : item.product_id;
+      const itemType = isCategory ? 'category' : 'product';
+
+      return array.findIndex(otherItem => {
+        const otherIsCategory = !('price' in otherItem);
+        const otherItemId = otherIsCategory ? otherItem.category_id : otherItem.product_id;
+        const otherItemType = otherIsCategory ? 'category' : 'product';
+
+        return itemType === otherItemType && itemId === otherItemId;
+      }) === index;
+    });
+
+    // 🧠 ORDENACIÓN: Usar campos contextuales específicos
+    // - Categorías: categories_display_order
+    // - Productos globales: categories_display_order
+    return deduplicatedItems.sort((a, b) => {
+      // Solo ordenar por campo contextual específico, sin interferencias de status
+      const aOrder = ('price' in a)
+        ? (a.categories_display_order ?? 999)  // Producto: usar categories_display_order
+        : (a.categories_display_order ?? 999); // Categoría: usar categories_display_order
+
+      const bOrder = ('price' in b)
+        ? (b.categories_display_order ?? 999)  // Producto: usar categories_display_order  
+        : (b.categories_display_order ?? 999); // Categoría: usar categories_display_order
+
+      return aOrder - bOrder;
     });
   }, [categories, sections, products]);
 
@@ -190,12 +204,20 @@ const DashboardView = () => {
     // Combina y ordena.
     const combined = [...sectionsForCategory, ...localDirectProducts];
 
-    // Ordena primero por visibilidad, luego por display_order.
+    // 🧠 ORDENACIÓN: Usar campos contextuales específicos
+    // - Secciones: sections_display_order  
+    // - Productos locales: sections_display_order
     return combined.sort((a, b) => {
-      if (a.status !== b.status) {
-        return a.status ? -1 : 1;
-      }
-      return (a.display_order ?? 0) - (b.display_order ?? 0);
+      // Solo ordenar por campo contextual específico, sin interferencias de status
+      const aOrder = ('price' in a)
+        ? (a.sections_display_order ?? 999)  // Producto local: usar sections_display_order
+        : (a.sections_display_order ?? 999); // Sección: usar sections_display_order
+
+      const bOrder = ('price' in b)
+        ? (b.sections_display_order ?? 999)  // Producto local: usar sections_display_order
+        : (b.sections_display_order ?? 999); // Sección: usar sections_display_order
+
+      return aOrder - bOrder;
     });
   }, [selectedCategoryId, sections, products]);
 
@@ -204,12 +226,14 @@ const DashboardView = () => {
     if (!selectedSectionId) return [];
     const productList = products[selectedSectionId] || [];
 
-    // Ordena primero por visibilidad, luego por display_order.
+    // 🧠 ORDENACIÓN: Usar campo contextual específico
+    // - Productos normales: products_display_order
     return [...productList].sort((a, b) => {
-      if (a.status !== b.status) {
-        return a.status ? -1 : 1;
-      }
-      return (a.display_order ?? 0) - (b.display_order ?? 0);
+      // Solo ordenar por campo contextual específico, sin interferencias de status
+      const aOrder = a.products_display_order ?? 999;
+      const bOrder = b.products_display_order ?? 999;
+
+      return aOrder - bOrder;
     });
   }, [selectedSectionId, products]);
 
@@ -278,8 +302,10 @@ const DashboardView = () => {
         <CategoryGridView
           items={grid1Items}
           selectedCategoryId={selectedCategoryId}
+          isReorderMode={isReorderMode}
           onCategorySelect={handleCategorySelect}
           onProductSelect={() => { }} // Placeholder, productos directos no son seleccionables
+          onMoveItem={moveItem}
           onToggleVisibility={(item) => {
             if ('price' in item) { // Es Producto
               toggleProductVisibility(item.product_id, !item.status);
@@ -310,7 +336,10 @@ const DashboardView = () => {
           sections={sectionsAndLocalProducts}
           title="Secciones"
           selectedSectionId={selectedSectionId}
+          isReorderMode={isReorderMode}
           onSectionSelect={handleSectionSelect}
+          onMoveItem={moveItem}
+          selectedCategoryId={selectedCategoryId}
           onToggleVisibility={(item) => {
             if ('price' in item) { // Es Producto
               toggleProductVisibility(item.product_id, !item.status);
@@ -341,6 +370,9 @@ const DashboardView = () => {
         <ProductGridView
           products={grid3Items}
           title="Productos"
+          isReorderMode={isReorderMode}
+          onMoveItem={moveItem}
+          selectedSectionId={selectedSectionId}
           onToggleVisibility={(item) => toggleProductVisibility(item.product_id, !item.status)}
           onToggleShowcase={toggleShowcaseStatus}
           onEdit={(item) => openModal('editProduct', { item, type: 'product' })}

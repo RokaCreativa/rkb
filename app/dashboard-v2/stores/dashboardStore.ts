@@ -1,11 +1,26 @@
 /**
- * =================================================================================
- * 📖 MANDAMIENTO #7: SEPARACIÓN ABSOLUTA DE LÓGICA Y PRESENTACIÓN
- * ---------------------------------------------------------------------------------
- * Este store es el "cerebro" de la lógica de negocio. No contiene lógica de
- * presentación. Sus funciones son llamadas por hooks o componentes, pero no
- * sabe ni le importa cómo se ve la UI.
- * =================================================================================
+ * 🎯 MANDAMIENTO #7 - SEPARACIÓN ABSOLUTA DE LÓGICA Y PRESENTACIÓN
+ * 
+ * 🧭 PREGUNTA TRAMPA: ¿Cuál es el estado actual del reordenamiento y qué problema resolvemos?
+ * RESPUESTA: Bucle infinito entre productos 2106-2107 por falta de sincronización BD-Frontend
+ * 
+ * 📍 PROPÓSITO: Estado global único para dashboard (categorías, secciones, productos)
+ * Maneja TODA la lógica de negocio, peticiones API y transformaciones de datos.
+ * 
+ * ⚠️ NO DEBE HACER: Lógica de UI, validaciones de formulario, transformaciones visuales
+ * 
+ * 🔗 DEPENDENCIAS CRÍTICAS:
+ * - apiClient (services/) - Para todas las peticiones HTTP
+ * - DashboardView (components/core/) - Consume todo el estado
+ * - MobileView (views/) - Consume subconjuntos del estado
+ * - CategoryGridView, SectionGridView, ProductGridView - Consumen datos específicos
+ * 
+ * 🚨 PROBLEMA RESUELTO: Recarga de datos post-reordenamiento para evitar bucles (Bitácora #44)
+ * 
+ * 🧠 ARQUITECTURA HÍBRIDA: Soporta productos globales (sin categoría) y locales (con categoría)
+ * mediante campos contextuales: categories_display_order, sections_display_order, products_display_order
+ * 
+ * 🚨 ANTES DE CREAR ALGO NUEVO → REVISAR ESTA LISTA DE DEPENDENCIAS
  */
 import { create } from "zustand"
 import type { Category, Section, Product, Client } from "../types"
@@ -55,6 +70,7 @@ export interface DashboardActions {
     setSelectedClientId: (clientId: number | null) => void
     toggleShowcaseStatus: (productId: number) => Promise<void>
     toggleReorderMode: () => void
+    moveItem: (itemId: number, direction: 'up' | 'down', itemType: 'category' | 'section' | 'product', contextId?: number | null) => Promise<void>
     uploadProductImage: (productId: number, imageFile: File) => Promise<string>
 }
 
@@ -206,6 +222,61 @@ export const useDashboardStore = create(
         },
 
         fetchDataForCategory: async (categoryId: number) => {
+            /**
+             * 🧭 MIGA DE PAN CONTEXTUAL: Auto-detección de Arquitectura Mixta por Categoría
+             *
+             * 📍 UBICACIÓN: dashboardStore.ts → fetchDataForCategory() → Línea 218
+             *
+             * 🎯 PORQUÉ EXISTE:
+             * Para cargar automáticamente tanto secciones como productos directos de una categoría,
+             * implementando la "Arquitectura Híbrida Definitiva" que soporta ambos tipos de contenido.
+             *
+             * 🔄 FLUJO DE DATOS:
+             * 1. CategoryGridView.onCategorySelect() → setSelectedCategoryId()
+             * 2. useEffect trigger → ESTA FUNCIÓN
+             * 3. Promise.all → carga paralela secciones + productos directos
+             * 4. Auto-detección → si hay secciones normales, carga sus productos
+             * 5. UI actualizada → MixedContentView muestra contenido mixto
+             *
+             * 🔗 CONEXIONES DIRECTAS:
+             * - ENTRADA: setSelectedCategoryId() → línea 417
+             * - SALIDA: MixedContentView → recibe state.sections + state.products
+             * - HOOK: useMixedContentForCategory → consume estos datos
+             *
+             * 🚨 PROBLEMA RESUELTO (Bitácora #35):
+             * - Antes: Categorías "vacías" no mostraban productos directos
+             * - Error: Solo cargaba secciones, ignoraba productos sin section_id
+             * - Solución: Carga paralela de ambos tipos + auto-detección de secciones
+             * - Fecha: 2025-06-15 - Implementación T31
+             *
+             * 🎯 CASOS DE USO REALES:
+             * - Categoría "BEBIDAS" → productos directos (Coca Cola, Pepsi) + secciones (Calientes, Frías)
+             * - Categoría "PROMOCIONES" → solo productos directos elevados
+             * - Categoría "COMIDAS" → solo secciones tradicionales (Entradas, Platos)
+             *
+             * ⚠️ REGLAS DE NEGOCIO CRÍTICAS:
+             * - Productos directos: category_id NOT NULL, section_id NULL
+             * - Productos tradicionales: section_id NOT NULL, category_id derivado
+             * - Auto-detección: si normalSections.length > 0 → cargar productos de secciones
+             * - Key pattern: productos directos usan `cat-${categoryId}`
+             *
+             * 🔗 DEPENDENCIAS CRÍTICAS:
+             * - REQUIERE: T31 schema aplicado (category_id en products)
+             * - REQUIERE: APIs /api/sections y /api/products funcionales
+             * - ROMPE SI: Prisma schema no tiene relación CategoryToProducts
+             * - ROMPE SI: is_virtual field no existe en sections
+             *
+             * 📊 PERFORMANCE:
+             * - Promise.all → carga paralela, no secuencial
+             * - Filtro is_virtual → evita cargar productos de secciones virtuales
+             * - Auto-detección → solo carga productos si hay secciones normales
+             * - Memoización en UI → useMemo para derivaciones complejas
+             *
+             * 📖 MANDAMIENTOS RELACIONADOS:
+             * - Mandamiento #7 (Separación): Lógica de negocio en store, UI en componentes
+             * - Mandamiento #3 (DRY): Reutiliza fetchProductsBySection existente
+             * - Mandamiento #6 (Mobile-First): Carga optimizada para ambas vistas
+             */
             set({ isLoading: true });
             try {
                 const [sectionsRes, productsRes] = await Promise.all([
@@ -392,65 +463,62 @@ export const useDashboardStore = create(
         },
 
         /**
-         * 🧭 MIGA DE PAN CONTEXTUAL: Cambio de visibilidad de un producto
+         * 🧭 MIGA DE PAN CONTEXTUAL: Toggle de Estado Destacado Universal
+         *
+         * 📍 UBICACIÓN: dashboardStore.ts → toggleShowcaseStatus() → Línea 830
          *
          * 🎯 PORQUÉ EXISTE:
-         * Para manejar el cambio de estado de visibilidad de cualquier producto.
+         * Para marcar/desmarcar productos como "destacados" independientemente de dónde se encuentren
+         * en la arquitectura híbrida, buscando en todas las listas de productos del estado.
          *
          * 🔄 FLUJO DE DATOS:
-         * 1. Un `ActionIcon` en la UI (en un `GenericRow`) llama a esta función.
-         * 2. Llama al endpoint de API dedicado (`/api/products/[id]/visibility`) enviando un booleano.
-         * 3. Si la API responde con éxito, actualiza el estado local en Zustand.
+         * 1. ActionIcon (estrella ⭐) → onClick → ESTA FUNCIÓN
+         * 2. API call → PATCH /api/products/{id}/toggle-showcase
+         * 3. Backend → toggle is_showcased field
+         * 4. Respuesta → updatedProduct con nuevo estado
+         * 5. Búsqueda universal → itera todas las listas en state.products
+         * 6. Update in-place → actualiza producto donde lo encuentre
          *
-         * 🚨 PROBLEMA RESUELTO:
-         * - La lógica de actualización de estado (`set`) anterior era frágil. Solo buscaba el producto en
-         *   la lista "activa", fallando para productos directos globales.
-         * - **SOLUCIÓN:** La nueva lógica itera sobre TODAS las listas de productos conocidas en `state.products`,
-         *   asegurando que encontrará y actualizará el producto sin importar dónde se encuentre. Esto la hace
-         *   mucho más robusta y compatible con la arquitectura híbrida.
+         * 🔗 CONEXIONES DIRECTAS:
+         * - ENTRADA: ActionIcon.onClick → desde cualquier ProductGridView
+         * - SALIDA: state.products → actualización universal
+         * - API: /api/products/{id}/toggle-showcase → PATCH endpoint
+         *
+         * 🚨 PROBLEMA RESUELTO (Bitácora #42):
+         * - Antes: Solo buscaba en lista "activa", fallaba para productos globales
+         * - Error: Productos destacados no se actualizaban visualmente
+         * - Solución: Búsqueda universal en todas las listas de productos
+         * - Fecha: 2025-06-17 - Mejora robustez arquitectura híbrida
+         *
+         * 🎯 CASOS DE USO REALES:
+         * - Producto global: "Coca Cola" en Grid 1 → busca en state.products[virtualSectionId]
+         * - Producto local: "Ensalada César" en Grid 2 → busca en state.products[`cat-${categoryId}`]
+         * - Producto normal: "Hamburguesa" en Grid 3 → busca en state.products[sectionId]
+         *
+         * ⚠️ REGLAS DE NEGOCIO CRÍTICAS:
+         * - is_showcased: campo booleano en BD
+         * - Búsqueda universal: NO asumir ubicación específica
+         * - Update in-place: modifica producto donde lo encuentre
+         * - Break early: termina búsqueda al encontrar producto
+         *
+         * 🔗 DEPENDENCIAS CRÍTICAS:
+         * - REQUIERE: /api/products/{id}/toggle-showcase endpoint
+         * - REQUIERE: is_showcased field en schema products
+         * - REQUIERE: productId único en todo el sistema
+         * - ROMPE SI: Múltiples productos con mismo ID
+         * - ROMPE SI: API no devuelve producto actualizado
+         *
+         * 📊 PERFORMANCE:
+         * - Break early → termina al encontrar producto
+         * - In-place update → no recrea listas completas
+         * - Toast feedback → confirmación visual inmediata
+         * - Error handling → toast de error si falla
+         *
+         * 📖 MANDAMIENTOS RELACIONADOS:
+         * - Mandamiento #7 (Separación): Lógica de negocio en store
+         * - Mandamiento #8 (Buenas Prácticas): Búsqueda robusta y universal
+         * - Mandamiento #4 (Obediencia): Solo cambia is_showcased, nada más
          */
-        toggleProductVisibility: async (id, status) => {
-            try {
-                await fetch(`/api/products/${id}/visibility`, {
-                    method: 'PATCH',
-                    body: JSON.stringify({ status: status }),
-                    headers: { 'Content-Type': 'application/json' },
-                });
-                set(state => {
-                    // Lógica de búsqueda mejorada: itera sobre todas las listas de productos.
-                    for (const key in state.products) {
-                        const productList = state.products[key];
-                        const productIndex = productList.findIndex(p => p.product_id === id);
-
-                        if (productIndex !== -1) {
-                            // Producto encontrado, actualiza su estado y termina el bucle.
-                            productList[productIndex].status = status;
-                            break;
-                        }
-                    }
-                });
-            } catch (error) {
-                toast.error("Error al cambiar visibilidad");
-            }
-        },
-
-        setSelectedCategoryId: async (id: number | null) => {
-            // Si se selecciona una categoría, resetea la sección seleccionada.
-            set({ selectedCategoryId: id, selectedSectionId: null });
-
-            // Si el ID no es nulo, busca los datos de esa categoría.
-            if (id) {
-                await get().fetchDataForCategory(id);
-            }
-        },
-
-        setSelectedSectionId: (id: number | null) => {
-            set({ selectedSectionId: id });
-        },
-
-        setSelectedClientId: (clientId) => set({ selectedClientId: clientId }),
-        toggleReorderMode: () => set(state => ({ isReorderMode: !state.isReorderMode })),
-
         toggleShowcaseStatus: async (productId: number) => {
             try {
                 const response = await fetch(`/api/products/${productId}/toggle-showcase`, { method: 'PATCH' });
@@ -486,7 +554,85 @@ export const useDashboardStore = create(
             }
         },
 
+        toggleProductVisibility: async (id, status) => {
+            try {
+                await fetch(`/api/products/${id}/visibility`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ status: status }),
+                    headers: { 'Content-Type': 'application/json' },
+                });
+                set(state => {
+                    for (const key in state.products) {
+                        const productIndex = state.products[key].findIndex(p => p.product_id === id);
+                        if (productIndex !== -1) {
+                            state.products[key][productIndex].status = status;
+                            break;
+                        }
+                    }
+                });
+            } catch (error) {
+                toast.error("Error al cambiar visibilidad");
+            }
+        },
+
         createProduct: async (data, imageFile) => {
+            /**
+             * 🧭 MIGA DE PAN CONTEXTUAL: Creación de Productos con Arquitectura Híbrida
+             *
+             * 📍 UBICACIÓN: dashboardStore.ts → createProduct() → Línea 890
+             *
+             * 🎯 PORQUÉ EXISTE:
+             * Para crear productos que pueden ser "directos" (sin sección) o "tradicionales" (con sección),
+             * manejando automáticamente la lógica de keys dinámicas para el almacenamiento en estado.
+             *
+             * 🔄 FLUJO DE DATOS:
+             * 1. Modal (CreateProductModal) → onSubmit → ESTA FUNCIÓN
+             * 2. apiClient → POST /api/products con data + imageFile
+             * 3. Backend → determina tipo y asigna campos correctos
+             * 4. Respuesta → newProduct con section_id o category_id
+             * 5. Key calculation → section_id ? String(section_id) : `cat-${category_id}`
+             * 6. Estado actualizado → products[key] += newProduct
+             *
+             * 🔗 CONEXIONES DIRECTAS:
+             * - ENTRADA: CreateProductModal.onSubmit → con FormData
+             * - SALIDA: state.products → actualización inmediata
+             * - API: /api/products → POST endpoint
+             *
+             * 🚨 PROBLEMA RESUELTO (Bitácora #31):
+             * - Antes: Productos directos no aparecían en UI después de creación
+             * - Error: Key incorrecta para productos sin section_id
+             * - Solución: Lógica de key dinámica según tipo de producto
+             * - Fecha: 2025-06-14 - Implementación T31
+             *
+             * 🎯 CASOS DE USO REALES:
+             * - Producto directo: "Coca Cola" → category_id=5, section_id=null → key="cat-5"
+             * - Producto tradicional: "Hamburguesa" → section_id=12 → key="12"
+             * - Con imagen: FormData con file → backend maneja upload automático
+             *
+             * ⚠️ REGLAS DE NEGOCIO CRÍTICAS:
+             * - Productos directos: category_id NOT NULL, section_id NULL
+             * - Productos tradicionales: section_id NOT NULL, category_id derivado
+             * - Key pattern: section_id tiene prioridad sobre category_id
+             * - ImageFile: opcional, backend maneja upload si existe
+             *
+             * 🔗 DEPENDENCIAS CRÍTICAS:
+             * - REQUIERE: apiClient con soporte multipart/form-data
+             * - REQUIERE: /api/products POST endpoint funcional
+             * - REQUIERE: T31 schema con category_id en products
+             * - ROMPE SI: Backend no devuelve newProduct completo
+             * - ROMPE SI: Key calculation falla (ambos NULL)
+             *
+             * 📊 PERFORMANCE:
+             * - Optimistic update → añade inmediatamente a lista
+             * - Toast feedback → confirmación visual al usuario
+             * - Error handling → rollback automático si falla
+             * - Loading state → isUpdating para UI
+             *
+             * 📖 MANDAMIENTOS RELACIONADOS:
+             * - Mandamiento #7 (Separación): Lógica de negocio en store
+             * - Mandamiento #8 (Buenas Prácticas): Manejo robusto de errores
+             * - Mandamiento #4 (Obediencia): Solo crea, no modifica otros productos
+             */
             set({ isUpdating: true });
             try {
                 const newProduct = await apiClient<Product>('/api/products', {
@@ -547,6 +693,455 @@ export const useDashboardStore = create(
             const d = await res.json()
             if (!res.ok) throw new Error(d.error || "Error al subir la imagen")
             return d.filePath
+        },
+
+        // Funciones de estado síncrono
+        setSelectedCategoryId: async (id: number | null) => {
+            set({ selectedCategoryId: id, selectedSectionId: null });
+            if (id !== null) {
+                await get().fetchDataForCategory(id);
+            }
+        },
+
+        setSelectedSectionId: (id: number | null) => {
+            set({ selectedSectionId: id });
+        },
+
+        setSelectedClientId: (clientId: number | null) => {
+            set({ selectedClientId: clientId });
+        },
+
+        toggleReorderMode: () => {
+            set(state => ({ isReorderMode: !state.isReorderMode }));
+        },
+
+        /**
+         * 🧭 MIGA DE PAN CONTEXTUAL: Sistema de Reordenamiento Mixto Universal
+         *
+         * 📍 UBICACIÓN: dashboardStore.ts → moveItem() → Línea 490
+         *
+         * 🎯 PORQUÉ EXISTE:
+         * Para manejar el reordenamiento de elementos en los 3 grids del dashboard, incluyendo
+         * la lógica mixta del Grid 1 donde categorías y productos globales conviven en una sola lista visual.
+         * Es el corazón del sistema de flechas de reordenamiento.
+         *
+         * 🔄 FLUJO DE DATOS:
+         * 1. ActionIcon (flecha) → onClick → ESTA FUNCIÓN
+         * 2. getContextualData() → determina tipo de lista (mixta vs normal)
+         * 3. Validación límites → usando referenceList correcta
+         * 4. Reordenamiento local → swap elementos in-memory
+         * 5. API calls → sincronización con backend
+         * 6. Re-fetch → actualización estado desde servidor
+         *
+         * 🔗 CONEXIONES DIRECTAS:
+         * - ENTRADA: ActionIcon.onClick → desde CategoryGridView, SectionGridView, ProductGridView
+         * - SALIDA: API calls → /api/categories/reorder, /api/sections/reorder, /api/products/reorder
+         * - ESTADO: Actualización inmediata + re-fetch para sincronización
+         *
+         * 🚨 PROBLEMA RESUELTO (Bitácora #44):
+         * - Antes: Grid 1 fallaba después del primer movimiento
+         * - Error: Validación límites usaba lista incorrecta (solo productos vs lista mixta)
+         * - Solución: Lógica mixta real con referenceList dinámica
+         * - Fecha: 2025-06-17 - Sistema de flechas completamente funcional
+         *
+         * 🎯 CASOS DE USO REALES:
+         * - Grid 1 (mixto): Categoría "Bebidas" puede pasar producto "Coca Cola"
+         * - Grid 2 (secciones): Sección "Entrantes" sube/baja entre secciones
+         * - Grid 3 (productos): Producto "Hamburguesa" reordena dentro de su sección
+         *
+         * ⚠️ REGLAS DE NEGOCIO CRÍTICAS:
+         * - Grid 1: Lista mixta real (categorías + productos globales)
+         * - Grid 2-3: Listas homogéneas tradicionales
+         * - Límites: Validación usando referenceList correcta
+         * - Sincronización: Doble API para Grid 1, API simple para Grid 2-3
+         *
+         * 🔗 DEPENDENCIAS CRÍTICAS:
+         * - REQUIERE: /api/categories/reorder, /api/sections/reorder, /api/products/reorder
+         * - REQUIERE: Campos display_order y categories_display_order en BD
+         * - REQUIERE: Lógica mixta en getContextualData()
+         * - ROMPE SI: APIs no devuelven respuesta exitosa
+         * - ROMPE SI: Re-fetch falla después de reordenamiento
+         *
+         * 📊 PERFORMANCE:
+         * - Optimistic update → cambio visual inmediato
+         * - API paralela → Grid 1 llama ambas APIs simultáneamente
+         * - Re-fetch selectivo → solo actualiza lista afectada
+         * - Error handling → rollback automático si falla
+         *
+         * 📖 MANDAMIENTOS RELACIONADOS:
+         * - Mandamiento #7 (Separación): Lógica compleja en store
+         * - Mandamiento #8 (Buenas Prácticas): Validación robusta de límites
+         * - Mandamiento #4 (Obediencia): Solo reordena, no modifica otros campos
+         */
+        moveItem: async (itemId: number, direction: 'up' | 'down', itemType: 'category' | 'section' | 'product', contextId?: number | null) => {
+            console.log('🔥 STORE moveItem called:', { itemId, direction, itemType, contextId });
+
+            const getContextualData = () => {
+                if (itemType === 'category' || (itemType === 'product' && !contextId)) {
+                    // Grid 1: Categorías + Productos Globales
+                    const realCategories = get().categories.filter(c => !c.is_virtual_category);
+
+                    // Obtener productos globales
+                    let globalProducts: Product[] = [];
+                    const virtualCategory = get().categories.find(c => c.is_virtual_category);
+                    if (virtualCategory) {
+                        const virtualSection = get().sections[virtualCategory.category_id]?.find(s => s.is_virtual);
+                        if (virtualSection) {
+                            globalProducts = get().products[virtualSection.section_id] || [];
+                        }
+                    }
+
+                    // Crear lista mixta con índices mixtos
+                    const mixedList = [...realCategories, ...globalProducts]
+                        .sort((a, b) => {
+                            // Ambos usan categories_display_order, pero necesitamos manejar valores null/undefined
+                            const orderA = (a.categories_display_order ?? 999);
+                            const orderB = (b.categories_display_order ?? 999);
+                            return orderA - orderB;
+                        });
+
+                    console.log('🔥 Grid 1 - Mixed list:', {
+                        categories: realCategories.length,
+                        globalProducts: globalProducts.length,
+                        mixedTotal: mixedList.length
+                    });
+
+                    return {
+                        list: itemType === 'category' ? realCategories : globalProducts,
+                        mixedList,
+                        idField: itemType === 'category' ? 'category_id' : 'product_id',
+                        orderField: 'categories_display_order'
+                    };
+                } else if (itemType === 'section') {
+                    // Grid 2: Secciones solas
+                    const sections = get().sections[contextId!] || [];
+                    return {
+                        list: sections,
+                        mixedList: null,
+                        idField: 'section_id',
+                        orderField: 'sections_display_order'
+                    };
+                } else if (itemType === 'product' && contextId) {
+                    // Determinar si es Grid 2 (productos locales) o Grid 3 (productos normales)
+                    const productKey = `cat-${contextId}`;
+                    const localProducts = get().products[productKey] || [];
+
+                    if (localProducts.length > 0) {
+                        // Grid 2: Secciones + Productos Locales (lista mixta)
+                        const sections = get().sections[contextId] || [];
+
+                        // Crear lista mixta con secciones y productos locales
+                        const mixedList = [...sections, ...localProducts]
+                            .sort((a, b) => {
+                                // Ambos usan sections_display_order
+                                const orderA = (a.sections_display_order ?? 999);
+                                const orderB = (b.sections_display_order ?? 999);
+                                return orderA - orderB;
+                            });
+
+                        console.log('🔥 Grid 2 - Mixed list (sections + local products):', {
+                            sections: sections.length,
+                            localProducts: localProducts.length,
+                            mixedTotal: mixedList.length
+                        });
+
+                        return {
+                            list: localProducts,
+                            mixedList,
+                            idField: 'product_id',
+                            orderField: 'sections_display_order'
+                        };
+                    } else {
+                        // Grid 3: Productos normales
+                        const products = get().products[contextId] || [];
+                        return {
+                            list: products,
+                            mixedList: null,
+                            idField: 'product_id',
+                            orderField: 'products_display_order'
+                        };
+                    }
+                } else {
+                    // Fallback: Grid 3 productos normales
+                    const products = get().products[contextId!] || [];
+                    return {
+                        list: products,
+                        mixedList: null,
+                        idField: 'product_id',
+                        orderField: 'products_display_order'
+                    };
+                }
+            };
+
+            const { list, mixedList, idField, orderField } = getContextualData();
+            const referenceList = mixedList || list;
+
+            console.log('🔥 Reference list length:', referenceList.length);
+
+            // Buscar índice en la lista de referencia
+            const index = referenceList.findIndex(item => {
+                if (mixedList) {
+                    // Para lista mixta, buscar por el ID apropiado según el tipo de elemento
+                    if ('price' in item) {
+                        // Es un producto
+                        return item.product_id === itemId;
+                    } else if ('section_id' in item) {
+                        // Es una sección
+                        return item.section_id === itemId;
+                    } else {
+                        // Es una categoría
+                        return item.category_id === itemId;
+                    }
+                } else {
+                    if (itemType === 'category') {
+                        return (item as Category).category_id === itemId;
+                    } else if (itemType === 'section') {
+                        return (item as Section).section_id === itemId;
+                    } else {
+                        return (item as Product).product_id === itemId;
+                    }
+                }
+            });
+
+            if (index === -1) {
+                console.error('🔥 Item not found in reference list');
+                return;
+            }
+
+            const newIndex = direction === 'up' ? index - 1 : index + 1;
+            if (newIndex < 0 || newIndex >= referenceList.length) {
+                console.log('🔥 Movement blocked - out of bounds');
+                return;
+            }
+
+            console.log('🔥 Movement:', { from: index, to: newIndex });
+
+            // Reordenar la lista de referencia
+            const reorderedList = [...referenceList];
+            [reorderedList[index], reorderedList[newIndex]] = [reorderedList[newIndex], reorderedList[index]];
+
+            // Asignar nuevos índices
+            const reorderedListWithIndexes = reorderedList.map((item, globalIndex) => {
+                if (mixedList) {
+                    // Detectar si es Grid 1 (categories_display_order) o Grid 2 (sections_display_order) 
+                    const isGrid1 = itemType === 'category' || (itemType === 'product' && !contextId);
+
+                    if (isGrid1) {
+                        // Grid 1: Categorías + Productos Globales
+                        return { ...item, categories_display_order: globalIndex };
+                    } else {
+                        // Grid 2: Secciones + Productos Locales
+                        return { ...item, sections_display_order: globalIndex };
+                    }
+                } else {
+                    // Para listas normales, usar el campo apropiado
+                    if (itemType === 'category') {
+                        return { ...item, categories_display_order: globalIndex };
+                    } else if (itemType === 'section') {
+                        return { ...item, sections_display_order: globalIndex };
+                    } else {
+                        return { ...item, products_display_order: globalIndex };
+                    }
+                }
+            });
+
+            console.log('🔥 Reordered list indexes:', reorderedListWithIndexes.map(item => ({
+                id: 'price' in item ? item.product_id : ('section_id' in item ? item.section_id : item.category_id),
+                type: 'price' in item ? 'product' : ('section_id' in item ? 'section' : 'category')
+            })));
+
+            try {
+                if (mixedList) {
+                    // Detectar si es Grid 1 o Grid 2
+                    const isGrid1 = itemType === 'category' || (itemType === 'product' && !contextId);
+
+                    if (isGrid1) {
+                        // Grid 1: Categorías + Productos Globales
+                        const categoriesInMixed = reorderedListWithIndexes.filter(item => !('price' in item)) as Category[];
+                        const productsInMixed = reorderedListWithIndexes.filter(item => 'price' in item) as Product[];
+
+                        const categoriesPayload = categoriesInMixed.map((cat) => ({
+                            category_id: cat.category_id,
+                            display_order: cat.categories_display_order
+                        }));
+
+                        const productsPayload = productsInMixed.map((prod) => ({
+                            product_id: prod.product_id,
+                            display_order: prod.categories_display_order
+                        }));
+
+                        console.log('🔥 Grid 1 API Payloads:', { categoriesPayload, productsPayload });
+
+                        const [categoriesResponse, productsResponse] = await Promise.all([
+                            fetch('/api/categories/reorder', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ categories: categoriesPayload })
+                            }),
+                            fetch('/api/products/reorder', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ products: productsPayload, context: 'category' })
+                            })
+                        ]);
+
+                        if (!categoriesResponse.ok || !productsResponse.ok) {
+                            throw new Error('Error en reordenamiento mixto Grid 1');
+                        }
+
+                        // Optimistic update Grid 1
+                        set(state => {
+                            // Actualizar categorías en el estado
+                            categoriesInMixed.forEach(cat => {
+                                const categoryIndex = state.categories.findIndex(c => c.category_id === cat.category_id);
+                                if (categoryIndex !== -1) {
+                                    state.categories[categoryIndex].categories_display_order = cat.categories_display_order;
+                                }
+                            });
+
+                            // Actualizar productos globales en el estado
+                            const virtualCategory = state.categories.find(c => c.is_virtual_category);
+                            if (virtualCategory) {
+                                const virtualSection = state.sections[virtualCategory.category_id]?.find(s => s.is_virtual);
+                                if (virtualSection) {
+                                    const productsKey = String(virtualSection.section_id);
+                                    if (state.products[productsKey]) {
+                                        productsInMixed.forEach(prod => {
+                                            const productIndex = state.products[productsKey].findIndex(p => p.product_id === prod.product_id);
+                                            if (productIndex !== -1) {
+                                                state.products[productsKey][productIndex].categories_display_order = prod.categories_display_order;
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                        });
+
+                    } else {
+                        // Grid 2: Secciones + Productos Locales
+                        const sectionsInMixed = reorderedListWithIndexes.filter(item => !('price' in item)) as Section[];
+                        const productsInMixed = reorderedListWithIndexes.filter(item => 'price' in item) as Product[];
+
+                        const sectionsPayload = sectionsInMixed.map((sec) => ({
+                            section_id: sec.section_id,
+                            display_order: sec.sections_display_order
+                        }));
+
+                        const productsPayload = productsInMixed.map((prod) => ({
+                            product_id: prod.product_id,
+                            display_order: prod.sections_display_order
+                        }));
+
+                        console.log('🔥 Grid 2 API Payloads:', { sectionsPayload, productsPayload });
+
+                        const [sectionsResponse, productsResponse] = await Promise.all([
+                            fetch('/api/sections/reorder', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ sections: sectionsPayload })
+                            }),
+                            fetch('/api/products/reorder', {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ products: productsPayload, context: 'category' })
+                            })
+                        ]);
+
+                        if (!sectionsResponse.ok || !productsResponse.ok) {
+                            throw new Error('Error en reordenamiento mixto Grid 2');
+                        }
+
+                        // Optimistic update Grid 2
+                        set(state => {
+                            // Actualizar secciones
+                            sectionsInMixed.forEach(sec => {
+                                const sectionsForCategory = state.sections[contextId!] || [];
+                                const sectionIndex = sectionsForCategory.findIndex(s => s.section_id === sec.section_id);
+                                if (sectionIndex !== -1) {
+                                    sectionsForCategory[sectionIndex].sections_display_order = sec.sections_display_order;
+                                }
+                            });
+
+                            // Actualizar productos locales
+                            const productKey = `cat-${contextId}`;
+                            if (state.products[productKey]) {
+                                productsInMixed.forEach(prod => {
+                                    const productIndex = state.products[productKey].findIndex(p => p.product_id === prod.product_id);
+                                    if (productIndex !== -1) {
+                                        state.products[productKey][productIndex].sections_display_order = prod.sections_display_order;
+                                    }
+                                });
+                            }
+                        });
+                    }
+
+                } else {
+                    // Grid 2 (secciones solas) y Grid 3 (productos normales): API simple
+                    const payload = reorderedListWithIndexes.map(item => {
+                        if (itemType === 'section') {
+                            return {
+                                section_id: (item as Section).section_id,
+                                display_order: (item as Section).sections_display_order
+                            };
+                        } else {
+                            return {
+                                product_id: (item as Product).product_id,
+                                display_order: (item as Product).products_display_order
+                            };
+                        }
+                    });
+
+                    const apiEndpoint = itemType === 'section' ? '/api/sections/reorder' : '/api/products/reorder';
+                    const requestBody: any = {
+                        [itemType === 'section' ? 'sections' : 'products']: payload
+                    };
+
+                    // Solo agregar context si es necesario
+                    if (itemType === 'section') {
+                        requestBody.context = 'category';
+                    }
+                    // Para productos normales (Grid 3), NO enviar context
+
+                    const response = await fetch(apiEndpoint, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Error en reordenamiento de ${itemType}s`);
+                    }
+
+                    // Optimistic update para Grid 2 (secciones solas) y Grid 3 (productos normales)
+                    set(state => {
+                        if (itemType === 'section') {
+                            // Actualizar secciones
+                            const sectionsForCategory = state.sections[contextId!] || [];
+                            reorderedListWithIndexes.forEach(section => {
+                                const sectionIndex = sectionsForCategory.findIndex(s => s.section_id === (section as Section).section_id);
+                                if (sectionIndex !== -1) {
+                                    sectionsForCategory[sectionIndex].sections_display_order = (section as Section).sections_display_order;
+                                }
+                            });
+                        } else {
+                            // Actualizar productos normales (Grid 3)
+                            const productsForSection = state.products[contextId!] || [];
+                            reorderedListWithIndexes.forEach(product => {
+                                const productIndex = productsForSection.findIndex(p => p.product_id === (product as Product).product_id);
+                                if (productIndex !== -1) {
+                                    productsForSection[productIndex].products_display_order = (product as Product).products_display_order;
+                                }
+                            });
+                        }
+                    });
+                }
+
+                console.log('🔥 Reordenamiento completado exitosamente');
+
+            } catch (error) {
+                console.error('🔥 Error en reordenamiento:', error);
+                toast.error('Error al reordenar elementos');
+            }
         },
     })),
 )

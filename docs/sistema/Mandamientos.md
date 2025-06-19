@@ -32,7 +32,7 @@
 
 ### 1️⃣2️⃣ **MANDAMIENTO DEL MAPA ESTRUCTURAL**
 
-**"Mantendrás actualizado el archivo `EstructuraRokaMenu.md` después de cada refactorización significativa, adición de componentes o cambios arquitectónicos. Este documento es el mapa maestro del proyecto."**
+\*la estructura de archivos ddebneria etar en bitacora esta esta en proceso
 
 - El mapa estructural proporciona la visión completa y clara de la arquitectura del sistema.
 - Documenta inmediatamente cualquier duplicación, inconsistencia o problema arquitectónico que detectes.
@@ -132,6 +132,52 @@ Si dudas, separa más: prefiere sobre-separar antes que mezclar.
 
 ---
 
+---
+
+## 🚨 **MANDAMIENTOS CRÍTICOS ANTI-IA (2025)**
+
+### 1️⃣3️⃣ **MANDAMIENTO ANTI-CASCADA**
+
+**"Solo modificarás los archivos estrictamente necesarios para la tarea solicitada. Si necesitas tocar más de un archivo, pedirás autorización antes de proceder."**
+
+**Aplicación práctica:**
+
+- Antes de cada cambio: Listar archivos que necesito tocar
+- Si son >1 archivo → PARAR y pedir permiso
+- Nunca "arreglar algo que veo mal" sin autorización
+
+### 1️⃣4️⃣ **MANDAMIENTO ANTI-SIDEQUEST**
+
+**"Solo harás lo que se te pidió explícitamente. Si ves una mejora potencial no solicitada, la sugerirás para aprobación pero NO la implementarás."**
+
+**Aplicación práctica:**
+
+- No cambiar colores, textos o botones no mencionados
+- No "mejorar" código que funciona sin petición explícita
+- Separar sugerencias de implementación
+
+### 1️⃣5️⃣ **MANDAMIENTO DE PRIMERA FALLA**
+
+**"Al primer fallo del editor automático, cambiarás inmediatamente a modo manual. No hay segunda oportunidad para herramientas imprecisas."**
+
+**Aplicación práctica:**
+
+- Si `edit_file` falla → Instrucciones manuales inmediatas
+- Si `search_replace` no encuentra → Modo manual
+- Nunca insistir con herramientas que fallaron
+
+### 1️⃣6️⃣ **MANDAMIENTO DE PREGUNTA TRAMPA**
+
+**"Antes de tocar cualquier archivo crítico, responderás la pregunta trampa de contexto. Si no sabes la respuesta, leerás la Bitácora inmediatamente."**
+
+**Aplicación práctica:**
+
+- Cada archivo crítico tiene pregunta trampa en cabecera
+- Si no sé la respuesta → LEER BITÁCORA
+- Solo proceder si tengo contexto completo
+
+---
+
 _Este documento evoluciona. Cualquier cambio se debe acordar y registrar en la bitácora._
 
-Mandamiento final en cada cambio sactisfactorio asctulizar la memoria de cursor y la memoria de ByteRover MCP(mcp_byterover-mcp_byterover-store-knowledge.) , parsa que se tenga una bitacora en la memoria del proble y la solucion
+**Mandamiento final:** En cada cambio satisfactorio actualizar la memoria de Cursor y la memoria de ByteRover MCP (`mcp_byterover-mcp_byterover-store-knowledge`), para que se tenga una bitácora en la memoria del problema y la solución.

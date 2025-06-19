@@ -35,6 +35,16 @@ export interface Product {
     section_id: number;
     name: string;
   } | null;
+
+  // 🎯 CAMPOS CONTEXTUALES: Orden específico por contexto donde aparece
+  // PORQUÉ: Permite reordenamiento independiente en diferentes grids
+  // COMPORTAMIENTO: 
+  // - categories_display_order: Grid 1 (productos globales junto a categorías)
+  // - sections_display_order: Grid 2 (productos locales junto a secciones)  
+  // - products_display_order: Grid 3 (productos normales dentro de sección)
+  categories_display_order?: number | null;
+  sections_display_order?: number | null;
+  products_display_order?: number | null;
 }
 
 /**
