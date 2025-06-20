@@ -38,7 +38,7 @@
  */
 'use client';
 
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Category, Product } from '@/app/dashboard-v2/types';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
 import { Eye, EyeOff, Pencil, Trash, Plus } from 'lucide-react';
@@ -84,18 +84,56 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
     onAddNewProductDirect,
 }) => {
 
+    // 🔧 SOLUCIÓN DEFINITIVA: Garantizar orden visual explícito para lista mixta
+    // Esto resuelve el problema del "segundo movimiento" en Grid 1 (categorías + productos globales)
+    const sortedItems = useMemo(() => {
+        return [...items].sort((a, b) => {
+            // Ordenar por el campo contextual apropiado según el tipo
+            const orderA = isCategory(a) ? (a.categories_display_order ?? 999) : (a.categories_display_order ?? 999);
+            const orderB = isCategory(b) ? (b.categories_display_order ?? 999) : (b.categories_display_order ?? 999);
+            return orderA - orderB;
+        });
+    }, [items]);
+
+    // 🔧 POSIBLE FIX: Prevenir llamadas duplicadas rápidas
+    const [isMoving, setIsMoving] = React.useState(false);
+
+    const handleMoveItem = useCallback(async (id: number, direction: 'up' | 'down', type: 'category' | 'product') => {
+        if (isMoving) {
+            console.log('🚨 Movement already in progress, ignoring click');
+            return;
+        }
+
+        try {
+            setIsMoving(true);
+            console.log('🔥 CategoryGrid - Move clicked:', { id, direction, type, mode: isReorderMode });
+            await onMoveItem(id, direction, type);
+        } catch (error) {
+            console.error('🔥 Error in movement:', error);
+        } finally {
+            // Pequeño delay para prevenir clicks rápidos accidentales
+            setTimeout(() => setIsMoving(false), 300);
+        }
+    }, [isMoving, onMoveItem, isReorderMode]);
+
     const ReorderHandles = ({ id, type }: { id: number; type: 'category' | 'product' }) => (
         <div className="flex flex-col">
-            <ActionIcon Icon={ArrowUp} onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                console.log('🔥 CategoryGrid - Move UP clicked:', { id, type, mode: isReorderMode });
-                onMoveItem(id, 'up', type);
-            }} />
-            <ActionIcon Icon={ArrowDown} onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                console.log('🔥 CategoryGrid - Move DOWN clicked:', { id, type, mode: isReorderMode });
-                onMoveItem(id, 'down', type);
-            }} />
+            <ActionIcon
+                Icon={ArrowUp}
+                disabled={isMoving}
+                onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    handleMoveItem(id, 'up', type);
+                }}
+            />
+            <ActionIcon
+                Icon={ArrowDown}
+                disabled={isMoving}
+                onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    handleMoveItem(id, 'down', type);
+                }}
+            />
         </div>
     );
 
@@ -127,7 +165,7 @@ export const CategoryGridView: React.FC<CategoryGridViewProps> = ({
 
             <div className="space-y-2 overflow-y-auto flex-grow">
                 <div className="grid grid-cols-1 gap-2">
-                    {items.map((item) => {
+                    {sortedItems.map((item) => {
                         if (isCategory(item)) {
                             return (
                                 <GenericRow

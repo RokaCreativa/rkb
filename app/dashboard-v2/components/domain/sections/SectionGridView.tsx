@@ -32,7 +32,7 @@
  */
 'use client';
 
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Section, Product } from '@/app/dashboard-v2/types';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
 import { Eye, Pencil, Trash, Plus, EyeOff } from 'lucide-react';
@@ -79,18 +79,56 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
     isCategorySelected,
 }) => {
 
+    // 🔧 SOLUCIÓN DEFINITIVA: Garantizar orden visual explícito para lista mixta
+    // Esto resuelve el problema del "segundo movimiento" en Grid 2 (secciones + productos locales)
+    const sortedSections = useMemo(() => {
+        return [...sections].sort((a, b) => {
+            // Ordenar por el campo contextual apropiado según el tipo
+            const orderA = isSection(a) ? (a.sections_display_order ?? 999) : (a.sections_display_order ?? 999);
+            const orderB = isSection(b) ? (b.sections_display_order ?? 999) : (b.sections_display_order ?? 999);
+            return orderA - orderB;
+        });
+    }, [sections]);
+
+    // 🔧 SOLUCIÓN GPT-4: Prevenir llamadas duplicadas rápidas
+    const [isMoving, setIsMoving] = React.useState(false);
+
+    const handleMoveItem = useCallback(async (id: number, direction: 'up' | 'down', type: 'section' | 'product') => {
+        if (isMoving) {
+            console.log('🚨 SectionGrid: Movement already in progress, ignoring click');
+            return;
+        }
+
+        try {
+            setIsMoving(true);
+            console.log('🔥 SectionGrid - Move clicked:', { id, direction, type, mode: isReorderMode });
+            await onMoveItem(id, direction, type, selectedCategoryId);
+        } catch (error) {
+            console.error('🔥 Error in movement:', error);
+        } finally {
+            // Pequeño delay para prevenir clicks rápidos accidentales
+            setTimeout(() => setIsMoving(false), 300);
+        }
+    }, [isMoving, onMoveItem, isReorderMode, selectedCategoryId]);
+
     const ReorderHandles = ({ id, type }: { id: number; type: 'section' | 'product' }) => (
         <div className="flex flex-col">
-            <ActionIcon Icon={ArrowUp} onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                console.log('🔥 SectionGrid - Move UP clicked:', { id, type, mode: isReorderMode, contextId: selectedCategoryId });
-                onMoveItem(id, 'up', type, selectedCategoryId);
-            }} />
-            <ActionIcon Icon={ArrowDown} onClick={(e: React.MouseEvent) => {
-                e.stopPropagation();
-                console.log('🔥 SectionGrid - Move DOWN clicked:', { id, type, mode: isReorderMode, contextId: selectedCategoryId });
-                onMoveItem(id, 'down', type, selectedCategoryId);
-            }} />
+            <ActionIcon
+                Icon={ArrowUp}
+                disabled={isMoving}
+                onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    handleMoveItem(id, 'up', type);
+                }}
+            />
+            <ActionIcon
+                Icon={ArrowDown}
+                disabled={isMoving}
+                onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    handleMoveItem(id, 'down', type);
+                }}
+            />
         </div>
     );
 
@@ -128,7 +166,7 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
                         <p className="text-gray-500">No hay secciones ni productos directos.</p>
                     </div>
                 ) : (
-                    sections.map(item => {
+                    sortedSections.map(item => {
                         if (isSection(item)) {
                             // Renderiza la fila para una Sección
                             return (
