@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import prisma from '@/prisma/prisma'; // 🧹 CORREGIDO: Ruta correcta del singleton
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -66,12 +66,12 @@ export async function GET(
                         section_id: null,
                     },
                     orderBy: {
-                        display_order: 'asc',
+                        products_display_order: 'asc', // 🧹 CORREGIDO: Campo contextual para productos
                     },
                 },
             },
             orderBy: {
-                display_order: 'asc',
+                categories_display_order: 'asc', // 🧹 CORREGIDO: Campo contextual para categorías
             },
         });
 

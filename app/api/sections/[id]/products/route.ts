@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/prisma/prisma'; // 🧹 CORREGIDO: Usar singleton
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-
-const prisma = new PrismaClient();
 
 /**
  * Maneja la solicitud GET para obtener todos los productos de una sección específica
@@ -84,8 +82,9 @@ export async function GET(
 
     // Ordenar productos por su orden de visualización
     products.sort((a, b) => {
-      const orderA = a.display_order || 999;
-      const orderB = b.display_order || 999;
+      // 🧹 CORREGIDO: Usar campo contextual apropiado
+      const orderA = a.products_display_order || 999;
+      const orderB = b.products_display_order || 999;
       return orderA - orderB;
     });
 

@@ -4,9 +4,7 @@
  * @module app/api/clients/[id]/categories/route
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '@/prisma/prisma'; // 🧹 CORREGIDO: Usar singleton
 const IMAGE_BASE_PATH = '/images/categories/';
 
 /**
@@ -37,7 +35,7 @@ export async function GET(
         } as any
       },
       orderBy: {
-        display_order: 'asc'
+        categories_display_order: 'asc' // 🧹 CORREGIDO: Campo contextual
       }
     });
 
@@ -47,7 +45,7 @@ export async function GET(
       name: category.name || '',
       image: category.image ? `${IMAGE_BASE_PATH}${category.image}` : null,
       status: category.status ? 1 : 0,
-      display_order: category.display_order || 0,
+      categories_display_order: category.categories_display_order || 0, // 🧹 CORREGIDO: Campo contextual
       client_id: category.client_id || 0
     }));
 

@@ -18,15 +18,13 @@
  * - La validación de Zod previene datos malformados.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/prisma/prisma'; // 🧹 CORREGIDO: Usar singleton en lugar de nueva instancia
 import { z } from 'zod';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import fs from 'fs/promises';
 import path from 'path';
 import { writeFile } from 'fs/promises';
-
-const prisma = new PrismaClient();
 
 /**
  * @route PUT /api/sections/[id]
@@ -38,7 +36,7 @@ const updateSectionSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').optional(),
   status: z.boolean().optional(),
   image: z.string().optional().nullable(),
-  display_order: z.number().optional(),
+  sections_display_order: z.number().optional(), // 🧹 CORREGIDO: Campo contextual
   category_id: z.number().optional(),
 });
 

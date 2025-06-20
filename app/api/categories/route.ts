@@ -48,29 +48,15 @@ import { join } from 'path';
 // Ruta base para las imágenes
 const IMAGE_BASE_PATH = '/images/categories/';
 
-/**
- * Interfaz para categorías procesadas para el frontend
- * Define la estructura de datos que se enviará al cliente
- */
-interface ProcessedCategory {
-  category_id: number;
-  name: string;
-  image: string | null;
-  status: number; // 1 (activo) o 0 (inactivo)
-  display_order: number;
-  client_id: number;
-  products: number;
-  sections_count?: number;
-  visible_sections_count?: number;
-  is_virtual_category: boolean;
-}
+// 🧹 LIMPIEZA: Eliminada interface ProcessedCategory que usaba display_order obsoleto.
+// La API devuelve directamente los datos de Prisma con campos contextuales correctos.
 
 /**
  * Interfaz para la respuesta paginada de categorías
  * Se usa cuando se solicitan datos con paginación
  */
 interface PaginatedCategoriesResponse {
-  data: ProcessedCategory[];
+  data: any[]; // 🧹 CORREGIDO: Tipo genérico
   meta: {
     total: number;
     page: number;
@@ -142,7 +128,7 @@ export async function GET(request: Request) {
         name: true,
         image: true,
         status: true,
-        display_order: true,
+        // 🧹 LIMPIEZA: Eliminado display_order obsoleto
         categories_display_order: true,
         client_id: true,
         is_virtual_category: true,
@@ -181,7 +167,7 @@ export async function GET(request: Request) {
           name: category.name || '',
           image: category.image ? `${IMAGE_BASE_PATH}${category.image}` : null,
           status: category.status ? 1 : 0,
-          display_order: category.display_order || 0,
+          categories_display_order: category.categories_display_order || 0, // 🧹 CORREGIDO
           client_id: category.client_id || 0,
           products: 0, // Simplificación temporal: no calculamos productos para evitar errores
           sections_count: totalSections,
@@ -265,15 +251,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El nombre es requerido' }, { status: 400 });
     }
 
-    // 4. Determinar el próximo valor de display_order
-    const maxOrderResult = await prisma.$queryRaw`
-      SELECT MAX(display_order) as maxOrder 
-      FROM categories 
-      WHERE client_id = ${user.client_id}
-    `;
+    // 4. Determinar el próximo valor de categories_display_order usando Prisma ORM
+    const maxOrderCategory = await prisma.categories.aggregate({
+      where: {
+        client_id: user.client_id,
+        deleted: { not: 1 } as any
+      },
+      _max: {
+        categories_display_order: true
+      }
+    });
 
-    // @ts-ignore - La respuesta SQL puede variar
-    const maxOrder = maxOrderResult[0]?.maxOrder || 0;
+    const maxOrder = maxOrderCategory._max.categories_display_order || 0;
 
     // 5. Procesar la imagen si existe
     let imageUrl = null;
@@ -300,19 +289,19 @@ export async function POST(request: Request) {
         name,
         image: imageUrl,
         status: true, // Por defecto activo
-        display_order: maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 1,
+        categories_display_order: maxOrder !== null && maxOrder !== undefined ? maxOrder + 1 : 1,
         client_id: user.client_id,
         deleted: 0 as any,
       },
     });
 
     // 7. Preparar la respuesta
-    const processedCategory: ProcessedCategory = {
+    const processedCategory: any = { // 🧹 CORREGIDO: Tipo genérico
       category_id: newCategory.category_id,
       name: newCategory.name || '',
       image: imageUrl ? `${IMAGE_BASE_PATH}${imageUrl}` : null,
       status: newCategory.status ? 1 : 0,
-      display_order: newCategory.display_order || 0,
+      categories_display_order: newCategory.categories_display_order || 0, // 🧹 CORREGIDO: Campo contextual
       client_id: newCategory.client_id || 0,
       products: 0, // Nueva categoría, sin productos
       is_virtual_category: newCategory.is_virtual_category,
@@ -406,12 +395,12 @@ export async function PUT(request: Request) {
     });
 
     // 7. Preparar la respuesta
-    const processedCategory: ProcessedCategory = {
+    const processedCategory: any = { // 🧹 CORREGIDO: Tipo genérico
       category_id: updatedCategory.category_id,
       name: updatedCategory.name || '',
       image: updatedCategory.image ? `${IMAGE_BASE_PATH}${updatedCategory.image}` : null,
       status: updatedCategory.status ? 1 : 0,
-      display_order: updatedCategory.display_order || 0,
+      categories_display_order: updatedCategory.categories_display_order || 0, // 🧹 CORREGIDO: Campo contextual
       client_id: updatedCategory.client_id || 0,
       products: 0, // Simplificación temporal: no calculamos productos para evitar errores
       is_virtual_category: updatedCategory.is_virtual_category,

@@ -35,7 +35,7 @@ export async function GET(
     // PORQUÉ: Next.js 15 cambió params a Promise para mejor performance
     const { id } = await params;
     const categoryId = parseInt(id);
-    
+
     console.log('🎯 T31: Obteniendo productos híbridos para categoría:', categoryId);
 
     if (isNaN(categoryId)) {
@@ -62,24 +62,24 @@ export async function GET(
     console.log('🎯 T31: Secciones encontradas:', sections.length);
 
     if (sections.length > 0) {
-    // Extraer los IDs de las secciones
-    const sectionIds = sections.map(section => section.section_id);
+      // Extraer los IDs de las secciones
+      const sectionIds = sections.map(section => section.section_id);
 
       // Consulta para obtener productos por sección (modo tradicional)
       // 🧭 MIGA DE PAN: Solo productos tradicionales vía products_sections
       // PROBLEMA RESUELTO: Esta consulta ya es exclusiva para productos tradicionales
       const traditionalProducts = await prisma.products_sections.findMany({
-      where: {
-        section_id: { in: sectionIds },
-        products: {
+        where: {
+          section_id: { in: sectionIds },
+          products: {
             deleted: false,
+          }
+        },
+        include: {
+          sections: true,
+          products: true
         }
-      },
-      include: {
-        sections: true,
-        products: true
-      }
-    });
+      });
 
       console.log('🎯 T31: Productos tradicionales encontrados:', traditionalProducts.length);
 
@@ -108,7 +108,7 @@ export async function GET(
         deleted: false,
       }
     });
-    
+
     console.log('🎯 T31: Productos directos encontrados:', directProducts.length);
     console.log('🎯 T31: IDs productos directos:', directProducts.map(p => p.product_id));
     allProducts.push(...directProducts);
@@ -121,11 +121,12 @@ export async function GET(
     ).map(productId => {
       return allProducts.find(product => product.product_id === productId);
     }).filter((product): product is NonNullable<typeof product> => product !== null && product !== undefined)
-    .sort((a, b) => {
-      const orderA = a.display_order || 0;
-      const orderB = b.display_order || 0;
-      return orderA - orderB;
-    });
+      .sort((a, b) => {
+        // 🧹 CORREGIDO: Usar campo contextual apropiado según tipo de producto
+        const orderA = a.products_display_order || a.categories_display_order || 0;
+        const orderB = b.products_display_order || b.categories_display_order || 0;
+        return orderA - orderB;
+      });
 
     console.log('🎯 T31: Productos únicos finales:', uniqueProducts.length);
     return NextResponse.json(uniqueProducts);

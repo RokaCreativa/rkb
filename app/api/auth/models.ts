@@ -17,7 +17,7 @@ export interface Product {
   price: number;
   image?: string;
   visible?: boolean;
-  display_order?: number;
+  products_display_order?: number; // 🧹 CORREGIDO: Campo contextual
   status?: string;
   photo?: string;
 }
@@ -53,7 +53,7 @@ export interface Category {
   name: string;
   image?: string;
   status: string;
-  display_order: number;
+  categories_display_order: number; // 🧹 CORREGIDO: Campo contextual
   client_id: number;
   totalProducts?: number;
   sections?: Section[];
@@ -64,14 +64,14 @@ export interface Section {
   name: string;
   image?: string;
   status: string;
-  display_order: number;
+  sections_display_order: number; // 🧹 CORREGIDO: Campo contextual
   products: Product[];
 }
 
 // For backward compatibility
-export interface Producto extends Product {}
-export interface Cliente extends Client {}
-export interface Moneda extends Currency {}
-export interface TipoNegocio extends BusinessType {}
-export interface Categoria extends Category {}
-export interface Seccion extends Section {} 
+export interface Producto extends Product { }
+export interface Cliente extends Client { }
+export interface Moneda extends Currency { }
+export interface TipoNegocio extends BusinessType { }
+export interface Categoria extends Category { }
+export interface Seccion extends Section { } 

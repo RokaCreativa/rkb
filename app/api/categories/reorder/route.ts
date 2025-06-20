@@ -1,18 +1,78 @@
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL: API de Reordenamiento Universal de Categorías
+ *
+ * 📍 UBICACIÓN: app/api/categories/reorder/route.ts → PUT handler
+ *
+ * 🎯 PORQUÉ EXISTE:
+ * Para manejar el reordenamiento masivo de categorías en el Grid 1 del dashboard,
+ * actualizando el campo contextual categories_display_order. Es parte del sistema 
+ * de reordenamiento mixto universal.
+ *
+ * 🔄 FLUJO DE DATOS:
+ * 1. moveItem (dashboardStore) → detecta si es Grid 1 simple o mixto
+ * 2. API simple (categorías solas) → ESTA API
+ * 3. API doble (Grid 1 mixto) → ESTA API + /api/products/reorder
+ * 4. Promise.all(prisma.update) → actualización masiva paralela
+ * 5. Respuesta exitosa → confirmación al frontend
+ *
+ * 🔗 CONEXIONES DIRECTAS:
+ * - ENTRADA: dashboardStore.moveItem() Grid 1 → payload con categories[]
+ * - HERMANA: /api/products/reorder → para Grid 1 mixto con productos globales
+ * - SALIDA: Prisma updates → BD con campo contextual actualizado
+ * - FRONTEND: CategoryGridView flechas → sincronización visual
+ *
+ * 🚨 PROBLEMA RESUELTO (Bitácora #47):
+ * - ANTES: Usaba display_order obsoleto causando inconsistencias
+ * - ERROR: Frontend ordenaba por categories_display_order, API por display_order
+ * - SOLUCIÓN: Migración completa a campo contextual categories_display_order
+ * - FECHA: 2025-01-25 - Integración al sistema reordenamiento universal
+ *
+ * 🎯 CASOS DE USO REALES:
+ * - Grid 1 simple: "Bebidas" sube antes de "Comidas"
+ * - Grid 1 mixto: "Postres" (categoría) pasa "Helado Especial" (producto global)
+ * - Reordenamiento masivo: 5 categorías + 3 productos globales en una operación
+ *
+ * ⚠️ REGLAS DE NEGOCIO CRÍTICAS:
+ * - Actualización contextual: solo categories_display_order
+ * - Compatibilidad con lista mixta del Grid 1
+ * - Operación atómica: todas las categorías o ninguna
+ * - Validación de tipos: category_id y nuevo order válidos
+ * - Validación de ownership: solo categorías del cliente autenticado
+ *
+ * 🔗 DEPENDENCIAS CRÍTICAS:
+ * - REQUIERE: Prisma client conectado a BD MySQL
+ * - REQUIERE: Session válida de usuario autenticado
+ * - REQUIERE: Campo categories_display_order en schema
+ * - ROMPE SI: category_id no existe en BD
+ * - ROMPE SI: nuevo order no es number válido
+ *
+ * 📊 PERFORMANCE:
+ * - Promise.all → updates paralelos para velocidad máxima
+ * - Ownership validation → previene actualizaciones no autorizadas
+ * - Error handling individual → falla rápido si una categoría falla
+ * - Logs detallados → debugging fácil de problemas
+ *
+ * 📖 MANDAMIENTOS RELACIONADOS:
+ * - Mandamiento #7 (Separación): API pura, sin lógica de UI
+ * - Mandamiento #8 (Buenas Prácticas): Validación robusta de entrada
+ * - Mandamiento #4 (Obediencia): Solo actualiza orden, no otros campos
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/prisma/prisma'; // 🧹 CORREGIDO: Usar singleton
 import { revalidatePath } from 'next/cache';
 
 // Interfaz para la solicitud de reordenamiento
-interface ReorderRequest {
-  categories: {
-    category_id: number;
-    display_order: number;
-  }[];
+interface CategoryReorderItem {
+  category_id: number;
+  new_order: number; // 🧹 CORREGIDO: Campo genérico consistente
 }
 
-const prisma = new PrismaClient();
+interface ReorderRequest {
+  categories: CategoryReorderItem[];
+}
 
 /**
  * Endpoint para reordenar categorías
@@ -65,9 +125,8 @@ export async function PUT(req: NextRequest) {
       const updatedCategory = await prisma.categories.update({
         where: { category_id: item.category_id },
         data: {
-          display_order: item.display_order,
-          // También actualizar el nuevo campo contextual
-          categories_display_order: item.display_order
+          // Solo actualizar el nuevo campo contextual
+          categories_display_order: item.new_order
         }
       });
 

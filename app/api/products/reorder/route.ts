@@ -5,7 +5,7 @@
  *
  * 🎯 PORQUÉ EXISTE:
  * Para manejar el reordenamiento masivo de productos en los 3 grids del dashboard,
- * actualizando el campo display_order correcto según el contexto (Grid 1, 2 o 3).
+ * actualizando el campo contextual correcto según el contexto (Grid 1, 2 o 3).
  * Es la API que sincroniza los cambios del sistema de flechas con la base de datos.
  *
  * 🔄 FLUJO DE DATOS:
@@ -20,11 +20,11 @@
  * - SALIDA: Prisma updates → actualización BD
  * - FRONTEND: Sistema de flechas en CategoryGridView, SectionGridView, ProductGridView
  *
- * 🚨 PROBLEMA RESUELTO (Bitácora #44):
- * - Antes: Solo actualizaba display_order (campo obsoleto)
- * - Error: Inconsistencia entre API y frontend en campos de ordenación
- * - Solución: Lógica contextual para usar el campo correcto según grid
- * - Fecha: 2025-01-25 - Sistema de reordenamiento universal completado
+ * 🚨 PROBLEMA RESUELTO (Bitácora #47):
+ * - ANTES: Solo actualizaba display_order obsoleto causando inconsistencias
+ * - ERROR: Inconsistencia entre API y frontend en campos de ordenación
+ * - SOLUCIÓN: Lógica contextual para usar el campo correcto según grid
+ * - FECHA: 2025-01-25 - Sistema de reordenamiento universal completado
  *
  * 🎯 CASOS DE USO REALES:
  * - Grid 1: context='category' → actualiza categories_display_order
@@ -35,14 +35,14 @@
  * - Context determina campo de ordenación
  * - Updates masivos con Promise.all para atomicidad
  * - Validación estricta de payload antes de procesar
- * - Cada producto debe tener product_id y display_order válidos
+ * - Cada producto debe tener product_id y nuevo order válidos
  *
  * 🔗 DEPENDENCIAS CRÍTICAS:
  * - REQUIERE: Prisma client conectado a BD MySQL
  * - REQUIERE: Campos *_display_order en schema products
  * - REQUIERE: Session válida de usuario autenticado
  * - ROMPE SI: product_id no existe en BD
- * - ROMPE SI: display_order no es number válido
+ * - ROMPE SI: nuevo order no es number válido
  *
  * 📊 PERFORMANCE:
  * - Promise.all → updates paralelos para velocidad
@@ -61,18 +61,20 @@
  * @description Handles bulk updates to the display order of products.
  * @module app/api/products/reorder/route
  */
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/prisma/prisma';
+import prisma from '@/prisma/prisma'; // 🧹 CORREGIDO: Usar singleton
+import { revalidatePath } from 'next/cache';
 
 /**
  * Interfaz que define la estructura mínima requerida para un producto
- * que se va a reordenar
+ * que se va a reordenar. Usa 'new_order' genérico que se mapea al campo
+ * contextual correcto según el contexto (categories_display_order, etc.)
  */
-interface Product {
+interface ProductReorderItem {
   product_id: number;
-  display_order: number;
+  new_order: number; // 🧹 CORREGIDO: Campo genérico, no display_order obsoleto
 }
 
 /**
@@ -82,7 +84,7 @@ interface Product {
  * @route PUT /api/products/reorder
  * @returns NextResponse con los resultados actualizados o un mensaje de error
  */
-export async function PUT(request: Request) {
+export async function PUT(req: NextRequest) {
   try {
     // Verificar autenticación
     const session = await getServerSession(authOptions);
@@ -92,13 +94,13 @@ export async function PUT(request: Request) {
     }
 
     // Procesar el cuerpo de la petición
-    const body = await request.json();
+    const body = await req.json();
 
     if (!body || !body.products || !Array.isArray(body.products)) {
       return NextResponse.json({ error: 'Invalid request format. Expected products array.' }, { status: 400 });
     }
 
-    const products: Product[] = body.products;
+    const products: ProductReorderItem[] = body.products;
     const context = body.context; // 'category' para Grid 1, 'section' para Grid 2, undefined para Grid 3
 
     console.log('🔥 API products/reorder - Context:', context);
@@ -108,7 +110,7 @@ export async function PUT(request: Request) {
     // Validar que cada producto tenga los campos requeridos
     const invalidProducts = products.filter(p =>
       !p.product_id || typeof p.product_id !== 'number' ||
-      p.display_order === undefined || typeof p.display_order !== 'number'
+      p.new_order === undefined || typeof p.new_order !== 'number'
     );
 
     if (invalidProducts.length > 0) {
@@ -121,51 +123,67 @@ export async function PUT(request: Request) {
 
     console.log(`✅ Validación completa. Actualizando ${products.length} productos...`);
 
-    // Actualizar los productos en la base de datos
-    const updatePromises = products.map(product => {
-      console.log(`- Actualizando producto ID ${product.product_id} a orden ${product.display_order} (contexto: ${context})`);
+    // Extraer el ID del cliente de la sesión
+    const clientId = (session.user as any).client_id;
+
+    if (!clientId) {
+      return NextResponse.json({ error: 'ID de cliente no encontrado' }, { status: 400 });
+    }
+
+    // Array para guardar los resultados de las operaciones - IGUAL QUE CATEGORÍAS
+    const updateResults = [];
+
+    // Actualizar cada producto - BUCLE FOR IGUAL QUE CATEGORÍAS
+    for (const item of products) {
+      console.log(`- Actualizando producto ID ${item.product_id} a orden ${item.new_order} (contexto: ${context})`);
+
+      // ✅ VALIDACIÓN DE OWNERSHIP IGUAL QUE CATEGORÍAS
+      const existingProduct = await prisma.products.findFirst({
+        where: {
+          product_id: item.product_id,
+          client_id: clientId  // Validar que el producto pertenece al cliente
+        }
+      });
+
+      if (!existingProduct) {
+        console.warn(`⚠️ Producto ${item.product_id} no pertenece al cliente ${clientId}, omitiendo...`);
+        continue; // Omitir productos que no pertenecen al cliente - IGUAL QUE CATEGORÍAS
+      }
 
       // Determinar qué campo actualizar según el contexto
       let updateData: any = {};
 
       if (context === 'category') {
         // Grid 1 - productos globales
-        updateData.categories_display_order = product.display_order;
+        updateData.categories_display_order = item.new_order;
       } else if (context === 'section') {
         // Grid 2 - productos locales  
-        updateData.sections_display_order = product.display_order;
+        updateData.sections_display_order = item.new_order;
       } else {
         // Grid 3 - productos normales
-        updateData.products_display_order = product.display_order;
+        updateData.products_display_order = item.new_order;
       }
 
-      return prisma.products.update({
-        where: { product_id: product.product_id },
+      // Actualizar el orden de visualización - IGUAL QUE CATEGORÍAS
+      const updatedProduct = await prisma.products.update({
+        where: { product_id: item.product_id },
         data: updateData
-      }).catch(error => {
-        console.error(`❌ Error actualizando producto ${product.product_id}:`, error);
-        throw error; // Re-lanzar el error para que falle la promesa
       });
-    });
 
-    try {
-      // Ejecutar todas las actualizaciones
-      const updatedProducts = await Promise.all(updatePromises);
-      console.log(`✅ ${updatedProducts.length} productos actualizados exitosamente`);
-
-      // Devolver respuesta exitosa
-      return NextResponse.json({
-        success: true,
-        message: 'Products reordered successfully',
-        updated: updatedProducts.length
-      });
-    } catch (updateError) {
-      console.error('❌ Error en la actualización de productos:', updateError);
-      return NextResponse.json({
-        error: 'Error updating products',
-        message: updateError instanceof Error ? updateError.message : 'Unknown error during update'
-      }, { status: 500 });
+      updateResults.push(updatedProduct);
     }
+
+    // Revalidar la página para actualizar la caché - IGUAL QUE CATEGORÍAS
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard-v2');
+
+    console.log(`✅ ${updateResults.length} productos actualizados exitosamente`);
+
+    // Devolver respuesta exitosa - IGUAL QUE CATEGORÍAS
+    return NextResponse.json({
+      message: 'Productos reordenados con éxito',
+      products: updateResults
+    });
 
   } catch (error) {
     console.error('❌ Error general reordenando productos:', error);

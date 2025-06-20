@@ -15,36 +15,6 @@ import { join } from 'path';
 // Ruta base para las imágenes de secciones
 const IMAGE_BASE_PATH = '/images/sections/';
 
-// Interfaz para los datos de sección procesados
-interface FormattedSection {
-  id: number;
-  name: string | null;
-  image: string | null;
-  display_order: number | null;
-  status: boolean;
-  client_id: number;
-  category_id: number;
-  products: Array<{
-    id: number;
-    name: string | null;
-    image: string | null;
-    price: Prisma.Decimal | null;
-    description: string | null;
-  }>;
-}
-
-// Interfaz para secciones procesadas en la respuesta del API
-interface ProcessedSection {
-  section_id: number;
-  name: string;
-  image: string | null;
-  status: number; // 1 o 0
-  display_order: number;
-  client_id: number;
-  category_id: number;
-  products_count: number;
-}
-
 /**
  * @swagger
  * /api/sections:
@@ -77,9 +47,11 @@ interface ProcessedSection {
  */
 export async function GET(req: NextRequest) {
   try {
+    console.log('🔥 SUPER TRACK API: GET /api/sections iniciado');
     // Obtener los parámetros de la URL
     const url = new URL(req.url);
     const categoryId = url.searchParams.get('category_id');
+    console.log('🔥 SUPER TRACK API: categoryId recibido:', categoryId);
 
     // Parámetros de paginación (opcionales)
     const page = parseInt(url.searchParams.get('page') || '1');
@@ -91,6 +63,7 @@ export async function GET(req: NextRequest) {
     const isPaginated = validLimit > 0;
 
     if (!categoryId) {
+      console.log('🔥 SUPER TRACK API ERROR: Category ID requerido');
       return new Response(JSON.stringify({ error: 'Category ID is required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -100,6 +73,7 @@ export async function GET(req: NextRequest) {
     // Verificar autenticación
     const session = await getServerSession(authOptions);
     if (!session || !session.user) {
+      console.log('🔥 SUPER TRACK API ERROR: No autenticado');
       return new Response(JSON.stringify({ error: 'Not authenticated' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' }
@@ -115,6 +89,7 @@ export async function GET(req: NextRequest) {
     });
 
     if (!user || !user.client_id) {
+      console.log('🔥 SUPER TRACK API ERROR: Usuario no asociado con cliente');
       return new Response(JSON.stringify({ error: 'User not associated with a client' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -122,10 +97,17 @@ export async function GET(req: NextRequest) {
     }
 
     const clientId = user.client_id;
+    console.log('🔥 SUPER TRACK API: clientId encontrado:', clientId);
 
     // Calcular parámetros de paginación para Prisma
     const skip = isPaginated ? (validPage - 1) * validLimit : undefined;
     const take = isPaginated ? validLimit : undefined;
+
+    console.log('🔥 SUPER TRACK API: Ejecutando query Prisma con where:', {
+      client_id: clientId,
+      category_id: parseInt(categoryId),
+      deleted: 0,
+    });
 
     // Buscar las secciones para la categoría especificada con paginación opcional
     const sections = await prisma.sections.findMany({
@@ -136,11 +118,14 @@ export async function GET(req: NextRequest) {
       },
       orderBy: [
         { status: 'desc' },
-        { display_order: 'asc' }
+        { sections_display_order: 'asc' }
       ],
       skip,
       take
     });
+
+    console.log('🔥 SUPER TRACK API: Secciones encontradas:', sections.length);
+    console.log('🔥 SUPER TRACK API: Primera sección raw:', sections[0]);
 
     // Si se solicita paginación, obtener también el total de registros
     let totalSections: number | undefined;
@@ -281,7 +266,22 @@ export async function POST(request: Request) {
       }
     }
 
-    // 5. Crear la nueva sección en la base de datos
+    // 5. Determinar el próximo valor de sections_display_order usando Prisma ORM
+    // 🧹 CORREGIDO: Calculamos el máximo en lugar de hardcodear 0
+    const maxOrderSection = await prisma.sections.aggregate({
+      where: {
+        category_id: categoryId,
+        client_id: user.client_id,
+        deleted: { not: 1 } as any
+      },
+      _max: {
+        sections_display_order: true
+      }
+    });
+
+    const maxOrder = maxOrderSection._max.sections_display_order || 0;
+
+    // 6. Crear la nueva sección en la base de datos
     const newSection = await prisma.sections.create({
       data: {
         name,
@@ -289,11 +289,11 @@ export async function POST(request: Request) {
         image: imageUrl,
         status,
         client_id: user.client_id,
-        display_order: 0, // O determinar el último + 1
+        sections_display_order: maxOrder + 1, // 🧹 CORREGIDO: Calcula el siguiente orden
       },
     });
 
-    // 6. Devolver la sección creada
+    // 7. Devolver la sección creada
     return NextResponse.json(newSection, { status: 201 });
   } catch (error) {
     console.error('Error al crear la sección:', error);

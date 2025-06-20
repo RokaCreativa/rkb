@@ -16,28 +16,15 @@ import path from 'path';
 // Ruta base para las imágenes de productos
 const IMAGE_BASE_PATH = '/images/products/';
 
-// Interfaz para productos procesados para el frontend
-interface ProcessedProduct {
-  product_id: number;
-  name: string;
-  image: string | null;
-  status: number; // 1 (activo) o 0 (inactivo)
-  display_order: number;
-  client_id: number;
-  price: number;
-  description: string | null;
-  sections: {
-    section_id: number;
-    name: string;
-  }[];
-}
+// 🧹 LIMPIEZA: Eliminada interface ProcessedProduct que usaba display_order obsoleto.
+// La API devuelve directamente los productos de Prisma con campos contextuales correctos.
 
 /**
  * Interfaz para la respuesta paginada de productos
  * Se usa cuando se solicitan datos con paginación
  */
 interface PaginatedProductsResponse {
-  data: ProcessedProduct[];
+  data: any[]; // Usar tipo genérico en lugar de ProcessedProduct obsoleto
   meta: {
     total: number;
     page: number;
@@ -83,19 +70,26 @@ interface CreateProductBody {
  */
 export async function GET(req: NextRequest) {
   try {
+    console.log('🔥 SUPER TRACK API: GET /api/products iniciado');
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
+      console.log('🔥 SUPER TRACK API ERROR: No autenticado');
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
     const user = await prisma.users.findFirst({ where: { email: session.user.email } });
     if (!user?.client_id) {
+      console.log('🔥 SUPER TRACK API ERROR: Usuario no asociado a cliente');
       return NextResponse.json({ error: 'Usuario no asociado a un cliente' }, { status: 403 });
     }
+
+    console.log('🔥 SUPER TRACK API: clientId encontrado:', user.client_id);
 
     const url = new URL(req.url);
     const sectionIdParam = url.searchParams.get('section_id');
     const categoryIdParam = url.searchParams.get('category_id');
+
+    console.log('🔥 SUPER TRACK API: Parámetros recibidos - sectionId:', sectionIdParam, 'categoryId:', categoryIdParam);
 
     let whereCondition: any = {
       client_id: user.client_id,
@@ -104,9 +98,29 @@ export async function GET(req: NextRequest) {
 
     if (sectionIdParam) {
       whereCondition.section_id = parseInt(sectionIdParam, 10);
+      console.log('🔥 SUPER TRACK API: Filtrando por section_id:', whereCondition.section_id);
     } else if (categoryIdParam) {
-      whereCondition.category_id = parseInt(categoryIdParam, 10);
-      whereCondition.section_id = null; // Clave: asegurar que son productos DIRECTOS
+      // 🔧 CORREGIDO: Buscar productos en sección fantasma local de la categoría
+      const categoryId = parseInt(categoryIdParam, 10);
+
+      // Buscar la sección fantasma local para esta categoría
+      const localVirtualSection = await prisma.sections.findFirst({
+        where: {
+          category_id: categoryId,
+          is_virtual: true,
+          name: { contains: '__LOCAL_PRODUCTS_CAT_' }
+        }
+      });
+
+      if (localVirtualSection) {
+        whereCondition.section_id = localVirtualSection.section_id;
+        console.log('🔥 SUPER TRACK API: Filtrando por sección fantasma local:', localVirtualSection.section_id);
+      } else {
+        // Fallback: buscar productos directos antiguos (por si algunos no se migraron)
+        whereCondition.category_id = categoryId;
+        whereCondition.section_id = null;
+        console.log('🔥 SUPER TRACK API: Fallback - Filtrando por category_id (productos directos antiguos):', categoryId);
+      }
     }
 
     let orderByField = 'products_display_order'; // Por defecto productos normales
@@ -114,11 +128,18 @@ export async function GET(req: NextRequest) {
     // Para productos globales (category_id sin section_id), usar categories_display_order
     if (categoryIdParam && !sectionIdParam) {
       orderByField = 'categories_display_order';
+      console.log('🔥 SUPER TRACK API: Usando orderBy field para productos globales:', orderByField);
     }
     // Para productos locales (category_id con section_id null), usar sections_display_order
     else if (categoryIdParam && whereCondition.section_id === null) {
       orderByField = 'sections_display_order';
+      console.log('🔥 SUPER TRACK API: Usando orderBy field para productos locales:', orderByField);
+    } else {
+      console.log('🔥 SUPER TRACK API: Usando orderBy field para productos normales:', orderByField);
     }
+
+    console.log('🔥 SUPER TRACK API: whereCondition final:', whereCondition);
+    console.log('🔥 SUPER TRACK API: orderByField final:', orderByField);
 
     const products = await prisma.products.findMany({
       where: whereCondition,
@@ -133,6 +154,9 @@ export async function GET(req: NextRequest) {
       orderBy: [{ [orderByField]: 'asc' }],
     });
 
+    console.log('🔥 SUPER TRACK API: Productos encontrados:', products.length);
+    console.log('🔥 SUPER TRACK API: Primer producto raw:', products[0]);
+
     // Procesar los productos para convertir Decimal a number
     const processedProducts = products.map((product) => ({
       ...product,
@@ -140,9 +164,12 @@ export async function GET(req: NextRequest) {
       // Asegurarse de que otros campos Decimal se conviertan si existen
     }));
 
+    console.log('🔥 SUPER TRACK API: Productos procesados:', processedProducts.length);
+    console.log('🔥 SUPER TRACK API: Primer producto procesado:', processedProducts[0]);
+
     return NextResponse.json(processedProducts);
   } catch (error) {
-    console.error('Error getting products:', error);
+    console.error('🔥 SUPER TRACK API ERROR en GET /api/products:', error);
     const errorMessage = error instanceof Error ? error.message : 'Un error desconocido ocurrió';
     return NextResponse.json({ error: 'Error interno del servidor', details: errorMessage }, { status: 500 });
   }
@@ -167,10 +194,19 @@ export async function GET(req: NextRequest) {
  *    - c. Asigna el `section_id` de esa sección virtual al nuevo producto.
  *    - d. IMPORTANTE: Anula el `category_id` del producto, porque un producto pertenece a una sección O a una categoría, nunca a ambos.
  * 4. LÓGICA DE PRODUCTO NORMAL: Si no es una promoción, simplemente usa el `section_id` o `category_id` proporcionado.
- * 5. CÁLCULO DE ORDEN: Determina el siguiente `display_order` disponible dentro de su contenedor (sección o categoría).
+ * 5. CÁLCULO DE ORDEN: Determina el siguiente valor disponible usando campos contextuales (categories_display_order, sections_display_order, products_display_order).
  * 6. GESTIÓN DE IMAGEN: Si se adjunta una imagen, la guarda en el servidor y almacena la ruta.
- * 7. CREACIÓN EN DB: Crea el registro del producto en la base de datos con todos los datos procesados.
+ * 7. CREACIÓN EN BD: Crea el registro del producto en la base de datos con todos los datos procesados.
  * 8. RESPUESTA: Devuelve el producto recién creado al cliente para actualizar la UI.
+ *
+ * 🚨 PROBLEMA RESUELTO (Bitácora #47):
+ * - ANTES: Usaba display_order obsoleto causando inconsistencias
+ * - SOLUCIÓN: Implementó lógica contextual con campos específicos según tipo de producto
+ * - FECHA: 2025-01-25 - Migración de campos display_order completada
+ *
+ * 📖 MANDAMIENTOS RELACIONADOS:
+ * - Mandamiento #7 (Separación): Lógica de negocio centralizada en API
+ * - Mandamiento #8 (Buenas Prácticas): Validación robusta y campos contextuales
  */
 export async function POST(request: Request) {
   // CONSOLE LOG 1: Inicio de la función
@@ -232,7 +268,7 @@ export async function POST(request: Request) {
               is_virtual: true,
               client_id: clientId,
               status: true,
-              display_order: 999,
+              sections_display_order: 999, // 🧹 CORREGIDO: Usar campo contextual correcto
             },
           });
         }
@@ -244,12 +280,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Se requiere section_id o category_id' }, { status: 400 });
     }
 
+    // Determinar el campo de orden correcto según el contexto
+    let orderField = 'products_display_order'; // Por defecto para productos normales
+    if (category_id && !section_id) {
+      orderField = 'categories_display_order'; // Productos globales
+    } else if (category_id && section_id) {
+      orderField = 'sections_display_order'; // Productos locales
+    }
+
     const whereOrder = section_id ? { section_id } : { category_id };
     const highestOrder = await prisma.products.aggregate({
-      _max: { display_order: true },
+      _max: { [orderField]: true },
       where: { client_id: clientId, ...whereOrder },
     });
-    const newOrder = (highestOrder._max.display_order ?? -1) + 1;
+    const newOrder = (highestOrder._max[orderField] ?? -1) + 1;
 
     let imageUrl: string | null = null;
     if (file) {
@@ -271,7 +315,7 @@ export async function POST(request: Request) {
       status: !!status,
       description,
       image: imageUrl,
-      display_order: newOrder,
+      [orderField]: newOrder, // Usar el campo contextual correcto
       client_id: clientId,
       section_id,
       category_id,

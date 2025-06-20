@@ -117,7 +117,7 @@ const updateCategorySchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').optional(),
   status: z.boolean().optional(),
   image: z.string().optional().nullable(),
-  display_order: z.number().optional(),
+  categories_display_order: z.number().optional(), // 🧹 CORREGIDO: Campo contextual
 });
 
 export async function PUT(
@@ -137,7 +137,7 @@ export async function PUT(
       return NextResponse.json({ error: validation.error.formErrors.fieldErrors }, { status: 400 });
     }
 
-    const updatedCategory = await prismaClient.categories.update({
+    const updatedCategory = await prisma.categories.update({
       where: { category_id: categoryId },
       data: validation.data,
     });

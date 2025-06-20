@@ -169,7 +169,7 @@ const updateProductSchema = z.object({
   price: z.number().optional(),
   status: z.boolean().optional(),
   image: z.string().optional().nullable(),
-  display_order: z.number().optional(),
+  products_display_order: z.number().optional(), // 🧹 CORREGIDO: Campo contextual
   section_id: z.number().optional().nullable(),
   category_id: z.number().optional().nullable(),
   is_showcased: z.boolean().optional(),
