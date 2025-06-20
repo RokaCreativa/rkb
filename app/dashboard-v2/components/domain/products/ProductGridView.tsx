@@ -34,7 +34,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Product } from '@/app/dashboard-v2/types/domain/product';
 import { Star, Pencil, Trash, Move, Plus, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -60,123 +60,152 @@ type ProductGridViewProps = {
     isSectionSelected: boolean;
 };
 
-export const ProductGridView = React.memo<ProductGridViewProps>(
-    ({
-        products,
-        isReorderMode,
-        onMoveItem,
-        selectedSectionId,
-        onEdit,
-        onDelete,
-        onMove,
-        onToggleShowcase,
-        onToggleVisibility,
-        onAddNew,
-        title,
-        selectedProductId,
-        isSectionSelected,
-    }) => {
+export const ProductGridView: React.FC<ProductGridViewProps> = ({
+    products,
+    isReorderMode,
+    onMoveItem,
+    selectedSectionId,
+    onEdit,
+    onDelete,
+    onMove,
+    onToggleShowcase,
+    onToggleVisibility,
+    onAddNew,
+    title,
+    selectedProductId,
+    isSectionSelected,
+}) => {
 
-        const ReorderHandles = ({ id }: { id: number }) => (
-            <div className="flex flex-col">
-                <ActionIcon Icon={ArrowUp} onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    console.log('🔥 ProductGrid - Move UP clicked:', { id, mode: isReorderMode, contextId: selectedSectionId });
-                    onMoveItem(id, 'up', 'product', selectedSectionId);
-                }} />
-                <ActionIcon Icon={ArrowDown} onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    console.log('🔥 ProductGrid - Move DOWN clicked:', { id, mode: isReorderMode, contextId: selectedSectionId });
-                    onMoveItem(id, 'down', 'product', selectedSectionId);
-                }} />
-            </div>
-        );
+    // 🔧 SOLUCIÓN DEFINITIVA: Garantizar orden visual explícito para React
+    // Esto resuelve el problema del "segundo movimiento" que falla visualmente
+    const sortedProducts = useMemo(() => {
+        return [...products].sort((a, b) => (a.products_display_order ?? 999) - (b.products_display_order ?? 999));
+    }, [products]);
 
-        const renderActions = (product: Product) => (
-            <div className="flex items-center">
-                <ActionIcon Icon={product.status ? Eye : EyeOff} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onToggleVisibility(product); }} />
-                <ActionIcon Icon={Pencil} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEdit(product); }} />
-                <ActionIcon Icon={Trash} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(product); }} className="hover:text-red-600" />
-                {onMove && (
-                    <ActionIcon
-                        Icon={Move}
-                        iconClassName="text-gray-600 cursor-move"
-                        onClick={e => { e.stopPropagation(); onMove(product); }}
-                    />
-                )}
-            </div>
-        );
+    // 🔧 POSIBLE FIX: Prevenir llamadas duplicadas rápidas
+    const [isMoving, setIsMoving] = React.useState(false);
 
-        const renderShowcaseIcon = (product: Product) => (
+    const handleMoveItem = useCallback(async (id: number, direction: 'up' | 'down') => {
+        if (isMoving) {
+            console.log('🚨 Movement already in progress, ignoring click');
+            return;
+        }
+
+        try {
+            setIsMoving(true);
+            console.log('🔥 ProductGrid - Move clicked:', { id, direction, mode: isReorderMode });
+            await onMoveItem(id, direction, 'product', selectedSectionId);
+        } catch (error) {
+            console.error('🔥 Error in movement:', error);
+        } finally {
+            // Pequeño delay para prevenir clicks rápidos accidentales
+            setTimeout(() => setIsMoving(false), 300);
+        }
+    }, [isMoving, onMoveItem, isReorderMode]);
+
+    const ReorderHandles = ({ id }: { id: number }) => (
+        <div className="flex flex-col">
             <ActionIcon
-                Icon={Star}
-                onClick={e => {
+                Icon={ArrowUp}
+                disabled={isMoving}
+                onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
-                    onToggleShowcase(product.product_id);
+                    handleMoveItem(id, 'up');
                 }}
-                aria-label={
-                    product.is_showcased ? 'Quitar de destacados' : 'Marcar como destacado'
-                }
-                iconClassName={cn(
-                    'transition-all text-gray-600',
-                    product.is_showcased
-                        ? 'text-yellow-400 fill-yellow-400'
-                        : 'hover:text-yellow-400',
-                )}
             />
-        );
+            <ActionIcon
+                Icon={ArrowDown}
+                disabled={isMoving}
+                onClick={(e: React.MouseEvent) => {
+                    e.stopPropagation();
+                    handleMoveItem(id, 'down');
+                }}
+            />
+        </div>
+    );
 
+    const renderActions = (product: Product) => (
+        <div className="flex items-center">
+            <ActionIcon Icon={product.status ? Eye : EyeOff} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onToggleVisibility(product); }} />
+            <ActionIcon Icon={Pencil} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEdit(product); }} />
+            <ActionIcon Icon={Trash} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(product); }} className="hover:text-red-600" />
+            {onMove && (
+                <ActionIcon
+                    Icon={Move}
+                    iconClassName="text-gray-600 cursor-move"
+                    onClick={e => { e.stopPropagation(); onMove(product); }}
+                />
+            )}
+        </div>
+    );
 
+    const renderShowcaseIcon = (product: Product) => (
+        <ActionIcon
+            Icon={Star}
+            onClick={e => {
+                e.stopPropagation();
+                onToggleShowcase(product.product_id);
+            }}
+            aria-label={
+                product.is_showcased ? 'Quitar de destacados' : 'Marcar como destacado'
+            }
+            iconClassName={cn(
+                'transition-all text-gray-600',
+                product.is_showcased
+                    ? 'text-yellow-400 fill-yellow-400'
+                    : 'hover:text-yellow-400',
+            )}
+        />
+    );
 
-        return (
-            <div className="p-4 bg-white rounded-lg shadow-soft h-full flex flex-col">
-                <div className="flex justify-between items-center mb-4 flex-shrink-0">
-                    <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
-                    <Button onClick={onAddNew} size="sm" disabled={!isSectionSelected}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Añadir Producto
-                    </Button>
-                </div>
-                <div className="space-y-2 overflow-y-auto flex-grow">
-                    {!isSectionSelected ? (
-                        <div className="text-center py-10 flex items-center justify-center h-full">
-                            <p className="text-gray-500">Selecciona una sección para ver sus productos.</p>
-                        </div>
-                    ) : products.length === 0 ? (
-                        <div className="text-center py-10 flex items-center justify-center h-full">
-                            <p className="text-gray-500">No hay productos en esta sección.</p>
-                        </div>
-                    ) : (
-                        products.map((product, index) => {
-                            const subtitle = [
-                                product.price ? `$${Number(product.price).toFixed(2)}` : null,
-                                product.description
-                            ].filter(Boolean).join(' - ');
-
-                            return (
-                                <GenericRow
-                                    key={product.product_id}
-                                    id={product.product_id}
-                                    isSelected={selectedProductId === product.product_id}
-                                    isReorderMode={isReorderMode}
-                                    imageSrc={product.image}
-                                    imageAlt={product.name ?? 'Producto'}
-                                    imageType="products"
-                                    title={product.name}
-                                    subtitle={subtitle}
-                                    status={product.status}
-                                    actions={renderActions(product)}
-                                    showcaseIcon={renderShowcaseIcon(product)}
-                                    reorderHandles={<ReorderHandles id={product.product_id} />}
-                                    onClick={() => !isReorderMode && onEdit(product)}
-                                />
-                            );
-                        })
-                    )}
-                </div>
+    return (
+        <div className="p-4 bg-white rounded-lg shadow-soft h-full flex flex-col">
+            <div className="flex justify-between items-center mb-4 flex-shrink-0">
+                <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+                <Button onClick={onAddNew} size="sm" disabled={!isSectionSelected}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Añadir Producto
+                </Button>
             </div>
-        );
-    },
-);
+            <div className="space-y-2 overflow-y-auto flex-grow">
+                {!isSectionSelected ? (
+                    <div className="text-center py-10 flex items-center justify-center h-full">
+                        <p className="text-gray-500">Selecciona una sección para ver sus productos.</p>
+                    </div>
+                ) : products.length === 0 ? (
+                    <div className="text-center py-10 flex items-center justify-center h-full">
+                        <p className="text-gray-500">No hay productos en esta sección.</p>
+                    </div>
+                ) : (
+                    sortedProducts.map((product, index) => {
+                        const subtitle = [
+                            product.price ? `$${Number(product.price).toFixed(2)}` : null,
+                            product.description
+                        ].filter(Boolean).join(' - ');
+
+                        return (
+                            <GenericRow
+                                key={product.product_id}
+                                id={product.product_id}
+                                isSelected={selectedProductId === product.product_id}
+                                isReorderMode={isReorderMode}
+                                imageSrc={product.image}
+                                imageAlt={product.name ?? 'Producto'}
+                                imageType="products"
+                                title={product.name}
+                                subtitle={subtitle}
+                                status={product.status}
+                                actions={renderActions(product)}
+                                showcaseIcon={renderShowcaseIcon(product)}
+                                reorderHandles={<ReorderHandles id={product.product_id} />}
+                                onClick={() => !isReorderMode && onEdit(product)}
+                            />
+                        );
+                    })
+                )}
+            </div>
+        </div>
+    );
+};
 
 ProductGridView.displayName = 'ProductGridView'; 
