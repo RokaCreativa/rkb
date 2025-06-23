@@ -1,128 +1,97 @@
+/**
+ * @fileoverview Página de Inicio de Sesión - MODO PRUEBAS
+ * @description Solo pide email, sin contraseña. CERO SEGURIDAD.
+ */
 "use client";
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import Button from "@/app/dashboard-v2/components/ui/Button/Button";
-import { LockClosedIcon } from "@heroicons/react/24/solid";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SignInPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard-v2";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+
+    if (!email) {
+      setError("Por favor ingresa tu email");
+      return;
+    }
+
+    setIsLoading(true);
     setError("");
 
     try {
-      // Obtener la URL de retorno si existe en los parámetros
-      const searchParams = new URLSearchParams(window.location.search);
-      const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
-
       const result = await signIn("credentials", {
         email,
-        password,
+        password: "dummy", // Campo dummy requerido por NextAuth
         redirect: false,
       });
 
       if (result?.error) {
-        setError("Usuario o contraseña incorrectos");
+        setError("Usuario no encontrado en la base de datos");
       } else {
-        // Si la autenticación es exitosa, redirige a la URL de retorno o al dashboard por defecto
         router.push(callbackUrl);
       }
     } catch (error) {
-      setError("Error al iniciar sesión. Inténtalo de nuevo.");
+      setError("Error de conexión");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow-md">
-        <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <Image
-              src="/images/logo.png"
-              alt="RokaMenu Logo"
-              width={150}
-              height={50}
-              className="h-auto"
-            />
-          </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Iniciar Sesión
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Ingresa tus credenciales para acceder a tu cuenta
-          </p>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 my-4">
-            <div className="flex">
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">RokaMenu</CardTitle>
+          <CardDescription>
+            🧪 MODO PRUEBAS - Solo necesitas tu email
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="sr-only">
-                Correo electrónico
-              </label>
-              <input
-                id="email"
-                name="email"
+              <Input
                 type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-0 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Correo electrónico"
+                placeholder="tu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Contraseña
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-0 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
               />
             </div>
-          </div>
 
-          <div>
+            {error && (
+              <div className="text-red-500 text-sm text-center">
+                {error}
+              </div>
+            )}
+
             <Button
               type="submit"
-              isLoading={loading}
-              fullWidth
-              variant="primary"
-              leftIcon={<LockClosedIcon className="h-5 w-5 text-indigo-400 group-hover:text-indigo-300" />}
+              className="w-full"
+              disabled={isLoading}
             >
-              {loading ? "Iniciando sesión..." : "Iniciar sesión"}
+              {isLoading ? "Verificando..." : "Entrar (Solo Email)"}
             </Button>
-          </div>
-        </form>
-      </div>
+
+            <div className="text-xs text-gray-500 text-center mt-4">
+              ⚠️ Configuración de pruebas: Sin contraseña requerida
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

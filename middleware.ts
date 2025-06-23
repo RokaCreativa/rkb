@@ -11,7 +11,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Then, handle authentication
+  // 🧪 MODO PRUEBAS: Autenticación DESHABILITADA temporalmente
+  // ================================================================
+  // ⚠️ SOLO PARA PRUEBAS - REACTIVAR EN PRODUCCIÓN
+  // ================================================================
+
+  /* 
+  // CÓDIGO ORIGINAL - DESCOMENTA PARA REACTIVAR SEGURIDAD:
   const token = await getToken({ req: request });
 
   if (!token) {
@@ -20,6 +26,7 @@ export async function middleware(request: NextRequest) {
     url.searchParams.set("callbackUrl", request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
+  */
 
   return NextResponse.next();
 }
