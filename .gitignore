@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Documentation - keep only local
+docs/
+
 # Ignore all images but keep folder structure and essential files
 public/images/categories/*
 public/images/products/*
