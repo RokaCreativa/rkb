@@ -40,18 +40,32 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Images managed by MinIO container - exclude from git
-public/images/categories/
-public/images/products/
-public/images/sections/
-public/images/main_logo/
-public/images/mainlogo/
-public/images/backgrounds/
-public/images/global/
-public/images/qr/
-public/images/vc/
-public/images/.minio.sys/
+# Ignore all images but keep folder structure and essential files
+public/images/categories/*
+public/images/products/*
+public/images/sections/*
+public/images/main_logo/*
+public/images/mainlogo/*
+public/images/backgrounds/*
+public/images/global/*
+public/images/qr/*
+public/images/vc/*
 
-# Keep only essential static images
+# Keep folder structure with .gitkeep files
+!public/images/categories/.gitkeep
+!public/images/products/.gitkeep
+!public/images/sections/.gitkeep
+!public/images/main_logo/.gitkeep
+!public/images/mainlogo/.gitkeep
+!public/images/backgrounds/.gitkeep
+!public/images/global/.gitkeep
+!public/images/qr/.gitkeep
+!public/images/vc/.gitkeep
+
+# Keep essential static images
 !public/images/placeholder.png
 !public/images/allergensIcons/
+
+# Keep complete .minio.sys folder for MinIO functionality
+!public/images/.minio.sys/
+!public/images/.minio.sys/**
