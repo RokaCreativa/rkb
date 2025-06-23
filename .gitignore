@@ -1,4 +1,4 @@
-# PRUEBA: Solo mantener app, components, lib, prisma
+# PRUEBA: Solo mantener app, components, lib, prisma + archivos raíz
 
 # Excluir todo por defecto
 *
@@ -13,7 +13,7 @@
 !prisma/
 !prisma/**
 
-# Permitir archivos de configuración esenciales
+# Permitir archivos de configuración esenciales en la raíz
 !package.json
 !package-lock.json
 !next.config.*
@@ -21,6 +21,10 @@
 !tsconfig.json
 !.gitignore
 !README.md
+!middleware.ts
+!postcss.config.js
+!components.json
+!.eslintrc.json
 
 # Excluir node_modules siempre
 node_modules/
