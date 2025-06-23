@@ -60,87 +60,76 @@ const rowVariants = cva(
 
 // --- Tipos y Props del Componente ---
 
-export interface GenericRowProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'id' | 'title' | 'content'>, VariantProps<typeof rowVariants> {
-    id: number | string;
+interface GenericRowProps {
+    id: number;
     isSelected: boolean;
-    status: boolean; // Prop para controlar la visibilidad. Aplica estilos de opacidad/escala de grises.
-    isReorderMode: boolean;
+    isReorderMode?: boolean;
     imageSrc?: string | null;
-    imageAlt: string;
+    imageAlt?: string;
     imageType: 'categories' | 'sections' | 'products';
-    title: React.ReactNode;
-    subtitle?: React.ReactNode;
-    content?: React.ReactNode;
-    actions: React.ReactNode;
+    title?: string | null;
+    subtitle?: string;
+    status?: boolean | number;
+    actions?: React.ReactNode;
+    onClick?: () => void;
     showcaseIcon?: React.ReactNode;
-    reorderHandles?: React.ReactNode;
 }
 
 // --- Implementación del Componente ---
 
-export const GenericRow = React.memo<GenericRowProps>(
-    ({
-        className,
-        id,
-        isSelected,
-        status,
-        isReorderMode,
-        imageSrc,
-        imageAlt,
-        imageType,
-        title,
-        subtitle,
-        content,
-        actions,
-        showcaseIcon,
-        reorderHandles,
-        ...props
-    }) => {
-        const variant = isSelected ? 'selected' : 'default';
-        const rowClasses = cn(
-            rowVariants({ variant }),
-            { 'cursor-pointer group': !isReorderMode, 'cursor-default': isReorderMode },
-            { 'opacity-50 grayscale': !status },
-            className
-        );
+export const GenericRow: React.FC<GenericRowProps> = ({
+    id,
+    isSelected,
+    isReorderMode = false,
+    imageSrc,
+    imageAlt,
+    imageType,
+    title,
+    subtitle,
+    status,
+    actions,
+    onClick,
+    showcaseIcon,
+}) => {
+    const variant = isSelected ? 'selected' : 'default';
+    const rowClasses = cn(
+        rowVariants({ variant }),
+        { 'cursor-pointer group': !isReorderMode, 'cursor-default': isReorderMode },
+        { 'opacity-50 grayscale': !status },
+    );
 
-        return (
-            <div className={rowClasses} {...props}>
-                {/* Slot para el icono de showcase (estrella), se oculta en modo reordenar */}
-                {showcaseIcon && !isReorderMode && <div className="mr-3 flex-shrink-0">{showcaseIcon}</div>}
+    return (
+        <div className={rowClasses} onClick={onClick}>
+            {/* Slot para el icono de showcase (estrella), se oculta en modo reordenar */}
+            {showcaseIcon && !isReorderMode && <div className="mr-3 flex-shrink-0">{showcaseIcon}</div>}
 
-                {/* Slot para las flechas de reordenar */}
-                {isReorderMode && <div className="mr-3 flex-shrink-0">{reorderHandles}</div>}
-
-                {/* Contenedor de Imagen */}
-                <div className="flex-shrink-0">
-                    <Image
-                        src={getImagePath(imageSrc, imageType)}
-                        alt={imageAlt}
-                        width={40}
-                        height={40}
-                        className="rounded-md object-cover"
-                    />
-                </div>
-
-                {/* Contenedor de Contenido Principal */}
-                <div className="flex-grow flex items-center ml-4">
-                    <div className="flex flex-col flex-grow">
-                        <span className="font-medium text-sm text-gray-800">{title}</span>
-                        {subtitle && <span className="text-xs text-gray-500">{subtitle}</span>}
-                    </div>
-                    {content && <div className="hidden md:block mx-4 text-sm text-gray-600">{content}</div>}
-                </div>
-
-                {/* Contenedor de Acciones (se oculta en modo reordenar) */}
-                {!isReorderMode &&
-                    <div className="flex items-center space-x-1 ml-4 flex-shrink-0">
-                        {actions}
-                    </div>
-                }
+            {/* Contenedor de Imagen */}
+            <div className="flex-shrink-0">
+                <Image
+                    src={getImagePath(imageSrc, imageType)}
+                    alt={imageAlt || ''}
+                    width={40}
+                    height={40}
+                    className="rounded-md object-cover"
+                />
             </div>
-        );
-    }
-);
+
+            {/* Contenedor de Contenido Principal */}
+            <div className="flex-grow flex items-center ml-4">
+                <div className="flex flex-col flex-grow">
+                    <span className="font-medium text-sm text-gray-800">{title}</span>
+                    {subtitle && <span className="text-xs text-gray-500">{subtitle}</span>}
+                </div>
+            </div>
+
+            {/* Contenedor de Acciones (se oculta en modo reordenar) */}
+            {!isReorderMode &&
+                <div className="flex items-center space-x-1 ml-4 flex-shrink-0">
+                    {actions}
+                </div>
+            }
+        </div>
+    );
+};
 
 GenericRow.displayName = 'GenericRow'; 

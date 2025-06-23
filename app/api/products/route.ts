@@ -16,15 +16,12 @@ import path from 'path';
 // Ruta base para las imágenes de productos
 const IMAGE_BASE_PATH = '/images/products/';
 
-// 🧹 LIMPIEZA: Eliminada interface ProcessedProduct que usaba display_order obsoleto.
-// La API devuelve directamente los productos de Prisma con campos contextuales correctos.
-
 /**
  * Interfaz para la respuesta paginada de productos
  * Se usa cuando se solicitan datos con paginación
  */
 interface PaginatedProductsResponse {
-  data: any[]; // Usar tipo genérico en lugar de ProcessedProduct obsoleto
+  data: any[];
   meta: {
     total: number;
     page: number;
@@ -100,27 +97,11 @@ export async function GET(req: NextRequest) {
       whereCondition.section_id = parseInt(sectionIdParam, 10);
       console.log('🔥 SUPER TRACK API: Filtrando por section_id:', whereCondition.section_id);
     } else if (categoryIdParam) {
-      // 🔧 CORREGIDO: Buscar productos en sección fantasma local de la categoría
+      // 🔧 SIMPLIFICADO: Buscar productos directos por category_id
       const categoryId = parseInt(categoryIdParam, 10);
-
-      // Buscar la sección fantasma local para esta categoría
-      const localVirtualSection = await prisma.sections.findFirst({
-        where: {
-          category_id: categoryId,
-          is_virtual: true,
-          name: { contains: '__LOCAL_PRODUCTS_CAT_' }
-        }
-      });
-
-      if (localVirtualSection) {
-        whereCondition.section_id = localVirtualSection.section_id;
-        console.log('🔥 SUPER TRACK API: Filtrando por sección fantasma local:', localVirtualSection.section_id);
-      } else {
-        // Fallback: buscar productos directos antiguos (por si algunos no se migraron)
-        whereCondition.category_id = categoryId;
-        whereCondition.section_id = null;
-        console.log('🔥 SUPER TRACK API: Fallback - Filtrando por category_id (productos directos antiguos):', categoryId);
-      }
+      whereCondition.category_id = categoryId;
+      whereCondition.section_id = null; // Solo productos directos
+      console.log('🔥 SUPER TRACK API: Filtrando por category_id (productos directos):', categoryId);
     }
 
     let orderByField = 'products_display_order'; // Por defecto productos normales
@@ -261,6 +242,19 @@ export async function POST(request: Request) {
         });
 
         if (!virtualSection) {
+          // Calcular el siguiente order para secciones de esta categoría
+          const maxOrderSection = await prisma.sections.aggregate({
+            where: {
+              category_id: category_id,
+              client_id: clientId,
+              deleted: { not: 1 } as any
+            },
+            _max: {
+              sections_display_order: true
+            }
+          });
+          const nextOrder = (maxOrderSection._max.sections_display_order || 0) + 1;
+
           virtualSection = await prisma.sections.create({
             data: {
               name: `Promociones de ${category.name || 'Categoría'}`,
@@ -268,7 +262,7 @@ export async function POST(request: Request) {
               is_virtual: true,
               client_id: clientId,
               status: true,
-              sections_display_order: 999, // 🧹 CORREGIDO: Usar campo contextual correcto
+              sections_display_order: nextOrder,
             },
           });
         }

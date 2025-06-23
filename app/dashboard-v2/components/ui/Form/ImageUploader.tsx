@@ -85,7 +85,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                         objectFit="cover"
                         className="rounded-md"
                         // onError para manejar imágenes rotas en el servidor
-                        onError={() => setPreview('/placeholder.png')}
+                        onError={() => setPreview('/images/placeholder.png')}
                     />
                 ) : (
                     <div className="text-center">

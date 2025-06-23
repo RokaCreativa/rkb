@@ -1,7 +1,7 @@
 /**
  * @fileoverview API Route for Categories
  * @description This route handles all API requests related to categories,
- *              including fetching, creating, updating, and reordering.
+ *              including fetching, creating, and updating.
  * @module app/api/categories/route
  */
 
@@ -48,15 +48,28 @@ import { join } from 'path';
 // Ruta base para las imágenes
 const IMAGE_BASE_PATH = '/images/categories/';
 
-// 🧹 LIMPIEZA: Eliminada interface ProcessedCategory que usaba display_order obsoleto.
-// La API devuelve directamente los datos de Prisma con campos contextuales correctos.
+/**
+ * Interfaz para la respuesta de una categoría procesada
+ */
+interface ProcessedCategory {
+  category_id: number;
+  name: string;
+  image: string | null;
+  status: number;
+  categories_display_order: number;
+  client_id: number;
+  products: number;
+  sections_count?: number;
+  visible_sections_count?: number;
+  is_virtual_category?: boolean | null;
+}
 
 /**
  * Interfaz para la respuesta paginada de categorías
  * Se usa cuando se solicitan datos con paginación
  */
 interface PaginatedCategoriesResponse {
-  data: any[]; // 🧹 CORREGIDO: Tipo genérico
+  data: ProcessedCategory[];
   meta: {
     total: number;
     page: number;
@@ -128,7 +141,6 @@ export async function GET(request: Request) {
         name: true,
         image: true,
         status: true,
-        // 🧹 LIMPIEZA: Eliminado display_order obsoleto
         categories_display_order: true,
         client_id: true,
         is_virtual_category: true,
@@ -167,13 +179,13 @@ export async function GET(request: Request) {
           name: category.name || '',
           image: category.image ? `${IMAGE_BASE_PATH}${category.image}` : null,
           status: category.status ? 1 : 0,
-          categories_display_order: category.categories_display_order || 0, // 🧹 CORREGIDO
+          categories_display_order: category.categories_display_order || 0,
           client_id: category.client_id || 0,
           products: 0, // Simplificación temporal: no calculamos productos para evitar errores
           sections_count: totalSections,
           visible_sections_count: visibleSections,
           is_virtual_category: category.is_virtual_category,
-        };
+        } as ProcessedCategory;
       })
     );
 
@@ -296,12 +308,12 @@ export async function POST(request: Request) {
     });
 
     // 7. Preparar la respuesta
-    const processedCategory: any = { // 🧹 CORREGIDO: Tipo genérico
+    const processedCategory: ProcessedCategory = {
       category_id: newCategory.category_id,
       name: newCategory.name || '',
       image: imageUrl ? `${IMAGE_BASE_PATH}${imageUrl}` : null,
       status: newCategory.status ? 1 : 0,
-      categories_display_order: newCategory.categories_display_order || 0, // 🧹 CORREGIDO: Campo contextual
+      categories_display_order: newCategory.categories_display_order || 0,
       client_id: newCategory.client_id || 0,
       products: 0, // Nueva categoría, sin productos
       is_virtual_category: newCategory.is_virtual_category,
@@ -395,12 +407,12 @@ export async function PUT(request: Request) {
     });
 
     // 7. Preparar la respuesta
-    const processedCategory: any = { // 🧹 CORREGIDO: Tipo genérico
+    const processedCategory: ProcessedCategory = {
       category_id: updatedCategory.category_id,
       name: updatedCategory.name || '',
       image: updatedCategory.image ? `${IMAGE_BASE_PATH}${updatedCategory.image}` : null,
       status: updatedCategory.status ? 1 : 0,
-      categories_display_order: updatedCategory.categories_display_order || 0, // 🧹 CORREGIDO: Campo contextual
+      categories_display_order: updatedCategory.categories_display_order || 0,
       client_id: updatedCategory.client_id || 0,
       products: 0, // Simplificación temporal: no calculamos productos para evitar errores
       is_virtual_category: updatedCategory.is_virtual_category,

@@ -25,11 +25,8 @@ import prisma from '@/prisma/prisma';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { NextRequest } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { Category } from '@/app/dashboard-v2/types';
-
-const prismaClient = new PrismaClient();
 
 /**
  * @route PATCH /api/categories/[id]
@@ -159,7 +156,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'ID de categoría inválido' }, { status: 400 });
     }
 
-    await prismaClient.categories.delete({
+    await prisma.categories.delete({
       where: { category_id: categoryId },
     });
 

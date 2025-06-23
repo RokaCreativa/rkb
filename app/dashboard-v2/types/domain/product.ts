@@ -22,7 +22,7 @@ export interface Product {
   discount_price?: string | null;
   section_id: number | null;
   client_id: number;
-  display_order: number | null;
+
   description: string | null;
   category_id: number | null;
   created_at: string;

@@ -38,7 +38,6 @@ import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
 import { useModalState, ItemType } from '@/app/dashboard-v2/hooks/ui/useModalState';
 import { Category, Section, Product } from '@/app/dashboard-v2/types';
 
-import { DashboardHeader } from './DashboardHeader';
 import { CategoryGridView } from '../domain/categories/CategoryGridView';
 import { SectionGridView } from '../domain/sections/SectionGridView';
 import { ProductGridView } from '../domain/products/ProductGridView';
@@ -55,16 +54,13 @@ const DashboardView = () => {
     categories,
     sections,
     products,
-    isReorderMode,
-    toggleReorderMode,
-    moveItem,
-    toggleCategoryVisibility,
-    toggleSectionVisibility,
-    toggleProductVisibility,
     selectedCategoryId,
     selectedSectionId,
     setSelectedCategoryId,
     setSelectedSectionId,
+    toggleCategoryVisibility,
+    toggleSectionVisibility,
+    toggleProductVisibility,
     toggleShowcaseStatus,
     createCategory,
     updateCategory,
@@ -72,6 +68,9 @@ const DashboardView = () => {
     updateSection,
     createProduct,
     updateProduct,
+    deleteCategory,
+    deleteSection,
+    deleteProduct,
   } = useDashboardStore();
 
   const { modalState, openModal, closeModal, handleConfirmDelete } = useModalState();
@@ -196,13 +195,16 @@ const DashboardView = () => {
     // Obtiene las secciones de la categoría seleccionada.
     const sectionsForCategory = sections[selectedCategoryId] || [];
 
+    // 🔥 FILTRAR SECCIONES FANTASMA: Solo mostrar secciones reales (no virtuales)
+    const realSections = sectionsForCategory.filter(s => !s.is_virtual);
+
     // 🧠 Lógica clave según Bitácora #45 y Memoria #3419991175739654741
     // Un producto directo LOCAL es aquel que tiene category_id pero no section_id.
     const allProductsFlat = Object.values(products).flat();
     const localDirectProducts = allProductsFlat.filter(p => p.category_id === selectedCategoryId && !p.section_id);
 
     // Combina y ordena.
-    const combined = [...sectionsForCategory, ...localDirectProducts];
+    const combined = [...realSections, ...localDirectProducts];
 
     // 🧠 ORDENACIÓN: Usar campos contextuales específicos
     // - Secciones: sections_display_order  
@@ -260,7 +262,7 @@ const DashboardView = () => {
         if (item) {
           await updateCategory((item as Category).category_id, data, imageFile);
         } else if (client) {
-          await createCategory({ ...data, client_id: client.client_id }, imageFile);
+          await createCategory({ ...data, client_id: client.id }, imageFile);
         }
       } else if (type === 'section') {
         if (item) {
@@ -289,23 +291,19 @@ const DashboardView = () => {
 
   return (
     <div className="flex-1 flex flex-col h-full bg-gray-50">
-      <DashboardHeader />
+      {/* Header simple del dashboard */}
+      <div className="flex justify-between items-center mb-6 p-4">
+        <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
+      </div>
 
-      {/* ================================================================= */}
-      {/* 🧭 PASO 4: Renderizado de Grids                                   */}
-      {/* Se pasan los datos derivados y los manejadores a los componentes  */}
-      {/* "tontos" que solo se encargan de pintar la UI.                  */}
-      {/* ================================================================= */}
       <main className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 overflow-y-auto">
 
         {/* Grid 1: Categorías y Productos Globales */}
         <CategoryGridView
           items={grid1Items}
           selectedCategoryId={selectedCategoryId}
-          isReorderMode={isReorderMode}
           onCategorySelect={handleCategorySelect}
           onProductSelect={() => { }} // Placeholder, productos directos no son seleccionables
-          onMoveItem={moveItem}
           onToggleVisibility={(item) => {
             if ('price' in item) { // Es Producto
               toggleProductVisibility(item.product_id, !item.status);
@@ -336,9 +334,7 @@ const DashboardView = () => {
           sections={sectionsAndLocalProducts}
           title="Secciones"
           selectedSectionId={selectedSectionId}
-          isReorderMode={isReorderMode}
           onSectionSelect={handleSectionSelect}
-          onMoveItem={moveItem}
           selectedCategoryId={selectedCategoryId}
           onToggleVisibility={(item) => {
             if ('price' in item) { // Es Producto
@@ -361,7 +357,6 @@ const DashboardView = () => {
               openModal('deleteConfirmation', { item, type: 'section' });
             }
           }}
-          isCategorySelected={!!selectedCategoryId}
           onAddNew={() => selectedCategoryId ? openModal('editSection', { type: 'section' }) : null}
           onAddProductDirect={() => selectedCategoryId ? openModal('editProduct', { type: 'product', isDirect: true }) : null}
         />
@@ -370,9 +365,6 @@ const DashboardView = () => {
         <ProductGridView
           products={grid3Items}
           title="Productos"
-          isReorderMode={isReorderMode}
-          onMoveItem={moveItem}
-          selectedSectionId={selectedSectionId}
           onToggleVisibility={(item) => toggleProductVisibility(item.product_id, !item.status)}
           onToggleShowcase={toggleShowcaseStatus}
           onEdit={(item) => openModal('editProduct', { item, type: 'product' })}

@@ -1,7 +1,7 @@
 /**
  * @fileoverview API Route for Sections
  * @description Handles all API requests related to sections,
- *              including fetching, creating, updating, and reordering.
+ *              including fetching, creating, and updating.
  * @module app/api/sections/route
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -289,7 +289,7 @@ export async function POST(request: Request) {
         image: imageUrl,
         status,
         client_id: user.client_id,
-        sections_display_order: maxOrder + 1, // 🧹 CORREGIDO: Calcula el siguiente orden
+        sections_display_order: maxOrder + 1,
       },
     });
 

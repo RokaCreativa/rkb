@@ -64,7 +64,13 @@ export const MobileView = () => {
         toggleProductVisibility,
         isLoading,
         initialDataLoaded,
-        client
+        client,
+        createCategory,
+        updateCategory,
+        createSection,
+        updateSection,
+        createProduct,
+        updateProduct
     } = useDashboardStore();
 
     const { modalState, openModal, closeModal, handleConfirmDelete } = useModalState();
@@ -104,21 +110,21 @@ export const MobileView = () => {
 
             if (type === 'category') {
                 if (item) {
-                    await useDashboardStore.getState().updateCategory((item as Category).category_id, data, imageFile);
+                    await updateCategory((item as Category).category_id, data, imageFile);
                 } else if (client) {
-                    await useDashboardStore.getState().createCategory({ ...data, client_id: client.client_id }, imageFile);
+                    await createCategory({ ...data, client_id: client.client_id }, imageFile);
                 }
             } else if (type === 'section') {
                 if (item) {
-                    await useDashboardStore.getState().updateSection((item as Section).section_id, data, imageFile);
+                    await updateSection((item as Section).section_id, data, imageFile);
                 } else if (selectedCategoryId) {
-                    await useDashboardStore.getState().createSection({ ...data, category_id: selectedCategoryId }, imageFile);
+                    await createSection({ ...data, category_id: selectedCategoryId }, imageFile);
                 }
             } else if (type === 'product') {
                 if (item) {
-                    await useDashboardStore.getState().updateProduct((item as Product).product_id, data, imageFile);
+                    await updateProduct((item as Product).product_id, data, imageFile);
                 } else if (selectedSectionId) {
-                    await useDashboardStore.getState().createProduct({ ...data, section_id: selectedSectionId }, imageFile);
+                    await createProduct({ ...data, section_id: selectedSectionId }, imageFile);
                 }
             }
             closeModal();

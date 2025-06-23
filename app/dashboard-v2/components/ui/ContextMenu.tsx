@@ -1,38 +1,60 @@
+/**
+ * 🧭 MIGA DE PAN CONTEXTUAL: ContextMenu - Componente TONTO de Menú Contextual
+ *
+ * 📍 UBICACIÓN: app/dashboard-v2/components/ui/ContextMenu.tsx
+ *
+ * 🎯 PORQUÉ EXISTE:
+ * Componente de presentación PURA que renderiza menús contextuales con tres puntos.
+ * Cumple estrictamente el Mandamiento #7 de separación de lógica y presentación.
+ * Maneja solo estado interno de UI (abrir/cerrar), no lógica de negocio.
+ *
+ * 🔄 FLUJO DE DATOS:
+ * 1. Recibe acciones como props (callbacks puros)
+ * 2. Maneja estado interno de visibilidad del menú
+ * 3. Emite eventos a través de callbacks onClick
+ * 4. Se cierra automáticamente al hacer clic fuera
+ *
+ * 🔗 CONEXIONES DIRECTAS:
+ * - USADO EN: SectionListView.tsx, CategoryList.tsx
+ * - PATRÓN: Menú desplegable con acciones contextuales
+ * - EVENTOS: onClick para cada acción, auto-cierre
+ *
+ * 🚨 PROBLEMAS RESUELTOS:
+ * - ANTES: Componentes duplicados para menús contextuales
+ * - SOLUCIÓN: Un solo componente reutilizable para todos los menús
+ * - FECHA: 2025-01-25 - Limpieza de componentes obsoletos
+ *
+ * 📖 MANDAMIENTOS RELACIONADOS:
+ * - Mandamiento #7: Componente TONTO - solo presentación
+ * - Sin lógica de negocio, solo estado de UI local
+ * - Responsabilidad única: mostrar menú contextual
+ *
+ * @version 2.0.0 - Limpieza y documentación actualizada
+ * @updated 2025-01-25
+ */
+
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
 import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
 
 /**
- * @interface Action
- * @description Define la estructura de una acción individual dentro del menú contextual.
- * @property {string} label - El texto que se mostrará para la acción.
- * @property {() => void} onClick - La función a ejecutar cuando se selecciona la acción.
- * @property {boolean} [isDestructive] - Si es true, el texto se mostrará en color rojo para indicar una acción destructiva (ej: Eliminar).
+ * Estructura de una acción individual dentro del menú contextual
+ * Define cómo se comporta cada opción del menú
  */
 interface Action {
     label: string;
     onClick: () => void;
-    isDestructive?: boolean;
+    isDestructive?: boolean; // Para mostrar acciones peligrosas en rojo
 }
 
 /**
- * @interface ContextMenuProps
- * @description Propiedades para el componente ContextMenu.
- * @property {Action[]} actions - Un array de objetos de acción que se mostrarán en el menú.
+ * Props para el componente ContextMenu - solo lo esencial
+ * Eliminadas props innecesarias que violaban la separación de responsabilidades
  */
 interface ContextMenuProps {
     actions: Action[];
 }
-
-/**
- * @component ContextMenu
- * @description Un menú contextual que se activa con un botón de tres puntos.
- * Muestra una lista de acciones y se gestiona a sí mismo (abrir/cerrar).
- * El menú se cierra automáticamente si se hace clic fuera de él.
- * @param {ContextMenuProps} props - Las propiedades del componente.
- * @returns {React.ReactElement}
- */
 const ContextMenu: React.FC<ContextMenuProps> = ({ actions }) => {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/prisma/prisma'; // 🧹 CORREGIDO: Usar singleton
+import prisma from '@/prisma/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
@@ -21,7 +21,7 @@ import { authOptions } from '@/lib/auth';
 // 5. Recupera las relaciones `products_sections` para encontrar todos los productos vinculados.
 // 6. Mapea las relaciones para obtener la lista de productos.
 // 7. Filtra los productos para excluir aquellos marcados como `deleted: true`.
-// 8. Ordena los productos restantes por `display_order`.
+// 8. Ordena los productos restantes por `products_display_order`.
 // 9. Devuelve la lista de productos en formato JSON.
 // ⚡️ **Optimización:** El filtrado y ordenamiento se realizan en el servidor para minimizar la carga en el cliente.
 export async function GET(
@@ -82,7 +82,6 @@ export async function GET(
 
     // Ordenar productos por su orden de visualización
     products.sort((a, b) => {
-      // 🧹 CORREGIDO: Usar campo contextual apropiado
       const orderA = a.products_display_order || 999;
       const orderB = b.products_display_order || 999;
       return orderA - orderB;

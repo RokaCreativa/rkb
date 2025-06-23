@@ -1,14 +1,36 @@
 /**
- * @fileoverview Componente ProductList - Lista de productos con soporte para arrastrar y soltar (drag and drop)
- * Este componente muestra los productos de una sección específica en formato de tabla
- * y permite arrastrar y reordenar los productos visibles.
- * 
- * IMPORTANTE: Este componente NO incluye su propio DragDropContext.
- * Debe ser usado dentro del DragDropContext global definido en DashboardView.tsx.
- * 
- * @autor RokaMenu Team
- * @version 2.0
- * @updated 2024-07-22
+ * 🧭 MIGA DE PAN CONTEXTUAL: ProductList - Componente TONTO de Productos
+ *
+ * 📍 UBICACIÓN: app/dashboard-v2/components/domain/products/ProductList.tsx
+ *
+ * 🎯 PORQUÉ EXISTE:
+ * Componente de presentación PURA que renderiza listas de productos.
+ * Cumple estrictamente el Mandamiento #7 de separación de lógica y presentación.
+ * NO contiene lógica de negocio, solo renderización y callbacks.
+ *
+ * 🔄 FLUJO DE DATOS:
+ * 1. Recibe productos y callbacks como props
+ * 2. Renderiza cada producto usando GenericRow
+ * 3. Emite eventos a través de callbacks (onClick, onEdit, etc.)
+ * 4. NO maneja estado interno ni efectos secundarios
+ *
+ * 🔗 CONEXIONES DIRECTAS:
+ * - PADRE: ProductTable.tsx, MobileView.tsx
+ * - HIJO: GenericRow.tsx, ActionIcon.tsx
+ * - USADO EN: Vista móvil y desktop para mostrar productos
+ *
+ * 🚨 PROBLEMAS RESUELTOS:
+ * - ANTES: Archivos duplicados (ProductListView, ProductListItem)
+ * - SOLUCIÓN: Un solo componente tonto, limpio y reutilizable
+ * - FECHA: 2025-01-25 - Limpieza de archivos obsoletos
+ *
+ * 📖 MANDAMIENTOS RELACIONADOS:
+ * - Mandamiento #7: Componente TONTO - solo presentación
+ * - Sin lógica de negocio, sin estado, sin efectos secundarios
+ * - Responsabilidad única: renderizar lista de productos
+ *
+ * @version 2.1.0 - Limpieza y documentación actualizada
+ * @updated 2025-01-25
  */
 
 'use client';
@@ -90,9 +112,8 @@ export const ProductList: React.FC<ProductListProps> = ({
             imageType="products"
             actions={renderActions(product)}
             onClick={() => onEdit(product)}
-            className={!product.status ? 'opacity-50' : ''}
             isSelected={false}
-            isReorderMode={false}
+            status={product.status}
           />
         );
       })}

@@ -14,20 +14,18 @@ import { Category } from './category';
  */
 export interface Section {
   section_id: number;
-  name: string;
-  image?: string | null;
+  name: string | null;
+  image: string | null;
   category_id: number;
-  client_id?: number;
-  display_order: number;
+  client_id: number;
   status: boolean;
-  is_virtual?: boolean;
-  created_at?: string;
-  updated_at?: string;
-  products_count?: number;
-  visible_products_count?: number;
+  deleted?: boolean | null;
+  created_at?: Date | null;
+  updated_at?: Date | null;
+  is_virtual?: boolean | null;
 
-  // 🎯 CAMPOS CONTEXTUALES: Orden específico por contexto donde aparece
-  // PORQUÉ: Permite reordenamiento independiente en diferentes grids
+  // 🧭 CAMPOS CONTEXTUALES PARA ORDENAMIENTO HÍBRIDO
+  // PORQUÉ: El sistema híbrido requiere diferentes campos de orden según el contexto
   // COMPORTAMIENTO: sections_display_order se usa en Grid 2 (SectionGridView)
   sections_display_order?: number | null;
 }

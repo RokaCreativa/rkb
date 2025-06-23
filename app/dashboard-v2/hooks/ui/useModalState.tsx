@@ -43,6 +43,9 @@ type ModalData = Category | Section | Product | null;
 export interface ModalOptions {
     item?: ModalData;
     type?: ItemType;
+    isDirect?: boolean;
+    isGlobal?: boolean;
+    parentId?: number;
 }
 
 interface FullModalState {

@@ -18,7 +18,7 @@ import prisma from '@/prisma/prisma';
  * 1. Consulta productos tradicionales (products_sections → products)
  * 2. Consulta productos directos (products.category_id = categoryId)
  * 3. Elimina duplicados por product_id
- * 4. Ordena por display_order
+ * 4. Ordena por campos contextuales (products_display_order, categories_display_order)
  * 5. Retorna array unificado para UI
  * 
  * CASOS DE USO REALES:
@@ -122,7 +122,6 @@ export async function GET(
       return allProducts.find(product => product.product_id === productId);
     }).filter((product): product is NonNullable<typeof product> => product !== null && product !== undefined)
       .sort((a, b) => {
-        // 🧹 CORREGIDO: Usar campo contextual apropiado según tipo de producto
         const orderA = a.products_display_order || a.categories_display_order || 0;
         const orderB = b.products_display_order || b.categories_display_order || 0;
         return orderA - orderB;

@@ -15,48 +15,68 @@
  * - Producto dentro de esa sección: "Spaghetti Carbonara"
  */
 
-import { Client } from '@/app/types/menu';
+/**
+ * Cliente básico para compatibilidad
+ */
+interface Client {
+  id: number;
+  name: string;
+  main_logo: string | null;
+  contact_email: string;
+  contact_phone: string;
+  business_type: string;
+  status: number;
+}
 
 /**
- * Interfaz principal para una categoría del menú
+ * 🧭 MIGA DE PAN CONTEXTUAL: Tipos de Categoría
  * 
- * Una categoría representa una agrupación principal de elementos del menú.
- * Por ejemplo: Entrantes, Platos Principales, Postres, Bebidas, etc.
+ * 📍 UBICACIÓN: app/dashboard-v2/types/domain/category.ts
  * 
- * @property category_id - Identificador único de la categoría en la base de datos
- * @property name - Nombre visible de la categoría (ej: "Entrantes")
- * @property description - Descripción opcional de la categoría
- * @property image - URL de la imagen asociada a la categoría (opcional)
- * @property status - Estado de visibilidad (1: visible, 0: oculta)
- * @property display_order - Posición de la categoría en el menú (para ordenamiento)
- * @property client_id - ID del cliente al que pertenece esta categoría
- * @property created_at - Fecha y hora de creación
- * @property updated_at - Fecha y hora de última actualización
- * @property sections_count - Número total de secciones en esta categoría
- * @property visible_sections_count - Número de secciones visibles en esta categoría
+ * 🎯 OBJETIVO: Definir los tipos TypeScript para las entidades de categoría.
+ * 
+ * 🔄 FLUJO DE DATOS:
+ * 1. Estos tipos son utilizados por el store (dashboardStore.ts) para tipar el estado.
+ * 2. Los componentes (CategoryGridView, CategoryTable) los utilizan para props e interfaces.
+ * 3. Las APIs (/api/categories/*) los utilizan para validación y respuestas.
+ * 
+ * 🔗 CONEXIONES:
+ * - `dashboardStore.ts` → líneas 25-30 (estado de categorías)
+ * - `CategoryGridView.tsx` → líneas 15-20 (props de componente)
+ * - `/api/categories/route.ts` → líneas 40-50 (validación Zod)
+ * 
+ * ⚠️ CONSIDERACIONES:
+ * - `image` puede ser null (categorías sin imagen)
+ * - `status` determina visibilidad (1 = visible, 0 = oculto)
+ * - `client_id` es clave para multi-tenancy
+ */
+
+/**
+ * Interfaz principal de Categoría
+ * 
+ * @property category_id - ID único de la categoría
+ * @property name - Nombre de la categoría (ej: "Bebidas", "Comidas")
+ * @property image - Ruta de la imagen de la categoría (puede ser null)
+ * @property status - Estado de visibilidad (1 = visible, 0 = oculto)
+ * @property categories_display_order - Posición de la categoría en el menú (para ordenamiento contextual)
+ * @property client_id - ID del cliente al que pertenece la categoría
+ * @property deleted - Indica si la categoría fue eliminada (soft delete)
+ * @property created_at - Fecha de creación
+ * @property updated_at - Fecha de última actualización
  */
 export interface Category {
   category_id: number;
-  name: string;
-  description?: string;
-  image?: string | null;
+  name: string | null;
+  image: string | null;
   status: boolean;
-  display_order: number;
   client_id: number;
-  created_at?: string;
-  updated_at?: string;
-  sections_count?: number;
-  visible_sections_count?: number;
+  deleted?: boolean | null;
+  created_at?: Date | null;
+  updated_at?: Date | null;
+  is_virtual_category?: boolean | null;
 
-  // 🎯 SOLUCIÓN v0.dev: CATEGORÍAS VIRTUALES
-  // PORQUÉ: Permite productos "huérfanos" que aparecen en vista raíz del cliente
-  // COMPORTAMIENTO: false = categoría normal, true = categoría virtual (productos elevados)
-  // CONEXIÓN: CategoryGridView mostrará badge "VIRTUAL" para estas categorías
-  // CASOS DE USO: "Especial del Día", "Promociones", "Sugerencias del Chef"
-  is_virtual_category?: boolean;
-
-  // 🎯 CAMPOS CONTEXTUALES: Orden específico por contexto donde aparece
-  // PORQUÉ: Permite reordenamiento independiente en diferentes grids
+  // 🧭 CAMPOS CONTEXTUALES PARA ORDENAMIENTO HÍBRIDO
+  // PORQUÉ: El sistema híbrido requiere diferentes campos de orden según el contexto
   // COMPORTAMIENTO: categories_display_order se usa en Grid 1 (CategoryGridView)
   categories_display_order?: number | null;
 }

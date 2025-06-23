@@ -38,6 +38,7 @@ import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
 import { Eye, Pencil, Trash, Plus, EyeOff } from 'lucide-react';
 import { GenericRow } from '../../ui/Table/GenericRow';
 import { ActionIcon } from '../../ui/Button/ActionIcon';
+import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
 
 import { ArrowUp, ArrowDown } from 'lucide-react';
 import { PlusCircle, Trash2 } from 'lucide-react';
@@ -47,90 +48,31 @@ function isSection(item: Section | Product): item is Section {
     return 'section_id' in item && !('price' in item);
 }
 
-type SectionGridViewProps = {
-    sections: (Section | Product)[];
-    isReorderMode: boolean;
-    onSectionSelect: (section: Section) => void;
-    onMoveItem: (itemId: number, direction: 'up' | 'down', itemType: 'category' | 'section' | 'product', contextId?: number | null) => Promise<void>;
-    selectedCategoryId: number | null;
-    onEdit: (item: Section | Product) => void;
-    onDelete: (item: Section | Product) => void;
-    onToggleVisibility: (item: Section | Product) => void;
-    onAddNew: () => void;
-    onAddProductDirect: () => void;
-    title: string;
-    selectedSectionId?: number | null;
-    isCategorySelected: boolean;
-};
+interface SectionGridViewProps {
+    sections: (Section | Product)[]
+    title: string
+    selectedSectionId: number | null
+    onSectionSelect: (section: Section) => void
+    selectedCategoryId: number | null
+    onToggleVisibility: (item: Section | Product) => void
+    onEdit: (item: Section | Product) => void
+    onDelete: (item: Section | Product) => void
+    onAddNew: () => void
+    onAddProductDirect: () => void | null
+}
 
 export const SectionGridView: React.FC<SectionGridViewProps> = ({
     sections,
-    isReorderMode,
-    onSectionSelect,
-    onMoveItem,
-    selectedCategoryId,
-    onEdit,
-    onDelete,
-    onToggleVisibility,
-    onAddNew,
-    onAddProductDirect,
     title,
     selectedSectionId,
-    isCategorySelected,
+    onSectionSelect,
+    selectedCategoryId,
+    onToggleVisibility,
+    onEdit,
+    onDelete,
+    onAddNew,
+    onAddProductDirect,
 }) => {
-
-    // 🔧 SOLUCIÓN DEFINITIVA: Garantizar orden visual explícito para lista mixta
-    // Esto resuelve el problema del "segundo movimiento" en Grid 2 (secciones + productos locales)
-    const sortedSections = useMemo(() => {
-        return [...sections].sort((a, b) => {
-            // Ordenar por el campo contextual apropiado según el tipo
-            const orderA = isSection(a) ? (a.sections_display_order ?? 999) : (a.sections_display_order ?? 999);
-            const orderB = isSection(b) ? (b.sections_display_order ?? 999) : (b.sections_display_order ?? 999);
-            return orderA - orderB;
-        });
-    }, [sections]);
-
-    // 🔧 SOLUCIÓN GPT-4: Prevenir llamadas duplicadas rápidas
-    const [isMoving, setIsMoving] = React.useState(false);
-
-    const handleMoveItem = useCallback(async (id: number, direction: 'up' | 'down', type: 'section' | 'product') => {
-        if (isMoving) {
-            console.log('🚨 SectionGrid: Movement already in progress, ignoring click');
-            return;
-        }
-
-        try {
-            setIsMoving(true);
-            console.log('🔥 SectionGrid - Move clicked:', { id, direction, type, mode: isReorderMode });
-            await onMoveItem(id, direction, type, selectedCategoryId);
-        } catch (error) {
-            console.error('🔥 Error in movement:', error);
-        } finally {
-            // Pequeño delay para prevenir clicks rápidos accidentales
-            setTimeout(() => setIsMoving(false), 300);
-        }
-    }, [isMoving, onMoveItem, isReorderMode, selectedCategoryId]);
-
-    const ReorderHandles = ({ id, type }: { id: number; type: 'section' | 'product' }) => (
-        <div className="flex flex-col">
-            <ActionIcon
-                Icon={ArrowUp}
-                disabled={isMoving}
-                onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    handleMoveItem(id, 'up', type);
-                }}
-            />
-            <ActionIcon
-                Icon={ArrowDown}
-                disabled={isMoving}
-                onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    handleMoveItem(id, 'down', type);
-                }}
-            />
-        </div>
-    );
 
     const renderActions = (item: Section | Product) => (
         <div className="flex items-center">
@@ -145,10 +87,10 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
             <div className="flex justify-between items-center mb-4 flex-shrink-0">
                 <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
                 <div className="flex space-x-2">
-                    <Button onClick={onAddProductDirect} size="sm" variant="outline" disabled={!isCategorySelected}>
+                    <Button onClick={onAddProductDirect} size="sm" variant="outline" disabled={!selectedCategoryId}>
                         Añadir Prod. Directo
                     </Button>
-                    <Button onClick={onAddNew} size="sm" disabled={!isCategorySelected}>
+                    <Button onClick={onAddNew} size="sm" disabled={!selectedCategoryId}>
                         <Plus className="w-4 h-4 mr-2" />
                         Añadir Sección
                     </Button>
@@ -156,8 +98,7 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
             </div>
 
             <div className="space-y-2 overflow-y-auto flex-grow">
-                {/* Renderizado condicional basado en si hay una categoría seleccionada */}
-                {!isCategorySelected ? (
+                {!selectedCategoryId ? (
                     <div className="text-center py-10 flex items-center justify-center h-full">
                         <p className="text-gray-500">Selecciona una categoría para ver su contenido.</p>
                     </div>
@@ -166,7 +107,7 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
                         <p className="text-gray-500">No hay secciones ni productos directos.</p>
                     </div>
                 ) : (
-                    sortedSections.map(item => {
+                    sections.map(item => {
                         if (isSection(item)) {
                             // Renderiza la fila para una Sección
                             return (
@@ -175,14 +116,12 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
                                     id={item.section_id}
                                     status={item.status}
                                     isSelected={selectedSectionId === item.section_id}
-                                    isReorderMode={isReorderMode}
                                     imageSrc={item.image}
                                     imageAlt={item.name ?? 'Sección'}
                                     imageType="sections"
                                     title={item.name}
-                                    content={`${item.products_count ?? 0} productos`}
-                                    onClick={() => !isReorderMode && onSectionSelect(item)}
-                                    reorderHandles={<ReorderHandles id={item.section_id} type="section" />}
+                                    subtitle={`productos`}
+                                    onClick={() => onSectionSelect(item)}
                                     actions={renderActions(item)}
                                 />
                             );
@@ -198,16 +137,13 @@ export const SectionGridView: React.FC<SectionGridViewProps> = ({
                                     key={`prod-${item.product_id}`}
                                     id={item.product_id}
                                     status={item.status}
-                                    isSelected={false} // Productos directos no son seleccionables para mostrar una 3ra col
-                                    isReorderMode={isReorderMode}
+                                    isSelected={false}
                                     imageSrc={item.image}
                                     imageAlt={item.name ?? 'Producto'}
                                     imageType="products"
                                     title={item.name}
                                     subtitle={subtitle}
-                                    onClick={() => !isReorderMode && onEdit(item)} // Editar al hacer clic
-                                    className="bg-slate-50" // Color de fondo para diferenciar
-                                    reorderHandles={<ReorderHandles id={item.product_id} type="product" />}
+                                    onClick={() => onEdit(item)}
                                     actions={renderActions(item)}
                                 />
                             );

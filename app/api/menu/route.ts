@@ -6,7 +6,25 @@
  */
 import { NextResponse } from 'next/server';
 import prisma from "@/prisma/prisma";
-import { Menu, Product } from '../auth/models';
+
+// Tipos simples para datos mock
+interface MockProduct {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  image?: string;
+  visible: boolean;
+}
+
+interface MockMenu {
+  id: number;
+  name: string;
+  availability?: string;
+  visible: boolean;
+  products: MockProduct[];
+  dishes?: number;
+}
 
 export async function GET() {
   try {
@@ -37,7 +55,7 @@ export async function GET() {
     */
 
     // Meanwhile, return sample data
-    const sampleMenus: Menu[] = [
+    const sampleMenus: MockMenu[] = [
       {
         id: 1,
         name: "Pasta and Plantain Menu",

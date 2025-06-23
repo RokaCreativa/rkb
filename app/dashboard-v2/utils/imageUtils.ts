@@ -40,10 +40,19 @@ export const getImagePath = (imagePath: string | null | undefined, type: 'catego
  * @param event Evento de error de la imagen
  */
 export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement, Event>): void => {
-  console.error('Error loading image:', event.currentTarget.src);
-  event.currentTarget.src = '/images/placeholder.png';
+  const img = event.currentTarget;
+  const currentSrc = img.src;
+
+  // Prevenir bucles infinitos: si ya es un placeholder, no hacer nada
+  if (currentSrc.includes('placeholder.png') || img.classList.contains('placeholder-image')) {
+    console.warn('Placeholder image also failed to load, skipping replacement');
+    return;
+  }
+
+  console.error('Error loading image:', currentSrc);
+  img.src = '/images/placeholder.png';
   // Añadir clases para indicar que es una imagen de reemplazo
-  event.currentTarget.classList.add('placeholder-image');
+  img.classList.add('placeholder-image');
 }
 
 /**

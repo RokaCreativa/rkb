@@ -63,7 +63,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = await Promise.resolve(params.id);
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
 
     // Verificar autenticación
     const session = await getServerSession(authOptions);
@@ -142,7 +143,7 @@ export async function GET(
         })()
         : null,
       status: product.status ? 1 : 0,
-      display_order: product.display_order || 0,
+      products_display_order: product.products_display_order || 0,
       client_id: product.client_id || 0,
       price: parseFloat(product.price?.toString() || '0'),
       description: product.description,
@@ -206,7 +207,8 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
-  const productId = parseInt(params.id, 10);
+  const resolvedParams = await params;
+  const productId = parseInt(resolvedParams.id, 10);
   if (isNaN(productId)) {
     return NextResponse.json({ error: 'ID de producto inválido' }, { status: 400 });
   }
@@ -230,16 +232,13 @@ export async function PATCH(
           } else if (key === 'display_order' && typeof value === 'string') {
             const num = parseInt(value, 10);
             if (!isNaN(num)) updateData.display_order = num;
-          }
-          else if (key === 'section_id' && typeof value === 'string') {
+          } else if (key === 'section_id' && typeof value === 'string') {
             const num = parseInt(value, 10);
             if (!isNaN(num)) updateData.section_id = num;
-          }
-          else if (key === 'category_id' && typeof value === 'string') {
+          } else if (key === 'category_id' && typeof value === 'string') {
             const num = parseInt(value, 10);
             if (!isNaN(num)) updateData.category_id = num;
-          }
-          else {
+          } else {
             // Para 'name' y 'description', que son strings
             updateData[key] = value;
           }
@@ -282,7 +281,7 @@ export async function PATCH(
     return NextResponse.json(updatedProduct);
 
   } catch (error) {
-    console.error(`Error al actualizar producto ${params.id}:`, error);
+    console.error(`Error al actualizar producto ${resolvedParams.id}:`, error);
     return NextResponse.json({ error: 'Error al actualizar producto' }, { status: 500 });
   }
 } 

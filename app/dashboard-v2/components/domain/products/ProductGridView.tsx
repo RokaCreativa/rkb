@@ -41,101 +41,37 @@ import { cn } from '@/lib/utils';
 import { GenericRow } from '@/app/dashboard-v2/components/ui/Table/GenericRow';
 import { Button } from '@/app/dashboard-v2/components/ui/Button/Button';
 import { ActionIcon } from '../../ui/Button/ActionIcon';
+import { useDashboardStore } from '@/app/dashboard-v2/stores/dashboardStore';
 
 import { ArrowUp, ArrowDown } from 'lucide-react';
 
-type ProductGridViewProps = {
+interface ProductGridViewProps {
     products: Product[];
-    isReorderMode: boolean;
-    onMoveItem: (itemId: number, direction: 'up' | 'down', itemType: 'category' | 'section' | 'product', contextId?: number | null) => Promise<void>;
-    selectedSectionId: number | null;
-    onEdit: (product: Product) => void;
-    onDelete: (product: Product) => void;
-    onMove?: (product: Product) => void;
-    onToggleShowcase: (productId: number) => void;
-    onToggleVisibility: (product: Product) => void;
-    onAddNew: () => void;
     title: string;
-    selectedProductId?: number | null;
+    onToggleVisibility: (item: Product) => void;
+    onToggleShowcase: (productId: number) => Promise<void>;
+    onEdit: (item: Product) => void;
+    onDelete: (item: Product) => void;
+    onAddNew: () => void;
     isSectionSelected: boolean;
-};
+}
 
 export const ProductGridView: React.FC<ProductGridViewProps> = ({
     products,
-    isReorderMode,
-    onMoveItem,
-    selectedSectionId,
+    title,
+    onToggleVisibility,
+    onToggleShowcase,
     onEdit,
     onDelete,
-    onMove,
-    onToggleShowcase,
-    onToggleVisibility,
     onAddNew,
-    title,
-    selectedProductId,
     isSectionSelected,
 }) => {
-
-    // 🔧 SOLUCIÓN DEFINITIVA: Garantizar orden visual explícito para React
-    // Esto resuelve el problema del "segundo movimiento" que falla visualmente
-    const sortedProducts = useMemo(() => {
-        return [...products].sort((a, b) => (a.products_display_order ?? 999) - (b.products_display_order ?? 999));
-    }, [products]);
-
-    // 🔧 POSIBLE FIX: Prevenir llamadas duplicadas rápidas
-    const [isMoving, setIsMoving] = React.useState(false);
-
-    const handleMoveItem = useCallback(async (id: number, direction: 'up' | 'down') => {
-        if (isMoving) {
-            console.log('🚨 Movement already in progress, ignoring click');
-            return;
-        }
-
-        try {
-            setIsMoving(true);
-            console.log('🔥 ProductGrid - Move clicked:', { id, direction, mode: isReorderMode });
-            await onMoveItem(id, direction, 'product', selectedSectionId);
-        } catch (error) {
-            console.error('🔥 Error in movement:', error);
-        } finally {
-            // Pequeño delay para prevenir clicks rápidos accidentales
-            setTimeout(() => setIsMoving(false), 300);
-        }
-    }, [isMoving, onMoveItem, isReorderMode]);
-
-    const ReorderHandles = ({ id }: { id: number }) => (
-        <div className="flex flex-col">
-            <ActionIcon
-                Icon={ArrowUp}
-                disabled={isMoving}
-                onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    handleMoveItem(id, 'up');
-                }}
-            />
-            <ActionIcon
-                Icon={ArrowDown}
-                disabled={isMoving}
-                onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    handleMoveItem(id, 'down');
-                }}
-            />
-        </div>
-    );
 
     const renderActions = (product: Product) => (
         <div className="flex items-center">
             <ActionIcon Icon={product.status ? Eye : EyeOff} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onToggleVisibility(product); }} />
             <ActionIcon Icon={Pencil} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onEdit(product); }} />
             <ActionIcon Icon={Trash} onClick={(e: React.MouseEvent) => { e.stopPropagation(); onDelete(product); }} className="hover:text-red-600" />
-            {onMove && (
-                <ActionIcon
-                    Icon={Move}
-                    iconClassName="text-gray-600 cursor-move"
-                    onClick={e => { e.stopPropagation(); onMove(product); }}
-                />
-            )}
         </div>
     );
 
@@ -177,7 +113,7 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
                         <p className="text-gray-500">No hay productos en esta sección.</p>
                     </div>
                 ) : (
-                    sortedProducts.map((product, index) => {
+                    products.map((product, index) => {
                         const subtitle = [
                             product.price ? `$${Number(product.price).toFixed(2)}` : null,
                             product.description
@@ -187,8 +123,7 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
                             <GenericRow
                                 key={product.product_id}
                                 id={product.product_id}
-                                isSelected={selectedProductId === product.product_id}
-                                isReorderMode={isReorderMode}
+                                isSelected={false}
                                 imageSrc={product.image}
                                 imageAlt={product.name ?? 'Producto'}
                                 imageType="products"
@@ -197,8 +132,7 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
                                 status={product.status}
                                 actions={renderActions(product)}
                                 showcaseIcon={renderShowcaseIcon(product)}
-                                reorderHandles={<ReorderHandles id={product.product_id} />}
-                                onClick={() => !isReorderMode && onEdit(product)}
+                                onClick={() => onEdit(product)}
                             />
                         );
                     })
@@ -208,4 +142,4 @@ export const ProductGridView: React.FC<ProductGridViewProps> = ({
     );
 };
 
-ProductGridView.displayName = 'ProductGridView'; 
+ProductGridView.displayName = 'ProductGridView';
