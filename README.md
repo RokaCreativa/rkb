@@ -1,97 +1,172 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🍽️ RokaMenu - Sistema de Gestión de Menús Digitales
 
-## Getting Started
+![Next.js](https://img.shields.io/badge/Next.js-15.2.1-black)
+![React](https://img.shields.io/badge/React-19-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
+![Prisma](https://img.shields.io/badge/Prisma-Latest-2D3748)
+![Zustand](https://img.shields.io/badge/Zustand-State%20Management-orange)
 
-First, run the development server:
+Sistema completo de gestión de menús digitales para restaurantes, desarrollado con las últimas tecnologías web. Arquitectura moderna, escalable y mantenible siguiendo principios de Domain-Driven Design.
+
+## 🚀 Tecnologías Principales
+
+- **Frontend:** Next.js 15.2.1 + React 19 + TypeScript
+- **Styling:** TailwindCSS + Shadcn/ui
+- **Estado Global:** Zustand (patrón atómico + useMemo)
+- **Base de Datos:** MySQL + Prisma ORM
+- **Autenticación:** NextAuth.js
+- **Arquitectura:** DDD + Separación de Responsabilidades
+
+## 📁 Estructura del Proyecto
+
+```
+rokamenu-next/
+├── app/
+│   ├── api/                    # API Routes (Next.js App Router)
+│   ├── dashboard-v2/           # Dashboard Principal
+│   │   ├── components/         # Componentes UI
+│   │   │   ├── core/          # Componentes maestros
+│   │   │   ├── domain/        # Componentes de dominio
+│   │   │   ├── modals/        # Sistema de modales
+│   │   │   └── ui/            # Componentes reutilizables
+│   │   ├── hooks/             # Hooks personalizados
+│   │   ├── stores/            # Estado global (Zustand)
+│   │   ├── types/             # Definiciones de tipos
+│   │   ├── utils/             # Utilidades
+│   │   └── views/             # Vistas principales
+│   └── auth/                  # Autenticación
+├── docs/                      # Documentación técnica
+│   └── sistema/               # Bitácora y mandamientos
+├── prisma/                    # Schema y migraciones
+└── public/                    # Assets estáticos
+```
+
+## 🏗️ Arquitectura del Dashboard
+
+### **Vista de Escritorio (DashboardView.tsx)**
+
+- **Patrón:** Master-Detail de 3 columnas
+- **Grid 1:** Categorías + Productos Globales
+- **Grid 2:** Secciones + Productos Locales
+- **Grid 3:** Productos de Sección
+
+### **Vista Móvil (MobileView.tsx)**
+
+- **Patrón:** Drill-Down jerárquico
+- **Navegación:** Categorías → Secciones → Productos
+- **FAB:** Botón flotante contextual
+
+## 🎯 Principios de Desarrollo
+
+### **Mandamiento #7: Separación Absoluta**
+
+- **Componentes UI:** "Tontos", solo renderizado y eventos
+- **Lógica de Negocio:** Hooks personalizados y stores
+- **Transformaciones:** useMemo para derivación de datos
+
+### **Patrón React 19 + Zustand**
+
+- **Selectores atómicos:** Evitar bucles infinitos
+- **useMemo local:** Cálculos derivados en componentes
+- **Hooks directos:** No usar getState() en componentes
+
+## 🚀 Inicio Rápido
+
+### Prerrequisitos
+
+- Node.js 18+
+- MySQL 8.0+
+- npm/yarn/pnpm
+
+### Instalación
 
 ```bash
+# Clonar repositorio
+git clone https://github.com/RokaCreativa/rokamenu.git
+cd rokamenu
+
+# Instalar dependencias
+npm install
+
+# Configurar base de datos
+cp .env.example .env.local
+# Editar .env.local con tus credenciales
+
+# Ejecutar migraciones
+npx prisma migrate dev
+
+# Iniciar desarrollo
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrir [http://localhost:3000](http://localhost:3000) para ver la aplicación.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📚 Documentación Técnica
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **📓 Bitácora:** `docs/sistema/Bitacora.md` - Historial de desarrollo
+- **📜 Mandamientos:** `docs/sistema/Mandamientos.md` - Principios técnicos
+- **🧠 Arquitectura:** `docs/sistema/EstructuraRokaMenu.md` - Diseño del sistema
 
-## Estructura del Proyecto
+## 🔧 Scripts Disponibles
 
-Este proyecto está organizado siguiendo una arquitectura modular con separación clara de responsabilidades:
-
-### Componentes
-
-- `/components` - Componentes reutilizables para toda la aplicación
-- `/app/dashboard/components` - Componentes específicos para el dashboard
-  - `/views` - Vistas principales del dashboard (CategoriesView, SectionsView, ProductsView)
-  - `/actions` - Componentes de acción (CategoryActions, SectionActions, ProductActions)
-  - `/modals` - Modales del dashboard (confirmación, formularios, etc.)
-  - `/state` - Componentes para estados de carga, error y vacíos
-
-### Hooks
-
-- `/lib/hooks/ui` - Hooks de UI genéricos (modales, drag-and-drop, etc.)
-- `/lib/hooks/dashboard` - Hooks específicos para el dashboard
-
-### Servicios
-
-- `/lib/services` - Servicios para interactuar con la API
-
-## Componentes de Modal
-
-El proyecto incluye un sistema modular para los modales:
-
-- `BaseModal` - Componente base para todos los modales con transiciones
-- `FormModal` - Modal específico para formularios
-- `ConfirmationModal` - Modal para solicitar confirmación
-- `DeleteModal` - Modal especializado para confirmar eliminaciones
-
-### Uso de Modales
-
-```tsx
-import { useModalState } from '@/lib/hooks/ui';
-import { DeleteCategoryConfirmation } from '@/app/dashboard/components/modals';
-
-// En tu componente:
-const { isOpen, data, open, close } = useModalState<Category>();
-
-// Abrir el modal con datos
-const handleDeleteClick = (category) => {
-  open({ initialData: category });
-};
-
-// Renderizado
-return (
-  <>
-    <button onClick={handleDeleteClick}>Eliminar</button>
-    
-    <DeleteCategoryConfirmation 
-      isOpen={isOpen}
-      onClose={close}
-      categoryId={data?.category_id}
-      categoryName={data?.name}
-      onDeleted={handleCategoryDeleted}
-    />
-  </>
-);
+```bash
+npm run dev          # Desarrollo
+npm run build        # Build de producción
+npm run start        # Servidor de producción
+npm run lint         # Linting
+npm run type-check   # Verificación de tipos
 ```
 
-## Learn More
+## 🎨 Sistema de Diseño
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework:** TailwindCSS
+- **Componentes:** Shadcn/ui + Radix UI
+- **Iconos:** Heroicons
+- **Tipografía:** Geist (optimizada por Vercel)
+- **Responsive:** Mobile-First
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🔐 Autenticación
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Provider:** NextAuth.js
+- **Estrategia:** Credenciales + JWT
+- **Middleware:** Protección de rutas automática
+- **Roles:** Sistema de permisos por cliente
 
-## Deploy on Vercel
+## 📊 Estado del Proyecto
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### ✅ **Completado**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Sistema CRUD completo (Categorías, Secciones, Productos)
+- Dashboard responsivo (Desktop + Mobile)
+- Sistema de modales unificado
+- Gestión de imágenes robusto
+- Arquitectura híbrida (productos directos)
+- Sistema de visibilidad/toggle
+
+### 🚧 **En Desarrollo**
+
+- Sistema de reordenamiento con flechitas
+- Gestión de alérgenos
+- Precios múltiples
+- Exportación de menús
+
+## 🤝 Contribución
+
+1. Fork el proyecto
+2. Crear rama feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -m 'Añadir nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abrir Pull Request
+
+## 📄 Licencia
+
+Este proyecto es propiedad de **RokaCreativa** - Todos los derechos reservados.
+
+## 🏢 Sobre RokaCreativa
+
+Especialistas en soluciones digitales para el sector gastronómico.
+Desarrollamos tecnología que transforma la experiencia culinaria.
+
+---
+
+**Desarrollado con ❤️ por el equipo de RokaCreativa**
