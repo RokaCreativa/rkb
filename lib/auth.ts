@@ -6,6 +6,7 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import prisma from "./prisma";
+import { BaseUser, LoginCredentials } from "./types/auth";
 
 // Tipos simplificados
 type SimpleUser = {
@@ -53,7 +54,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials): Promise<SimpleUser | null> {
+      async authorize(credentials): Promise<BaseUser | null> {
         // 🧪 CERO SEGURIDAD: Solo verificar que el email exista
         if (!credentials?.email) {
           throw new Error("Email es requerido");

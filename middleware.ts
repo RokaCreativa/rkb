@@ -1,32 +1,28 @@
-import { getToken } from "next-auth/jwt";
+/**
+ * @fileoverview Middleware Principal de Next.js
+ * @description Maneja redirects y autenticación usando funciones modulares
+ * @module middleware
+ */
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { shouldRedirectToDashboardV2 } from "./app/routes";
+import { isProtectedRoute, handleAuthentication } from "./lib/middleware/auth";
 
 export async function middleware(request: NextRequest) {
-  // First, handle dashboard redirects
+  // 1. Manejar redirects de dashboard legacy
   if (shouldRedirectToDashboardV2(request)) {
     const url = request.nextUrl.clone();
-    url.pathname = url.pathname.replace('/dashboard', '/dashboard-v2');
+    url.pathname = url.pathname.replace('/dashboard', '/dashboard');
     return NextResponse.redirect(url);
   }
 
-  // 🧪 MODO PRUEBAS: Autenticación DESHABILITADA temporalmente
-  // ================================================================
-  // ⚠️ SOLO PARA PRUEBAS - REACTIVAR EN PRODUCCIÓN
-  // ================================================================
-
-  /* 
-  // CÓDIGO ORIGINAL - DESCOMENTA PARA REACTIVAR SEGURIDAD:
-  const token = await getToken({ req: request });
-
-  if (!token) {
-    // Store the original URL to redirect back after login
-    const url = new URL("/auth/signin", request.url);
-    url.searchParams.set("callbackUrl", request.nextUrl.pathname);
-    return NextResponse.redirect(url);
+  // 2. Manejar autenticación solo en rutas protegidas
+  if (isProtectedRoute(request.nextUrl.pathname)) {
+    const authResponse = await handleAuthentication(request);
+    if (authResponse) {
+      return authResponse; // Redirigir a login si no está autenticado
+    }
   }
-  */
 
   return NextResponse.next();
 }
@@ -34,11 +30,9 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/dashboard-v2/:path*",
     "/api/categories/:path*",
     "/api/products",
     "/api/products/:path*",
-    "/api/menus/:path*",
-    "/dashboard"
+    "/api/menus/:path*"
   ]
 };

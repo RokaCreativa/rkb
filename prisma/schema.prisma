@@ -55,7 +55,6 @@ model categories {
   image                    String?    @db.VarChar(45)
   status                   Boolean?   @default(true)
   display_order            Int?
-  categories_display_order Int? // Orden en Grid 1 (categories)
   client_id                Int?
   registered_at            DateTime?  @db.DateTime(0)
   deleted                  Int?       @default(0) @db.TinyInt
@@ -63,6 +62,7 @@ model categories {
   deleted_by               String?    @db.VarChar(50)
   deleted_ip               String?    @db.VarChar(20)
   is_virtual_category      Boolean    @default(false)
+  categories_display_order Int?
   clients                  clients?   @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_category_client")
   direct_products          products[] @relation("CategoryToProducts")
   sections                 sections[]
@@ -312,9 +312,9 @@ model products {
   no_picture                   Int?                @default(0)
   category_id                  Int?
   is_showcased                 Boolean             @default(false)
-  categories_display_order     Int? // Orden en Grid 1 (productos globales)
-  sections_display_order       Int? // Orden en Grid 2 (productos locales)
-  products_display_order       Int? // Orden en Grid 3 (productos normales)
+  categories_display_order     Int?
+  sections_display_order       Int?
+  products_display_order       Int?
   clients                      clients?            @relation(fields: [client_id], references: [client_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_product_client")
   sections                     sections?           @relation(fields: [section_id], references: [section_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_section")
   category                     categories?         @relation("CategoryToProducts", fields: [category_id], references: [category_id], onDelete: Cascade)
@@ -441,7 +441,6 @@ model sections {
   name                   String?             @db.VarChar(50)
   status                 Boolean?            @default(true)
   display_order          Int?
-  sections_display_order Int? // Orden en Grid 2 (sections)
   image                  String?             @db.VarChar(100)
   registered_at          DateTime?           @db.DateTime(0)
   category_id            Int?
@@ -450,6 +449,7 @@ model sections {
   deleted_by             String?             @db.VarChar(50)
   deleted_ip             String?             @db.VarChar(20)
   is_virtual             Boolean             @default(false)
+  sections_display_order Int?
   products               products[]
   products_sections      products_sections[]
   categories             categories?         @relation(fields: [category_id], references: [category_id], onDelete: Cascade, map: "fk_section_category")

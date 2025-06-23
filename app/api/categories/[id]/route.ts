@@ -93,12 +93,15 @@ export async function PATCH(
     // Aquí puedes añadir validación con Zod si es necesario
     console.log('[API] 💾 Datos finales para actualizar en DB:', dataToUpdate);
 
+    // Excluir category_id del objeto de actualización para evitar error de Prisma
+    const { category_id, ...updateData } = dataToUpdate as any;
+
     const updatedCategory = await prisma.categories.update({
       where: {
         category_id: categoryId,
         client_id: clientId,
       },
-      data: dataToUpdate,
+      data: updateData,
     });
 
     console.log('[API] ✅ Actualización en DB exitosa.');

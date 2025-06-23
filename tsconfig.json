@@ -49,7 +49,9 @@
     // Configuración de alias para rutas más limpias en imports.
     "paths": {
       "@/*": ["./*"],
-      "@/prisma/*": ["./prisma/*"]
+      "@/prisma/*": ["./prisma/*"],
+      // ⚠️ ALIAS TEMPORAL - Migración dashboard-v2 → dashboard
+      "@/app/dashboard-v2/*": ["./app/dashboard/*"]
     }
   },
 

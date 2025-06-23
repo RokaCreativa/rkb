@@ -1,0 +1,16 @@
+/**
+ * @fileoverview Estilos globales compartidos para el dashboard
+ * @author RokaMenu Team
+ * @version 1.1.0
+ * @updated 2024-06-19
+ * 
+ * Este archivo contiene estilos globales para el dashboard.
+ * Los estilos específicos para los grids han sido movidos a styles/grids.css
+ * Las clases dashboard-* están definidas en styles/dashboard.css
+ */
+
+/* Importar variables de tailwind */
+@import "tailwindcss";
+
+/* Nota: Las clases .dashboard-container, .dashboard-main, .dashboard-section, etc.
+   están definidas en styles/dashboard.css para evitar duplicaciones */

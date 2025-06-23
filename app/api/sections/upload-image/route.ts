@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from '@/prisma/prisma';
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../../../lib/auth";
+import { authOptions } from "@/lib/auth";
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 
@@ -61,11 +61,11 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const fileName = file.name;
     const uniqueFileName = `${timestamp}_${fileName}`;
-    
+
     // Guardar la imagen en el sistema de archivos
     const path = join(process.cwd(), 'public', 'images', 'sections', uniqueFileName);
     await writeFile(path, buffer);
-    
+
     // 6. Actualizar la referencia en la base de datos
     await prisma.sections.update({
       where: {
