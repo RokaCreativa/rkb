@@ -1,4 +1,40 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# PRUEBA: Solo mantener app, components, lib, prisma
+
+# Excluir todo por defecto
+*
+
+# Permitir solo las carpetas esenciales para la prueba
+!app/
+!app/**
+!components/
+!components/**
+!lib/
+!lib/**
+!prisma/
+!prisma/**
+
+# Permitir archivos de configuración esenciales
+!package.json
+!package-lock.json
+!next.config.*
+!tailwind.config.*
+!tsconfig.json
+!.gitignore
+!README.md
+
+# Excluir node_modules siempre
+node_modules/
+
+# Excluir archivos de build
+.next/
+.vercel/
+dist/
+build/
+
+# Excluir archivos temporales
+*.log
+.env*
+.DS_Store
 
 # dependencies
 /node_modules
