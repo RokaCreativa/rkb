@@ -1,4 +1,4 @@
-# PRUEBA: Solo mantener app, components, lib, prisma + archivos raíz
+# PRUEBA: Solo mantener app, components, lib, prisma + archivos raíz + public sin imágenes
 
 # Excluir todo por defecto
 *
@@ -12,6 +12,37 @@
 !lib/**
 !prisma/
 !prisma/**
+
+# Permitir carpeta public pero sin imágenes
+!public/
+!public/**
+
+# Excluir todas las imágenes de public
+public/images/categories/*
+public/images/products/*
+public/images/sections/*
+public/images/main_logo/*
+public/images/mainlogo/*
+public/images/backgrounds/*
+public/images/global/*
+public/images/qr/*
+public/images/vc/*
+
+# Mantener estructura con .gitkeep
+!public/images/categories/.gitkeep
+!public/images/products/.gitkeep
+!public/images/sections/.gitkeep
+!public/images/main_logo/.gitkeep
+!public/images/mainlogo/.gitkeep
+!public/images/backgrounds/.gitkeep
+!public/images/global/.gitkeep
+!public/images/qr/.gitkeep
+!public/images/vc/.gitkeep
+
+# Mantener archivos esenciales
+!public/images/placeholder.png
+!public/images/allergensIcons/
+!public/placeholder.png
 
 # Permitir archivos de configuración esenciales en la raíz
 !package.json
@@ -83,17 +114,6 @@ next-env.d.ts
 # Documentation - keep only local
 docs/
 
-# Ignore all images but keep folder structure and essential files
-public/images/categories/*
-public/images/products/*
-public/images/sections/*
-public/images/main_logo/*
-public/images/mainlogo/*
-public/images/backgrounds/*
-public/images/global/*
-public/images/qr/*
-public/images/vc/*
-
 # Keep folder structure with .gitkeep files
 !public/images/categories/.gitkeep
 !public/images/products/.gitkeep
@@ -104,10 +124,6 @@ public/images/vc/*
 !public/images/global/.gitkeep
 !public/images/qr/.gitkeep
 !public/images/vc/.gitkeep
-
-# Keep essential static images
-!public/images/placeholder.png
-!public/images/allergensIcons/
 
 # Keep complete .minio.sys folder for MinIO functionality
 !public/images/.minio.sys/
