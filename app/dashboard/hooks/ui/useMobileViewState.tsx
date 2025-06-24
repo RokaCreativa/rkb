@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { Category, Section } from '@/app/types/menu';
-import { ViewType } from '../../types/dashboard';
+import { Category, Section } from '@/app/dashboard/types';
+import { ViewType } from '@/app/dashboard/types';
 
 /**
  * Hook personalizado para gestionar el estado de navegación y vistas en el dashboard móvil

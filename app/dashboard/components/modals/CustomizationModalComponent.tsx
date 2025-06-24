@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { XMarkIcon, ArrowsPointingOutIcon, ArrowsPointingInIcon, StarIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
-import { useClient } from '@/app/dashboard-v2/hooks/core/useClient';
-import { useCustomizationStore, FavoriteTheme } from '@/app/dashboard-v2/hooks/ui/state/customizationStore';
+import { useClientManagement } from '@/app/dashboard/hooks/core/useClientManagement';
+import { useCustomizationStore, FavoriteTheme } from '@/app/dashboard/hooks/ui/state/useCustomizationStore';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
-import { useTheme } from '@/app/dashboard-v2/hooks/ui/useTheme';
+import { useTheme } from '@/app/dashboard/hooks/ui/useTheme';
 import { default as DraggableComponent } from 'react-draggable';
 
 interface CustomizationModalProps {
@@ -47,7 +47,7 @@ const tailwindColors = {
 const tailwindShades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 
 const CustomizationModal: React.FC<CustomizationModalProps> = ({ isOpen, onClose }) => {
-  const { client, updateClient } = useClient();
+  const { client, updateClient } = useClientManagement();
   const customization = useCustomizationStore(state => state);
   const { updateThemeVariable } = useTheme();
 
